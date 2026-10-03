@@ -66,7 +66,7 @@ export function RoleTemplates({ slug }: { slug: string }) {
       </ul>
       <p className="mt-4 text-muted-foreground">
         <Link className="underline" href="/templates">
-          Browse all 12 free templates
+          Browse all 14 free templates
         </Link>
       </p>
       {galleries.map((gallery) => (

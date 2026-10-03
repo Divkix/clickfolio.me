@@ -17,7 +17,7 @@ export const revalidate = 86400;
 const title = "Resume Website Templates";
 
 const description =
-  "Explore 12 free resume website templates, from minimalist personal websites to developer portfolios. Turn your PDF resume into a hosted portfolio.";
+  "Explore 14 free resume website templates, from minimalist personal websites to developer portfolios. Turn your PDF resume into a hosted portfolio.";
 
 const path = "/templates";
 
@@ -57,7 +57,7 @@ export default function TemplatesPage() {
               Resume Website Templates
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Find a resume website template that fits the way you work. Explore 12 free personal
+              Find a resume website template that fits the way you work. Explore 14 free personal
               website templates, from quiet editorial layouts to image-led portfolios and developer
               profiles. Every design turns your resume into a shareable website.
             </p>
@@ -102,7 +102,7 @@ export default function TemplatesPage() {
               Start with your PDF resume. clickfolio.me uses AI to parse it into a hosted portfolio
               at clickfolio.me/@handle. Choose a layout that gives the right emphasis to your
               experience, skills, and projects. The preview on each template page uses demo content
-              so you can compare designs before starting. All 12 themes are free.
+              so you can compare designs before starting. All 14 themes are free.
             </p>
             <Button asChild size="lg">
               <Link href="/">Create Your Free Portfolio</Link>

@@ -133,6 +133,26 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-teal-50",
     badgeTextColor: "text-teal-700",
   },
+  {
+    id: "boardroom",
+    name: "Daniel Reyes",
+    role: "Director of Strategy & Operations",
+    initials: "DR",
+    avatarGradient: "from-slate-700 to-amber-700",
+    badgeLabel: "Boardroom",
+    badgeBgColor: "bg-slate-100",
+    badgeTextColor: "text-slate-700",
+  },
+  {
+    id: "broadsheet",
+    name: "Helen Marsh",
+    role: "Senior Economist",
+    initials: "HM",
+    avatarGradient: "from-rose-300 to-stone-700",
+    badgeLabel: "Broadsheet",
+    badgeBgColor: "bg-rose-50",
+    badgeTextColor: "text-rose-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1214,11 +1234,174 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  boardroom: {
+    full_name: "Daniel Reyes",
+    headline: "Director of Strategy & Operations, logistics and supply chain",
+    summary:
+      "Operator with twelve years across freight, warehousing and last-mile. I rebuild P&Ls that have stopped making sense: start with the cost-to-serve, fix the network, then give the board one set of numbers it can trust.",
+    contact: {
+      email: "daniel.reyes@example.com",
+      location: "New York, NY",
+      linkedin: "https://linkedin.com/in/danielreyes",
+      website: "https://danielreyes.co",
+    },
+    experience: [
+      {
+        title: "Director, Strategy & Operations",
+        company: "Northline Freight",
+        location: "New York, NY",
+        start_date: "2022-01",
+        end_date: undefined,
+        description: "",
+        highlights: [
+          "Redesigned a 14-node distribution network, cutting cost per shipment 11% on $410M revenue",
+          "Built the quarterly operating review used by the CEO and board; forecast error fell from 9% to 3%",
+          "Led the integration of two acquired carriers across 600 staff with no loss of top-20 accounts",
+        ],
+      },
+      {
+        title: "Senior Manager, Network Planning",
+        company: "Harbor & Vale",
+        location: "Newark, NJ",
+        start_date: "2018-03",
+        end_date: "2021-12",
+        description: "",
+        highlights: [
+          "Opened three regional hubs on schedule, with combined capex 8% under plan",
+          "Introduced cost-to-serve pricing for the 200 largest accounts, adding $22M in annual margin",
+        ],
+      },
+      {
+        title: "Consultant",
+        company: "Bain & Company",
+        location: "Boston, MA",
+        start_date: "2014-07",
+        end_date: "2018-02",
+        description: "",
+        highlights: [
+          "Delivered operations turnarounds for six industrial and retail clients, each above $200M revenue",
+          "Promoted to Senior Consultant in 22 months",
+        ],
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Industrial Engineering",
+        institution: "Georgia Institute of Technology",
+        location: "Atlanta, GA",
+        graduation_date: "2014-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Strategy",
+        items: ["Portfolio planning", "M&A integration", "Pricing", "Board reporting"],
+      },
+      {
+        category: "Operations",
+        items: ["Network design", "S&OP", "Cost-to-serve", "Vendor consolidation"],
+      },
+      { category: "Analytics", items: ["SQL", "Python", "Looker", "Scenario modelling"] },
+    ],
+    certifications: [{ name: "CPIM", issuer: "ASCM", date: "2016" }],
+    projects: [
+      {
+        title: "Cost-to-Serve Model",
+        description:
+          "Open-source workbook for allocating warehouse, linehaul and last-mile cost to individual accounts",
+        year: "2023",
+        technologies: ["Python", "SQL"],
+        url: "https://github.com/danielreyes/cost-to-serve",
+      },
+    ],
+  },
+
+  broadsheet: {
+    full_name: "Helen Marsh",
+    headline: "Senior Economist, public finance and labor policy",
+    summary:
+      "Economist with eleven years advising finance ministries and central banks on tax design, fiscal risk and labor-market reform. I build models that policymakers can read, and write the briefing notes that explain what they say. Most recently led the costing of a national childcare subsidy now covering 1.2 million families.",
+    contact: {
+      email: "helen.marsh@example.com",
+      location: "Washington, DC",
+      linkedin: "https://linkedin.com/in/helenmarsh",
+      website: "https://helenmarsh.org",
+    },
+    experience: [
+      {
+        title: "Senior Economist",
+        company: "Brookhaven Policy Institute",
+        location: "Washington, DC",
+        start_date: "2020-09",
+        end_date: undefined,
+        description:
+          "Leads a team of five on fiscal policy research for governments and development banks.",
+        highlights: [
+          "Costed a national childcare subsidy now covering 1.2 million families, within 3% of realised spend",
+          "Built a tax-microsimulation model adopted by two finance ministries",
+          "Writes the Institute's monthly fiscal risk briefing, read by 4,000 officials",
+        ],
+      },
+      {
+        title: "Economist",
+        company: "International Monetary Research Office",
+        location: "Geneva, Switzerland",
+        start_date: "2016-02",
+        end_date: "2020-08",
+        description: "Advised on fiscal consolidation programmes for middle-income countries.",
+        highlights: [
+          "Authored country reports for nine programmes, three of which shaped final loan terms",
+          "Designed the office's debt sustainability dashboard",
+        ],
+      },
+      {
+        title: "Research Analyst",
+        company: "Aldgate Economics",
+        location: "London, UK",
+        start_date: "2014-09",
+        end_date: "2016-01",
+        description: "Supported labor-market studies for UK government departments.",
+      },
+    ],
+    education: [
+      {
+        degree: "MSc in Economics",
+        institution: "London School of Economics",
+        location: "London, UK",
+        graduation_date: "2014-07",
+      },
+      {
+        degree: "BA in Economics and Mathematics",
+        institution: "University of Warwick",
+        location: "Coventry, UK",
+        graduation_date: "2013-07",
+      },
+    ],
+    skills: [
+      { category: "Modelling", items: ["Microsimulation", "DSGE", "Fiscal risk", "Econometrics"] },
+      { category: "Tools", items: ["R", "Stata", "Python", "SQL"] },
+      { category: "Writing", items: ["Briefing notes", "Cabinet papers", "Public testimony"] },
+    ],
+    certifications: [{ name: "CFA Level II Candidate", issuer: "CFA Institute", date: "2024" }],
+    projects: [
+      {
+        title: "Open Tax Microsim",
+        description:
+          "Open-source tax and benefit microsimulation library used by researchers in six countries",
+        year: "2022",
+        technologies: ["Python", "R"],
+        url: "https://github.com/helenmarsh/open-tax-microsim",
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-[#E4E7E1]", isDark: false },
+  boardroom: { bg: "bg-[#0F1318]", isDark: true },
   bold_corporate: { bg: "bg-white", isDark: false },
+  broadsheet: { bg: "bg-[#F3E5D9]", isDark: false },
   case_file: { bg: "bg-[#2F2A26]", isDark: true },
   classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },
   design_folio: { bg: "bg-[#EDEEF0]", isDark: false },

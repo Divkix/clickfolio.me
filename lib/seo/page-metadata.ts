@@ -14,7 +14,7 @@ export const HOME_OG_IMAGE = {
 const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
 
 const HOME_DESCRIPTION =
-  "Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — 12 free templates, a custom @handle URL, and privacy controls. No signup to start.";
+  "Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — 14 free templates, a custom @handle URL, and privacy controls. No signup to start.";
 
 /**
  * Metadata for the homepage, with its canonical URL set to `/`.

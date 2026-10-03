@@ -5,7 +5,9 @@ type TemplateLoader = () => Promise<React.FC<TemplateProps>>;
 
 const TEMPLATE_LOADERS = {
   bento: () => import("@/components/templates/BentoGrid").then((m) => m.BentoGrid),
+  boardroom: () => import("@/components/templates/Boardroom").then((m) => m.Boardroom),
   bold_corporate: () => import("@/components/templates/BoldCorporate").then((m) => m.BoldCorporate),
+  broadsheet: () => import("@/components/templates/Broadsheet").then((m) => m.Broadsheet),
   case_file: () => import("@/components/templates/CaseFile").then((m) => m.CaseFile),
   classic_ats: () => import("@/components/templates/ClassicATS").then((m) => m.ClassicATS),
   design_folio: () => import("@/components/templates/DesignFolio").then((m) => m.DesignFolio),

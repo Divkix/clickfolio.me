@@ -79,6 +79,19 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-[#D9BF83]/40 to-transparent",
       shadow: "shadow-md hover:shadow-lg",
     },
+    broadsheet: {
+      container: "bg-[#F8EEE5]/95 border border-[#1B1613]/30 text-[#66584F] hover:text-[#1B1613]",
+      accent: "text-[#8A2C27]",
+      shimmer: "from-transparent via-[#8A2C27]/10 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    boardroom: {
+      container:
+        "bg-[#161B22]/95 backdrop-blur-md border border-[#262D37] text-[#98A0AB] hover:text-[#ECE6D8]",
+      accent: "text-[#C4A971]",
+      shimmer: "from-transparent via-[#C4A971]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
     retro_os: {
       container:
         "bg-[#C0C0C0] text-black border-2 border-t-white border-l-white border-r-[#0a0a0a] border-b-[#0a0a0a]",

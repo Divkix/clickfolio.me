@@ -12,12 +12,28 @@ export const THEME_PAGE_COPY: Record<
       "The layout adapts to the sections in your resume: neighboring tiles expand when a section is absent instead of leaving an empty space. On smaller screens, the tiles become a single column. Pine-green accents and rounded corners give a structured resume a more approachable presentation.",
     ],
   },
+  boardroom: {
+    description:
+      "Present your career in Boardroom, a free dark resume website template with a pinned identity column, ruled experience ledger, and brass accents.",
+    paragraphs: [
+      "Boardroom is made for directors, consultants, and finance and operations leaders who want a serious page that does not look like a corporate template. Your name, contact links, and skills stay pinned on the left while your experience scrolls beside them.",
+      "Roles are set as a ruled ledger with the dates in a monospaced margin, so tenure is easy to scan. Ivory text on near-black, with a single brass accent for company names and rules, keeps the page calm. On narrow screens the identity block moves above the ledger.",
+    ],
+  },
   bold_corporate: {
     description:
       "Choose Bold Corporate for a free resume website with a navy sidebar, condensed headings, and an annual-report-inspired layout.",
     paragraphs: [
       "Bold Corporate is a good fit for consultants and product managers whose experience needs a clear professional hierarchy. Its annual-report-inspired design places your name, contact links, and skills in a navy sidebar, leaving the main area for your career story.",
       "Condensed display headings and thick navy section rules make the page easy to navigate without turning every entry into a card. White and slate supporting colors keep the attention on job titles, descriptions, and achievements rather than decorative effects.",
+    ],
+  },
+  broadsheet: {
+    description:
+      "Use Broadsheet for a free resume website styled as a newspaper front page, with a masthead name, ruled columns, and roles set as short stories.",
+    paragraphs: [
+      "Broadsheet suits economists, analysts, consultants, and finance professionals who want an editorial page with weight. Your name is set as the masthead, your headline becomes the lead, and each role reads like a short story with a company kicker and a dated byline.",
+      "Experience runs in ruled columns beside a narrow index of education, skills, and contact details. On phones the columns collapse into one, and the paper-toned background gives way to plain white when printed. Oxblood kickers and warm ink keep it formal without feeling dated.",
     ],
   },
   case_file: {

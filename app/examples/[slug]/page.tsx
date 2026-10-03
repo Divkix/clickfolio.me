@@ -253,7 +253,7 @@ export default async function ExampleGalleryPage({ params }: GalleryPageProps) {
           </h2>
           <p className="text-muted-foreground mb-4">
             Start with your PDF resume: clickfolio.me uses AI to parse it into a hosted portfolio at
-            clickfolio.me/@handle. All 12 themes are free. These themes are starting points to
+            clickfolio.me/@handle. All 14 themes are free. These themes are starting points to
             consider, not a claim about which themes the examples above use.
           </p>
           <ul className="list-disc pl-5 space-y-2 mb-4">

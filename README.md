@@ -384,7 +384,7 @@ app/
 └── globals.css          # Global styles
 
 components/
-├── templates/           # 10 resume template components
+├── templates/           # 14 resume template components
 ├── ui/                  # shadcn/ui components
 ├── auth/                # LoginButton using Clerk's native sign-in modal
 ├── dashboard/           # Dashboard-specific components
@@ -481,28 +481,30 @@ Runs via `worker/index.ts` without self-fetch (avoids double billing).
 
 ### Referral Program
 
-Removed — all 12 templates are now free for every user. No referral gating.
+Removed — all 14 templates are now free for every user. No referral gating.
 
 ---
 
 ## Resume Templates
 
-12 built-in templates in `components/templates/`:
+14 built-in templates in `components/templates/`:
 
-| Template                 | Category     | Description                                                     | Unlock Requirement |
-| ------------------------ | ------------ | --------------------------------------------------------------- | ------------------ |
-| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography               | Free (default)     |
-| **Neo Brutalist**        | Creative     | Bold design with thick borders and loud colors                  | Free               |
-| **Glass Morphic**        | Modern       | Dark theme with frosted glass effects                           | Free               |
-| **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                        | Free               |
-| **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout      | Free               |
-| **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers          | Free               |
-| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents | Free               |
-| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                  | Free               |
-| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents               | Free               |
-| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                | Free               |
-| **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits    | Free               |
-| **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window      | Free               |
+| Template                 | Category     | Description                                                          | Unlock Requirement |
+| ------------------------ | ------------ | -------------------------------------------------------------------- | ------------------ |
+| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography                    | Free (default)     |
+| **Neo Brutalist**        | Creative     | Bold design with thick borders and loud colors                       | Free               |
+| **Glass Morphic**        | Modern       | Dark theme with frosted glass effects                                | Free               |
+| **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                             | Free               |
+| **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout           | Free               |
+| **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers               | Free               |
+| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents      | Free               |
+| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                       | Free               |
+| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents                    | Free               |
+| **Boardroom**            | Professional | Dark executive ledger with a pinned identity column, brass accents   | Free               |
+| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                     | Free               |
+| **Broadsheet**           | Professional | Newspaper front page: masthead name, ruled columns, roles as stories | Free               |
+| **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits         | Free               |
+| **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window           | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 
