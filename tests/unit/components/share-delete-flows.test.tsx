@@ -194,6 +194,7 @@ describe("SharePopover", () => {
       "bento-grid",
       "spotlight",
       "midnight",
+      "boardroom",
       "bold-corporate",
       "classic-ats",
       "design-folio",

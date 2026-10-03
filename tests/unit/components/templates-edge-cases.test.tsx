@@ -2,6 +2,7 @@ import React from "react";
 import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
+import { Boardroom } from "@/components/templates/Boardroom";
 import { BoldCorporate } from "@/components/templates/BoldCorporate";
 import { CaseFile } from "@/components/templates/CaseFile";
 import { ClassicATS } from "@/components/templates/ClassicATS";
@@ -29,6 +30,7 @@ const ALL_TEMPLATES: { name: string; Component: React.ComponentType<TemplateProp
   { name: "BoldCorporate", Component: BoldCorporate },
   { name: "CaseFile", Component: CaseFile },
   { name: "RetroOS", Component: RetroOS },
+  { name: "Boardroom", Component: Boardroom },
 ];
 
 const defaultProfile: TemplateProps["profile"] = {

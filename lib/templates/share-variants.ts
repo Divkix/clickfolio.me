@@ -11,6 +11,7 @@ export const SHARE_VARIANT_KEYS = [
   "dev-terminal",
   "case-file",
   "retro-os",
+  "boardroom",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -30,6 +31,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "dev-terminal": "",
   "case-file": "",
   "retro-os": "",
+  boardroom: "",
 };
 
 export const shareButtonStyles = {
@@ -57,6 +59,8 @@ export const shareButtonStyles = {
     "bg-transparent text-[#1F1D1A] hover:text-[#B3261E] border border-[#1F1D1A]/40 hover:border-[#B3261E] rounded-sm px-3 py-1.5 text-sm",
   "retro-os":
     "bg-[#C0C0C0] text-black px-3 py-1 text-sm shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf] active:shadow-[inset_1px_1px_#0a0a0a,inset_-1px_-1px_#fff]",
+  boardroom:
+    "bg-transparent text-[#ECE6D8] hover:text-[#C4A971] border border-[#262D37] hover:border-[#C4A971]/60 rounded-sm px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -77,6 +81,7 @@ export const shareTriggerStyles = {
   "case-file": "bg-[#FBF7EE] text-[#1F1D1A] border-[#1F1D1A]/40 rounded-sm hover:border-[#B3261E]",
   "retro-os":
     "bg-[#C0C0C0] text-black border-0 rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
+  boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm hover:border-[#C4A971]/60",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -93,6 +98,7 @@ export const sharePanelStyles = {
   "case-file": "bg-[#FBF7EE] text-[#1F1D1A] border-[#1F1D1A]/30 rounded-sm",
   "retro-os":
     "bg-[#C0C0C0] text-black border-2 border-t-white border-l-white border-r-[#0a0a0a] border-b-[#0a0a0a] rounded-none",
+  boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -115,4 +121,6 @@ export const shareItemStyles = {
     "bg-[#FBF7EE] text-[#1F1D1A] hover:text-[#B3261E] border border-[#1F1D1A]/25 hover:border-[#B3261E]",
   "retro-os":
     "bg-white text-black hover:bg-[#000080] hover:text-white border border-[#808080] rounded-none",
+  boardroom:
+    "bg-[#0F1318] text-[#ECE6D8] hover:text-[#C4A971] border border-[#262D37] hover:border-[#C4A971]/60",
 } satisfies Record<SharePopoverVariant, string>;

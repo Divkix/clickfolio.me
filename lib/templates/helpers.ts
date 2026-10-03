@@ -57,3 +57,10 @@ export function formatYear(date: string): string {
 export function formatShortDate(date: string): string {
   return formatMonthYear(date);
 }
+
+/** "Mar 2021 – Present"; tolerates a missing start date and returns null when both are blank. */
+export function formatDateSpan(start?: string, end?: string | null): string | null {
+  if (!start?.trim()) return end?.trim() ? formatShortDate(end) : null;
+
+  return `${formatShortDate(start)} – ${end?.trim() ? formatShortDate(end) : "Present"}`;
+}

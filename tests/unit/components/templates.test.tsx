@@ -1,6 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
+import { Boardroom } from "@/components/templates/Boardroom";
 import { BoldCorporate } from "@/components/templates/BoldCorporate";
 import { CaseFile } from "@/components/templates/CaseFile";
 import { ClassicATS } from "@/components/templates/ClassicATS";
@@ -260,6 +261,33 @@ describe("Template Component Tests", () => {
     test("handles missing sections gracefully", () => {
       const { container } = testTemplate("BoldCorporate", BoldCorporate, minimalResumeContent);
       expect(container.textContent).toContain(minimalResumeContent.full_name);
+    });
+  });
+
+  describe("Boardroom Template", () => {
+    test("renders without error with mock resume data", () => {
+      const { container } = testTemplate("Boardroom", Boardroom, fullResumeContent);
+      expect(container.querySelector(".bd-root")).toBeInTheDocument();
+      expect(container.textContent).toContain("John Alexander Doe");
+    });
+
+    test("handles missing sections gracefully", () => {
+      const { container } = testTemplate("Boardroom", Boardroom, minimalResumeContent);
+      expect(container.textContent).toContain(minimalResumeContent.full_name);
+      expect(container.querySelector("#experience")).toBeNull();
+      expect(container.querySelector("#education")).toBeNull();
+    });
+
+    test("renders a single main landmark and safe external links", () => {
+      const { container } = testTemplate("Boardroom", Boardroom, fullResumeContent);
+      expect(container.querySelectorAll("main#main-content")).toHaveLength(1);
+
+      const external = Array.from(container.querySelectorAll('a[target="_blank"]'));
+      expect(external.length).toBeGreaterThan(0);
+
+      for (const anchor of external) {
+        expect(anchor.getAttribute("rel")).toBe("ugc nofollow noopener noreferrer");
+      }
     });
   });
 

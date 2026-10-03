@@ -133,6 +133,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-teal-50",
     badgeTextColor: "text-teal-700",
   },
+  {
+    id: "boardroom",
+    name: "Daniel Reyes",
+    role: "Director of Strategy & Operations",
+    initials: "DR",
+    avatarGradient: "from-slate-700 to-amber-700",
+    badgeLabel: "Boardroom",
+    badgeBgColor: "bg-slate-100",
+    badgeTextColor: "text-slate-700",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1214,10 +1224,93 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  boardroom: {
+    full_name: "Daniel Reyes",
+    headline: "Director of Strategy & Operations, logistics and supply chain",
+    summary:
+      "Operator with twelve years across freight, warehousing and last-mile. I rebuild P&Ls that have stopped making sense: start with the cost-to-serve, fix the network, then give the board one set of numbers it can trust.",
+    contact: {
+      email: "daniel.reyes@example.com",
+      location: "New York, NY",
+      linkedin: "https://linkedin.com/in/danielreyes",
+      website: "https://danielreyes.co",
+    },
+    experience: [
+      {
+        title: "Director, Strategy & Operations",
+        company: "Northline Freight",
+        location: "New York, NY",
+        start_date: "2022-01",
+        end_date: undefined,
+        description: "",
+        highlights: [
+          "Redesigned a 14-node distribution network, cutting cost per shipment 11% on $410M revenue",
+          "Built the quarterly operating review used by the CEO and board; forecast error fell from 9% to 3%",
+          "Led the integration of two acquired carriers across 600 staff with no loss of top-20 accounts",
+        ],
+      },
+      {
+        title: "Senior Manager, Network Planning",
+        company: "Harbor & Vale",
+        location: "Newark, NJ",
+        start_date: "2018-03",
+        end_date: "2021-12",
+        description: "",
+        highlights: [
+          "Opened three regional hubs on schedule, with combined capex 8% under plan",
+          "Introduced cost-to-serve pricing for the 200 largest accounts, adding $22M in annual margin",
+        ],
+      },
+      {
+        title: "Consultant",
+        company: "Bain & Company",
+        location: "Boston, MA",
+        start_date: "2014-07",
+        end_date: "2018-02",
+        description: "",
+        highlights: [
+          "Delivered operations turnarounds for six industrial and retail clients, each above $200M revenue",
+          "Promoted to Senior Consultant in 22 months",
+        ],
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Industrial Engineering",
+        institution: "Georgia Institute of Technology",
+        location: "Atlanta, GA",
+        graduation_date: "2014-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Strategy",
+        items: ["Portfolio planning", "M&A integration", "Pricing", "Board reporting"],
+      },
+      {
+        category: "Operations",
+        items: ["Network design", "S&OP", "Cost-to-serve", "Vendor consolidation"],
+      },
+      { category: "Analytics", items: ["SQL", "Python", "Looker", "Scenario modelling"] },
+    ],
+    certifications: [{ name: "CPIM", issuer: "ASCM", date: "2016" }],
+    projects: [
+      {
+        title: "Cost-to-Serve Model",
+        description:
+          "Open-source workbook for allocating warehouse, linehaul and last-mile cost to individual accounts",
+        year: "2023",
+        technologies: ["Python", "SQL"],
+        url: "https://github.com/danielreyes/cost-to-serve",
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-[#E4E7E1]", isDark: false },
+  boardroom: { bg: "bg-[#0F1318]", isDark: true },
   bold_corporate: { bg: "bg-white", isDark: false },
   case_file: { bg: "bg-[#2F2A26]", isDark: true },
   classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },

@@ -2,6 +2,7 @@ import type { SharePopoverVariant } from "@/lib/templates/share-variants";
 
 export const THEME_IDS = [
   "bento",
+  "boardroom",
   "bold_corporate",
   "case_file",
   "classic_ats",
@@ -41,6 +42,12 @@ export const THEME_METADATA = {
     description: "Flat colour tiles that fit together around your photo",
     category: "Modern",
     preview: "/previews/bento.webp",
+  },
+  boardroom: {
+    name: "Boardroom",
+    description: "A dark executive ledger with a pinned identity column and brass accents",
+    category: "Professional",
+    preview: "/previews/boardroom.webp",
   },
   bold_corporate: {
     name: "Bold Corporate",
@@ -127,6 +134,7 @@ export const themeToShareVariant = {
   bento: "bento-grid",
   spotlight: "spotlight",
   midnight: "midnight",
+  boardroom: "boardroom",
   bold_corporate: "bold-corporate",
   classic_ats: "classic-ats",
   design_folio: "design-folio",

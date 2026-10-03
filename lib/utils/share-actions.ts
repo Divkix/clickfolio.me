@@ -26,6 +26,7 @@ export function getLinkedInIconVariant(
   themeId: ThemeId | (string & {}) | null | undefined,
 ): BrandIconVariant {
   switch (themeId) {
+    case "boardroom":
     case "glass-morphic":
     case "midnight":
     case "dev-terminal":

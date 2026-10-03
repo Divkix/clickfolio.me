@@ -74,6 +74,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => ({
   DYNAMIC_TEMPLATES: Object.fromEntries(
     [
       "bento",
+      "boardroom",
       "bold_corporate",
       "case_file",
       "classic_ats",
