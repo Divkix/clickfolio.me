@@ -17,13 +17,13 @@ export const PROFESSIONS: readonly Profession[] = [
   {
     slug: "product-manager",
     label: "Product Managers",
-    themes: ["bold_corporate", "classic_ats", "bento"],
+    themes: ["boardroom", "bold_corporate", "bento"],
   },
   { slug: "marketer", label: "Marketers", themes: ["bento", "spotlight", "glass"] },
   {
     slug: "consultant",
     label: "Consultants",
-    themes: ["case_file", "bold_corporate", "minimalist_editorial"],
+    themes: ["boardroom", "broadsheet", "case_file"],
   },
   { slug: "student", label: "Students", themes: ["classic_ats", "midnight", "retro_os"] },
 ] as const;

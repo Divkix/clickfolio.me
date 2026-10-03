@@ -153,7 +153,7 @@ export default async function ThemePage({ params }: ThemePageProps) {
               </h2>
               <p className="mb-6 leading-relaxed text-muted-foreground">
                 Upload your PDF resume and let AI parse it into a hosted portfolio at
-                clickfolio.me/@handle. {details.name} is one of 12 free themes you can choose for
+                clickfolio.me/@handle. {details.name} is one of 14 free themes you can choose for
                 your resume website.
               </p>
               <Button asChild size="lg">

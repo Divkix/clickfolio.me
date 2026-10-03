@@ -19,9 +19,21 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  boardroom: dynamic(
+    () => import("@/components/templates/Boardroom").then((m) => ({ default: m.Boardroom })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
   bold_corporate: dynamic(
     () =>
       import("@/components/templates/BoldCorporate").then((m) => ({ default: m.BoldCorporate })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  broadsheet: dynamic(
+    () => import("@/components/templates/Broadsheet").then((m) => ({ default: m.Broadsheet })),
     {
       loading: TemplateLoadingFallback,
     },

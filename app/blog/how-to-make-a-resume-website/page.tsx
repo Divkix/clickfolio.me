@@ -56,7 +56,7 @@ export default function HowToMakeAResumeWebsitePage() {
             history, education, skills, and contact details and maps them onto the page for you.
           </li>
           <li>
-            <strong>Pick a template.</strong> Choose from 12 designs — clean and minimal for
+            <strong>Pick a template.</strong> Choose from 14 designs — clean and minimal for
             corporate roles, bolder layouts for creative ones. You can switch any time without
             losing content.
           </li>
@@ -187,7 +187,7 @@ export default function HowToMakeAResumeWebsitePage() {
         </p>
         <p>
           Not sure which look to choose? Compare the{" "}
-          <Link href="/templates">12 free portfolio templates</Link> before turning your resume into
+          <Link href="/templates">14 free portfolio templates</Link> before turning your resume into
           a hosted page.
         </p>
         <p>

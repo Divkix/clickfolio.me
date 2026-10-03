@@ -137,7 +137,7 @@ export default function ResumeWebsiteExamplesPage() {
           12 designs side by side.
         </p>
         <p>
-          Compare the <Link href="/templates">12 free portfolio templates</Link>, then see how
+          Compare the <Link href="/templates">14 free portfolio templates</Link>, then see how
           people present their work in our{" "}
           <Link href="/examples/marketing">marketing portfolio examples</Link>,{" "}
           <Link href="/examples/engineering">engineering portfolio examples</Link>, and{" "}
