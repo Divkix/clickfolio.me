@@ -141,6 +141,24 @@ export default function TemplatesShowcasePage() {
           researchers, scientists, lawyers, analysts, and consultants whose work is about evidence.
         </p>
 
+        <h3>{THEME_METADATA.boardroom.name}</h3>
+        <p>
+          {THEME_METADATA.boardroom.description}. Your name, contact links, and skills stay fixed on
+          the left while experience scrolls past on a ruled ledger, with dates in a monospaced
+          margin. Ivory text on near-black and a single brass accent keep it calm and serious. Best
+          for directors, consultants, and finance or operations leaders who want a dark page that
+          still reads as professional.
+        </p>
+
+        <h3>{THEME_METADATA.broadsheet.name}</h3>
+        <p>
+          {THEME_METADATA.broadsheet.description}. Your name is the masthead, your headline is the
+          lead, and each role is a short story with the company as the kicker and the dates in the
+          byline. Skills, education, and contact details sit in a narrow index beside the columns.
+          Best for economists, analysts, policy and finance professionals, and writers of careful
+          briefings.
+        </p>
+
         <h3>{THEME_METADATA.retro_os.name}</h3>
         <p>
           {THEME_METADATA.retro_os.description}. Desktop icons down the side jump to each window,
