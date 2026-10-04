@@ -8,7 +8,7 @@ import { performCleanup } from "../lib/cron/cleanup";
 import { getDb } from "../lib/db";
 import { resumes, user as userTable } from "../lib/db/schema";
 import { log } from "../lib/utils/log";
-// See issue #172 / ADR-0001.
+// See issue #172.
 import { SECURITY_HEADERS } from "../lib/utils/security-headers";
 import {
   appendLinkEntry,
