@@ -131,7 +131,6 @@ export interface AiParseResult {
   success: boolean;
   data: JsonValue;
   error?: string;
-  structuredOutput?: boolean;
 }
 
 export type AiEnvVars = Pick<
@@ -335,7 +334,7 @@ export async function parseWithAi(
           success: true,
         });
 
-        return { success: true, data: transformed, structuredOutput: false };
+        return { success: true, data: transformed };
       } catch (retryError) {
         logParseEvent({
           modelId,
@@ -375,7 +374,7 @@ export async function parseWithAi(
           repaired: repaired || undefined,
         });
 
-        return { success: true, data: transformed, structuredOutput: false };
+        return { success: true, data: transformed };
       }
 
       logParseEvent({
@@ -439,7 +438,7 @@ export async function parseWithAi(
       const normalized = normalizeAiKeys(parsed as UnknownRecord);
       const transformed = transformToSchema(normalized);
 
-      return { success: true, data: transformed, structuredOutput: false };
+      return { success: true, data: transformed };
     } catch (retryError) {
       if (retryError instanceof Error && retryError.message.includes("AI Gateway not configured")) {
         throw retryError;

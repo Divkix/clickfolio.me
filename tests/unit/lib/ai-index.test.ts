@@ -45,7 +45,6 @@ describe("parseResumeWithAi", () => {
     mocks.parseWithAi.mockResolvedValue({
       success: true,
       data: structuredClone(validAiData),
-      structuredOutput: false,
     });
   });
 
@@ -126,12 +125,10 @@ describe("parseResumeWithAi", () => {
       .mockResolvedValueOnce({
         success: true,
         data: invalidData,
-        structuredOutput: false,
       })
       .mockResolvedValueOnce({
         success: true,
         data: structuredClone(validAiData),
-        structuredOutput: false,
       });
 
     await expect(parseResumeWithAi(new ArrayBuffer(1), {})).resolves.toMatchObject({
@@ -151,7 +148,6 @@ describe("parseResumeWithAi", () => {
       .mockResolvedValueOnce({
         success: true,
         data: invalidData,
-        structuredOutput: false,
       })
       .mockResolvedValueOnce({
         success: false,

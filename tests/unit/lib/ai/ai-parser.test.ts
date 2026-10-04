@@ -115,7 +115,6 @@ describe("parseWithAi - universal text path", () => {
 
     expect(result.success).toBe(true);
     expect(result.data).toEqual(mockOutput);
-    expect(result.structuredOutput).toBe(false);
   });
 
   it("appends LinkedIn rules to the system prompt only for LinkedIn exports", async () => {
@@ -811,23 +810,5 @@ describe("parseWithAi - additional coverage", () => {
     await parseWithAi("Resume", customEnv, "param-model");
 
     expect(mockProvider).toHaveBeenCalledWith("param-model");
-  });
-
-  it("validates that structuredOutput flag is false on success", async () => {
-    const mockOutput = {
-      full_name: "Jane",
-      headline: "Dev",
-      summary: "",
-      contact: { email: "" },
-      experience: [],
-    };
-
-    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
-    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.structuredOutput).toBe(false);
-    expect(result.success).toBe(true);
   });
 });
