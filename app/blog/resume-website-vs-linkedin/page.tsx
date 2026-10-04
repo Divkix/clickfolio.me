@@ -42,13 +42,13 @@ export default function ResumeWebsiteVsLinkedinPage() {
         <div className="overflow-x-auto my-8 not-prose">
           <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
             <thead>
-              <tr>
+              <tr className="bg-surface-2 text-foreground">
                 <th className="border border-border p-3 text-left font-semibold">Factor</th>
                 <th className="border border-border p-3 text-left font-semibold">Resume website</th>
                 <th className="border border-border p-3 text-left font-semibold">LinkedIn</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-muted-foreground">
               <tr>
                 <td className="border border-border p-3">Ownership</td>
                 <td className="border border-border p-3">You own the page and its content</td>
