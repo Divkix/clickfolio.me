@@ -81,9 +81,8 @@ Rules:
 - URLs: return full https:// URLs when known.
 - Descriptions: preserve original wording. Do not embellish.
 - If bullet points exist, include them in highlights and summarize in description.
-- Skills MUST be an array of { category, items } (not an object).
-- ALWAYS extract education, skills, certifications, and projects when present in the resume.
-- Return empty arrays [] only for sections truly absent from the resume text.
+- Skills are an array of { category, items }, not an object.
+- Extract education, skills, certifications, and projects whenever the resume contains them; use an empty array only for a section it does not contain.
 - Do not add fields not in the schema.`;
 
 export function extractJson(text: string): string {
