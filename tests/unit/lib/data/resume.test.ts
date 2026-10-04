@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { ResumeContent } from "@/lib/types/database";
 import type { JsonValue } from "@/lib/types/json";
 
 vi.mock("react", async (importOriginal) => {
@@ -17,54 +16,12 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-type RelatedProfileRow = {
-  handle: string | null;
-  name: string | null;
-  headline: string | null;
-  content: ResumeContent;
-  privacySettings: {
-    show_phone: boolean;
-    show_address: boolean;
-    hide_from_search: boolean;
-    show_in_directory: boolean;
-  };
-};
-
-type MockSelectRow = RelatedProfileRow | { n: number };
-
 const mockUserFindFirst = vi.fn();
-
-const mockSelectResults: MockSelectRow[][] = [];
-
-const mockSelectChain = {
-  from: vi.fn(),
-  where: vi.fn(),
-  leftJoin: vi.fn(),
-  orderBy: vi.fn(),
-  limit: vi.fn(),
-  offset: vi.fn(),
-  then: vi.fn((resolve: (rows: MockSelectRow[]) => MockSelectRow[]) =>
-    resolve(mockSelectResults.shift() ?? []),
-  ),
-};
-
-mockSelectChain.from.mockReturnValue(mockSelectChain);
-
-mockSelectChain.where.mockReturnValue(mockSelectChain);
-
-mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
-
-mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-
-mockSelectChain.limit.mockReturnValue(mockSelectChain);
-
-mockSelectChain.offset.mockReturnValue(mockSelectChain);
 
 const mockDb = {
   query: {
     user: { findFirst: mockUserFindFirst },
   },
-  select: vi.fn().mockReturnValue(mockSelectChain),
 };
 
 vi.mock("@/lib/db", () => ({
@@ -158,11 +115,6 @@ function makeUserRow(overrides: {
 describe("getResumeData - phone/address privacy filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSelectChain.from.mockReturnValue(mockSelectChain);
-    mockSelectChain.where.mockReturnValue(mockSelectChain);
-    mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
-    mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockDb.select.mockReturnValue(mockSelectChain);
   });
 
   it("removes phone from content when show_phone is false", async () => {
@@ -247,11 +199,6 @@ describe("getResumeData - phone/address privacy filtering", () => {
 describe("getResumeData - theme resolution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSelectChain.from.mockReturnValue(mockSelectChain);
-    mockSelectChain.where.mockReturnValue(mockSelectChain);
-    mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
-    mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockDb.select.mockReturnValue(mockSelectChain);
   });
 
   it("keeps any stored theme now that all themes are free", async () => {
@@ -281,122 +228,4 @@ describe("getResumeData - theme resolution", () => {
     expect(result).not.toBeNull();
     expect(result!.theme_id).toBe("minimalist_editorial");
   });
-});
-
-const indexableContent: ResumeContent = {
-  full_name: "Ada Lovelace",
-  headline: "Mathematician",
-  summary:
-    "Develops analytical methods for solving complex mathematical problems and communicating results to technical collaborators. Studies the capabilities of calculating machines and translates theoretical ideas into detailed procedures that others can review and reproduce. Works with engineers to clarify assumptions, check intermediate results, and document the practical limitations of proposed designs. Prepares explanatory notes that connect symbolic reasoning with applications in science and industry. Reviews published research, compares alternative approaches, and presents findings through clear examples. Recent work explores repeated operations, numerical sequences, and the organization of instructions for programmable machines, with an emphasis on accuracy, useful notation, and careful verification of every calculation.",
-  contact: { email: "ada@example.com" },
-  experience: [
-    {
-      title: "Software Engineer",
-      company: "Example Co",
-      location: "Remote",
-      start_date: "2020-01",
-      end_date: "Present",
-      description: "Built example software.",
-    },
-  ],
-  education: [],
-  skills: [],
-};
-
-function relatedRow(
-  handle: string,
-  options: { hideFromSearch?: boolean; content?: ResumeContent } = {},
-): RelatedProfileRow {
-  return {
-    handle,
-    name: handle,
-    headline: "Engineer",
-    content: options.content ?? indexableContent,
-    privacySettings: {
-      show_phone: false,
-      show_address: false,
-      hide_from_search: options.hideFromSearch ?? false,
-      show_in_directory: true,
-    },
-  };
-}
-
-describe("getRelatedProfiles", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockSelectResults.length = 0;
-    mockSelectChain.from.mockReturnValue(mockSelectChain);
-    mockSelectChain.where.mockReturnValue(mockSelectChain);
-    mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
-    mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockDb.select.mockReturnValue(mockSelectChain);
-  });
-
-  it("returns only indexable profiles and excludes the current profile", async () => {
-    const { getRelatedProfiles } = await import("@/lib/data/resume");
-
-    const lowQualityContent: ResumeContent = {
-      ...indexableContent,
-      summary: "Brief",
-      contact: { email: "" },
-      experience: [],
-      education: [],
-    };
-
-    mockSelectResults.push(
-      [{ n: 7 }],
-      [
-        relatedRow("janedoe"),
-        relatedRow("hidden", { hideFromSearch: true }),
-        relatedRow("placeholder", {
-          content: { ...indexableContent, full_name: "Jane Doe" },
-        }),
-        relatedRow("incomplete", { content: lowQualityContent }),
-        relatedRow("alice"),
-        relatedRow("bob"),
-        relatedRow("carol"),
-      ],
-    );
-
-    const result = await getRelatedProfiles("janedoe");
-
-    expect(result.map((profile) => profile.handle).sort()).toEqual(["alice", "bob", "carol"]);
-  });
-
-  it("limits related cards to three eligible profiles", async () => {
-    const { getRelatedProfiles } = await import("@/lib/data/resume");
-    mockSelectResults.push(
-      [{ n: 5 }],
-      [
-        relatedRow("candidate-one"),
-        relatedRow("candidate-two"),
-        relatedRow("candidate-three"),
-        relatedRow("candidate-four"),
-        relatedRow("candidate-five"),
-      ],
-    );
-
-    const result = await getRelatedProfiles("janedoe");
-
-    expect(result).toHaveLength(3);
-    expect(result.every((profile) => profile.handle.startsWith("candidate-"))).toBe(true);
-  });
-  it.each([
-    { totalCount: 5, expectedOffset: 0 },
-    { totalCount: 30, expectedOffset: 18 },
-  ])(
-    "bounds the related-profile offset for $totalCount profiles",
-    async ({ totalCount, expectedOffset }) => {
-      const { getRelatedProfiles } = await import("@/lib/data/resume");
-      const random = vi.spyOn(Math, "random").mockReturnValue(0.99);
-
-      try {
-        mockSelectResults.push([{ n: totalCount }], []);
-        await getRelatedProfiles("janedoe");
-        expect(mockSelectChain.offset).toHaveBeenCalledWith(expectedOffset);
-      } finally {
-        random.mockRestore();
-      }
-    },
-  );
 });

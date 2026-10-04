@@ -1,11 +1,11 @@
 import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
-import { and, count, eq, isNotNull, ne, or, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { cache } from "react";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
-import { siteData, user } from "@/lib/db/schema";
+import { user } from "@/lib/db/schema";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { generateBreadcrumbJsonLd, generateResumeJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
@@ -218,71 +218,3 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 export const getResumeData = cache((handle: string) => fetchResumeDataRaw(handle));
 
 export const getResumeMetadata = cache((handle: string) => fetchResumeMetadataRaw(handle));
-
-export const getRelatedProfiles = cache(
-  async (
-    currentHandle: string,
-    _skills?: string[] | null,
-    _headline?: string | null,
-  ): Promise<Array<{ handle: string; name: string; headline?: string | null }>> => {
-    const db = getDb(env.HYPERDRIVE);
-
-    const notHiddenFromSearch = or(
-      sql`${user.privacySettings}->>'hide_from_search' IS NULL`,
-      sql`${user.privacySettings}->>'hide_from_search' = 'false'`,
-    );
-
-    const whereClause = and(
-      isNotNull(user.handle),
-      ne(user.handle, currentHandle),
-      isNotNull(siteData.userId),
-      notHiddenFromSearch,
-    );
-
-    const countRows = await db
-      .select({ n: count() })
-      .from(user)
-      .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(whereClause);
-
-    const totalCount = countRows[0]?.n ?? 0;
-
-    if (!totalCount) return [];
-
-    const offset = Math.floor(Math.random() * (Math.max(0, totalCount - 12) + 1));
-
-    const rows = await db
-      .select({
-        handle: user.handle,
-        name: siteData.previewName,
-        headline: siteData.previewHeadline,
-        content: siteData.content,
-        privacySettings: user.privacySettings,
-      })
-      .from(user)
-      .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(whereClause)
-      .orderBy(user.handle)
-      .limit(12)
-      .offset(offset);
-
-    const pool = rows.filter(
-      (r): r is typeof r & { handle: string } =>
-        r.handle !== null &&
-        r.handle !== currentHandle &&
-        r.content != null &&
-        isIndexableProfile(r.content, normalizePrivacySettings(r.privacySettings)),
-    );
-
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-
-    return pool.slice(0, 3).map((r) => ({
-      handle: r.handle,
-      name: r.name?.trim() || r.handle,
-      headline: r.headline?.trim() || null,
-    }));
-  },
-);
