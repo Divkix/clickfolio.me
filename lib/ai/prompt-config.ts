@@ -1,6 +1,6 @@
 export const DEFAULT_AI_MODEL = "openai/gpt-6-luna:nitro";
 
-export const MAX_OUTPUT_TOKENS = 16_384;
+export const MAX_OUTPUT_TOKENS = 32_768;
 
 export const PROVIDER_ROUTING = {
   openrouter: {
