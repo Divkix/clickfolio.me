@@ -1,3 +1,0 @@
-# proxy.ts does cookie-presence-only checks (no database access)
-
-`proxy.ts` only checks that a session cookie is present at the edge for `/dashboard /edit /settings /waiting /wizard` — no signature/JWKS validation and no database call (the edge proxy has no DB binding; pre-cutover the same rule kept D1 out of middleware). Since the Clerk cutover the cookie is Clerk's `__session` (the `__client` device cookie exists even signed out and must never grant access). Real enforcement is deferred to the page/API layers; the proxy is just a cheap edge bounce. A forged or expired-but-present cookie passes it.

@@ -1,7 +1,5 @@
 # clickfolio.me
 
-<img width="1800" height="1075" alt="clickfolio.me home page: headline, upload button and a live preview of a portfolio design" src="docs/assets/homepage.webp" />
-
 **Turn your PDF resume into a hosted web portfolio in under 60 seconds.**
 
 Upload a PDF. AI parses it. Get a shareable link.

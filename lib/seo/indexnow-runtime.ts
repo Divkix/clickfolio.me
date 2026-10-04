@@ -6,7 +6,7 @@ import { log } from "@/lib/utils/log";
 /** A URL submitted within this window is skipped: search engines coalesce pings anyway. */
 const DEBOUNCE_SECONDS = 10 * 60;
 
-/** Only the production Worker pings; local dev and `wrangler dev` override APP_URL (ADR-0023). */
+/** Only the production Worker pings; local dev and `wrangler dev` override APP_URL. */
 function isProductionSite(): boolean {
   return process.env.APP_URL === siteConfig.url;
 }
