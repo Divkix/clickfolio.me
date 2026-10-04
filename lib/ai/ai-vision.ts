@@ -156,7 +156,6 @@ export async function parsePdfWithVision(
             ],
           },
         ],
-        temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
         providerOptions: PROVIDER_ROUTING,
