@@ -96,7 +96,7 @@ export default function ResumeHostingPage() {
         <div className="overflow-x-auto my-8 not-prose">
           <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
             <thead>
-              <tr>
+              <tr className="bg-surface-2 text-foreground">
                 <th className="border border-border p-3 text-left font-semibold">Factor</th>
                 <th className="border border-border p-3 text-left font-semibold">PDF attachment</th>
                 <th className="border border-border p-3 text-left font-semibold">
@@ -104,7 +104,7 @@ export default function ResumeHostingPage() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-muted-foreground">
               <tr>
                 <td className="border border-border p-3">Sharing</td>
                 <td className="border border-border p-3">Attach a file each time</td>
