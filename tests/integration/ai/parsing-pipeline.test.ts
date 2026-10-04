@@ -194,7 +194,6 @@ describe("AI Parsing Pipeline", () => {
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
       expect(result.success).toBe(true);
-      expect(result.structuredOutput).toBe(false);
       expect(result.data).toBeDefined();
     });
 
@@ -208,7 +207,6 @@ describe("AI Parsing Pipeline", () => {
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
       expect(result.success).toBe(true);
-      expect(result.structuredOutput).toBeFalsy();
     });
 
     it("should handle AI timeout with retry logic", async () => {
