@@ -3,14 +3,12 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
-import { RelatedProfiles } from "@/components/RelatedProfiles";
 import { SharePopover } from "@/components/SharePopover";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
-import { getRelatedProfiles, getResumeData, getResumeMetadata } from "@/lib/data/resume";
+import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { buildProfileTitle, fitTitle } from "@/lib/seo/page-metadata";
-import { flattenSkills } from "@/lib/templates/helpers";
 import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 
@@ -145,14 +143,6 @@ export default async function HandlePage({ params }: PageProps) {
 
   const { content, profile, theme_id, privacy_settings } = resumeData;
 
-  const relatedProfiles = !privacy_settings.hide_from_search
-    ? await getRelatedProfiles(
-        handle,
-        content.skills ? flattenSkills(content.skills) : null,
-        content.headline,
-      )
-    : [];
-
   const Template = await getTemplate(theme_id);
 
   const ctaVariant: ThemeId = theme_id ?? DEFAULT_THEME;
@@ -201,7 +191,6 @@ export default async function HandlePage({ params }: PageProps) {
         title={pageTitle}
         variant={shareVariant}
       />
-      <RelatedProfiles profiles={relatedProfiles} />
       <AttributionWidget theme={theme_id ?? DEFAULT_THEME} />
     </>
   );
