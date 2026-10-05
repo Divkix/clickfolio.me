@@ -336,8 +336,7 @@ pnpm run db:push          # Sync schema without migration files (prototyping onl
 pnpm run db:studio        # Drizzle Studio UI (port 4984)
 
 # Testing
-pnpm run test             # All tests
-pnpm run test:unit        # Unit tests (fast, no retries)
+pnpm run test             # Integration and security tests
 pnpm run test:integration # Integration tests
 pnpm run test:security    # Security tests
 pnpm run test:coverage    # All tests + coverage
@@ -350,6 +349,10 @@ pnpm run format           # Format with Oxfmt
 pnpm run seo:lastmod      # Update SEO last-modified timestamps
 pnpm run ci               # type-check + lint + test + build
 ```
+
+Tests cover integration and security flows. CI collects whole-app coverage and
+enforces the remaining-suite baseline: 24% statements/lines, 16% branches, and
+14% functions.
 
 ### Project Structure
 
@@ -412,7 +415,6 @@ migrations_pg/
 └── *.sql                # Postgres migrations (drizzle-kit)
 
 tests/
-├── unit/                # Unit tests
 ├── integration/         # Integration tests
 ├── security/            # Security tests (IDOR, rate limits)
 └── setup.ts             # Test configuration

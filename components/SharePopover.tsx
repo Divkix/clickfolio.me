@@ -201,5 +201,3 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
 }
 
 export type { SharePopoverProps };
-
-export type { SharePopoverVariant } from "@/lib/templates/share-variants";
