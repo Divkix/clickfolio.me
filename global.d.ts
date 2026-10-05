@@ -6,18 +6,4 @@ declare global {
   }
 }
 
-import type { matchers } from "@testing-library/jest-dom";
-
-declare module "vite-plus/test" {
-  // @ts-expect-error - vitest's interface merging
-  interface Assertion<T = unknown> extends matchers.TestingLibraryMatchers<
-    typeof expect.stringContaining,
-    T
-  > {}
-
-  // @ts-expect-error - vitest's interface merging
-  interface AsymmetricMatchersContaining extends matchers.TestingLibraryMatchers<
-    typeof expect.stringContaining,
-    unknown
-  > {}
-}
+export {};

@@ -1,5 +1,4 @@
-import * as matchers from "@testing-library/jest-dom/matchers";
-import { afterEach, beforeEach, expect, vi } from "vite-plus/test";
+import { beforeEach, vi } from "vite-plus/test";
 import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
 import {
   mockDigest,
@@ -18,43 +17,6 @@ vi.mock("posthog-node", () => ({
   }),
 }));
 
-expect.extend(matchers);
-
-const createLocalStorageMock = () => {
-  let store: Record<string, string> = {};
-
-  return {
-    getItem: (key: string): string | null => {
-      return store[key] ?? null;
-    },
-    setItem: (key: string, value: string): void => {
-      store[key] = String(value);
-    },
-    removeItem: (key: string): void => {
-      delete store[key];
-    },
-    clear: (): void => {
-      store = {};
-    },
-    get length(): number {
-      return Object.keys(store).length;
-    },
-    key: (index: number): string | null => {
-      const keys = Object.keys(store);
-
-      return keys[index] ?? null;
-    },
-  };
-};
-
-const localStorageMock = createLocalStorageMock();
-
-Object.defineProperty(globalThis, "localStorage", {
-  value: localStorageMock,
-  writable: true,
-  configurable: true,
-});
-
 const subtleMock = {
   digest: mockDigest,
   importKey: mockImportKey,
@@ -72,36 +34,11 @@ Object.defineProperty(globalThis, "crypto", {
   configurable: true,
 });
 
-if (typeof globalThis.ResizeObserver === "undefined") {
-  globalThis.ResizeObserver = class {
-    callback: ResizeObserverCallback;
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-    }
-    observe(target: Element) {
-      // SAFETY: the stub observer fires only with fixed 320x160 dimensions for tests; a real
-      // DOMRect with border/content boxes cannot be constructed outside a browser, so the
-      // { target, contentRect } object is asserted to the entry interface the callback takes.
-      this.callback(
-        [{ target, contentRect: { width: 320, height: 160 } } as ResizeObserverEntry],
-        this,
-      );
-    }
-    unobserve() {}
-    disconnect() {}
-  };
-}
-
 beforeEach(() => {
-  localStorageMock.clear();
   mockDigest.mockClear();
   mockImportKey.mockClear();
   mockSign.mockClear();
   mockRandomUUID.mockClear();
   mockGetRandomValues.mockClear();
   clearKeyCache();
-});
-
-afterEach(() => {
-  localStorageMock.clear();
 });

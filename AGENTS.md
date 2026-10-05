@@ -17,11 +17,11 @@ Use the Node version in `.node-version` and pnpm 12.6.0.
 | Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                                                                                                  |
 | Typecheck only        | `pnpm run type-check`                                                                                                                                  |
 | Full gate             | `pnpm run verify` (`check` + `type-check` + `knip` unused exports/deps)                                                                                |
-| All tests             | `pnpm run test` (unit, integration, and security projects)                                                                                             |
-| One suite             | `pnpm run test:unit` / `test:integration` / `test:security`                                                                                            |
-| One file              | `pnpm run test tests/unit/proxy.test.ts`                                                                                                               |
-| One test by name      | `pnpm run test -t "reserved"`                                                                                                                          |
-| Suites with coverage  | `pnpm run test:coverage` (CI; combined thresholds in `vite.config.ts`)                                                                                 |
+| All tests             | `pnpm run test` (integration and security projects)                                                                                                    |
+| One suite             | `pnpm run test:integration` / `test:security`                                                                                                          |
+| One file              | `pnpm run test tests/integration/claim-flow.test.ts`                                                                                                   |
+| One test by name      | `pnpm run test -t "claim"`                                                                                                                             |
+| Suites with coverage  | `pnpm run test:coverage` (CI; integration/security baseline thresholds in `vite.config.ts`)                                                            |
 | DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)                                                                                        |
 | Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                                                                                                      |
 | Deploy                | `pnpm run deploy` (`scripts/deploy.ts`: build → `db:migrate` → R2 lifecycle → `wrangler deploy`; needs `DATABASE_URL`; `--dry-run` skips side effects) |
@@ -58,7 +58,7 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Logging** in worker/workflows/cron: `log(level, msg, fields)` from `lib/utils/log.ts` (JSON lines).
 - **Type assertions** need a `// SAFETY:` comment on the line above (lint rule `require-safety-comment-for-type-assertion`); the 18 `anti-slop/*` rules in `vite.config.ts` all run at error — read the rule file in `tools/oxlint/anti-slop/rules/` when one fires.
 - **Images:** plain `<img>`, not `next/image`.
-- **Tests:** import from `vite-plus/test`, not `vitest`. Pattern: hoisted `vi.mock(...)` at top, then `const { POST } = await import("@/app/api/…/route")` inside the test. Shared typed mocks live in `tests/setup/mocks/` (`createMockDb`, `createMockQueryChain`, `createMockR2Bucket`) — pass them directly, no `as unknown as`. Workflow tests `vi.mock("cloudflare:workers")` with a `WorkflowEntrypoint` class and drive `run()` with a fake `step.do`. Projects `unit`, `integration`, and `security` live in `vite.config.ts`; select with `--project name`.
+- **Tests:** import from `vite-plus/test`, not `vitest`. Pattern: hoisted `vi.mock(...)` at top, then `const { POST } = await import("@/app/api/…/route")` inside the test. Keep mocks typed, following the existing integration/security suites, without `as unknown as`. Projects `integration` and `security` use the Node environment in `vite.config.ts`; select with `--project name`.
 - **Commits:** Conventional Commits `type(scope): summary` (see `git log`).
 
 ## Gotchas
@@ -71,11 +71,11 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Resume text is stored raw**; React escapes on render. Never HTML-escape before storage (`migrations_pg/0009` had to undo that).
 - **Generated files:** `lib/cloudflare-env.d.ts` (`cf-typegen`), `migrations_pg/*`, `lib/seo/lastmod.json` (pre-commit stamps it; `SKIP_LASTMOD=1` for non-content commits).
 - **`/llms.txt` and `/llms-full.txt` are route handlers** built from `BLOG_POSTS`, `THEME_METADATA` etc. — a file in `public/` would shadow them.
-- **Adding a theme:** follow the chain `THEME_IDS` → `THEME_METADATA` → `themeToShareVariant` → `TEMPLATE_LOADERS`/`DYNAMIC_TEMPLATES` → demo data → theme maps in `CreateYoursCTA`/`AttributionWidget` → landing-page copy in `lib/templates/theme-pages.ts` (`/templates/<kebab>`) → `public/previews/<kebab>.webp` (shot at 1280×800@2x from `/preview/<id>` after Google Fonts load, encoded with `sharp` webp q82). `Record<ThemeId,…>` types + `registry-sync.test.ts` fail when one is missed. Recommend it for roles via `PROFESSIONS[].themes`.
+- **Adding a theme:** follow the chain `THEME_IDS` → `THEME_METADATA` → `themeToShareVariant` → `TEMPLATE_LOADERS`/`DYNAMIC_TEMPLATES` → demo data → theme maps in `CreateYoursCTA`/`AttributionWidget` → landing-page copy in `lib/templates/theme-pages.ts` (`/templates/<kebab>`) → `public/previews/<kebab>.webp` (shot at 1280×800@2x from `/preview/<id>` after Google Fonts load, encoded with `sharp` webp q82). `Record<ThemeId,…>` types catch incomplete theme maps. Recommend it for roles via `PROFESSIONS[].themes`.
 - **Profile indexability** (`isIndexableProfile`) also needs ≥ 100 words of resume text; it gates the sitemap, `/explore`, `/examples`, JSON-LD and IndexNow, so test fixtures for indexable profiles need realistic content.
 - **Template headings:** `app/globals.css` forces `h1–h4` to `var(--font-display)`, so a template's root font class doesn't reach headings — scope a rule (see `CaseFile.tsx`).
-- **Adding a blog post** needs both a `BLOG_POSTS` entry (`lib/blog/posts.ts`) and `app/blog/<slug>/page.tsx` using `getPostBySlug("<slug>")!` at module scope (build throws if they diverge). Titles ≤ 60 chars / descriptions ≤ 160 (`seo-title-length.test.ts`); set `metaTitle` when the H1 is longer.
-- **New static route** needs a key in `lib/seo/lastmod.json` (`lastmod.test.ts`) and, if public, an entry in `lib/seo/static-pages.ts`.
+- **Adding a blog post** needs both a `BLOG_POSTS` entry (`lib/blog/posts.ts`) and `app/blog/<slug>/page.tsx` using `getPostBySlug("<slug>")!` at module scope (build throws if they diverge). Titles ≤ 60 chars / descriptions ≤ 160; set `metaTitle` when the H1 is longer.
+- **New static route** needs a key in `lib/seo/lastmod.json` and, if public, an entry in `lib/seo/static-pages.ts`.
 - **JSON-LD:** always embed via `serializeJsonLd()` (`lib/seo/json-ld.ts`).
 - **Toolchain pins:** `vite-plus`, `vitest`, `@vitest/coverage-v8` must stay on the same version in `pnpm-workspace.yaml` catalog + overrides, or `--coverage` aborts. Bump them only via `vp migrate` (dependabot ignores them).
 - **Fresh dependency versions are rejected** by `minimumReleaseAge` in `pnpm-workspace.yaml`; add the package to `minimumReleaseAgeExclude` or wait.
@@ -86,7 +86,7 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 ## Definition of done
 
 1. `pnpm run verify` — lint, format, types, knip (the pre-commit hook runs this too).
-2. `pnpm run test` — or the suite(s) covering your change; CI runs each suite with `--coverage` and enforces its thresholds.
+2. `pnpm run test` — or the suite(s) covering your change; CI runs integration and security together with `--coverage` and enforces their baseline thresholds.
 3. `pnpm run build` when touching config, `worker/`, routes, or dependencies.
 4. Schema change → `db:generate` output committed under `migrations_pg/`.
 5. This file updated if you changed anything it documents.

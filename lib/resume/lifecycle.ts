@@ -90,12 +90,6 @@ export function parseLastAttemptError(
   }
 }
 
-export function getLastAttemptErrorType(
-  row: { lastAttemptError: string | null } | string | null,
-): string | null {
-  return parseLastAttemptError(row)?.type ?? null;
-}
-
 export type ResumeRetryRow = {
   status: ResumeStatus;
   retryCount: number;
@@ -114,10 +108,6 @@ export type RetryEligibility =
       httpStatus: 400 | 429;
       details?: UnknownRecord;
     };
-
-export function canRetryResume(row: ResumeRetryRow): boolean {
-  return checkRetryEligibility(row).eligible;
-}
 
 export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
   if (hasExceededMaxAttempts(row.totalAttempts ?? 0)) {

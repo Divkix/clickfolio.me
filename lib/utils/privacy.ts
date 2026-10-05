@@ -75,8 +75,6 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   show_in_directory: true,
 };
 
-export const DEFAULT_PRIVACY_SETTINGS_JSON = JSON.stringify(DEFAULT_PRIVACY_SETTINGS);
-
 export function normalizePrivacySettings(
   settings: {
     show_phone: boolean;
