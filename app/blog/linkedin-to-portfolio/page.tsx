@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { Button } from "@/components/ui/button";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -126,8 +127,9 @@ export default function LinkedInToPortfolioPage() {
         </ol>
 
         <p>
-          Choose a look from the <Link href="/templates">14 free portfolio templates</Link>, and
-          browse <Link href="/examples/marketing">marketing portfolio examples</Link> for ideas on
+          Choose a look from the{" "}
+          <Link href="/templates">{TEMPLATE_COUNT} free portfolio templates</Link>, and browse{" "}
+          <Link href="/examples/marketing">marketing portfolio examples</Link> for ideas on
           presenting campaigns and results beyond a LinkedIn headline.
         </p>
         <div className="not-prose my-8 rounded-xl border border-border bg-card p-6 shadow-sm">

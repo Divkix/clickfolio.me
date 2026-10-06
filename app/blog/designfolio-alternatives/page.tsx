@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -263,7 +264,8 @@ export default function DesignfolioAlternativesPage() {
         <p>
           clickfolio.me takes a different route from everything above. Upload your resume PDF, or
           your LinkedIn "Save to PDF" export, and the AI parses it into a live site at
-          clickfolio.me/@yourname in about 30 seconds. You can edit everything afterwards. All 14
+          clickfolio.me/@yourname in about 30 seconds. You can edit everything afterwards. All{" "}
+          {TEMPLATE_COUNT}
           templates are free, view analytics are built in, and privacy toggles let you hide fields
           like your phone number. There's no paid tier, and the code is open source under the MIT
           license.

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -76,8 +77,8 @@ export default function ResumeHostingPage() {
             and builds the page.
           </li>
           <li>
-            <strong>Choose a template.</strong> Pick from 14 designs and adjust anything that needs
-            a fix.
+            <strong>Choose a template.</strong> Pick from {TEMPLATE_COUNT} designs and adjust
+            anything that needs a fix.
           </li>
           <li>
             <strong>Publish and copy your link.</strong> Your resume is live at a shareable handle

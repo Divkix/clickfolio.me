@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -305,7 +306,7 @@ export default function ConsultantPortfolioWebsitePage() {
             },
             {
               lead: "Set privacy and pick a template.",
-              body: " Hide your phone and address if you want, and choose one of the 14 free templates.",
+              body: ` Hide your phone and address if you want, and choose one of the ${TEMPLATE_COUNT} free templates.`,
             },
             {
               lead: "Publish and share.",

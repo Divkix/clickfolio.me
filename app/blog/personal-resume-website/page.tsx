@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -147,8 +148,8 @@ export default function PersonalResumeWebsitePage() {
         </p>
         <p>
           Before choosing a layout, browse the{" "}
-          <Link href="/templates">14 free resume website templates</Link> to find a style that fits
-          your experience and the roles you want.
+          <Link href="/templates">{TEMPLATE_COUNT} free resume website templates</Link> to find a
+          style that fits your experience and the roles you want.
         </p>
         <p>
           One honest note: every site lives at clickfolio.me/@yourname. Custom domains aren't

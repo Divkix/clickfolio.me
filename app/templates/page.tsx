@@ -16,8 +16,7 @@ export const revalidate = 86400;
 
 const title = "Resume Website Templates";
 
-const description =
-  "Explore 14 free resume website templates, from minimalist personal websites to developer portfolios. Turn your PDF resume into a hosted portfolio.";
+const description = `Explore ${TEMPLATE_COUNT} free resume website templates, from minimalist personal websites to developer portfolios. Turn your PDF resume into a hosted portfolio.`;
 
 const path = "/templates";
 
@@ -57,9 +56,9 @@ export default function TemplatesPage() {
               Resume Website Templates
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Find a resume website template that fits the way you work. Explore 14 free personal
-              website templates, from quiet editorial layouts to image-led portfolios and developer
-              profiles. Every design turns your resume into a shareable website.
+              Find a resume website template that fits the way you work. Explore {TEMPLATE_COUNT}{" "}
+              free personal website templates, from quiet editorial layouts to image-led portfolios
+              and developer profiles. Every design turns your resume into a shareable website.
             </p>
           </header>
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">

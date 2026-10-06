@@ -355,8 +355,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: "clickfolio-templates-showcase",
     title: "clickfolio.me Templates: Complete Showcase & Guide",
-    description:
-      "Explore all 14 resume templates — from Minimalist Editorial to Bold Corporate. Find the perfect design for your profession.",
+    description: `Explore all ${TEMPLATE_COUNT} resume templates — from Minimalist Editorial to Bold Corporate. Find the perfect design for your profession.`,
     date: "2026-04-23",
     readTime: "7 min read",
     category: "Product",
@@ -633,7 +632,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
       {
         q: "How fast can I build a consultant portfolio from my resume?",
-        a: "Upload your consulting CV or a LinkedIn Save to PDF export to clickfolio.me and the AI builds a live site in about 30 seconds. You can then rewrite engagement summaries, set privacy, and pick one of 14 free templates.",
+        a: `Upload your consulting CV or a LinkedIn Save to PDF export to clickfolio.me and the AI builds a live site in about 30 seconds. You can then rewrite engagement summaries, set privacy, and pick one of ${TEMPLATE_COUNT} free templates.`,
       },
     ],
   },

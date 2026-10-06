@@ -12,7 +12,13 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
-import { THEME_IDS, THEME_METADATA, themeIdFromSlug, themeSlug } from "@/lib/templates/theme-ids";
+import {
+  THEME_IDS,
+  THEME_METADATA,
+  themeIdFromSlug,
+  themeSlug,
+  TEMPLATE_COUNT,
+} from "@/lib/templates/theme-ids";
 import { THEME_PAGE_COPY } from "@/lib/templates/theme-pages";
 
 export const revalidate = 86400;
@@ -153,8 +159,8 @@ export default async function ThemePage({ params }: ThemePageProps) {
               </h2>
               <p className="mb-6 leading-relaxed text-muted-foreground">
                 Upload your PDF resume and let AI parse it into a hosted portfolio at
-                clickfolio.me/@handle. {details.name} is one of 14 free themes you can choose for
-                your resume website.
+                clickfolio.me/@handle. {details.name} is one of {TEMPLATE_COUNT} free themes you can
+                choose for your resume website.
               </p>
               <Button asChild size="lg">
                 <Link href="/">Create Your Free Portfolio</Link>

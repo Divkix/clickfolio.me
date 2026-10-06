@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { getPostBySlug } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
-import { THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
+import { THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export interface RoleItem {
   lead: string;
@@ -66,7 +66,7 @@ export function RoleTemplates({ slug }: { slug: string }) {
       </ul>
       <p className="mt-4 text-muted-foreground">
         <Link className="underline" href="/templates">
-          Browse all 14 free templates
+          Browse all {TEMPLATE_COUNT} free templates
         </Link>
       </p>
       {galleries.map((gallery) => (
