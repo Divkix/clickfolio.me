@@ -198,6 +198,14 @@ export default function TemplatesShowcasePage() {
           line, and a title block at the foot. Best for architects, engineers, and designers of
           physical things.
         </p>
+
+        <h3>{THEME_METADATA.scrapbook.name}</h3>
+        <p>
+          {THEME_METADATA.scrapbook.description}. A polaroid portrait, a lined-notebook summary,
+          taped index cards for roles and projects, sticky notes for skills, and education shown
+          first as ticket stubs. Best for students and recent graduates with more coursework than
+          job history.
+        </p>
       </section>
 
       <section>

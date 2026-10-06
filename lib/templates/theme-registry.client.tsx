@@ -125,4 +125,10 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  scrapbook: dynamic(
+    () => import("@/components/templates/Scrapbook").then((m) => ({ default: m.Scrapbook })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

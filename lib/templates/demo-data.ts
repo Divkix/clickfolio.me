@@ -193,6 +193,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-blue-50",
     badgeTextColor: "text-blue-800",
   },
+  {
+    id: "scrapbook",
+    name: "Aiyana Brooks",
+    role: "Public Health Student",
+    initials: "AB",
+    avatarGradient: "from-yellow-300 to-rose-400",
+    badgeLabel: "Scrapbook",
+    badgeBgColor: "bg-yellow-50",
+    badgeTextColor: "text-yellow-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1865,6 +1875,98 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  scrapbook: {
+    full_name: "Aiyana Brooks",
+    headline: "Public health student who loves turning data into stories",
+    summary:
+      "Junior at Westbrook State studying Public Health with a minor in Statistics. I have run a campus health survey, volunteered at a community clinic and written for the student paper. Looking for a summer internship in health communication or data analysis.",
+    contact: {
+      email: "aiyana.brooks@example.edu",
+      location: "Columbus, OH",
+      linkedin: "https://linkedin.com/in/aiyanabrooks",
+      website: "https://aiyanabrooks.example.com",
+    },
+    experience: [
+      {
+        title: "Research Assistant",
+        company: "Westbrook Health Lab",
+        location: "Columbus, OH",
+        start_date: "2024-01",
+        end_date: undefined,
+        description: "Supports a faculty team studying sleep and stress in first-year students.",
+        highlights: [
+          "Cleaned and analysed survey data from 1,200 respondents in R",
+          "Co-wrote the methods section of a conference poster",
+        ],
+      },
+      {
+        title: "Clinic Volunteer",
+        company: "Riverside Community Clinic",
+        location: "Columbus, OH",
+        start_date: "2023-06",
+        end_date: "2024-05",
+        description: "Welcomed patients, ran the sign-in desk and translated simple forms.",
+        highlights: ["Volunteered 220 hours across two semesters"],
+      },
+      {
+        title: "Staff Writer",
+        company: "The Westbrook Ledger",
+        location: "Columbus, OH",
+        start_date: "2022-09",
+        end_date: "2023-12",
+        description: "Wrote weekly campus-life and health stories for the student newspaper.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Public Health, Minor in Statistics",
+        institution: "Westbrook State University",
+        location: "Columbus, OH",
+        graduation_date: "2026-05",
+        gpa: "3.8",
+      },
+      {
+        degree: "High School Diploma",
+        institution: "Lakeview High School",
+        location: "Cleveland, OH",
+        graduation_date: "2022-06",
+      },
+    ],
+    skills: [
+      { category: "Data", items: ["R", "Excel", "Survey design", "Tableau"] },
+      { category: "Writing", items: ["News writing", "Plain-language summaries", "Editing"] },
+      { category: "People", items: ["Spanish (conversational)", "Public speaking", "Teamwork"] },
+    ],
+    certifications: [
+      { name: "CITI Human Subjects Research", issuer: "CITI Program", date: "2024" },
+      { name: "CPR and First Aid", issuer: "Red Cross", date: "2023" },
+    ],
+    projects: [
+      {
+        title: "Campus Sleep Survey",
+        description:
+          "Designed and ran a 1,200-student survey on sleep habits and published a summary for the student body.",
+        year: "2024",
+        technologies: ["R", "Survey design", "Data viz"],
+        url: "https://aiyanabrooks.example.com/sleep-survey",
+      },
+      {
+        title: "Flu Shot Poster Series",
+        description:
+          "Three plain-language posters that raised vaccine-clinic sign-ups at the campus health centre.",
+        year: "2023",
+        technologies: ["Design", "Health comms"],
+      },
+      {
+        title: "Neighbourhood Walkability Map",
+        description:
+          "Class project mapping sidewalk gaps near campus, shared with the city planning office.",
+        year: "2023",
+        technologies: ["GIS", "Fieldwork"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1886,4 +1988,5 @@ export const TEMPLATE_BACKGROUNDS = {
   contact_sheet: { bg: "bg-[#0F0F10]", isDark: true },
   workspace: { bg: "bg-white", isDark: false },
   blueprint: { bg: "bg-[#0E3A66]", isDark: true },
+  scrapbook: { bg: "bg-[#F1E6D3]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

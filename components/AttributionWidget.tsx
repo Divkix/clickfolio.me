@@ -10,6 +10,12 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    scrapbook: {
+      container: "bg-[#FFFDF8]/95 border-2 border-[#2B2622] text-[#5B524A] hover:text-[#2B2622]",
+      accent: "text-[#E5533D]",
+      shimmer: "from-transparent via-[#FFD84D]/50 to-transparent",
+      shadow: "shadow-[3px_3px_0_0_#2B2622] hover:shadow-[4px_4px_0_0_#2B2622]",
+    },
     blueprint: {
       container:
         "bg-[#0E3A66]/95 backdrop-blur-md border border-[#EAF3FF]/50 text-[#BFD9F6] hover:text-white",

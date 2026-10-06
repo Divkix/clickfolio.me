@@ -17,6 +17,7 @@ export const THEME_IDS = [
   "minimalist_editorial",
   "neo_brutalist",
   "retro_os",
+  "scrapbook",
   "spotlight",
   "workspace",
 ] as const;
@@ -146,6 +147,13 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/retro-os.webp",
   },
+  scrapbook: {
+    name: "Scrapbook",
+    description:
+      "Craft-paper desk with taped index cards, sticky-note skills and a polaroid portrait",
+    category: "Creative",
+    preview: "/previews/scrapbook.webp",
+  },
   spotlight: {
     name: "Spotlight",
     description: "Your name under a single pool of stage light, with work set out like a playbill.",
@@ -187,4 +195,5 @@ export const themeToShareVariant = {
   contact_sheet: "contact-sheet",
   workspace: "workspace",
   blueprint: "blueprint",
+  scrapbook: "scrapbook",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

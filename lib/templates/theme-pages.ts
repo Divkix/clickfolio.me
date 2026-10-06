@@ -152,4 +152,13 @@ export const THEME_PAGE_COPY: Record<
       "It suits architects, engineers, and designers of physical things, and works well for technical students too. Skills appear as a legend, education and approvals as ruled tables, and a title block at the foot carries your name and handle. On phones, the sheet narrows to a single column and the dimension lines give way to plain dates.",
     ],
   },
+  scrapbook: {
+    title: "Student Portfolio Website Template",
+    description:
+      "Make a free student portfolio website with Scrapbook: a craft-paper desk of taped index cards, sticky-note skills and a polaroid portrait. Education comes first.",
+    paragraphs: [
+      "Scrapbook is a student portfolio website that feels like a desk covered in your work. A polaroid-style portrait sits beside your name, your summary is written on lined notebook paper, and each role or project is a taped index card tilted a degree or two.",
+      "Because students often have more coursework than job history, education comes first, shown as ticket stubs. Skills are sticky notes, certificates are tickets, and project keywords become small outlined tags. The cards stack into a single column on phones, and everything stays plain, readable text underneath the decoration.",
+    ],
+  },
 };
