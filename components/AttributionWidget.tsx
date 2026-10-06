@@ -10,6 +10,44 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    media_kit: {
+      container: "bg-white/95 border-2 border-[#14122B] text-[#5A5775] hover:text-[#14122B]",
+      accent: "text-[#4B2BFF]",
+      shimmer: "from-transparent via-[#C6FF3D]/50 to-transparent",
+      shadow: "shadow-[3px_3px_0_0_#14122B] hover:shadow-[4px_4px_0_0_#14122B]",
+    },
+    scrapbook: {
+      container: "bg-[#FFFDF8]/95 border-2 border-[#2B2622] text-[#5B524A] hover:text-[#2B2622]",
+      accent: "text-[#E5533D]",
+      shimmer: "from-transparent via-[#FFD84D]/50 to-transparent",
+      shadow: "shadow-[3px_3px_0_0_#2B2622] hover:shadow-[4px_4px_0_0_#2B2622]",
+    },
+    blueprint: {
+      container:
+        "bg-[#0E3A66]/95 backdrop-blur-md border border-[#EAF3FF]/50 text-[#BFD9F6] hover:text-white",
+      accent: "text-[#FFD966]",
+      shimmer: "from-transparent via-[#FFD966]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    workspace: {
+      container: "bg-white/95 border border-[#E9E9E7] text-[#787774] hover:text-[#37352F]",
+      accent: "text-[#2383E2]",
+      shimmer: "from-transparent via-[#2383E2]/10 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    contact_sheet: {
+      container:
+        "bg-[#1A1A1C]/95 backdrop-blur-md border border-[#2A2A2D] text-[#9A968D] hover:text-[#ECE8DF]",
+      accent: "text-[#FF6B2C]",
+      shimmer: "from-transparent via-[#FF6B2C]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    academic_cv: {
+      container: "bg-white/95 border border-[#DAD9D2] text-[#4D5766] hover:text-[#14202F]",
+      accent: "text-[#1D4E89]",
+      shimmer: "from-transparent via-[#1D4E89]/10 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
     minimalist_editorial: {
       container: "bg-white/95 border border-[#E4E4E7] text-[#6B6B73] hover:text-[#1B1B1F]",
       accent: "text-[#1F5C4A]",

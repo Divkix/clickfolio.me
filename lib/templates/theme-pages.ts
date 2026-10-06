@@ -2,7 +2,7 @@ import type { ThemeId } from "@/lib/templates/theme-ids";
 
 export const THEME_PAGE_COPY: Record<
   ThemeId,
-  { description: string; paragraphs: readonly string[] }
+  { title?: string; description: string; paragraphs: readonly string[] }
 > = {
   bento: {
     description:
@@ -114,6 +114,60 @@ export const THEME_PAGE_COPY: Record<
     paragraphs: [
       "Spotlight works for designers and marketers who want their name and professional introduction to take center stage. A pale lilac background, aubergine typography, and a warm pool of stage light frame the oversized opening name.",
       "The rest of the page reads like a playbill: section titles sit beside the supporting work on wider screens, then stack above it on mobile. Yellow-underlined links echo the opening light. It offers a more expressive personal introduction while preserving a straightforward account of your experience.",
+    ],
+  },
+  academic_cv: {
+    title: "Academic CV Website Template",
+    description:
+      "Build a free academic CV website with a layout that puts education first, dates appointments, and numbers your research and selected work. Print-ready.",
+    paragraphs: [
+      "Academic CV is built for graduate students, postdocs, and faculty who need a CV that lives on the web. Education leads, followed by appointments, then research and selected work listed newest first with numbered entries. A sticky index on wide screens jumps to each section your resume contains.",
+      "The resume parser reads projects, so papers, talks, and software appear under Research & Selected Work with their year, link, and keywords. Honors and certifications are listed with dates. A print button turns the page into a clean PDF CV, and on phones the index becomes a scrolling strip above the content.",
+    ],
+  },
+  contact_sheet: {
+    title: "Photography Portfolio Website Template",
+    description:
+      "Build a free photography portfolio website: film-frame project tiles on near-black, assignments listed like a shoot log, and a clean fallback when you have no images.",
+    paragraphs: [
+      "Contact Sheet is for photographers and visual storytellers. Your projects become numbered film frames in a grid, with the first one circled in grease-pencil orange. Each frame shows its year, description, and keywords, and links out when the project has a URL.",
+      "If a project includes an image, the frame displays it; if not, the project title fills the frame so the grid never has gaps. Experience reads as a log of assignments, with dates set in a monospace column. Training, kit and technique, and awards sit in columns at the end, and the page collapses to one column on phones.",
+    ],
+  },
+  workspace: {
+    title: "Notion-Style Portfolio Website Template",
+    description:
+      "Create a free portfolio website with Workspace: a clean document-style page with a cover, properties table, collapsible sections and tag labels, built from your resume.",
+    paragraphs: [
+      "Workspace gives your resume the look of a well-kept document: a soft cover band, a page icon, and a properties table where your role, email, location, and links line up as rows. Your summary appears as a callout, and each section opens and closes like a toggle block, so visitors can skim or dive in.",
+      "Skills and project keywords become colored tags, and projects sit in a two-column gallery of cards. It is a natural fit for product managers, engineers, and anyone who already plans their work in documents. It is an independent design, not affiliated with or endorsed by any note-taking app.",
+    ],
+  },
+  blueprint: {
+    title: "Architecture Portfolio Website Template",
+    description:
+      "Create a free architecture portfolio website with Blueprint: a cyanotype drawing sheet with grid paper, lettered sections, dimension-line dates and a title block.",
+    paragraphs: [
+      "Blueprint presents your career as a drawing set. White linework on cyanotype blue frames the sheet, sections are lettered like drawing callouts, and each role's dates run along a dimension line. Projects become numbered details with a spec line for materials, methods, or tools.",
+      "It suits architects, engineers, and designers of physical things, and works well for technical students too. Skills appear as a legend, education and approvals as ruled tables, and a title block at the foot carries your name and handle. On phones, the sheet narrows to a single column and the dimension lines give way to plain dates.",
+    ],
+  },
+  scrapbook: {
+    title: "Student Portfolio Website Template",
+    description:
+      "Make a free student portfolio website with Scrapbook: a craft-paper desk of taped index cards, sticky-note skills and a polaroid portrait. Education comes first.",
+    paragraphs: [
+      "Scrapbook is a student portfolio website that feels like a desk covered in your work. A polaroid-style portrait sits beside your name, your summary is written on lined notebook paper, and each role or project is a taped index card tilted a degree or two.",
+      "Because students often have more coursework than job history, education comes first, shown as ticket stubs. Skills are sticky notes, certificates are tickets, and project keywords become small outlined tags. The cards stack into a single column on phones, and everything stays plain, readable text underneath the decoration.",
+    ],
+  },
+  media_kit: {
+    title: "Marketing Portfolio Website Template",
+    description:
+      "Build a free marketing portfolio website with Media Kit: a bold colour-block hero, a results wall pulled from your resume metrics, and a by-the-numbers strip.",
+    paragraphs: [
+      "Media Kit is built for marketers who sell results. A violet hero carries your name and headline, and a by-the-numbers strip counts the roles, brands, and campaigns on your resume. Any achievement that includes a figure, such as 212%, $2.1M, or 3.4x, is lifted into a Results wall with the original sentence beside it.",
+      "Nothing is rewritten: figures are shown exactly as you wrote them, and a resume with no metrics simply skips the wall. Experience, campaigns with their channels, a brands and teams list, and skills follow, ending in a dark contact band with your email as the call to action.",
     ],
   },
 };

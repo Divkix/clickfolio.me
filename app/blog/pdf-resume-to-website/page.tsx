@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -159,7 +160,7 @@ export default function PdfResumeToWebsitePage() {
             },
             {
               lead: "clickfolio.me",
-              body: " — Upload a PDF, get a website in 30 seconds. 14 templates (all free), full editing, privacy controls, analytics, and real web hosting on Cloudflare's global network. Free forever with no paywalls on core features.",
+              body: ` — Upload a PDF, get a website in 30 seconds. ${TEMPLATE_COUNT} templates (all free), full editing, privacy controls, analytics, and real web hosting on Cloudflare's global network. Free forever with no paywalls on core features.`,
             },
           ]}
         />

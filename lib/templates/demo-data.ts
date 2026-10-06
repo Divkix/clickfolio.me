@@ -153,6 +153,66 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-rose-50",
     badgeTextColor: "text-rose-800",
   },
+  {
+    id: "academic_cv",
+    name: "Dr. Lena Hartwell",
+    role: "Assistant Professor of Cognitive Neuroscience",
+    initials: "LH",
+    avatarGradient: "from-blue-700 to-slate-700",
+    badgeLabel: "Academic CV",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-800",
+  },
+  {
+    id: "contact_sheet",
+    name: "Noor Ibrahim",
+    role: "Documentary Photographer",
+    initials: "NI",
+    avatarGradient: "from-orange-500 to-stone-900",
+    badgeLabel: "Contact Sheet",
+    badgeBgColor: "bg-orange-50",
+    badgeTextColor: "text-orange-700",
+  },
+  {
+    id: "workspace",
+    name: "Priya Nair",
+    role: "Senior Product Manager",
+    initials: "PN",
+    avatarGradient: "from-sky-300 to-violet-400",
+    badgeLabel: "Workspace",
+    badgeBgColor: "bg-sky-50",
+    badgeTextColor: "text-sky-700",
+  },
+  {
+    id: "blueprint",
+    name: "Mara Lindqvist",
+    role: "Architect",
+    initials: "ML",
+    avatarGradient: "from-blue-800 to-sky-500",
+    badgeLabel: "Blueprint",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-800",
+  },
+  {
+    id: "scrapbook",
+    name: "Aiyana Brooks",
+    role: "Public Health Student",
+    initials: "AB",
+    avatarGradient: "from-yellow-300 to-rose-400",
+    badgeLabel: "Scrapbook",
+    badgeBgColor: "bg-yellow-50",
+    badgeTextColor: "text-yellow-800",
+  },
+  {
+    id: "media_kit",
+    name: "Camille Ortiz",
+    role: "Growth Marketing Lead",
+    initials: "CO",
+    avatarGradient: "from-indigo-600 to-lime-300",
+    badgeLabel: "Media Kit",
+    badgeBgColor: "bg-indigo-50",
+    badgeTextColor: "text-indigo-700",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1395,6 +1455,619 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  academic_cv: {
+    full_name: "Dr. Lena Hartwell",
+    headline: "Assistant Professor of Cognitive Neuroscience, Northfield University",
+    summary:
+      "Cognitive neuroscientist studying how the brain forms and retrieves memories during sleep. My lab combines high-density EEG, behavioural experiments and Bayesian models to explain why some memories persist and others fade. I teach graduate methods courses and mentor PhD students in open, reproducible research practice.",
+    contact: {
+      email: "lena.hartwell@example.edu",
+      location: "Boston, MA",
+      linkedin: "https://linkedin.com/in/lenahartwell",
+      github: "https://github.com/lenahartwell",
+      website: "https://lenahartwell.org",
+    },
+    experience: [
+      {
+        title: "Assistant Professor of Cognitive Neuroscience",
+        company: "Northfield University",
+        location: "Boston, MA",
+        start_date: "2022-08",
+        end_date: undefined,
+        description:
+          "Directs the Memory and Sleep Laboratory, a group of six PhD students and two postdoctoral researchers.",
+        highlights: [
+          "Secured a three-year research grant to study sleep-dependent memory consolidation",
+          "Designed and teach the graduate course Statistical Methods for Neuroimaging",
+          "Chairs the departmental committee on open-science practice",
+        ],
+      },
+      {
+        title: "Postdoctoral Research Fellow",
+        company: "Calder Institute for Brain Science",
+        location: "Boston, MA",
+        start_date: "2019-09",
+        end_date: "2022-07",
+        description:
+          "Studied how overnight sleep reorganises recently learned material, using simultaneous EEG and fMRI.",
+        highlights: [
+          "Built an open EEG preprocessing pipeline now used by four partner labs",
+          "Supervised three master's theses",
+        ],
+      },
+      {
+        title: "Graduate Research Assistant",
+        company: "Northfield University",
+        location: "Boston, MA",
+        start_date: "2014-09",
+        end_date: "2019-06",
+        description: "Doctoral research on memory reactivation during slow-wave sleep.",
+      },
+    ],
+    education: [
+      {
+        degree: "PhD in Neuroscience",
+        institution: "Northfield University",
+        location: "Boston, MA",
+        graduation_date: "2019-06",
+      },
+      {
+        degree: "MSc in Cognitive Science",
+        institution: "University of Edinburgh",
+        location: "Edinburgh, UK",
+        graduation_date: "2014-08",
+      },
+      {
+        degree: "BSc in Psychology",
+        institution: "University of Toronto",
+        location: "Toronto, Canada",
+        graduation_date: "2013-06",
+      },
+    ],
+    skills: [
+      {
+        category: "Methods",
+        items: ["EEG", "fMRI", "Behavioural experiments", "Bayesian modelling"],
+      },
+      { category: "Analysis", items: ["Python", "R", "MATLAB", "Mixed-effects models"] },
+      {
+        category: "Teaching",
+        items: ["Graduate statistics", "Research methods", "Thesis supervision"],
+      },
+    ],
+    certifications: [
+      { name: "Early Career Research Award", issuer: "Calder Foundation", date: "2023" },
+      {
+        name: "Best Doctoral Dissertation in Neuroscience",
+        issuer: "Northfield University",
+        date: "2019",
+      },
+    ],
+    projects: [
+      {
+        title: "Spindle-locked reactivation predicts next-day recall",
+        description:
+          "Journal article. Shows that memories reactivated during sleep spindles are recalled more accurately the following day.",
+        year: "2024",
+        technologies: ["Sleep", "EEG", "Memory consolidation"],
+        url: "https://example.org/papers/spindle-locked-reactivation",
+      },
+      {
+        title: "An open pipeline for sleep EEG preprocessing",
+        description:
+          "Methods paper and software release describing the pipeline used across four partner laboratories.",
+        year: "2022",
+        technologies: ["Reproducibility", "Python", "EEG"],
+        url: "https://github.com/lenahartwell/sleep-eeg-pipeline",
+      },
+      {
+        title: "Slow oscillations gate hippocampal replay in humans",
+        description:
+          "Journal article with simultaneous EEG and fMRI evidence from 38 participants.",
+        year: "2021",
+        technologies: ["fMRI", "Hippocampus", "Replay"],
+      },
+      {
+        title: "Memory reactivation during slow-wave sleep",
+        description: "Doctoral dissertation, Northfield University.",
+        year: "2019",
+        technologies: ["Dissertation"],
+      },
+    ],
+  },
+
+  contact_sheet: {
+    full_name: "Noor Ibrahim",
+    headline: "Documentary photographer working on water, work and weather",
+    summary:
+      "Documentary photographer based in Rotterdam, telling long-form stories about coastal communities and the people who work on the water. Ten years of assignments for magazines and NGOs, plus a self-published book on tidal farming. Available for commissions, editorial work and workshops.",
+    contact: {
+      email: "noor@example.com",
+      location: "Rotterdam, Netherlands",
+      linkedin: "https://linkedin.com/in/nooribrahim",
+      website: "https://nooribrahim.example.com",
+    },
+    experience: [
+      {
+        title: "Freelance Documentary Photographer",
+        company: "Self-employed",
+        location: "Rotterdam, Netherlands",
+        start_date: "2018-03",
+        end_date: undefined,
+        description:
+          "Commissioned long-form photo essays for magazines, foundations and non-profits across Europe and West Africa.",
+        highlights: [
+          "Shot a 12-page cover story on tidal farming for a national weekend magazine",
+          "Led a six-week documentary workshop for 24 emerging photographers",
+          "Licensed work to editorial clients in nine countries",
+        ],
+      },
+      {
+        title: "Staff Photographer",
+        company: "Harbor Weekly",
+        location: "Rotterdam, Netherlands",
+        start_date: "2014-06",
+        end_date: "2018-02",
+        description: "Weekly news and feature assignments for a regional newspaper.",
+        highlights: [
+          "Produced 300+ published photo stories",
+          "Built the paper's first photo-editing workflow for tight deadlines",
+        ],
+      },
+      {
+        title: "Photo Assistant",
+        company: "Atelier Bruin",
+        location: "Amsterdam, Netherlands",
+        start_date: "2012-09",
+        end_date: "2014-05",
+        description: "Assisted on location and studio shoots; managed archive and printing.",
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Photography",
+        institution: "Royal Academy of Art",
+        location: "The Hague, Netherlands",
+        graduation_date: "2012-06",
+      },
+    ],
+    skills: [
+      { category: "Capture", items: ["35mm film", "Medium format", "Available light", "Drone"] },
+      { category: "Post-production", items: ["Lightroom", "Capture One", "Darkroom printing"] },
+      { category: "Teaching", items: ["Workshops", "Portfolio reviews", "Photo editing"] },
+    ],
+    certifications: [
+      { name: "Emerging Photographer of the Year", issuer: "Delta Photo Prize", date: "2021" },
+      { name: "Single Image, Documentary", issuer: "North Sea Photo Awards", date: "2020" },
+    ],
+    projects: [
+      {
+        title: "Tidal Farmers",
+        description:
+          "Two years with families who grow crops on land that floods twice a day. Self-published book, 2023.",
+        year: "2023",
+        technologies: ["Medium format", "Book"],
+        url: "https://nooribrahim.example.com/tidal-farmers",
+      },
+      {
+        title: "The Last Net-Menders",
+        description: "Portraits of the people who repair fishing nets in a harbor town.",
+        year: "2022",
+        technologies: ["35mm film", "Portraits"],
+      },
+      {
+        title: "Salt Season",
+        description: "Seasonal salt harvesting on the Atlantic coast, shot over three summers.",
+        year: "2021",
+        technologies: ["Available light"],
+      },
+      {
+        title: "Night Ferry",
+        description: "A winter of overnight crossings, and the passengers who ride them.",
+        year: "2020",
+        technologies: ["Low light"],
+      },
+      {
+        title: "Dock Wives",
+        description: "A quiet series on the partners who keep port-town economies running.",
+        year: "2019",
+        technologies: ["Portraits", "Interviews"],
+      },
+      {
+        title: "After the Storm",
+        description: "Commissioned coverage of recovery after a coastal flood.",
+        year: "2018",
+        technologies: ["Photojournalism"],
+      },
+    ],
+  },
+
+  workspace: {
+    full_name: "Priya Nair",
+    headline: "Senior Product Manager, B2B workflow software",
+    summary:
+      "Product manager with seven years of experience taking workflow tools from first prototype to product-market fit. I write things down: specs, decision logs and weekly updates that keep engineering, design and sales aligned. Most recently led the team behind a collaboration product used by 40,000 teams.",
+    contact: {
+      email: "priya.nair@example.com",
+      location: "Austin, TX",
+      linkedin: "https://linkedin.com/in/priyanair",
+      github: "https://github.com/priyanair",
+      website: "https://priyanair.example.com",
+    },
+    experience: [
+      {
+        title: "Senior Product Manager",
+        company: "Lattice Labs",
+        location: "Austin, TX",
+        start_date: "2022-02",
+        end_date: undefined,
+        description:
+          "Owns the roadmap for the core collaboration product, working with a team of twelve engineers and two designers.",
+        highlights: [
+          "Launched shared workspaces, adopted by 40,000 teams in the first year",
+          "Raised week-four retention from 38% to 51% through a rebuilt onboarding flow",
+          "Introduced a written decision log that cut recurring meetings by a third",
+        ],
+      },
+      {
+        title: "Product Manager",
+        company: "Brightpath",
+        location: "Remote",
+        start_date: "2019-05",
+        end_date: "2022-01",
+        description: "Led the scheduling and notifications product area for a B2B platform.",
+        highlights: [
+          "Shipped a calendar sync used by 70% of active accounts",
+          "Partnered with sales on a usage-based pricing pilot",
+        ],
+      },
+      {
+        title: "Associate Product Manager",
+        company: "Fieldnote",
+        location: "Chicago, IL",
+        start_date: "2017-08",
+        end_date: "2019-04",
+        description: "Supported research, specs and launches for a note-taking startup.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Information Systems",
+        institution: "University of Illinois",
+        location: "Urbana-Champaign, IL",
+        graduation_date: "2017-05",
+      },
+    ],
+    skills: [
+      { category: "Product", items: ["Roadmapping", "Discovery", "Pricing", "Experimentation"] },
+      { category: "Data", items: ["SQL", "Amplitude", "Looker"] },
+      { category: "Working style", items: ["Written specs", "Decision logs", "Async updates"] },
+    ],
+    certifications: [
+      { name: "Certified Scrum Product Owner", issuer: "Scrum Alliance", date: "2020" },
+    ],
+    projects: [
+      {
+        title: "Shared Workspaces",
+        description:
+          "Zero-to-one launch of team spaces, from first prototype to general availability.",
+        year: "2023",
+        technologies: ["Discovery", "Launch", "Growth"],
+      },
+      {
+        title: "Onboarding rebuild",
+        description:
+          "Redesigned first-week experience using a seven-step funnel and weekly experiments.",
+        year: "2022",
+        technologies: ["Experimentation", "Retention"],
+        url: "https://priyanair.example.com/onboarding",
+      },
+      {
+        title: "Product Writing Handbook",
+        description: "Public handbook of spec and decision-log templates used by other teams.",
+        year: "2021",
+        technologies: ["Writing", "Templates"],
+        url: "https://github.com/priyanair/product-writing",
+      },
+      {
+        title: "Usage-based pricing pilot",
+        description: "Ran a six-month pilot with 120 accounts and a pricing committee.",
+        year: "2020",
+        technologies: ["Pricing", "Analytics"],
+      },
+    ],
+  },
+
+  blueprint: {
+    full_name: "Mara Lindqvist",
+    headline: "Architect and passive-house designer",
+    summary:
+      "Licensed architect with nine years designing low-energy housing and community buildings in cold climates. I work from first sketch through construction administration and care about buildings that are cheap to run and pleasant to live in. Currently leading residential projects at a mid-sized Nordic practice.",
+    contact: {
+      email: "mara.lindqvist@example.com",
+      location: "Gothenburg, Sweden",
+      linkedin: "https://linkedin.com/in/maralindqvist",
+      website: "https://maralindqvist.example.com",
+    },
+    experience: [
+      {
+        title: "Senior Architect",
+        company: "Nordlinje Arkitekter",
+        location: "Gothenburg, Sweden",
+        start_date: "2020-04",
+        end_date: undefined,
+        description:
+          "Leads residential and mixed-use projects from concept to site, managing a team of five.",
+        highlights: [
+          "Designed a 62-unit passive-house housing block delivered 4% under budget",
+          "Introduced a shared model-checking routine that cut drawing coordination errors by 30%",
+          "Presented schemes to planning committees and resident groups",
+        ],
+      },
+      {
+        title: "Architect",
+        company: "Studio Fjord",
+        location: "Oslo, Norway",
+        start_date: "2016-09",
+        end_date: "2020-03",
+        description: "Designed schools, libraries and small public buildings.",
+        highlights: [
+          "Lead designer on a timber-frame primary school for 420 pupils",
+          "Prepared tender packages and managed contractor queries on site",
+        ],
+      },
+      {
+        title: "Junior Architect",
+        company: "Hallberg & Partners",
+        location: "Stockholm, Sweden",
+        start_date: "2014-08",
+        end_date: "2016-08",
+        description: "Drafting, detailing and model-making across housing and renovation projects.",
+      },
+    ],
+    education: [
+      {
+        degree: "MArch in Architecture",
+        institution: "Chalmers University of Technology",
+        location: "Gothenburg, Sweden",
+        graduation_date: "2014-06",
+      },
+      {
+        degree: "BA in Architecture",
+        institution: "Chalmers University of Technology",
+        location: "Gothenburg, Sweden",
+        graduation_date: "2012-06",
+      },
+    ],
+    skills: [
+      {
+        category: "Design",
+        items: ["Concept design", "Detailing", "Passive house", "Timber construction"],
+      },
+      { category: "Software", items: ["Revit", "Rhino", "AutoCAD", "Grasshopper"] },
+      {
+        category: "Delivery",
+        items: ["Tender documents", "Site administration", "Planning submissions"],
+      },
+    ],
+    certifications: [
+      { name: "Certified Passive House Designer", issuer: "Passive House Institute", date: "2019" },
+      { name: "Registered Architect", issuer: "Swedish Board of Housing", date: "2017" },
+    ],
+    projects: [
+      {
+        title: "Kvarteret Ljus",
+        description: "62-unit passive-house block with shared courtyards and rooftop growing beds.",
+        year: "2024",
+        technologies: ["Passive house", "CLT", "Courtyard housing"],
+        url: "https://maralindqvist.example.com/kvarteret-ljus",
+      },
+      {
+        title: "Fjordvik Primary School",
+        description:
+          "Timber-frame school for 420 pupils with daylit classrooms and a covered playground.",
+        year: "2020",
+        technologies: ["Timber frame", "Daylighting"],
+      },
+      {
+        title: "Harbour Library Extension",
+        description: "Small extension and reading room added to a listed harbour warehouse.",
+        year: "2019",
+        technologies: ["Heritage", "Steel", "Glazing"],
+      },
+      {
+        title: "Retrofit pattern book",
+        description: "Open guide to low-cost energy retrofits for 1960s apartment blocks.",
+        year: "2022",
+        technologies: ["Retrofit", "Research"],
+        url: "https://github.com/maralindqvist/retrofit-patterns",
+      },
+    ],
+  },
+
+  scrapbook: {
+    full_name: "Aiyana Brooks",
+    headline: "Public health student who loves turning data into stories",
+    summary:
+      "Junior at Westbrook State studying Public Health with a minor in Statistics. I have run a campus health survey, volunteered at a community clinic and written for the student paper. Looking for a summer internship in health communication or data analysis.",
+    contact: {
+      email: "aiyana.brooks@example.edu",
+      location: "Columbus, OH",
+      linkedin: "https://linkedin.com/in/aiyanabrooks",
+      website: "https://aiyanabrooks.example.com",
+    },
+    experience: [
+      {
+        title: "Research Assistant",
+        company: "Westbrook Health Lab",
+        location: "Columbus, OH",
+        start_date: "2024-01",
+        end_date: undefined,
+        description: "Supports a faculty team studying sleep and stress in first-year students.",
+        highlights: [
+          "Cleaned and analysed survey data from 1,200 respondents in R",
+          "Co-wrote the methods section of a conference poster",
+        ],
+      },
+      {
+        title: "Clinic Volunteer",
+        company: "Riverside Community Clinic",
+        location: "Columbus, OH",
+        start_date: "2023-06",
+        end_date: "2024-05",
+        description: "Welcomed patients, ran the sign-in desk and translated simple forms.",
+        highlights: ["Volunteered 220 hours across two semesters"],
+      },
+      {
+        title: "Staff Writer",
+        company: "The Westbrook Ledger",
+        location: "Columbus, OH",
+        start_date: "2022-09",
+        end_date: "2023-12",
+        description: "Wrote weekly campus-life and health stories for the student newspaper.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Public Health, Minor in Statistics",
+        institution: "Westbrook State University",
+        location: "Columbus, OH",
+        graduation_date: "2026-05",
+        gpa: "3.8",
+      },
+      {
+        degree: "High School Diploma",
+        institution: "Lakeview High School",
+        location: "Cleveland, OH",
+        graduation_date: "2022-06",
+      },
+    ],
+    skills: [
+      { category: "Data", items: ["R", "Excel", "Survey design", "Tableau"] },
+      { category: "Writing", items: ["News writing", "Plain-language summaries", "Editing"] },
+      { category: "People", items: ["Spanish (conversational)", "Public speaking", "Teamwork"] },
+    ],
+    certifications: [
+      { name: "CITI Human Subjects Research", issuer: "CITI Program", date: "2024" },
+      { name: "CPR and First Aid", issuer: "Red Cross", date: "2023" },
+    ],
+    projects: [
+      {
+        title: "Campus Sleep Survey",
+        description:
+          "Designed and ran a 1,200-student survey on sleep habits and published a summary for the student body.",
+        year: "2024",
+        technologies: ["R", "Survey design", "Data viz"],
+        url: "https://aiyanabrooks.example.com/sleep-survey",
+      },
+      {
+        title: "Flu Shot Poster Series",
+        description:
+          "Three plain-language posters that raised vaccine-clinic sign-ups at the campus health centre.",
+        year: "2023",
+        technologies: ["Design", "Health comms"],
+      },
+      {
+        title: "Neighbourhood Walkability Map",
+        description:
+          "Class project mapping sidewalk gaps near campus, shared with the city planning office.",
+        year: "2023",
+        technologies: ["GIS", "Fieldwork"],
+      },
+    ],
+  },
+
+  media_kit: {
+    full_name: "Camille Ortiz",
+    headline: "Growth marketing lead for consumer and subscription brands",
+    summary:
+      "Growth marketer with eight years of experience scaling consumer brands through lifecycle, paid and content. I like measurable work: clear goals, quick experiments and honest reporting. Most recently built the growth team behind a plant-care subscription from first thousand customers to profitability.",
+    contact: {
+      email: "camille.ortiz@example.com",
+      location: "Los Angeles, CA",
+      linkedin: "https://linkedin.com/in/camilleortiz",
+      website: "https://camilleortiz.example.com",
+    },
+    experience: [
+      {
+        title: "Head of Growth",
+        company: "Plantly",
+        location: "Los Angeles, CA",
+        start_date: "2022-03",
+        end_date: undefined,
+        description:
+          "Leads a team of seven across lifecycle, paid acquisition and content for a plant-care subscription.",
+        highlights: [
+          "Grew organic signups 212% in twelve months through a search-led content programme",
+          "Cut blended customer acquisition cost by 38% while doubling spend",
+          "Built a referral loop that now drives 1 in 5 new subscribers",
+        ],
+      },
+      {
+        title: "Senior Lifecycle Marketing Manager",
+        company: "Orbit Fitness",
+        location: "Remote",
+        start_date: "2019-08",
+        end_date: "2022-02",
+        description: "Owned email, push and in-app messaging for a connected fitness brand.",
+        highlights: [
+          "Scaled the email programme to 1.4M subscribers with a 31% open rate",
+          "Generated $2.1M in attributed revenue from win-back journeys",
+        ],
+      },
+      {
+        title: "Digital Marketing Specialist",
+        company: "Northstar Bank",
+        location: "Chicago, IL",
+        start_date: "2016-06",
+        end_date: "2019-07",
+        description: "Ran paid search and social campaigns for retail banking products.",
+        highlights: ["Delivered 3.4x return on ad spend on the student account launch"],
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Communications",
+        institution: "University of Southern California",
+        location: "Los Angeles, CA",
+        graduation_date: "2016-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Channels",
+        items: ["Lifecycle email", "Paid social", "SEO", "Referral programmes"],
+      },
+      { category: "Analytics", items: ["GA4", "Amplitude", "SQL", "Incrementality testing"] },
+      { category: "Leadership", items: ["Hiring", "Experiment reviews", "Budget planning"] },
+    ],
+    certifications: [
+      { name: "Google Analytics Certification", issuer: "Google", date: "2023" },
+      { name: "HubSpot Email Marketing", issuer: "HubSpot Academy", date: "2021" },
+    ],
+    projects: [
+      {
+        title: "The Plant Parent Guide",
+        description: "A 60-article content hub that now brings in the majority of organic signups.",
+        year: "2023",
+        technologies: ["SEO", "Content", "Email"],
+        url: "https://camilleortiz.example.com/plant-parent-guide",
+      },
+      {
+        title: "Win-back journey rebuild",
+        description: "Rebuilt a five-step lapsed-member flow with new segments and creative.",
+        year: "2021",
+        technologies: ["Lifecycle", "Segmentation"],
+      },
+      {
+        title: "Student account launch",
+        description: "Paid social and search campaign for a new student banking account.",
+        year: "2018",
+        technologies: ["Paid search", "Paid social"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1412,4 +2085,10 @@ export const TEMPLATE_BACKGROUNDS = {
   neo_brutalist: { bg: "bg-[#FFD400]", isDark: false },
   retro_os: { bg: "bg-[#008080]", isDark: true },
   spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
+  academic_cv: { bg: "bg-[#FAFAF7]", isDark: false },
+  contact_sheet: { bg: "bg-[#0F0F10]", isDark: true },
+  workspace: { bg: "bg-white", isDark: false },
+  blueprint: { bg: "bg-[#0E3A66]", isDark: true },
+  scrapbook: { bg: "bg-[#F1E6D3]", isDark: false },
+  media_kit: { bg: "bg-[#F7F5FF]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

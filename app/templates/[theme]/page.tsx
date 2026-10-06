@@ -12,12 +12,24 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
-import { THEME_IDS, THEME_METADATA, themeIdFromSlug, themeSlug } from "@/lib/templates/theme-ids";
+import {
+  THEME_IDS,
+  THEME_METADATA,
+  type ThemeId,
+  themeIdFromSlug,
+  themeSlug,
+  TEMPLATE_COUNT,
+} from "@/lib/templates/theme-ids";
 import { THEME_PAGE_COPY } from "@/lib/templates/theme-pages";
 
 export const revalidate = 86400;
 
 type ThemePageProps = { params: Promise<{ theme: string }> };
+
+/** Themes aimed at one profession lead with that keyword; the rest use the generic form. */
+function templatePageTitle(id: ThemeId): string {
+  return THEME_PAGE_COPY[id].title ?? `${THEME_METADATA[id].name} Resume Website Template`;
+}
 
 export function generateStaticParams() {
   return THEME_IDS.map((id) => ({ theme: themeSlug(id) }));
@@ -30,7 +42,7 @@ export async function generateMetadata({ params }: ThemePageProps): Promise<Meta
   if (!id || theme !== themeSlug(id)) notFound();
 
   return buildPublicPageMetadata({
-    title: `${THEME_METADATA[id].name} Resume Website Template`,
+    title: templatePageTitle(id),
     description: THEME_PAGE_COPY[id].description,
     path: `/templates/${themeSlug(id)}`,
   });
@@ -44,7 +56,7 @@ export default async function ThemePage({ params }: ThemePageProps) {
 
   const details = THEME_METADATA[id];
   const copy = THEME_PAGE_COPY[id];
-  const title = `${details.name} Resume Website Template`;
+  const title = templatePageTitle(id);
   const path = `/templates/${themeSlug(id)}`;
   const professions = PROFESSIONS.filter((profession) => profession.themes.includes(id));
   const relatedGalleries = EXAMPLE_GALLERIES.filter((gallery) => gallery.themes.includes(id));
@@ -153,8 +165,8 @@ export default async function ThemePage({ params }: ThemePageProps) {
               </h2>
               <p className="mb-6 leading-relaxed text-muted-foreground">
                 Upload your PDF resume and let AI parse it into a hosted portfolio at
-                clickfolio.me/@handle. {details.name} is one of 14 free themes you can choose for
-                your resume website.
+                clickfolio.me/@handle. {details.name} is one of {TEMPLATE_COUNT} free themes you can
+                choose for your resume website.
               </p>
               <Button asChild size="lg">
                 <Link href="/">Create Your Free Portfolio</Link>

@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -137,8 +138,8 @@ export default function ResumeWebsiteExamplesPage() {
           12 designs side by side.
         </p>
         <p>
-          Compare the <Link href="/templates">14 free portfolio templates</Link>, then see how
-          people present their work in our{" "}
+          Compare the <Link href="/templates">{TEMPLATE_COUNT} free portfolio templates</Link>, then
+          see how people present their work in our{" "}
           <Link href="/examples/marketing">marketing portfolio examples</Link>,{" "}
           <Link href="/examples/engineering">engineering portfolio examples</Link>, and{" "}
           <Link href="/examples/student">student portfolio examples</Link>.

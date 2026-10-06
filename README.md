@@ -385,7 +385,7 @@ app/
 └── globals.css          # Global styles
 
 components/
-├── templates/           # 14 resume template components
+├── templates/           # Resume template components
 ├── ui/                  # shadcn/ui components
 ├── auth/                # LoginButton using Clerk's native sign-in modal
 ├── dashboard/           # Dashboard-specific components
@@ -487,24 +487,30 @@ Removed — all 14 templates are now free for every user. No referral gating.
 
 ## Resume Templates
 
-14 built-in templates in `components/templates/`:
+Built-in templates in `components/templates/`:
 
-| Template                 | Category     | Description                                                          | Unlock Requirement |
-| ------------------------ | ------------ | -------------------------------------------------------------------- | ------------------ |
-| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography                    | Free (default)     |
-| **Neo Brutalist**        | Creative     | Bold design with thick borders and loud colors                       | Free               |
-| **Glass Morphic**        | Modern       | Dark theme with frosted glass effects                                | Free               |
-| **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                             | Free               |
-| **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout           | Free               |
-| **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers               | Free               |
-| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents      | Free               |
-| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                       | Free               |
-| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents                    | Free               |
-| **Boardroom**            | Professional | Dark executive ledger with a pinned identity column, brass accents   | Free               |
-| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                     | Free               |
-| **Broadsheet**           | Professional | Newspaper front page: masthead name, ruled columns, roles as stories | Free               |
-| **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits         | Free               |
-| **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window           | Free               |
+| Template                 | Category     | Description                                                                               | Unlock Requirement |
+| ------------------------ | ------------ | ----------------------------------------------------------------------------------------- | ------------------ |
+| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography                                         | Free (default)     |
+| **Neo Brutalist**        | Creative     | Bold design with thick borders and loud colors                                            | Free               |
+| **Glass Morphic**        | Modern       | Dark theme with frosted glass effects                                                     | Free               |
+| **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                                                  | Free               |
+| **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout                                | Free               |
+| **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers                                    | Free               |
+| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents                           | Free               |
+| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                                            | Free               |
+| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents                                         | Free               |
+| **Boardroom**            | Professional | Dark executive ledger with a pinned identity column, brass accents                        | Free               |
+| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                                          | Free               |
+| **Broadsheet**           | Professional | Newspaper front page: masthead name, ruled columns, roles as stories                      | Free               |
+| **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits                              | Free               |
+| **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window                                | Free               |
+| **Academic CV**          | Professional | Scholarly CV: education first, dated appointments, numbered research                      | Free               |
+| **Contact Sheet**        | Creative     | Film-frame tiles on near-black with grease-pencil orange for photographers                | Free               |
+| **Workspace**            | Modern       | Clean document page: cover band, properties table, collapsible sections, tag labels       | Free               |
+| **Blueprint**            | Creative     | Cyanotype drawing sheet: grid paper, lettered sections, dimension-line dates, title block | Free               |
+| **Scrapbook**            | Creative     | Craft-paper desk: taped index cards, sticky-note skills, polaroid portrait                | Free               |
+| **Media Kit**            | Modern       | Bold colour blocks, a results wall pulled from your metrics, a by-the-numbers strip       | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export interface BlogPostFaq {
   q: string;
@@ -354,8 +355,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: "clickfolio-templates-showcase",
     title: "clickfolio.me Templates: Complete Showcase & Guide",
-    description:
-      "Explore all 14 resume templates — from Minimalist Editorial to Bold Corporate. Find the perfect design for your profession.",
+    description: `Explore all ${TEMPLATE_COUNT} resume templates — from Minimalist Editorial to Bold Corporate. Find the perfect design for your profession.`,
     date: "2026-04-23",
     readTime: "7 min read",
     category: "Product",
@@ -582,7 +582,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
     faq: [
       {
         q: "Is there a free AI tool that turns my resume into a portfolio website?",
-        a: "Yes. As of September 2026, clickfolio.me, Butternut AI, linkfolio.net and Artfolio all let you publish a portfolio built from your resume on a free plan. clickfolio.me is free for everything, including all 14 templates, and publishes at clickfolio.me/@handle in about 30 seconds.",
+        a: `Yes. As of September 2026, clickfolio.me, Butternut AI, linkfolio.net and Artfolio all let you publish a portfolio built from your resume on a free plan. clickfolio.me is free for everything, including all ${TEMPLATE_COUNT} templates, and publishes at clickfolio.me/@handle in about 30 seconds.`,
       },
       {
         q: "Can AI build a portfolio website from my LinkedIn profile?",
@@ -632,7 +632,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
       {
         q: "How fast can I build a consultant portfolio from my resume?",
-        a: "Upload your consulting CV or a LinkedIn Save to PDF export to clickfolio.me and the AI builds a live site in about 30 seconds. You can then rewrite engagement summaries, set privacy, and pick one of 14 free templates.",
+        a: `Upload your consulting CV or a LinkedIn Save to PDF export to clickfolio.me and the AI builds a live site in about 30 seconds. You can then rewrite engagement summaries, set privacy, and pick one of ${TEMPLATE_COUNT} free templates.`,
       },
     ],
   },

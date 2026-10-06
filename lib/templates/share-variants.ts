@@ -13,6 +13,12 @@ export const SHARE_VARIANT_KEYS = [
   "retro-os",
   "boardroom",
   "broadsheet",
+  "academic-cv",
+  "contact-sheet",
+  "workspace",
+  "blueprint",
+  "scrapbook",
+  "media-kit",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -34,6 +40,12 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "retro-os": "",
   boardroom: "",
   broadsheet: "",
+  "academic-cv": "",
+  "contact-sheet": "",
+  workspace: "",
+  blueprint: "",
+  scrapbook: "",
+  "media-kit": "",
 };
 
 export const shareButtonStyles = {
@@ -65,6 +77,18 @@ export const shareButtonStyles = {
     "bg-transparent text-[#ECE6D8] hover:text-[#C4A971] border border-[#262D37] hover:border-[#C4A971]/60 rounded-sm px-3 py-1.5 text-sm",
   broadsheet:
     "bg-transparent text-[#1B1613] hover:text-[#8A2C27] border border-[#1B1613]/40 hover:border-[#8A2C27] rounded-none px-3 py-1.5 text-sm",
+  "academic-cv":
+    "text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] rounded-sm px-3 py-1.5 text-sm hover:border-[#1D4E89]/50",
+  "contact-sheet":
+    "bg-transparent text-[#ECE8DF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C] rounded-none px-3 py-1.5 text-sm",
+  workspace:
+    "bg-white text-[#787774] hover:text-[#37352F] hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-md px-3 py-1.5 text-sm",
+  blueprint:
+    "bg-transparent text-[#EAF3FF] hover:text-[#FFD966] border border-[#EAF3FF]/50 hover:border-[#FFD966] rounded-none px-3 py-1.5 text-sm",
+  scrapbook:
+    "bg-white text-[#2B2622] hover:bg-[#FFD84D] border-2 border-[#2B2622] rounded-full px-3 py-1.5 text-sm font-medium shadow-[2px_2px_0_0_#2B2622]",
+  "media-kit":
+    "bg-transparent text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/40 hover:border-[#C6FF3D] rounded-full px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -87,6 +111,17 @@ export const shareTriggerStyles = {
     "bg-[#C0C0C0] text-black border-0 rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
   boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm hover:border-[#C4A971]/60",
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/40 rounded-none hover:border-[#8A2C27]",
+  "academic-cv":
+    "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm hover:text-[#1D4E89] hover:border-[#1D4E89]/50",
+  "contact-sheet":
+    "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none hover:border-[#FF6B2C]",
+  workspace: "bg-white text-[#37352F] border-[#E9E9E7] rounded-md shadow-sm hover:bg-[#F7F7F5]",
+  blueprint:
+    "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none shadow-lg hover:border-[#FFD966]",
+  scrapbook:
+    "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] rounded-full shadow-[3px_3px_0_0_#2B2622] hover:bg-[#FFE57F]",
+  "media-kit":
+    "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/60 rounded-full shadow-lg hover:border-[#C6FF3D]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -105,6 +140,13 @@ export const sharePanelStyles = {
     "bg-[#C0C0C0] text-black border-2 border-t-white border-l-white border-r-[#0a0a0a] border-b-[#0a0a0a] rounded-none",
   boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm",
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/30 rounded-none",
+  "academic-cv": "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm",
+  "contact-sheet": "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none",
+  workspace: "bg-white text-[#37352F] border-[#E9E9E7] rounded-md",
+  blueprint: "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none",
+  scrapbook:
+    "bg-[#FFFDF8] text-[#2B2622] border-2 border-[#2B2622] rounded-lg shadow-[4px_4px_0_0_#2B2622]",
+  "media-kit": "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/50 rounded-xl",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -131,4 +173,15 @@ export const shareItemStyles = {
     "bg-[#0F1318] text-[#ECE6D8] hover:text-[#C4A971] border border-[#262D37] hover:border-[#C4A971]/60",
   broadsheet:
     "bg-[#F8EEE5] text-[#1B1613] hover:text-[#8A2C27] border border-[#1B1613]/25 hover:border-[#8A2C27]",
+  "academic-cv":
+    "bg-white text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] hover:border-[#1D4E89]/50",
+  "contact-sheet":
+    "bg-[#121214] text-[#CFCABF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C]",
+  workspace:
+    "bg-white text-[#787774] hover:text-[#37352F] hover:bg-[#F7F7F5] border border-[#E9E9E7]",
+  blueprint:
+    "bg-[#0B3158] text-[#DCEBFB] hover:text-[#FFD966] border border-[#EAF3FF]/40 hover:border-[#FFD966]",
+  scrapbook: "bg-white text-[#2B2622] hover:bg-[#BFE3D0] border-2 border-[#2B2622] rounded-full",
+  "media-kit":
+    "bg-[#1F1C3D] text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/20 rounded-full",
 } satisfies Record<SharePopoverVariant, string>;

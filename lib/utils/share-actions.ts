@@ -30,6 +30,9 @@ export function getLinkedInIconVariant(
     case "glass-morphic":
     case "midnight":
     case "dev-terminal":
+    case "media-kit":
+    case "blueprint":
+    case "contact-sheet":
       return "white";
     default:
       return "black";

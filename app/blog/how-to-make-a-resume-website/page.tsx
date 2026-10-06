@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -56,9 +57,9 @@ export default function HowToMakeAResumeWebsitePage() {
             history, education, skills, and contact details and maps them onto the page for you.
           </li>
           <li>
-            <strong>Pick a template.</strong> Choose from 14 designs — clean and minimal for
-            corporate roles, bolder layouts for creative ones. You can switch any time without
-            losing content.
+            <strong>Pick a template.</strong> Choose from {TEMPLATE_COUNT} designs — clean and
+            minimal for corporate roles, bolder layouts for creative ones. You can switch any time
+            without losing content.
           </li>
           <li>
             <strong>Review and edit.</strong> Fix any detail the parser missed, reorder sections,
@@ -187,8 +188,8 @@ export default function HowToMakeAResumeWebsitePage() {
         </p>
         <p>
           Not sure which look to choose? Compare the{" "}
-          <Link href="/templates">14 free portfolio templates</Link> before turning your resume into
-          a hosted page.
+          <Link href="/templates">{TEMPLATE_COUNT} free portfolio templates</Link> before turning
+          your resume into a hosted page.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

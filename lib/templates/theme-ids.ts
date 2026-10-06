@@ -1,23 +1,32 @@
 import type { SharePopoverVariant } from "@/lib/templates/share-variants";
 
 export const THEME_IDS = [
+  "academic_cv",
   "bento",
+  "blueprint",
   "boardroom",
   "bold_corporate",
   "broadsheet",
   "case_file",
   "classic_ats",
+  "contact_sheet",
   "design_folio",
   "dev_terminal",
   "glass",
+  "media_kit",
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
   "retro_os",
+  "scrapbook",
   "spotlight",
+  "workspace",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];
+
+/** Number of portfolio templates; use this instead of writing the count into copy. */
+export const TEMPLATE_COUNT = THEME_IDS.length;
 
 export const DEFAULT_THEME: ThemeId = "minimalist_editorial";
 
@@ -38,11 +47,24 @@ export function themeIdFromSlug(slug: string): ThemeId | null {
 }
 
 export const THEME_METADATA = {
+  academic_cv: {
+    name: "Academic CV",
+    description:
+      "A scholarly CV with education first, dated appointments and numbered research outputs",
+    category: "Professional",
+    preview: "/previews/academic-cv.webp",
+  },
   bento: {
     name: "Bento Grid",
     description: "Flat colour tiles that fit together around your photo",
     category: "Modern",
     preview: "/previews/bento.webp",
+  },
+  blueprint: {
+    name: "Blueprint",
+    description: "A cyanotype drawing sheet with grid paper, section callouts and a title block",
+    category: "Creative",
+    preview: "/previews/blueprint.webp",
   },
   boardroom: {
     name: "Boardroom",
@@ -77,6 +99,13 @@ export const THEME_METADATA = {
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },
+  contact_sheet: {
+    name: "Contact Sheet",
+    description:
+      "Film-frame tiles on near-black with grease-pencil orange, built for photographers",
+    category: "Creative",
+    preview: "/previews/contact-sheet.webp",
+  },
   design_folio: {
     name: "DesignFolio",
     description: "Swiss grid on cool grey with a cobalt name block. Project images lead the page.",
@@ -94,6 +123,12 @@ export const THEME_METADATA = {
     description: "Frosted glass panels over a deep indigo aurora",
     category: "Modern",
     preview: "/previews/glass.webp",
+  },
+  media_kit: {
+    name: "Media Kit",
+    description: "Bold colour blocks, a results wall and a by-the-numbers strip for marketers",
+    category: "Modern",
+    preview: "/previews/media-kit.webp",
   },
   midnight: {
     name: "Midnight",
@@ -119,11 +154,24 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/retro-os.webp",
   },
+  scrapbook: {
+    name: "Scrapbook",
+    description:
+      "Craft-paper desk with taped index cards, sticky-note skills and a polaroid portrait",
+    category: "Creative",
+    preview: "/previews/scrapbook.webp",
+  },
   spotlight: {
     name: "Spotlight",
     description: "Your name under a single pool of stage light, with work set out like a playbill.",
     category: "Creative",
     preview: "/previews/spotlight.webp",
+  },
+  workspace: {
+    name: "Workspace",
+    description: "A clean document page with a cover, a properties table and collapsible sections",
+    category: "Modern",
+    preview: "/previews/workspace.webp",
   },
 } as const satisfies Record<
   ThemeId,
@@ -150,4 +198,10 @@ export const themeToShareVariant = {
   broadsheet: "broadsheet",
   case_file: "case-file",
   retro_os: "retro-os",
+  academic_cv: "academic-cv",
+  contact_sheet: "contact-sheet",
+  workspace: "workspace",
+  blueprint: "blueprint",
+  scrapbook: "scrapbook",
+  media_kit: "media-kit",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

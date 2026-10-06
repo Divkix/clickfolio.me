@@ -101,4 +101,40 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  academic_cv: dynamic(
+    () => import("@/components/templates/AcademicCV").then((m) => ({ default: m.AcademicCV })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  contact_sheet: dynamic(
+    () => import("@/components/templates/ContactSheet").then((m) => ({ default: m.ContactSheet })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  workspace: dynamic(
+    () => import("@/components/templates/Workspace").then((m) => ({ default: m.Workspace })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  blueprint: dynamic(
+    () => import("@/components/templates/Blueprint").then((m) => ({ default: m.Blueprint })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  scrapbook: dynamic(
+    () => import("@/components/templates/Scrapbook").then((m) => ({ default: m.Scrapbook })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  media_kit: dynamic(
+    () => import("@/components/templates/MediaKit").then((m) => ({ default: m.MediaKit })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

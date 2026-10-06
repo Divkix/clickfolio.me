@@ -167,6 +167,52 @@ export default function TemplatesShowcasePage() {
           collection and still fully readable on a phone. Best for game developers, creative
           technologists, and anyone whose portfolio should start a conversation.
         </p>
+
+        <h3>{THEME_METADATA.academic_cv.name}</h3>
+        <p>
+          {THEME_METADATA.academic_cv.description}. Education comes first, appointments follow with
+          dates in a left column, and your projects are listed as numbered research outputs, newest
+          first. A sticky index jumps to each section, and a print button saves the page as a PDF
+          CV. Best for graduate students, postdocs, and faculty.
+        </p>
+
+        <h3>{THEME_METADATA.contact_sheet.name}</h3>
+        <p>
+          {THEME_METADATA.contact_sheet.description}. Your projects become numbered frames in a
+          grid, the first one circled in orange, and your experience reads as a log of assignments.
+          Frames with no image use the project title as the picture. Best for photographers,
+          filmmakers, and visual storytellers.
+        </p>
+
+        <h3>{THEME_METADATA.workspace.name}</h3>
+        <p>
+          {THEME_METADATA.workspace.description}. A soft cover band, a properties table built from
+          your contact details, your summary as a callout, and collapsible sections with colored
+          tags. Best for product managers, engineers, and anyone who already thinks in documents.
+        </p>
+
+        <h3>{THEME_METADATA.blueprint.name}</h3>
+        <p>
+          {THEME_METADATA.blueprint.description}. Your career is laid out as a drawing set: lettered
+          section callouts, dates drawn as dimension lines, projects as numbered details with a spec
+          line, and a title block at the foot. Best for architects, engineers, and designers of
+          physical things.
+        </p>
+
+        <h3>{THEME_METADATA.scrapbook.name}</h3>
+        <p>
+          {THEME_METADATA.scrapbook.description}. A polaroid portrait, a lined-notebook summary,
+          taped index cards for roles and projects, sticky notes for skills, and education shown
+          first as ticket stubs. Best for students and recent graduates with more coursework than
+          job history.
+        </p>
+
+        <h3>{THEME_METADATA.media_kit.name}</h3>
+        <p>
+          {THEME_METADATA.media_kit.description}. A colour-block hero, a by-the-numbers strip
+          counted from your resume, and a Results wall that lifts figures like 212% or $2.1M out of
+          your own highlights. Best for marketers, growth leads, and anyone who sells with numbers.
+        </p>
       </section>
 
       <section>

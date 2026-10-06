@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -48,7 +49,7 @@ export default function AiPortfolioWebsiteBuildersPage() {
             [
               "clickfolio.me",
               "PDF resume or LinkedIn PDF export",
-              "Yes, everything (14 templates)",
+              `Yes, everything (${TEMPLATE_COUNT} templates)`,
               "Not yet",
               "Free, open source (MIT)",
             ],
@@ -131,10 +132,11 @@ export default function AiPortfolioWebsiteBuildersPage() {
         <p>
           You upload a PDF resume, or the PDF LinkedIn gives you from &quot;Save to PDF&quot;, and
           the AI reads it into sections. About thirty seconds later there is a live site at
-          clickfolio.me/@yourhandle. Every field stays editable, all 14 templates are free, you can
-          hide your phone number or address with privacy toggles, and view analytics are built in.
-          The code is MIT-licensed on GitHub, so you could self-host it if we ever disappeared. The
-          gaps: no custom domain, no password protection, and no long-form case-study editor. Our{" "}
+          clickfolio.me/@yourhandle. Every field stays editable, all {TEMPLATE_COUNT} templates are
+          free, you can hide your phone number or address with privacy toggles, and view analytics
+          are built in. The code is MIT-licensed on GitHub, so you could self-host it if we ever
+          disappeared. The gaps: no custom domain, no password protection, and no long-form
+          case-study editor. Our{" "}
           <Link href="/blog/pdf-resume-to-website" className="text-brand font-semibold">
             PDF resume to website guide
           </Link>{" "}

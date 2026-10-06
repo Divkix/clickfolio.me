@@ -19,6 +19,12 @@ const TEMPLATE_LOADERS = {
   neo_brutalist: () => import("@/components/templates/NeoBrutalist").then((m) => m.NeoBrutalist),
   retro_os: () => import("@/components/templates/RetroOS").then((m) => m.RetroOS),
   spotlight: () => import("@/components/templates/Spotlight").then((m) => m.Spotlight),
+  academic_cv: () => import("@/components/templates/AcademicCV").then((m) => m.AcademicCV),
+  contact_sheet: () => import("@/components/templates/ContactSheet").then((m) => m.ContactSheet),
+  workspace: () => import("@/components/templates/Workspace").then((m) => m.Workspace),
+  blueprint: () => import("@/components/templates/Blueprint").then((m) => m.Blueprint),
+  scrapbook: () => import("@/components/templates/Scrapbook").then((m) => m.Scrapbook),
+  media_kit: () => import("@/components/templates/MediaKit").then((m) => m.MediaKit),
 } satisfies Record<ThemeId, TemplateLoader>;
 
 export async function getTemplate(
