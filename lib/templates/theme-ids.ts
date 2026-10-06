@@ -8,6 +8,7 @@ export const THEME_IDS = [
   "broadsheet",
   "case_file",
   "classic_ats",
+  "contact_sheet",
   "design_folio",
   "dev_terminal",
   "glass",
@@ -88,6 +89,13 @@ export const THEME_METADATA = {
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },
+  contact_sheet: {
+    name: "Contact Sheet",
+    description:
+      "Film-frame tiles on near-black with grease-pencil orange, built for photographers",
+    category: "Creative",
+    preview: "/previews/contact-sheet.webp",
+  },
   design_folio: {
     name: "DesignFolio",
     description: "Swiss grid on cool grey with a cobalt name block. Project images lead the page.",
@@ -162,4 +170,5 @@ export const themeToShareVariant = {
   case_file: "case-file",
   retro_os: "retro-os",
   academic_cv: "academic-cv",
+  contact_sheet: "contact-sheet",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;
