@@ -14,6 +14,7 @@ export const SHARE_VARIANT_KEYS = [
   "boardroom",
   "broadsheet",
   "academic-cv",
+  "contact-sheet",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -36,6 +37,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   boardroom: "",
   broadsheet: "",
   "academic-cv": "",
+  "contact-sheet": "",
 };
 
 export const shareButtonStyles = {
@@ -69,6 +71,8 @@ export const shareButtonStyles = {
     "bg-transparent text-[#1B1613] hover:text-[#8A2C27] border border-[#1B1613]/40 hover:border-[#8A2C27] rounded-none px-3 py-1.5 text-sm",
   "academic-cv":
     "text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] rounded-sm px-3 py-1.5 text-sm hover:border-[#1D4E89]/50",
+  "contact-sheet":
+    "bg-transparent text-[#ECE8DF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C] rounded-none px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -93,6 +97,8 @@ export const shareTriggerStyles = {
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/40 rounded-none hover:border-[#8A2C27]",
   "academic-cv":
     "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm hover:text-[#1D4E89] hover:border-[#1D4E89]/50",
+  "contact-sheet":
+    "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none hover:border-[#FF6B2C]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -112,6 +118,7 @@ export const sharePanelStyles = {
   boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm",
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/30 rounded-none",
   "academic-cv": "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm",
+  "contact-sheet": "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -140,4 +147,6 @@ export const shareItemStyles = {
     "bg-[#F8EEE5] text-[#1B1613] hover:text-[#8A2C27] border border-[#1B1613]/25 hover:border-[#8A2C27]",
   "academic-cv":
     "bg-white text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] hover:border-[#1D4E89]/50",
+  "contact-sheet":
+    "bg-[#121214] text-[#CFCABF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C]",
 } satisfies Record<SharePopoverVariant, string>;

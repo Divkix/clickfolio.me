@@ -125,4 +125,13 @@ export const THEME_PAGE_COPY: Record<
       "The resume parser reads projects, so papers, talks, and software appear under Research & Selected Work with their year, link, and keywords. Honors and certifications are listed with dates. A print button turns the page into a clean PDF CV, and on phones the index becomes a scrolling strip above the content.",
     ],
   },
+  contact_sheet: {
+    title: "Photography Portfolio Website Template",
+    description:
+      "Build a free photography portfolio website: film-frame project tiles on near-black, assignments listed like a shoot log, and a clean fallback when you have no images.",
+    paragraphs: [
+      "Contact Sheet is for photographers and visual storytellers. Your projects become numbered film frames in a grid, with the first one circled in grease-pencil orange. Each frame shows its year, description, and keywords, and links out when the project has a URL.",
+      "If a project includes an image, the frame displays it; if not, the project title fills the frame so the grid never has gaps. Experience reads as a log of assignments, with dates set in a monospace column. Training, kit and technique, and awards sit in columns at the end, and the page collapses to one column on phones.",
+    ],
+  },
 };

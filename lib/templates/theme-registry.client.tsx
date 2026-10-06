@@ -107,4 +107,10 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  contact_sheet: dynamic(
+    () => import("@/components/templates/ContactSheet").then((m) => ({ default: m.ContactSheet })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

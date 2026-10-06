@@ -10,6 +10,13 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    contact_sheet: {
+      container:
+        "bg-[#1A1A1C]/95 backdrop-blur-md border border-[#2A2A2D] text-[#9A968D] hover:text-[#ECE8DF]",
+      accent: "text-[#FF6B2C]",
+      shimmer: "from-transparent via-[#FF6B2C]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
     academic_cv: {
       container: "bg-white/95 border border-[#DAD9D2] text-[#4D5766] hover:text-[#14202F]",
       accent: "text-[#1D4E89]",

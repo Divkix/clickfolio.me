@@ -175,6 +175,14 @@ export default function TemplatesShowcasePage() {
           first. A sticky index jumps to each section, and a print button saves the page as a PDF
           CV. Best for graduate students, postdocs, and faculty.
         </p>
+
+        <h3>{THEME_METADATA.contact_sheet.name}</h3>
+        <p>
+          {THEME_METADATA.contact_sheet.description}. Your projects become numbered frames in a
+          grid, the first one circled in orange, and your experience reads as a log of assignments.
+          Frames with no image use the project title as the picture. Best for photographers,
+          filmmakers, and visual storytellers.
+        </p>
       </section>
 
       <section>

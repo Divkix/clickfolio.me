@@ -163,6 +163,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-blue-50",
     badgeTextColor: "text-blue-800",
   },
+  {
+    id: "contact_sheet",
+    name: "Noor Ibrahim",
+    role: "Documentary Photographer",
+    initials: "NI",
+    avatarGradient: "from-orange-500 to-stone-900",
+    badgeLabel: "Contact Sheet",
+    badgeBgColor: "bg-orange-50",
+    badgeTextColor: "text-orange-700",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1526,6 +1536,112 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  contact_sheet: {
+    full_name: "Noor Ibrahim",
+    headline: "Documentary photographer working on water, work and weather",
+    summary:
+      "Documentary photographer based in Rotterdam, telling long-form stories about coastal communities and the people who work on the water. Ten years of assignments for magazines and NGOs, plus a self-published book on tidal farming. Available for commissions, editorial work and workshops.",
+    contact: {
+      email: "noor@example.com",
+      location: "Rotterdam, Netherlands",
+      linkedin: "https://linkedin.com/in/nooribrahim",
+      website: "https://nooribrahim.example.com",
+    },
+    experience: [
+      {
+        title: "Freelance Documentary Photographer",
+        company: "Self-employed",
+        location: "Rotterdam, Netherlands",
+        start_date: "2018-03",
+        end_date: undefined,
+        description:
+          "Commissioned long-form photo essays for magazines, foundations and non-profits across Europe and West Africa.",
+        highlights: [
+          "Shot a 12-page cover story on tidal farming for a national weekend magazine",
+          "Led a six-week documentary workshop for 24 emerging photographers",
+          "Licensed work to editorial clients in nine countries",
+        ],
+      },
+      {
+        title: "Staff Photographer",
+        company: "Harbor Weekly",
+        location: "Rotterdam, Netherlands",
+        start_date: "2014-06",
+        end_date: "2018-02",
+        description: "Weekly news and feature assignments for a regional newspaper.",
+        highlights: [
+          "Produced 300+ published photo stories",
+          "Built the paper's first photo-editing workflow for tight deadlines",
+        ],
+      },
+      {
+        title: "Photo Assistant",
+        company: "Atelier Bruin",
+        location: "Amsterdam, Netherlands",
+        start_date: "2012-09",
+        end_date: "2014-05",
+        description: "Assisted on location and studio shoots; managed archive and printing.",
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Photography",
+        institution: "Royal Academy of Art",
+        location: "The Hague, Netherlands",
+        graduation_date: "2012-06",
+      },
+    ],
+    skills: [
+      { category: "Capture", items: ["35mm film", "Medium format", "Available light", "Drone"] },
+      { category: "Post-production", items: ["Lightroom", "Capture One", "Darkroom printing"] },
+      { category: "Teaching", items: ["Workshops", "Portfolio reviews", "Photo editing"] },
+    ],
+    certifications: [
+      { name: "Emerging Photographer of the Year", issuer: "Delta Photo Prize", date: "2021" },
+      { name: "Single Image, Documentary", issuer: "North Sea Photo Awards", date: "2020" },
+    ],
+    projects: [
+      {
+        title: "Tidal Farmers",
+        description:
+          "Two years with families who grow crops on land that floods twice a day. Self-published book, 2023.",
+        year: "2023",
+        technologies: ["Medium format", "Book"],
+        url: "https://nooribrahim.example.com/tidal-farmers",
+      },
+      {
+        title: "The Last Net-Menders",
+        description: "Portraits of the people who repair fishing nets in a harbor town.",
+        year: "2022",
+        technologies: ["35mm film", "Portraits"],
+      },
+      {
+        title: "Salt Season",
+        description: "Seasonal salt harvesting on the Atlantic coast, shot over three summers.",
+        year: "2021",
+        technologies: ["Available light"],
+      },
+      {
+        title: "Night Ferry",
+        description: "A winter of overnight crossings, and the passengers who ride them.",
+        year: "2020",
+        technologies: ["Low light"],
+      },
+      {
+        title: "Dock Wives",
+        description: "A quiet series on the partners who keep port-town economies running.",
+        year: "2019",
+        technologies: ["Portraits", "Interviews"],
+      },
+      {
+        title: "After the Storm",
+        description: "Commissioned coverage of recovery after a coastal flood.",
+        year: "2018",
+        technologies: ["Photojournalism"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1544,4 +1660,5 @@ export const TEMPLATE_BACKGROUNDS = {
   retro_os: { bg: "bg-[#008080]", isDark: true },
   spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
   academic_cv: { bg: "bg-[#FAFAF7]", isDark: false },
+  contact_sheet: { bg: "bg-[#0F0F10]", isDark: true },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;
