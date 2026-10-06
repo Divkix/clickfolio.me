@@ -183,6 +183,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-sky-50",
     badgeTextColor: "text-sky-700",
   },
+  {
+    id: "blueprint",
+    name: "Mara Lindqvist",
+    role: "Architect",
+    initials: "ML",
+    avatarGradient: "from-blue-800 to-sky-500",
+    badgeLabel: "Blueprint",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1748,6 +1758,113 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  blueprint: {
+    full_name: "Mara Lindqvist",
+    headline: "Architect and passive-house designer",
+    summary:
+      "Licensed architect with nine years designing low-energy housing and community buildings in cold climates. I work from first sketch through construction administration and care about buildings that are cheap to run and pleasant to live in. Currently leading residential projects at a mid-sized Nordic practice.",
+    contact: {
+      email: "mara.lindqvist@example.com",
+      location: "Gothenburg, Sweden",
+      linkedin: "https://linkedin.com/in/maralindqvist",
+      website: "https://maralindqvist.example.com",
+    },
+    experience: [
+      {
+        title: "Senior Architect",
+        company: "Nordlinje Arkitekter",
+        location: "Gothenburg, Sweden",
+        start_date: "2020-04",
+        end_date: undefined,
+        description:
+          "Leads residential and mixed-use projects from concept to site, managing a team of five.",
+        highlights: [
+          "Designed a 62-unit passive-house housing block delivered 4% under budget",
+          "Introduced a shared model-checking routine that cut drawing coordination errors by 30%",
+          "Presented schemes to planning committees and resident groups",
+        ],
+      },
+      {
+        title: "Architect",
+        company: "Studio Fjord",
+        location: "Oslo, Norway",
+        start_date: "2016-09",
+        end_date: "2020-03",
+        description: "Designed schools, libraries and small public buildings.",
+        highlights: [
+          "Lead designer on a timber-frame primary school for 420 pupils",
+          "Prepared tender packages and managed contractor queries on site",
+        ],
+      },
+      {
+        title: "Junior Architect",
+        company: "Hallberg & Partners",
+        location: "Stockholm, Sweden",
+        start_date: "2014-08",
+        end_date: "2016-08",
+        description: "Drafting, detailing and model-making across housing and renovation projects.",
+      },
+    ],
+    education: [
+      {
+        degree: "MArch in Architecture",
+        institution: "Chalmers University of Technology",
+        location: "Gothenburg, Sweden",
+        graduation_date: "2014-06",
+      },
+      {
+        degree: "BA in Architecture",
+        institution: "Chalmers University of Technology",
+        location: "Gothenburg, Sweden",
+        graduation_date: "2012-06",
+      },
+    ],
+    skills: [
+      {
+        category: "Design",
+        items: ["Concept design", "Detailing", "Passive house", "Timber construction"],
+      },
+      { category: "Software", items: ["Revit", "Rhino", "AutoCAD", "Grasshopper"] },
+      {
+        category: "Delivery",
+        items: ["Tender documents", "Site administration", "Planning submissions"],
+      },
+    ],
+    certifications: [
+      { name: "Certified Passive House Designer", issuer: "Passive House Institute", date: "2019" },
+      { name: "Registered Architect", issuer: "Swedish Board of Housing", date: "2017" },
+    ],
+    projects: [
+      {
+        title: "Kvarteret Ljus",
+        description: "62-unit passive-house block with shared courtyards and rooftop growing beds.",
+        year: "2024",
+        technologies: ["Passive house", "CLT", "Courtyard housing"],
+        url: "https://maralindqvist.example.com/kvarteret-ljus",
+      },
+      {
+        title: "Fjordvik Primary School",
+        description:
+          "Timber-frame school for 420 pupils with daylit classrooms and a covered playground.",
+        year: "2020",
+        technologies: ["Timber frame", "Daylighting"],
+      },
+      {
+        title: "Harbour Library Extension",
+        description: "Small extension and reading room added to a listed harbour warehouse.",
+        year: "2019",
+        technologies: ["Heritage", "Steel", "Glazing"],
+      },
+      {
+        title: "Retrofit pattern book",
+        description: "Open guide to low-cost energy retrofits for 1960s apartment blocks.",
+        year: "2022",
+        technologies: ["Retrofit", "Research"],
+        url: "https://github.com/maralindqvist/retrofit-patterns",
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1768,4 +1885,5 @@ export const TEMPLATE_BACKGROUNDS = {
   academic_cv: { bg: "bg-[#FAFAF7]", isDark: false },
   contact_sheet: { bg: "bg-[#0F0F10]", isDark: true },
   workspace: { bg: "bg-white", isDark: false },
+  blueprint: { bg: "bg-[#0E3A66]", isDark: true },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

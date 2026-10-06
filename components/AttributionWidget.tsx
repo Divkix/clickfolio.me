@@ -10,6 +10,13 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    blueprint: {
+      container:
+        "bg-[#0E3A66]/95 backdrop-blur-md border border-[#EAF3FF]/50 text-[#BFD9F6] hover:text-white",
+      accent: "text-[#FFD966]",
+      shimmer: "from-transparent via-[#FFD966]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
     workspace: {
       container: "bg-white/95 border border-[#E9E9E7] text-[#787774] hover:text-[#37352F]",
       accent: "text-[#2383E2]",

@@ -190,6 +190,14 @@ export default function TemplatesShowcasePage() {
           your contact details, your summary as a callout, and collapsible sections with colored
           tags. Best for product managers, engineers, and anyone who already thinks in documents.
         </p>
+
+        <h3>{THEME_METADATA.blueprint.name}</h3>
+        <p>
+          {THEME_METADATA.blueprint.description}. Your career is laid out as a drawing set: lettered
+          section callouts, dates drawn as dimension lines, projects as numbered details with a spec
+          line, and a title block at the foot. Best for architects, engineers, and designers of
+          physical things.
+        </p>
       </section>
 
       <section>
