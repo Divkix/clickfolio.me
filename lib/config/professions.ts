@@ -25,5 +25,9 @@ export const PROFESSIONS: readonly Profession[] = [
     label: "Consultants",
     themes: ["boardroom", "broadsheet", "case_file"],
   },
-  { slug: "student", label: "Students", themes: ["classic_ats", "midnight", "retro_os"] },
+  {
+    slug: "student",
+    label: "Students",
+    themes: ["classic_ats", "midnight", "retro_os", "academic_cv"],
+  },
 ] as const;

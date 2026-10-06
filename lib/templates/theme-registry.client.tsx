@@ -101,4 +101,10 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  academic_cv: dynamic(
+    () => import("@/components/templates/AcademicCV").then((m) => ({ default: m.AcademicCV })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

@@ -10,6 +10,12 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    academic_cv: {
+      container: "bg-white/95 border border-[#DAD9D2] text-[#4D5766] hover:text-[#14202F]",
+      accent: "text-[#1D4E89]",
+      shimmer: "from-transparent via-[#1D4E89]/10 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
     minimalist_editorial: {
       container: "bg-white/95 border border-[#E4E4E7] text-[#6B6B73] hover:text-[#1B1B1F]",
       accent: "text-[#1F5C4A]",

@@ -2,7 +2,7 @@ import type { ThemeId } from "@/lib/templates/theme-ids";
 
 export const THEME_PAGE_COPY: Record<
   ThemeId,
-  { description: string; paragraphs: readonly string[] }
+  { title?: string; description: string; paragraphs: readonly string[] }
 > = {
   bento: {
     description:
@@ -114,6 +114,15 @@ export const THEME_PAGE_COPY: Record<
     paragraphs: [
       "Spotlight works for designers and marketers who want their name and professional introduction to take center stage. A pale lilac background, aubergine typography, and a warm pool of stage light frame the oversized opening name.",
       "The rest of the page reads like a playbill: section titles sit beside the supporting work on wider screens, then stack above it on mobile. Yellow-underlined links echo the opening light. It offers a more expressive personal introduction while preserving a straightforward account of your experience.",
+    ],
+  },
+  academic_cv: {
+    title: "Academic CV Website Template",
+    description:
+      "Build a free academic CV website with a layout that puts education first, dates appointments, and numbers your research and selected work. Print-ready.",
+    paragraphs: [
+      "Academic CV is built for graduate students, postdocs, and faculty who need a CV that lives on the web. Education leads, followed by appointments, then research and selected work listed newest first with numbered entries. A sticky index on wide screens jumps to each section your resume contains.",
+      "The resume parser reads projects, so papers, talks, and software appear under Research & Selected Work with their year, link, and keywords. Honors and certifications are listed with dates. A print button turns the page into a clean PDF CV, and on phones the index becomes a scrolling strip above the content.",
     ],
   },
 };

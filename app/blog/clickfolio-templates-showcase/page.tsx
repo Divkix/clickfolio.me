@@ -167,6 +167,14 @@ export default function TemplatesShowcasePage() {
           collection and still fully readable on a phone. Best for game developers, creative
           technologists, and anyone whose portfolio should start a conversation.
         </p>
+
+        <h3>{THEME_METADATA.academic_cv.name}</h3>
+        <p>
+          {THEME_METADATA.academic_cv.description}. Education comes first, appointments follow with
+          dates in a left column, and your projects are listed as numbered research outputs, newest
+          first. A sticky index jumps to each section, and a print button saves the page as a PDF
+          CV. Best for graduate students, postdocs, and faculty.
+        </p>
       </section>
 
       <section>

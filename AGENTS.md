@@ -39,7 +39,7 @@ lib/durable-objects/   ClickfolioStatusDO (hibernation WebSocket status push)
 lib/stubs/             stubs for CF-incompatible modules (test aliases in vite.config.ts)
 lib/seo/               sitemap, llms.txt generators, IndexNow, lastmod.json
 lib/examples/          EXAMPLE_GALLERIES: hand-picked directory handles for /examples/<slug>
-components/templates/  14 portfolio themes; registry in lib/templates/
+components/templates/  portfolio themes; registry in lib/templates/
 app/(protected)/       user pages — each page gates itself (layout does NOT)
 app/(admin)/admin/     admin pages; layout gates via requireAdminAuth
 app/preview/[id]/      demo-data renders of themes (thumbnail source), no DB

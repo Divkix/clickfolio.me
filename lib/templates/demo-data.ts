@@ -153,6 +153,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-rose-50",
     badgeTextColor: "text-rose-800",
   },
+  {
+    id: "academic_cv",
+    name: "Dr. Lena Hartwell",
+    role: "Assistant Professor of Cognitive Neuroscience",
+    initials: "LH",
+    avatarGradient: "from-blue-700 to-slate-700",
+    badgeLabel: "Academic CV",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1395,6 +1405,127 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  academic_cv: {
+    full_name: "Dr. Lena Hartwell",
+    headline: "Assistant Professor of Cognitive Neuroscience, Northfield University",
+    summary:
+      "Cognitive neuroscientist studying how the brain forms and retrieves memories during sleep. My lab combines high-density EEG, behavioural experiments and Bayesian models to explain why some memories persist and others fade. I teach graduate methods courses and mentor PhD students in open, reproducible research practice.",
+    contact: {
+      email: "lena.hartwell@example.edu",
+      location: "Boston, MA",
+      linkedin: "https://linkedin.com/in/lenahartwell",
+      github: "https://github.com/lenahartwell",
+      website: "https://lenahartwell.org",
+    },
+    experience: [
+      {
+        title: "Assistant Professor of Cognitive Neuroscience",
+        company: "Northfield University",
+        location: "Boston, MA",
+        start_date: "2022-08",
+        end_date: undefined,
+        description:
+          "Directs the Memory and Sleep Laboratory, a group of six PhD students and two postdoctoral researchers.",
+        highlights: [
+          "Secured a three-year research grant to study sleep-dependent memory consolidation",
+          "Designed and teach the graduate course Statistical Methods for Neuroimaging",
+          "Chairs the departmental committee on open-science practice",
+        ],
+      },
+      {
+        title: "Postdoctoral Research Fellow",
+        company: "Calder Institute for Brain Science",
+        location: "Boston, MA",
+        start_date: "2019-09",
+        end_date: "2022-07",
+        description:
+          "Studied how overnight sleep reorganises recently learned material, using simultaneous EEG and fMRI.",
+        highlights: [
+          "Built an open EEG preprocessing pipeline now used by four partner labs",
+          "Supervised three master's theses",
+        ],
+      },
+      {
+        title: "Graduate Research Assistant",
+        company: "Northfield University",
+        location: "Boston, MA",
+        start_date: "2014-09",
+        end_date: "2019-06",
+        description: "Doctoral research on memory reactivation during slow-wave sleep.",
+      },
+    ],
+    education: [
+      {
+        degree: "PhD in Neuroscience",
+        institution: "Northfield University",
+        location: "Boston, MA",
+        graduation_date: "2019-06",
+      },
+      {
+        degree: "MSc in Cognitive Science",
+        institution: "University of Edinburgh",
+        location: "Edinburgh, UK",
+        graduation_date: "2014-08",
+      },
+      {
+        degree: "BSc in Psychology",
+        institution: "University of Toronto",
+        location: "Toronto, Canada",
+        graduation_date: "2013-06",
+      },
+    ],
+    skills: [
+      {
+        category: "Methods",
+        items: ["EEG", "fMRI", "Behavioural experiments", "Bayesian modelling"],
+      },
+      { category: "Analysis", items: ["Python", "R", "MATLAB", "Mixed-effects models"] },
+      {
+        category: "Teaching",
+        items: ["Graduate statistics", "Research methods", "Thesis supervision"],
+      },
+    ],
+    certifications: [
+      { name: "Early Career Research Award", issuer: "Calder Foundation", date: "2023" },
+      {
+        name: "Best Doctoral Dissertation in Neuroscience",
+        issuer: "Northfield University",
+        date: "2019",
+      },
+    ],
+    projects: [
+      {
+        title: "Spindle-locked reactivation predicts next-day recall",
+        description:
+          "Journal article. Shows that memories reactivated during sleep spindles are recalled more accurately the following day.",
+        year: "2024",
+        technologies: ["Sleep", "EEG", "Memory consolidation"],
+        url: "https://example.org/papers/spindle-locked-reactivation",
+      },
+      {
+        title: "An open pipeline for sleep EEG preprocessing",
+        description:
+          "Methods paper and software release describing the pipeline used across four partner laboratories.",
+        year: "2022",
+        technologies: ["Reproducibility", "Python", "EEG"],
+        url: "https://github.com/lenahartwell/sleep-eeg-pipeline",
+      },
+      {
+        title: "Slow oscillations gate hippocampal replay in humans",
+        description:
+          "Journal article with simultaneous EEG and fMRI evidence from 38 participants.",
+        year: "2021",
+        technologies: ["fMRI", "Hippocampus", "Replay"],
+      },
+      {
+        title: "Memory reactivation during slow-wave sleep",
+        description: "Doctoral dissertation, Northfield University.",
+        year: "2019",
+        technologies: ["Dissertation"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1412,4 +1543,5 @@ export const TEMPLATE_BACKGROUNDS = {
   neo_brutalist: { bg: "bg-[#FFD400]", isDark: false },
   retro_os: { bg: "bg-[#008080]", isDark: true },
   spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
+  academic_cv: { bg: "bg-[#FAFAF7]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

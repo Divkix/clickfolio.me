@@ -1,6 +1,7 @@
 import type { SharePopoverVariant } from "@/lib/templates/share-variants";
 
 export const THEME_IDS = [
+  "academic_cv",
   "bento",
   "boardroom",
   "bold_corporate",
@@ -41,6 +42,13 @@ export function themeIdFromSlug(slug: string): ThemeId | null {
 }
 
 export const THEME_METADATA = {
+  academic_cv: {
+    name: "Academic CV",
+    description:
+      "A scholarly CV with education first, dated appointments and numbered research outputs",
+    category: "Professional",
+    preview: "/previews/academic-cv.webp",
+  },
   bento: {
     name: "Bento Grid",
     description: "Flat colour tiles that fit together around your photo",
@@ -153,4 +161,5 @@ export const themeToShareVariant = {
   broadsheet: "broadsheet",
   case_file: "case-file",
   retro_os: "retro-os",
+  academic_cv: "academic-cv",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;
