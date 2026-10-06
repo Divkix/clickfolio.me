@@ -17,6 +17,7 @@ export const THEME_IDS = [
   "neo_brutalist",
   "retro_os",
   "spotlight",
+  "workspace",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];
@@ -144,6 +145,12 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/spotlight.webp",
   },
+  workspace: {
+    name: "Workspace",
+    description: "A clean document page with a cover, a properties table and collapsible sections",
+    category: "Modern",
+    preview: "/previews/workspace.webp",
+  },
 } as const satisfies Record<
   ThemeId,
   {
@@ -171,4 +178,5 @@ export const themeToShareVariant = {
   retro_os: "retro-os",
   academic_cv: "academic-cv",
   contact_sheet: "contact-sheet",
+  workspace: "workspace",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

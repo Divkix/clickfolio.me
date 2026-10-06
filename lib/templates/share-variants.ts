@@ -15,6 +15,7 @@ export const SHARE_VARIANT_KEYS = [
   "broadsheet",
   "academic-cv",
   "contact-sheet",
+  "workspace",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -38,6 +39,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   broadsheet: "",
   "academic-cv": "",
   "contact-sheet": "",
+  workspace: "",
 };
 
 export const shareButtonStyles = {
@@ -73,6 +75,8 @@ export const shareButtonStyles = {
     "text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] rounded-sm px-3 py-1.5 text-sm hover:border-[#1D4E89]/50",
   "contact-sheet":
     "bg-transparent text-[#ECE8DF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C] rounded-none px-3 py-1.5 text-sm",
+  workspace:
+    "bg-white text-[#787774] hover:text-[#37352F] hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-md px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -99,6 +103,7 @@ export const shareTriggerStyles = {
     "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm hover:text-[#1D4E89] hover:border-[#1D4E89]/50",
   "contact-sheet":
     "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none hover:border-[#FF6B2C]",
+  workspace: "bg-white text-[#37352F] border-[#E9E9E7] rounded-md shadow-sm hover:bg-[#F7F7F5]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -119,6 +124,7 @@ export const sharePanelStyles = {
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/30 rounded-none",
   "academic-cv": "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm",
   "contact-sheet": "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none",
+  workspace: "bg-white text-[#37352F] border-[#E9E9E7] rounded-md",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -149,4 +155,6 @@ export const shareItemStyles = {
     "bg-white text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] hover:border-[#1D4E89]/50",
   "contact-sheet":
     "bg-[#121214] text-[#CFCABF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C]",
+  workspace:
+    "bg-white text-[#787774] hover:text-[#37352F] hover:bg-[#F7F7F5] border border-[#E9E9E7]",
 } satisfies Record<SharePopoverVariant, string>;

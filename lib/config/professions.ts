@@ -11,7 +11,7 @@ export const PROFESSIONS: readonly Profession[] = [
   {
     slug: "software-engineer",
     label: "Software Engineers",
-    themes: ["dev_terminal", "minimalist_editorial", "glass"],
+    themes: ["dev_terminal", "minimalist_editorial", "glass", "workspace"],
   },
   {
     slug: "designer",
@@ -21,7 +21,7 @@ export const PROFESSIONS: readonly Profession[] = [
   {
     slug: "product-manager",
     label: "Product Managers",
-    themes: ["boardroom", "bold_corporate", "bento"],
+    themes: ["boardroom", "bold_corporate", "bento", "workspace"],
   },
   { slug: "marketer", label: "Marketers", themes: ["bento", "spotlight", "glass"] },
   {

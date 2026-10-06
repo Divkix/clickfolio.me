@@ -21,6 +21,7 @@ const TEMPLATE_LOADERS = {
   spotlight: () => import("@/components/templates/Spotlight").then((m) => m.Spotlight),
   academic_cv: () => import("@/components/templates/AcademicCV").then((m) => m.AcademicCV),
   contact_sheet: () => import("@/components/templates/ContactSheet").then((m) => m.ContactSheet),
+  workspace: () => import("@/components/templates/Workspace").then((m) => m.Workspace),
 } satisfies Record<ThemeId, TemplateLoader>;
 
 export async function getTemplate(

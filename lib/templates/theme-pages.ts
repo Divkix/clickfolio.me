@@ -134,4 +134,13 @@ export const THEME_PAGE_COPY: Record<
       "If a project includes an image, the frame displays it; if not, the project title fills the frame so the grid never has gaps. Experience reads as a log of assignments, with dates set in a monospace column. Training, kit and technique, and awards sit in columns at the end, and the page collapses to one column on phones.",
     ],
   },
+  workspace: {
+    title: "Notion-Style Portfolio Website Template",
+    description:
+      "Create a free portfolio website with Workspace: a clean document-style page with a cover, properties table, collapsible sections and tag labels, built from your resume.",
+    paragraphs: [
+      "Workspace gives your resume the look of a well-kept document: a soft cover band, a page icon, and a properties table where your role, email, location, and links line up as rows. Your summary appears as a callout, and each section opens and closes like a toggle block, so visitors can skim or dive in.",
+      "Skills and project keywords become colored tags, and projects sit in a two-column gallery of cards. It is a natural fit for product managers, engineers, and anyone who already plans their work in documents. It is an independent design, not affiliated with or endorsed by any note-taking app.",
+    ],
+  },
 };
