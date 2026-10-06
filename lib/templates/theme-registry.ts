@@ -19,6 +19,7 @@ const TEMPLATE_LOADERS = {
   neo_brutalist: () => import("@/components/templates/NeoBrutalist").then((m) => m.NeoBrutalist),
   retro_os: () => import("@/components/templates/RetroOS").then((m) => m.RetroOS),
   spotlight: () => import("@/components/templates/Spotlight").then((m) => m.Spotlight),
+  academic_cv: () => import("@/components/templates/AcademicCV").then((m) => m.AcademicCV),
 } satisfies Record<ThemeId, TemplateLoader>;
 
 export async function getTemplate(

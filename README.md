@@ -385,7 +385,7 @@ app/
 └── globals.css          # Global styles
 
 components/
-├── templates/           # 14 resume template components
+├── templates/           # Resume template components
 ├── ui/                  # shadcn/ui components
 ├── auth/                # LoginButton using Clerk's native sign-in modal
 ├── dashboard/           # Dashboard-specific components
@@ -487,7 +487,7 @@ Removed — all 14 templates are now free for every user. No referral gating.
 
 ## Resume Templates
 
-14 built-in templates in `components/templates/`:
+Built-in templates in `components/templates/`:
 
 | Template                 | Category     | Description                                                          | Unlock Requirement |
 | ------------------------ | ------------ | -------------------------------------------------------------------- | ------------------ |
@@ -505,6 +505,7 @@ Removed — all 14 templates are now free for every user. No referral gating.
 | **Broadsheet**           | Professional | Newspaper front page: masthead name, ruled columns, roles as stories | Free               |
 | **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits         | Free               |
 | **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window           | Free               |
+| **Academic CV**          | Professional | Scholarly CV: education first, dated appointments, numbered research | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 

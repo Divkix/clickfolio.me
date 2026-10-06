@@ -17,6 +17,7 @@ const ctaVariants = cva(
   {
     variants: {
       variant: {
+        academic_cv: "bg-[#14202F] text-white border border-[#14202F]",
         minimalist_editorial: "bg-[#1B1B1F] text-white border border-[#1B1B1F]",
         neo_brutalist: "bg-white text-black border-[3px] border-black shadow-[4px_4px_0_0_#000]",
         glass: "bg-[#141A2E]/80 backdrop-blur-md border border-white/15 text-white",
@@ -45,6 +46,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        academic_cv: "bg-white text-[#14202F] hover:bg-[#EEF1F5]",
         minimalist_editorial: "bg-white text-[#1B1B1F] hover:bg-[#F4F4F5]",
         neo_brutalist: "bg-[#FFD400] text-black hover:bg-[#FFE14D] font-bold",
         glass: "bg-white/20 text-white hover:bg-white/30",
@@ -70,6 +72,7 @@ const buttonVariants = cva(
 const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
   variants: {
     variant: {
+      academic_cv: "hover:bg-white/10 text-white/60",
       minimalist_editorial: "hover:bg-white/10 text-white/60",
       neo_brutalist: "hover:bg-black/10 text-black",
       glass: "hover:bg-white/10 text-white/60",

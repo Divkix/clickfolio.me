@@ -13,6 +13,7 @@ export const SHARE_VARIANT_KEYS = [
   "retro-os",
   "boardroom",
   "broadsheet",
+  "academic-cv",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -34,6 +35,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "retro-os": "",
   boardroom: "",
   broadsheet: "",
+  "academic-cv": "",
 };
 
 export const shareButtonStyles = {
@@ -65,6 +67,8 @@ export const shareButtonStyles = {
     "bg-transparent text-[#ECE6D8] hover:text-[#C4A971] border border-[#262D37] hover:border-[#C4A971]/60 rounded-sm px-3 py-1.5 text-sm",
   broadsheet:
     "bg-transparent text-[#1B1613] hover:text-[#8A2C27] border border-[#1B1613]/40 hover:border-[#8A2C27] rounded-none px-3 py-1.5 text-sm",
+  "academic-cv":
+    "text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] rounded-sm px-3 py-1.5 text-sm hover:border-[#1D4E89]/50",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -87,6 +91,8 @@ export const shareTriggerStyles = {
     "bg-[#C0C0C0] text-black border-0 rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
   boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm hover:border-[#C4A971]/60",
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/40 rounded-none hover:border-[#8A2C27]",
+  "academic-cv":
+    "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm hover:text-[#1D4E89] hover:border-[#1D4E89]/50",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -105,6 +111,7 @@ export const sharePanelStyles = {
     "bg-[#C0C0C0] text-black border-2 border-t-white border-l-white border-r-[#0a0a0a] border-b-[#0a0a0a] rounded-none",
   boardroom: "bg-[#161B22] text-[#ECE6D8] border-[#262D37] rounded-sm",
   broadsheet: "bg-[#F8EEE5] text-[#1B1613] border-[#1B1613]/30 rounded-none",
+  "academic-cv": "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -131,4 +138,6 @@ export const shareItemStyles = {
     "bg-[#0F1318] text-[#ECE6D8] hover:text-[#C4A971] border border-[#262D37] hover:border-[#C4A971]/60",
   broadsheet:
     "bg-[#F8EEE5] text-[#1B1613] hover:text-[#8A2C27] border border-[#1B1613]/25 hover:border-[#8A2C27]",
+  "academic-cv":
+    "bg-white text-[#4D5766] hover:text-[#1D4E89] border border-[#DAD9D2] hover:border-[#1D4E89]/50",
 } satisfies Record<SharePopoverVariant, string>;
