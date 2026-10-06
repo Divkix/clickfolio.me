@@ -509,6 +509,7 @@ Built-in templates in `components/templates/`:
 | **Contact Sheet**        | Creative     | Film-frame tiles on near-black with grease-pencil orange for photographers                | Free               |
 | **Workspace**            | Modern       | Clean document page: cover band, properties table, collapsible sections, tag labels       | Free               |
 | **Blueprint**            | Creative     | Cyanotype drawing sheet: grid paper, lettered sections, dimension-line dates, title block | Free               |
+| **Scrapbook**            | Creative     | Craft-paper desk: taped index cards, sticky-note skills, polaroid portrait                | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 
