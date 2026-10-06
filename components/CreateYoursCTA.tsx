@@ -17,6 +17,7 @@ const ctaVariants = cva(
   {
     variants: {
       variant: {
+        media_kit: "bg-[#4B2BFF] text-white border border-[#4B2BFF]",
         scrapbook:
           "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] shadow-[3px_3px_0_0_#2B2622]",
         blueprint: "bg-[#0B3158] text-[#EAF3FF] border border-[#EAF3FF]/60",
@@ -51,6 +52,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        media_kit: "bg-[#C6FF3D] text-[#14122B] hover:bg-white",
         scrapbook: "bg-[#2B2622] text-[#FFFDF8] hover:bg-[#443C35]",
         blueprint: "bg-[#FFD966] text-[#0E3A66] hover:bg-[#FFE38A]",
         workspace: "bg-white text-[#37352F] hover:bg-[#F7F7F5]",
@@ -81,6 +83,7 @@ const buttonVariants = cva(
 const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
   variants: {
     variant: {
+      media_kit: "hover:bg-white/10 text-white/70",
       scrapbook: "hover:bg-black/10 text-[#2B2622]",
       blueprint: "hover:bg-white/10 text-[#EAF3FF]/70",
       workspace: "hover:bg-white/10 text-white/60",

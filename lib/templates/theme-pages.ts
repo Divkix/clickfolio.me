@@ -161,4 +161,13 @@ export const THEME_PAGE_COPY: Record<
       "Because students often have more coursework than job history, education comes first, shown as ticket stubs. Skills are sticky notes, certificates are tickets, and project keywords become small outlined tags. The cards stack into a single column on phones, and everything stays plain, readable text underneath the decoration.",
     ],
   },
+  media_kit: {
+    title: "Marketing Portfolio Website Template",
+    description:
+      "Build a free marketing portfolio website with Media Kit: a bold colour-block hero, a results wall pulled from your resume metrics, and a by-the-numbers strip.",
+    paragraphs: [
+      "Media Kit is built for marketers who sell results. A violet hero carries your name and headline, and a by-the-numbers strip counts the roles, brands, and campaigns on your resume. Any achievement that includes a figure, such as 212%, $2.1M, or 3.4x, is lifted into a Results wall with the original sentence beside it.",
+      "Nothing is rewritten: figures are shown exactly as you wrote them, and a resume with no metrics simply skips the wall. Experience, campaigns with their channels, a brands and teams list, and skills follow, ending in a dark contact band with your email as the call to action.",
+    ],
+  },
 };

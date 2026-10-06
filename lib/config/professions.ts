@@ -23,7 +23,7 @@ export const PROFESSIONS: readonly Profession[] = [
     label: "Product Managers",
     themes: ["boardroom", "bold_corporate", "bento", "workspace"],
   },
-  { slug: "marketer", label: "Marketers", themes: ["bento", "spotlight", "glass"] },
+  { slug: "marketer", label: "Marketers", themes: ["bento", "spotlight", "glass", "media_kit"] },
   {
     slug: "consultant",
     label: "Consultants",

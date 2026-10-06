@@ -510,6 +510,7 @@ Built-in templates in `components/templates/`:
 | **Workspace**            | Modern       | Clean document page: cover band, properties table, collapsible sections, tag labels       | Free               |
 | **Blueprint**            | Creative     | Cyanotype drawing sheet: grid paper, lettered sections, dimension-line dates, title block | Free               |
 | **Scrapbook**            | Creative     | Craft-paper desk: taped index cards, sticky-note skills, polaroid portrait                | Free               |
+| **Media Kit**            | Modern       | Bold colour blocks, a results wall pulled from your metrics, a by-the-numbers strip       | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 

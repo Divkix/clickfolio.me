@@ -206,6 +206,13 @@ export default function TemplatesShowcasePage() {
           first as ticket stubs. Best for students and recent graduates with more coursework than
           job history.
         </p>
+
+        <h3>{THEME_METADATA.media_kit.name}</h3>
+        <p>
+          {THEME_METADATA.media_kit.description}. A colour-block hero, a by-the-numbers strip
+          counted from your resume, and a Results wall that lifts figures like 212% or $2.1M out of
+          your own highlights. Best for marketers, growth leads, and anyone who sells with numbers.
+        </p>
       </section>
 
       <section>
