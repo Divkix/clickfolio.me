@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -238,10 +239,10 @@ export default function PrivacyAtClickfolioPage() {
           </div>
         </div>
         <p>
-          Our business model doesn't rely on selling data. All 14 templates are free with no premium
-          locks and no referrals. There's no advertising revenue, no recruiter marketplace, no data
-          licensing. Your privacy isn't a compromise we make — it's a feature we built the product
-          around.
+          Our business model doesn't rely on selling data. All {TEMPLATE_COUNT} templates are free
+          with no premium locks and no referrals. There's no advertising revenue, no recruiter
+          marketplace, no data licensing. Your privacy isn't a compromise we make — it's a feature
+          we built the product around.
         </p>
       </section>
 

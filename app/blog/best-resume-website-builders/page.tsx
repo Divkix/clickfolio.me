@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -134,10 +135,10 @@ export default function BestResumeWebsiteBuildersPage() {
         <p>
           If you already have a PDF resume, clickfolio.me is the fastest way to get a hosted site
           out of it. You upload the PDF, the AI reads it into structured sections, and about thirty
-          seconds later you have a live page at clickfolio.me/@yourhandle. There are twelve
-          templates (all 14 free, no referrals or payment required), field-level privacy toggles so
-          you can hide a phone number or address, and built-in analytics. Hosting runs on
-          Cloudflare, and the project is open source under the MIT license.
+          seconds later you have a live page at clickfolio.me/@yourhandle. There are{" "}
+          {TEMPLATE_COUNT} templates (all free, no referrals or payment required), field-level
+          privacy toggles so you can hide a phone number or address, and built-in analytics. Hosting
+          runs on Cloudflare, and the project is open source under the MIT license.
         </p>
         <p>
           The honest weakness: there is no custom-domain support yet, so every site lives on a

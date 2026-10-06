@@ -1,3 +1,5 @@
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
+
 export interface FAQItem {
   q: string;
   a: string;
@@ -14,11 +16,11 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "Is clickfolio.me really free?",
-    a: "Yes. All 14 templates are completely free with no time limits and no premium locks. Every user gets the full template collection at no cost.",
+    a: `Yes. All ${TEMPLATE_COUNT} templates are completely free with no time limits and no premium locks. Every user gets the full template collection at no cost.`,
   },
   {
     q: "Can I customize my portfolio after publishing?",
-    a: "Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between 14 templates, control what's visible via privacy settings, and update your @handle.",
+    a: `Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between ${TEMPLATE_COUNT} templates, control what's visible via privacy settings, and update your @handle.`,
   },
   {
     q: "What file formats can I upload?",
@@ -38,7 +40,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "How do I unlock premium templates?",
-    a: "All 14 templates are free for every user — no unlocking, no referrals, and no payment required. Just pick any template and publish.",
+    a: `All ${TEMPLATE_COUNT} templates are free for every user — no unlocking, no referrals, and no payment required. Just pick any template and publish.`,
   },
   {
     q: "Can I use my own custom domain?",

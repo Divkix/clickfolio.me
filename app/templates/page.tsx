@@ -10,14 +10,13 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
-import { THEME_IDS, THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
+import { THEME_IDS, THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
 const title = "Resume Website Templates";
 
-const description =
-  "Explore 14 free resume website templates, from minimalist personal websites to developer portfolios. Turn your PDF resume into a hosted portfolio.";
+const description = `Explore ${TEMPLATE_COUNT} free resume website templates, from minimalist personal websites to developer portfolios. Turn your PDF resume into a hosted portfolio.`;
 
 const path = "/templates";
 
@@ -57,9 +56,9 @@ export default function TemplatesPage() {
               Resume Website Templates
             </h1>
             <p className="text-lg leading-relaxed text-muted-foreground">
-              Find a resume website template that fits the way you work. Explore 14 free personal
-              website templates, from quiet editorial layouts to image-led portfolios and developer
-              profiles. Every design turns your resume into a shareable website.
+              Find a resume website template that fits the way you work. Explore {TEMPLATE_COUNT}{" "}
+              free personal website templates, from quiet editorial layouts to image-led portfolios
+              and developer profiles. Every design turns your resume into a shareable website.
             </p>
           </header>
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
@@ -102,7 +101,7 @@ export default function TemplatesPage() {
               Start with your PDF resume. clickfolio.me uses AI to parse it into a hosted portfolio
               at clickfolio.me/@handle. Choose a layout that gives the right emphasis to your
               experience, skills, and projects. The preview on each template page uses demo content
-              so you can compare designs before starting. All 14 themes are free.
+              so you can compare designs before starting. All {TEMPLATE_COUNT} themes are free.
             </p>
             <Button asChild size="lg">
               <Link href="/">Create Your Free Portfolio</Link>

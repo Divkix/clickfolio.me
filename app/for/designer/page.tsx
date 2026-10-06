@@ -9,6 +9,7 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -32,7 +33,7 @@ const faqs = [
   },
   {
     q: "Is it actually free?",
-    a: "Yes. All 14 templates are free with no time limit and no credit card. There is no paid plan and no premium lock. The whole project is open source under the MIT license, so you can inspect every line.",
+    a: `Yes. All ${TEMPLATE_COUNT} templates are free with no time limit and no credit card. There is no paid plan and no premium lock. The whole project is open source under the MIT license, so you can inspect every line.`,
   },
   {
     q: "What link do I share with studios and clients?",
@@ -89,7 +90,7 @@ export default function DesignerPage() {
           <RoleSection
             heading="From PDF to Published in 30 Seconds"
             intro="Drop the PDF resume you already have. The AI extracts your experience, education, skills, and projects. In about 30 seconds you have a live designer portfolio website you can send to studios, agencies, and clients."
-            outro="Not happy with the first look? Switch between 14 themes with one click. You never touch a layout grid or a font menu unless you want to."
+            outro={`Not happy with the first look? Switch between ${TEMPLATE_COUNT} themes with one click. You never touch a layout grid or a font menu unless you want to.`}
           />
 
           <RoleSection

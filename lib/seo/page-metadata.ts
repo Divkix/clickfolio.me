@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 type PublicOgType = "website" | "article";
 
@@ -13,8 +14,7 @@ export const HOME_OG_IMAGE = {
 
 const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
 
-const HOME_DESCRIPTION =
-  "Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — 14 free templates, a custom @handle URL, and privacy controls. No signup to start.";
+const HOME_DESCRIPTION = `Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — ${TEMPLATE_COUNT} free templates, a custom @handle URL, and privacy controls. No signup to start.`;
 
 /**
  * Metadata for the homepage, with its canonical URL set to `/`.

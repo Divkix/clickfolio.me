@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -117,7 +118,7 @@ export default function CvWebsiteBuilderPage() {
             },
             {
               lead: "Choose a template and edit.",
-              body: " Pick from 14 designs and fix anything the parser missed.",
+              body: ` Pick from ${TEMPLATE_COUNT} designs and fix anything the parser missed.`,
             },
             {
               lead: "Publish and share.",

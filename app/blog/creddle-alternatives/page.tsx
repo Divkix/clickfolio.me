@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -172,8 +173,8 @@ export default function CreddleAlternativesPage() {
           The web half of Creddle is the one most lists skip, and it is what we built clickfolio.me
           for. You upload a PDF resume, the AI reads your experience, education, and skills, and
           about 30 seconds later you have a live page at clickfolio.me/@yourname. Everything stays
-          editable afterwards. You get 14 templates (all free), privacy toggles to hide your phone
-          number or address, and built-in view analytics. There is no paid tier.
+          editable afterwards. You get {TEMPLATE_COUNT} templates (all free), privacy toggles to
+          hide your phone number or address, and built-in view analytics. There is no paid tier.
         </p>
         <p>
           Where it falls short for ex-Creddle users: clickfolio.me doesn&apos;t design or export a
@@ -238,7 +239,8 @@ export default function CreddleAlternativesPage() {
           </li>
           <li>
             <strong>Check the details and pick a template.</strong> Fix anything the parser missed,
-            hide fields you don&apos;t want public, and choose one of the 14 templates.
+            hide fields you don&apos;t want public, and choose one of the {TEMPLATE_COUNT}{" "}
+            templates.
           </li>
           <li>
             <strong>Replace every old Creddle link.</strong> Old creddle.io URLs now lead nowhere.

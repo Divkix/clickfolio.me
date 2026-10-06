@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -98,8 +99,8 @@ export default function ResumeWebsiteVsLinkedinPage() {
             or removes a feature you relied on. What you build stays yours.
           </li>
           <li>
-            <strong>You design it.</strong> Pick from 14 templates and shape the layout. On LinkedIn
-            your profile looks like everyone else's.
+            <strong>You design it.</strong> Pick from {TEMPLATE_COUNT} templates and shape the
+            layout. On LinkedIn your profile looks like everyone else's.
           </li>
           <li>
             <strong>You see real analytics.</strong> Know how many people opened your site and which

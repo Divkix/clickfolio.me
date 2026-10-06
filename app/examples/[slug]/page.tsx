@@ -21,7 +21,7 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
-import { THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
+import { THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 
@@ -253,8 +253,8 @@ export default async function ExampleGalleryPage({ params }: GalleryPageProps) {
           </h2>
           <p className="text-muted-foreground mb-4">
             Start with your PDF resume: clickfolio.me uses AI to parse it into a hosted portfolio at
-            clickfolio.me/@handle. All 14 themes are free. These themes are starting points to
-            consider, not a claim about which themes the examples above use.
+            clickfolio.me/@handle. All {TEMPLATE_COUNT} themes are free. These themes are starting
+            points to consider, not a claim about which themes the examples above use.
           </p>
           <ul className="list-disc pl-5 space-y-2 mb-4">
             {gallery.themes.map((id) => (

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -122,8 +123,8 @@ export default function StudentResumeWebsitePage() {
             The AI reads your PDF and builds a structured site automatically.
           </li>
           <li>
-            <strong>Pick a template.</strong> Choose from 14 designs to match the field you're
-            applying into. These{" "}
+            <strong>Pick a template.</strong> Choose from {TEMPLATE_COUNT} designs to match the
+            field you're applying into. These{" "}
             <Link href="/blog/resume-website-examples">resume website examples</Link> show what each
             style looks like.
           </li>
