@@ -119,4 +119,10 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  blueprint: dynamic(
+    () => import("@/components/templates/Blueprint").then((m) => ({ default: m.Blueprint })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

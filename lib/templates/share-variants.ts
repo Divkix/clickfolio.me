@@ -16,6 +16,7 @@ export const SHARE_VARIANT_KEYS = [
   "academic-cv",
   "contact-sheet",
   "workspace",
+  "blueprint",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -40,6 +41,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "academic-cv": "",
   "contact-sheet": "",
   workspace: "",
+  blueprint: "",
 };
 
 export const shareButtonStyles = {
@@ -77,6 +79,8 @@ export const shareButtonStyles = {
     "bg-transparent text-[#ECE8DF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C] rounded-none px-3 py-1.5 text-sm",
   workspace:
     "bg-white text-[#787774] hover:text-[#37352F] hover:bg-[#F7F7F5] border border-[#E9E9E7] rounded-md px-3 py-1.5 text-sm",
+  blueprint:
+    "bg-transparent text-[#EAF3FF] hover:text-[#FFD966] border border-[#EAF3FF]/50 hover:border-[#FFD966] rounded-none px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -104,6 +108,8 @@ export const shareTriggerStyles = {
   "contact-sheet":
     "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none hover:border-[#FF6B2C]",
   workspace: "bg-white text-[#37352F] border-[#E9E9E7] rounded-md shadow-sm hover:bg-[#F7F7F5]",
+  blueprint:
+    "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none shadow-lg hover:border-[#FFD966]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -125,6 +131,7 @@ export const sharePanelStyles = {
   "academic-cv": "bg-white text-[#14202F] border-[#DAD9D2] rounded-sm",
   "contact-sheet": "bg-[#1A1A1C] text-[#ECE8DF] border-[#2A2A2D] rounded-none",
   workspace: "bg-white text-[#37352F] border-[#E9E9E7] rounded-md",
+  blueprint: "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -157,4 +164,6 @@ export const shareItemStyles = {
     "bg-[#121214] text-[#CFCABF] hover:text-[#FF6B2C] border border-[#2A2A2D] hover:border-[#FF6B2C]",
   workspace:
     "bg-white text-[#787774] hover:text-[#37352F] hover:bg-[#F7F7F5] border border-[#E9E9E7]",
+  blueprint:
+    "bg-[#0B3158] text-[#DCEBFB] hover:text-[#FFD966] border border-[#EAF3FF]/40 hover:border-[#FFD966]",
 } satisfies Record<SharePopoverVariant, string>;

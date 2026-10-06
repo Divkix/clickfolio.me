@@ -22,6 +22,7 @@ const TEMPLATE_LOADERS = {
   academic_cv: () => import("@/components/templates/AcademicCV").then((m) => m.AcademicCV),
   contact_sheet: () => import("@/components/templates/ContactSheet").then((m) => m.ContactSheet),
   workspace: () => import("@/components/templates/Workspace").then((m) => m.Workspace),
+  blueprint: () => import("@/components/templates/Blueprint").then((m) => m.Blueprint),
 } satisfies Record<ThemeId, TemplateLoader>;
 
 export async function getTemplate(

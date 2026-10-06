@@ -143,4 +143,13 @@ export const THEME_PAGE_COPY: Record<
       "Skills and project keywords become colored tags, and projects sit in a two-column gallery of cards. It is a natural fit for product managers, engineers, and anyone who already plans their work in documents. It is an independent design, not affiliated with or endorsed by any note-taking app.",
     ],
   },
+  blueprint: {
+    title: "Architecture Portfolio Website Template",
+    description:
+      "Create a free architecture portfolio website with Blueprint: a cyanotype drawing sheet with grid paper, lettered sections, dimension-line dates and a title block.",
+    paragraphs: [
+      "Blueprint presents your career as a drawing set. White linework on cyanotype blue frames the sheet, sections are lettered like drawing callouts, and each role's dates run along a dimension line. Projects become numbered details with a spec line for materials, methods, or tools.",
+      "It suits architects, engineers, and designers of physical things, and works well for technical students too. Skills appear as a legend, education and approvals as ruled tables, and a title block at the foot carries your name and handle. On phones, the sheet narrows to a single column and the dimension lines give way to plain dates.",
+    ],
+  },
 };

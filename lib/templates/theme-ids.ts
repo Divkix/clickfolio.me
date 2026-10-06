@@ -3,6 +3,7 @@ import type { SharePopoverVariant } from "@/lib/templates/share-variants";
 export const THEME_IDS = [
   "academic_cv",
   "bento",
+  "blueprint",
   "boardroom",
   "bold_corporate",
   "broadsheet",
@@ -56,6 +57,12 @@ export const THEME_METADATA = {
     description: "Flat colour tiles that fit together around your photo",
     category: "Modern",
     preview: "/previews/bento.webp",
+  },
+  blueprint: {
+    name: "Blueprint",
+    description: "A cyanotype drawing sheet with grid paper, section callouts and a title block",
+    category: "Creative",
+    preview: "/previews/blueprint.webp",
   },
   boardroom: {
     name: "Boardroom",
@@ -179,4 +186,5 @@ export const themeToShareVariant = {
   academic_cv: "academic-cv",
   contact_sheet: "contact-sheet",
   workspace: "workspace",
+  blueprint: "blueprint",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;
