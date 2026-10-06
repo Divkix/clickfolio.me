@@ -173,6 +173,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-orange-50",
     badgeTextColor: "text-orange-700",
   },
+  {
+    id: "workspace",
+    name: "Priya Nair",
+    role: "Senior Product Manager",
+    initials: "PN",
+    avatarGradient: "from-sky-300 to-violet-400",
+    badgeLabel: "Workspace",
+    badgeBgColor: "bg-sky-50",
+    badgeTextColor: "text-sky-700",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1642,6 +1652,102 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  workspace: {
+    full_name: "Priya Nair",
+    headline: "Senior Product Manager, B2B workflow software",
+    summary:
+      "Product manager with seven years of experience taking workflow tools from first prototype to product-market fit. I write things down: specs, decision logs and weekly updates that keep engineering, design and sales aligned. Most recently led the team behind a collaboration product used by 40,000 teams.",
+    contact: {
+      email: "priya.nair@example.com",
+      location: "Austin, TX",
+      linkedin: "https://linkedin.com/in/priyanair",
+      github: "https://github.com/priyanair",
+      website: "https://priyanair.example.com",
+    },
+    experience: [
+      {
+        title: "Senior Product Manager",
+        company: "Lattice Labs",
+        location: "Austin, TX",
+        start_date: "2022-02",
+        end_date: undefined,
+        description:
+          "Owns the roadmap for the core collaboration product, working with a team of twelve engineers and two designers.",
+        highlights: [
+          "Launched shared workspaces, adopted by 40,000 teams in the first year",
+          "Raised week-four retention from 38% to 51% through a rebuilt onboarding flow",
+          "Introduced a written decision log that cut recurring meetings by a third",
+        ],
+      },
+      {
+        title: "Product Manager",
+        company: "Brightpath",
+        location: "Remote",
+        start_date: "2019-05",
+        end_date: "2022-01",
+        description: "Led the scheduling and notifications product area for a B2B platform.",
+        highlights: [
+          "Shipped a calendar sync used by 70% of active accounts",
+          "Partnered with sales on a usage-based pricing pilot",
+        ],
+      },
+      {
+        title: "Associate Product Manager",
+        company: "Fieldnote",
+        location: "Chicago, IL",
+        start_date: "2017-08",
+        end_date: "2019-04",
+        description: "Supported research, specs and launches for a note-taking startup.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Information Systems",
+        institution: "University of Illinois",
+        location: "Urbana-Champaign, IL",
+        graduation_date: "2017-05",
+      },
+    ],
+    skills: [
+      { category: "Product", items: ["Roadmapping", "Discovery", "Pricing", "Experimentation"] },
+      { category: "Data", items: ["SQL", "Amplitude", "Looker"] },
+      { category: "Working style", items: ["Written specs", "Decision logs", "Async updates"] },
+    ],
+    certifications: [
+      { name: "Certified Scrum Product Owner", issuer: "Scrum Alliance", date: "2020" },
+    ],
+    projects: [
+      {
+        title: "Shared Workspaces",
+        description:
+          "Zero-to-one launch of team spaces, from first prototype to general availability.",
+        year: "2023",
+        technologies: ["Discovery", "Launch", "Growth"],
+      },
+      {
+        title: "Onboarding rebuild",
+        description:
+          "Redesigned first-week experience using a seven-step funnel and weekly experiments.",
+        year: "2022",
+        technologies: ["Experimentation", "Retention"],
+        url: "https://priyanair.example.com/onboarding",
+      },
+      {
+        title: "Product Writing Handbook",
+        description: "Public handbook of spec and decision-log templates used by other teams.",
+        year: "2021",
+        technologies: ["Writing", "Templates"],
+        url: "https://github.com/priyanair/product-writing",
+      },
+      {
+        title: "Usage-based pricing pilot",
+        description: "Ran a six-month pilot with 120 accounts and a pricing committee.",
+        year: "2020",
+        technologies: ["Pricing", "Analytics"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1661,4 +1767,5 @@ export const TEMPLATE_BACKGROUNDS = {
   spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
   academic_cv: { bg: "bg-[#FAFAF7]", isDark: false },
   contact_sheet: { bg: "bg-[#0F0F10]", isDark: true },
+  workspace: { bg: "bg-white", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

@@ -113,4 +113,10 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  workspace: dynamic(
+    () => import("@/components/templates/Workspace").then((m) => ({ default: m.Workspace })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

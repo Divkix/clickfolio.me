@@ -17,6 +17,7 @@ const ctaVariants = cva(
   {
     variants: {
       variant: {
+        workspace: "bg-[#37352F] text-white border border-[#37352F]",
         contact_sheet: "bg-[#1A1A1C] text-[#ECE8DF] border border-[#FF6B2C]/50",
         academic_cv: "bg-[#14202F] text-white border border-[#14202F]",
         minimalist_editorial: "bg-[#1B1B1F] text-white border border-[#1B1B1F]",
@@ -47,6 +48,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        workspace: "bg-white text-[#37352F] hover:bg-[#F7F7F5]",
         contact_sheet: "bg-[#FF6B2C] text-[#0F0F10] hover:bg-[#FF8451]",
         academic_cv: "bg-white text-[#14202F] hover:bg-[#EEF1F5]",
         minimalist_editorial: "bg-white text-[#1B1B1F] hover:bg-[#F4F4F5]",
@@ -74,6 +76,7 @@ const buttonVariants = cva(
 const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
   variants: {
     variant: {
+      workspace: "hover:bg-white/10 text-white/60",
       contact_sheet: "hover:bg-white/10 text-[#ECE8DF]/70",
       academic_cv: "hover:bg-white/10 text-white/60",
       minimalist_editorial: "hover:bg-white/10 text-white/60",

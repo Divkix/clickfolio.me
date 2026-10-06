@@ -183,6 +183,13 @@ export default function TemplatesShowcasePage() {
           Frames with no image use the project title as the picture. Best for photographers,
           filmmakers, and visual storytellers.
         </p>
+
+        <h3>{THEME_METADATA.workspace.name}</h3>
+        <p>
+          {THEME_METADATA.workspace.description}. A soft cover band, a properties table built from
+          your contact details, your summary as a callout, and collapsible sections with colored
+          tags. Best for product managers, engineers, and anyone who already thinks in documents.
+        </p>
       </section>
 
       <section>
