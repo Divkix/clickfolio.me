@@ -203,6 +203,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-yellow-50",
     badgeTextColor: "text-yellow-800",
   },
+  {
+    id: "media_kit",
+    name: "Camille Ortiz",
+    role: "Growth Marketing Lead",
+    initials: "CO",
+    avatarGradient: "from-indigo-600 to-lime-300",
+    badgeLabel: "Media Kit",
+    badgeBgColor: "bg-indigo-50",
+    badgeTextColor: "text-indigo-700",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1967,6 +1977,97 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  media_kit: {
+    full_name: "Camille Ortiz",
+    headline: "Growth marketing lead for consumer and subscription brands",
+    summary:
+      "Growth marketer with eight years of experience scaling consumer brands through lifecycle, paid and content. I like measurable work: clear goals, quick experiments and honest reporting. Most recently built the growth team behind a plant-care subscription from first thousand customers to profitability.",
+    contact: {
+      email: "camille.ortiz@example.com",
+      location: "Los Angeles, CA",
+      linkedin: "https://linkedin.com/in/camilleortiz",
+      website: "https://camilleortiz.example.com",
+    },
+    experience: [
+      {
+        title: "Head of Growth",
+        company: "Plantly",
+        location: "Los Angeles, CA",
+        start_date: "2022-03",
+        end_date: undefined,
+        description:
+          "Leads a team of seven across lifecycle, paid acquisition and content for a plant-care subscription.",
+        highlights: [
+          "Grew organic signups 212% in twelve months through a search-led content programme",
+          "Cut blended customer acquisition cost by 38% while doubling spend",
+          "Built a referral loop that now drives 1 in 5 new subscribers",
+        ],
+      },
+      {
+        title: "Senior Lifecycle Marketing Manager",
+        company: "Orbit Fitness",
+        location: "Remote",
+        start_date: "2019-08",
+        end_date: "2022-02",
+        description: "Owned email, push and in-app messaging for a connected fitness brand.",
+        highlights: [
+          "Scaled the email programme to 1.4M subscribers with a 31% open rate",
+          "Generated $2.1M in attributed revenue from win-back journeys",
+        ],
+      },
+      {
+        title: "Digital Marketing Specialist",
+        company: "Northstar Bank",
+        location: "Chicago, IL",
+        start_date: "2016-06",
+        end_date: "2019-07",
+        description: "Ran paid search and social campaigns for retail banking products.",
+        highlights: ["Delivered 3.4x return on ad spend on the student account launch"],
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Communications",
+        institution: "University of Southern California",
+        location: "Los Angeles, CA",
+        graduation_date: "2016-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Channels",
+        items: ["Lifecycle email", "Paid social", "SEO", "Referral programmes"],
+      },
+      { category: "Analytics", items: ["GA4", "Amplitude", "SQL", "Incrementality testing"] },
+      { category: "Leadership", items: ["Hiring", "Experiment reviews", "Budget planning"] },
+    ],
+    certifications: [
+      { name: "Google Analytics Certification", issuer: "Google", date: "2023" },
+      { name: "HubSpot Email Marketing", issuer: "HubSpot Academy", date: "2021" },
+    ],
+    projects: [
+      {
+        title: "The Plant Parent Guide",
+        description: "A 60-article content hub that now brings in the majority of organic signups.",
+        year: "2023",
+        technologies: ["SEO", "Content", "Email"],
+        url: "https://camilleortiz.example.com/plant-parent-guide",
+      },
+      {
+        title: "Win-back journey rebuild",
+        description: "Rebuilt a five-step lapsed-member flow with new segments and creative.",
+        year: "2021",
+        technologies: ["Lifecycle", "Segmentation"],
+      },
+      {
+        title: "Student account launch",
+        description: "Paid social and search campaign for a new student banking account.",
+        year: "2018",
+        technologies: ["Paid search", "Paid social"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -1989,4 +2090,5 @@ export const TEMPLATE_BACKGROUNDS = {
   workspace: { bg: "bg-white", isDark: false },
   blueprint: { bg: "bg-[#0E3A66]", isDark: true },
   scrapbook: { bg: "bg-[#F1E6D3]", isDark: false },
+  media_kit: { bg: "bg-[#F7F5FF]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

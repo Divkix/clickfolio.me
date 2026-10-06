@@ -10,6 +10,12 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    media_kit: {
+      container: "bg-white/95 border-2 border-[#14122B] text-[#5A5775] hover:text-[#14122B]",
+      accent: "text-[#4B2BFF]",
+      shimmer: "from-transparent via-[#C6FF3D]/50 to-transparent",
+      shadow: "shadow-[3px_3px_0_0_#14122B] hover:shadow-[4px_4px_0_0_#14122B]",
+    },
     scrapbook: {
       container: "bg-[#FFFDF8]/95 border-2 border-[#2B2622] text-[#5B524A] hover:text-[#2B2622]",
       accent: "text-[#E5533D]",

@@ -18,6 +18,7 @@ export const SHARE_VARIANT_KEYS = [
   "workspace",
   "blueprint",
   "scrapbook",
+  "media-kit",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -44,6 +45,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   workspace: "",
   blueprint: "",
   scrapbook: "",
+  "media-kit": "",
 };
 
 export const shareButtonStyles = {
@@ -85,6 +87,8 @@ export const shareButtonStyles = {
     "bg-transparent text-[#EAF3FF] hover:text-[#FFD966] border border-[#EAF3FF]/50 hover:border-[#FFD966] rounded-none px-3 py-1.5 text-sm",
   scrapbook:
     "bg-white text-[#2B2622] hover:bg-[#FFD84D] border-2 border-[#2B2622] rounded-full px-3 py-1.5 text-sm font-medium shadow-[2px_2px_0_0_#2B2622]",
+  "media-kit":
+    "bg-transparent text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/40 hover:border-[#C6FF3D] rounded-full px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -116,6 +120,8 @@ export const shareTriggerStyles = {
     "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none shadow-lg hover:border-[#FFD966]",
   scrapbook:
     "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] rounded-full shadow-[3px_3px_0_0_#2B2622] hover:bg-[#FFE57F]",
+  "media-kit":
+    "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/60 rounded-full shadow-lg hover:border-[#C6FF3D]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -140,6 +146,7 @@ export const sharePanelStyles = {
   blueprint: "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none",
   scrapbook:
     "bg-[#FFFDF8] text-[#2B2622] border-2 border-[#2B2622] rounded-lg shadow-[4px_4px_0_0_#2B2622]",
+  "media-kit": "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/50 rounded-xl",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -175,4 +182,6 @@ export const shareItemStyles = {
   blueprint:
     "bg-[#0B3158] text-[#DCEBFB] hover:text-[#FFD966] border border-[#EAF3FF]/40 hover:border-[#FFD966]",
   scrapbook: "bg-white text-[#2B2622] hover:bg-[#BFE3D0] border-2 border-[#2B2622] rounded-full",
+  "media-kit":
+    "bg-[#1F1C3D] text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/20 rounded-full",
 } satisfies Record<SharePopoverVariant, string>;

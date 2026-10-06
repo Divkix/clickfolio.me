@@ -131,4 +131,10 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  media_kit: dynamic(
+    () => import("@/components/templates/MediaKit").then((m) => ({ default: m.MediaKit })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

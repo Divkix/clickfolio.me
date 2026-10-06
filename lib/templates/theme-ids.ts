@@ -13,6 +13,7 @@ export const THEME_IDS = [
   "design_folio",
   "dev_terminal",
   "glass",
+  "media_kit",
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
@@ -123,6 +124,12 @@ export const THEME_METADATA = {
     category: "Modern",
     preview: "/previews/glass.webp",
   },
+  media_kit: {
+    name: "Media Kit",
+    description: "Bold colour blocks, a results wall and a by-the-numbers strip for marketers",
+    category: "Modern",
+    preview: "/previews/media-kit.webp",
+  },
   midnight: {
     name: "Midnight",
     description: "Midnight blue night sky, Garamond headings and a gold star timeline",
@@ -196,4 +203,5 @@ export const themeToShareVariant = {
   workspace: "workspace",
   blueprint: "blueprint",
   scrapbook: "scrapbook",
+  media_kit: "media-kit",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;
