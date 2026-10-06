@@ -19,6 +19,9 @@ export const THEME_IDS = [
 
 export type ThemeId = (typeof THEME_IDS)[number];
 
+/** Number of portfolio templates; use this instead of writing the count into copy. */
+export const TEMPLATE_COUNT = THEME_IDS.length;
+
 export const DEFAULT_THEME: ThemeId = "minimalist_editorial";
 
 export function isValidThemeId(id: string): id is ThemeId {

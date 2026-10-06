@@ -9,6 +9,7 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -28,7 +29,7 @@ const faqs = [
   },
   {
     q: "Is it free for students?",
-    a: "Yes, and there is no trial clock. All 14 templates are free forever with no credit card and no premium lock. The project is open source under the MIT license, so it stays free.",
+    a: `Yes, and there is no trial clock. All ${TEMPLATE_COUNT} templates are free forever with no credit card and no premium lock. The project is open source under the MIT license, so it stays free.`,
   },
   {
     q: "How long does it take to make one?",

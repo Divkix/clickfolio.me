@@ -4,6 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -149,7 +150,7 @@ export default function LinkfolioAlternativesPage() {
             [
               "clickfolio.me",
               "PDF resume or LinkedIn PDF export",
-              "Yes, everything free, 14 templates",
+              `Yes, everything free, ${TEMPLATE_COUNT} templates`,
               "None",
               "Not yet (on the roadmap)",
             ],
@@ -223,8 +224,8 @@ export default function LinkfolioAlternativesPage() {
         <h3>clickfolio.me: free resume-to-website in about 30 seconds</h3>
         <p>
           Upload a PDF resume and our AI reads your experience, education, and skills, then builds
-          an editable site on one of 14 templates. If your resume is out of date, export your
-          LinkedIn profile with "Save to PDF" and upload that instead; our{" "}
+          an editable site on one of {TEMPLATE_COUNT} templates. If your resume is out of date,
+          export your LinkedIn profile with "Save to PDF" and upload that instead; our{" "}
           <Link href="/blog/linkedin-to-portfolio">LinkedIn to portfolio guide</Link> walks through
           it. Every feature is free, including field-level privacy toggles (hide your phone number
           or address) and built-in view analytics. The code is open source under the MIT license.
@@ -319,7 +320,7 @@ export default function LinkfolioAlternativesPage() {
           </li>
           <li>
             <strong>Check, pick a template, publish.</strong> Fix anything the parser missed, choose
-            one of the 14 templates, set which fields are private, and publish.
+            one of the {TEMPLATE_COUNT} templates, set which fields are private, and publish.
           </li>
           <li>
             <strong>Update your links.</strong> Replace your old Linkfolio URL on LinkedIn, in your

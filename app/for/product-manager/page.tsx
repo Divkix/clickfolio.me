@@ -9,13 +9,13 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
 const title = "Portfolio Website for Product Managers";
 
-const description =
-  "Showcase your product launches, roadmaps, and impact with a free portfolio website. 14 templates, AI-powered parsing from PDF, custom @handle URL.";
+const description = `Showcase your product launches, roadmaps, and impact with a free portfolio website. ${TEMPLATE_COUNT} templates, AI-powered parsing from PDF, custom @handle URL.`;
 
 const path = "/for/product-manager";
 
@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     q: "Is it free?",
-    a: "Yes. All 14 templates are free with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so there is nothing to buy and no upsell waiting later.",
+    a: `Yes. All ${TEMPLATE_COUNT} templates are free with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so there is nothing to buy and no upsell waiting later.`,
   },
   {
     q: "What link do I put on my resume and LinkedIn?",
@@ -89,7 +89,7 @@ export default function ProductManagerPage() {
           <RoleSection
             heading="Your Portfolio Is a Product"
             intro="As a PM, you know presentation matters. Your product manager portfolio website is the product that sells you: fast-loading, well-structured, and built to turn recruiters and hiring managers into interview requests."
-            outro="Switch between 14 templates to find the one that fits your style. Each is mobile-responsive and tuned for rich link previews on LinkedIn, Slack, and email."
+            outro={`Switch between ${TEMPLATE_COUNT} templates to find the one that fits your style. Each is mobile-responsive and tuned for rich link previews on LinkedIn, Slack, and email.`}
           />
 
           <RoleSection

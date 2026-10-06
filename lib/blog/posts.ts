@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export interface BlogPostFaq {
   q: string;
@@ -582,7 +583,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
     faq: [
       {
         q: "Is there a free AI tool that turns my resume into a portfolio website?",
-        a: "Yes. As of September 2026, clickfolio.me, Butternut AI, linkfolio.net and Artfolio all let you publish a portfolio built from your resume on a free plan. clickfolio.me is free for everything, including all 14 templates, and publishes at clickfolio.me/@handle in about 30 seconds.",
+        a: `Yes. As of September 2026, clickfolio.me, Butternut AI, linkfolio.net and Artfolio all let you publish a portfolio built from your resume on a free plan. clickfolio.me is free for everything, including all ${TEMPLATE_COUNT} templates, and publishes at clickfolio.me/@handle in about 30 seconds.`,
       },
       {
         q: "Can AI build a portfolio website from my LinkedIn profile?",

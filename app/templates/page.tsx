@@ -10,7 +10,7 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
-import { THEME_IDS, THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
+import { THEME_IDS, THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -102,7 +102,7 @@ export default function TemplatesPage() {
               Start with your PDF resume. clickfolio.me uses AI to parse it into a hosted portfolio
               at clickfolio.me/@handle. Choose a layout that gives the right emphasis to your
               experience, skills, and projects. The preview on each template page uses demo content
-              so you can compare designs before starting. All 14 themes are free.
+              so you can compare designs before starting. All {TEMPLATE_COUNT} themes are free.
             </p>
             <Button asChild size="lg">
               <Link href="/">Create Your Free Portfolio</Link>
