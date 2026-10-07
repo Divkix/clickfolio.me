@@ -58,7 +58,9 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
           return await parseResumePdf(job, this.env);
         } catch (error) {
           if (error instanceof ParseError && !error.isRetryable()) {
-            throw new NonRetryableError(error.message, error.type);
+            // Keep the default name: the engine only skips retries when
+            // name === "NonRetryableError", so the type goes in the message.
+            throw new NonRetryableError(`${error.type}: ${error.message}`);
           }
 
           throw error;

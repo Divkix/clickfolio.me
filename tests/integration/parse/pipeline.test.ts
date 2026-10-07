@@ -288,6 +288,33 @@ describe("markResumeParseFailed", () => {
     );
   });
 
+  it("fails identical uploads waiting on this parse with the same message", async () => {
+    const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
+
+    const friendly =
+      "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.";
+
+    mocks.state.updateReturning.push(
+      [{ totalAttempts: 1, errorMessage: friendly }],
+      [{ id: "waiting-1" }, { id: "waiting-2" }],
+    );
+
+    await markResumeParseFailed(JOB, `invalid_pdf: ${friendly}`, ENV);
+
+    expect(mocks.state.updateSets[1]).toMatchObject({ status: "failed", errorMessage: friendly });
+    expect(JSON.parse(String(mocks.state.updateSets[1].lastAttemptError))).toMatchObject({
+      type: ParseErrorType.INVALID_PDF,
+    });
+
+    for (const resumeId of ["waiting-1", "waiting-2"]) {
+      expect(mocks.notifyStatusChange).toHaveBeenCalledWith(
+        expect.objectContaining({ resumeId, status: "failed" }),
+      );
+    }
+
+    expect(mocks.sendAlert).toHaveBeenCalledTimes(1);
+  });
+
   it("does nothing more when the row is gone or already completed", async () => {
     const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
     mocks.state.updateReturning.push([]);
