@@ -272,7 +272,7 @@ export async function markResumeParseFailed(
       updatedAt: new Date().toISOString(),
     })
     .where(and(ne(resumes.status, "completed"), eq(resumes.id, job.resumeId)))
-    .returning({ totalAttempts: resumes.totalAttempts });
+    .returning({ totalAttempts: resumes.totalAttempts, errorMessage: resumes.errorMessage });
 
   // Row gone (account deletion cascade) or completed elsewhere: nothing to report.
   if (failed.length === 0) return;
@@ -283,6 +283,31 @@ export async function markResumeParseFailed(
     error: classified.message,
     env,
   });
+
+  // Identical uploads waiting on this parse would otherwise sit until their
+  // waiting_for_cache timer and report a misleading timeout.
+  const waitingFailed = await db
+    .update(resumes)
+    .set({
+      status: "failed",
+      errorMessage: failed[0].errorMessage ?? getUserFriendlyError(errorMessage),
+      lastAttemptError: JSON.stringify(classified.toJSON()),
+      updatedAt: new Date().toISOString(),
+    })
+    .where(
+      and(
+        eq(resumes.userId, job.userId),
+        eq(resumes.fileHash, job.fileHash),
+        eq(resumes.status, "waiting_for_cache"),
+      ),
+    )
+    .returning({ id: resumes.id });
+
+  await Promise.all(
+    waitingFailed.map((row) =>
+      notifyStatusChange({ resumeId: row.id, status: "failed", error: classified.message, env }),
+    ),
+  );
 
   // SAFETY: env is CloudflareEnv with optional AlertEnv fields; cast narrows to AlertEnv for alert channel access, fallback via getAlertChannel.
   const alertEnv = env as AlertEnv;
