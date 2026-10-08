@@ -8,6 +8,8 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // A teacher's planner: the resume is written on ruled paper clipped to a green desk, with index
 // tabs on the page edge that jump to the sections that actually render. Every line box stays 32px
 // tall, so wrapped text keeps landing on the rules (the mobile header scales by whole lines too).
+// The avatar, contact buttons and section pills are sized in whole 32px lines for the same reason,
+// and a contact label too long for its button clips with an ellipsis instead of wrapping mid-word.
 
 const LINK_REL = "ugc nofollow noopener noreferrer";
 
@@ -92,15 +94,15 @@ export const LessonPlan: React.FC<TemplateProps> = ({ content, profile }) => {
         .lp-sticky { position: absolute; right: 56px; top: 56px; width: 200px; padding: 16px 18px; transform: rotate(3deg); background: #FFE37A; font: 600 22px/26px 'Caveat', cursive; box-shadow: 0 10px 18px -10px rgba(0,0,0,.4); }
         .lp-head { padding-bottom: 32px; }
         .lp-hello { font: 600 28px/32px 'Caveat', cursive; color: #E0675F; }
-        .lp-name-row { display: flex; align-items: center; gap: 24px; }
-        .lp-avatar { flex: none; width: 88px; height: 88px; object-fit: cover; border: 3px solid #24303A; border-radius: 4px; background: #FFFFFF; }
+        .lp-name-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 24px; }
+        .lp-avatar { flex: none; width: 96px; height: 96px; object-fit: cover; border: 3px solid #24303A; border-radius: 4px; background: #FFFFFF; }
         .lp-root h1.lp-name { font-weight: 800; font-size: 56px; line-height: 64px; letter-spacing: -.02em; }
         .lp-sub { font-size: 20px; color: #5B6770; }
-        .lp-cta { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
-        .lp-root .lp-btn { line-height: 1; padding: 13px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; background: #24303A; color: #FCFCF8; overflow-wrap: anywhere; }
+        .lp-cta { display: flex; flex-wrap: wrap; gap: 32px 12px; margin-top: 32px; }
+        .lp-root .lp-btn { line-height: 32px; padding: 0 18px; border-radius: 8px; text-decoration: none; font-weight: 600; background: #24303A; color: #FCFCF8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .lp-root .lp-btn ~ .lp-btn { background: transparent; color: #24303A; box-shadow: inset 0 0 0 2px #24303A; }
-        .lp-plain { padding: 13px 2px; line-height: 1; font-weight: 600; color: #5B6770; overflow-wrap: anywhere; }
-        .lp-h2 { font-size: 15px; font-weight: 600; display: inline-block; padding: 0 12px; border-radius: 6px; line-height: 32px; margin-top: 32px; }
+        .lp-plain { padding: 0 2px; line-height: 32px; font-weight: 600; color: #5B6770; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lp-h2 { font-size: 15px; font-weight: 600; display: block; width: fit-content; padding: 0 12px; border-radius: 6px; line-height: 32px; margin-top: 32px; }
         .lp-entry { padding-top: 32px; }
         .lp-root .lp-entry h3 { font-size: 20px; line-height: 32px; font-weight: 600; }
         .lp-meta { color: #5B6770; }
@@ -116,7 +118,9 @@ export const LessonPlan: React.FC<TemplateProps> = ({ content, profile }) => {
           .lp-tabs, .lp-sticky { display: none; }
           .lp-page { padding: 32px 24px 48px 72px; background-image: linear-gradient(90deg, transparent 55px, #E0675F 55px 57px, transparent 57px), repeating-linear-gradient(transparent 0 31px, #B9D0E6 31px 32px); }
           .lp-page::before { left: 14px; }
-          .lp-root h1.lp-name { font-size: 40px; line-height: 48px; }
+          .lp-root h1.lp-name { font-size: 40px; line-height: 64px; }
+          .lp-cta { flex-direction: column; align-items: stretch; gap: 32px; }
+          .lp-plain { padding: 0 18px; }
           .lp-cols { grid-template-columns: 1fr; }
         }
       `}</style>
@@ -146,8 +150,8 @@ export const LessonPlan: React.FC<TemplateProps> = ({ content, profile }) => {
                   <img
                     src={profile.avatar_url}
                     alt=""
-                    width={88}
-                    height={88}
+                    width={96}
+                    height={96}
                     className="lp-avatar"
                   />
                 )}
@@ -166,11 +170,12 @@ export const LessonPlan: React.FC<TemplateProps> = ({ content, profile }) => {
                         target={link.isExternal ? "_blank" : undefined}
                         rel={link.isExternal ? LINK_REL : undefined}
                         className="lp-btn"
+                        title={link.label}
                       >
                         {link.label}
                       </a>
                     ) : (
-                      <span key={link.type} className="lp-plain">
+                      <span key={link.type} className="lp-plain" title={link.label}>
                         {link.label}
                       </span>
                     ),
