@@ -25,6 +25,11 @@ const TEMPLATE_LOADERS = {
   blueprint: () => import("@/components/templates/Blueprint").then((m) => m.Blueprint),
   scrapbook: () => import("@/components/templates/Scrapbook").then((m) => m.Scrapbook),
   media_kit: () => import("@/components/templates/MediaKit").then((m) => m.MediaKit),
+  liner_notes: () => import("@/components/templates/LinerNotes").then((m) => m.LinerNotes),
+  rounds: () => import("@/components/templates/Rounds").then((m) => m.Rounds),
+  lesson_plan: () => import("@/components/templates/LessonPlan").then((m) => m.LessonPlan),
+  manuscript: () => import("@/components/templates/Manuscript").then((m) => m.Manuscript),
+  gallery_wall: () => import("@/components/templates/GalleryWall").then((m) => m.GalleryWall),
 } satisfies Record<ThemeId, TemplateLoader>;
 
 export async function getTemplate(

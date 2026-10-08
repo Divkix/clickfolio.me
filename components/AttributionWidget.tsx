@@ -10,6 +10,37 @@ interface AttributionWidgetProps {
 
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
+    liner_notes: {
+      container: "bg-[#EEF2EF]/95 border border-[#1D2A33]/20 text-[#51616B] hover:text-[#1D2A33]",
+      accent: "text-[#C8412F]",
+      shimmer: "from-transparent via-[#C8412F]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    rounds: {
+      container: "bg-white/95 border border-[#C9D9E1] text-[#4C6470] hover:text-[#123B4A]",
+      accent: "text-[#E06D5A]",
+      shimmer: "from-transparent via-[#8FB3C9]/40 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    lesson_plan: {
+      container: "bg-[#FCFCF8]/95 border border-[#3F6E5C]/25 text-[#5B6770] hover:text-[#24303A]",
+      accent: "text-[#E0675F]",
+      shimmer: "from-transparent via-[#FFE37A]/50 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    manuscript: {
+      container:
+        "bg-[#3B4A52]/95 backdrop-blur-md border border-[#FBFAF7]/20 text-[#C9C4BB] hover:text-[#FBFAF7]",
+      accent: "text-[#D9A6AE]",
+      shimmer: "from-transparent via-[#7A1F2B]/40 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    gallery_wall: {
+      container: "bg-white/95 border border-[#2A2A2A]/15 text-[#77756F] hover:text-[#2A2A2A]",
+      accent: "text-[#B8875A]",
+      shimmer: "from-transparent via-[#B8875A]/20 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
     media_kit: {
       container: "bg-white/95 border-2 border-[#14122B] text-[#5A5775] hover:text-[#14122B]",
       accent: "text-[#4B2BFF]",

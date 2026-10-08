@@ -19,6 +19,11 @@ export const SHARE_VARIANT_KEYS = [
   "blueprint",
   "scrapbook",
   "media-kit",
+  "liner-notes",
+  "rounds",
+  "lesson-plan",
+  "manuscript",
+  "gallery-wall",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -46,6 +51,11 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   blueprint: "",
   scrapbook: "",
   "media-kit": "",
+  "liner-notes": "",
+  rounds: "",
+  "lesson-plan": "",
+  manuscript: "",
+  "gallery-wall": "",
 };
 
 export const shareButtonStyles = {
@@ -89,6 +99,16 @@ export const shareButtonStyles = {
     "bg-white text-[#2B2622] hover:bg-[#FFD84D] border-2 border-[#2B2622] rounded-full px-3 py-1.5 text-sm font-medium shadow-[2px_2px_0_0_#2B2622]",
   "media-kit":
     "bg-transparent text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/40 hover:border-[#C6FF3D] rounded-full px-3 py-1.5 text-sm",
+  "liner-notes":
+    "bg-transparent text-[#EEF2EF] hover:bg-[#C8412F] border border-[#EEF2EF]/40 hover:border-[#C8412F] rounded-full px-3 py-1.5 text-sm",
+  rounds:
+    "bg-white text-[#123B4A] hover:bg-[#123B4A] hover:text-white border border-[#C9D9E1] hover:border-[#123B4A] rounded-full px-3 py-1.5 text-sm",
+  "lesson-plan":
+    "bg-transparent text-[#FCFCF8] hover:text-[#24303A] hover:bg-[#FFE37A] border border-[#FCFCF8]/40 hover:border-[#FFE37A] rounded-md px-3 py-1.5 text-sm",
+  manuscript:
+    "bg-transparent text-[#FBFAF7] hover:bg-[#7A1F2B] border border-[#FBFAF7]/40 hover:border-[#7A1F2B] rounded-none px-3 py-1.5 text-sm",
+  "gallery-wall":
+    "bg-transparent text-[#2A2A2A] hover:bg-[#2A2A2A] hover:text-[#F1F0EC] border border-[#2A2A2A]/30 hover:border-[#2A2A2A] rounded-none px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -122,6 +142,16 @@ export const shareTriggerStyles = {
     "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] rounded-full shadow-[3px_3px_0_0_#2B2622] hover:bg-[#FFE57F]",
   "media-kit":
     "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/60 rounded-full shadow-lg hover:border-[#C6FF3D]",
+  "liner-notes":
+    "bg-[#1D2A33] text-[#EEF2EF] border-[#C8412F]/60 rounded-full shadow-lg hover:border-[#C8412F]",
+  rounds:
+    "bg-[#123B4A] text-[#E7EFF3] border-[#E06D5A]/50 rounded-full shadow-md hover:border-[#E06D5A]",
+  "lesson-plan":
+    "bg-[#24303A] text-[#FCFCF8] border-[#F2B33D]/60 rounded-md shadow-lg hover:border-[#F2B33D]",
+  manuscript:
+    "bg-[#22201C] text-[#FBFAF7] border-[#7A1F2B]/60 rounded-none shadow-lg hover:border-[#7A1F2B]",
+  "gallery-wall":
+    "bg-[#2A2A2A] text-[#F1F0EC] border-[#B8875A]/60 rounded-none shadow-lg hover:border-[#B8875A]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -147,6 +177,11 @@ export const sharePanelStyles = {
   scrapbook:
     "bg-[#FFFDF8] text-[#2B2622] border-2 border-[#2B2622] rounded-lg shadow-[4px_4px_0_0_#2B2622]",
   "media-kit": "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/50 rounded-xl",
+  "liner-notes": "bg-[#EEF2EF] text-[#1D2A33] border-[#1D2A33]/25 rounded-sm",
+  rounds: "bg-white text-[#123B4A] border-[#C9D9E1] rounded-xl",
+  "lesson-plan": "bg-[#FCFCF8] text-[#24303A] border-[#B9D0E6] rounded-md",
+  manuscript: "bg-[#FBFAF7] text-[#22201C] border-[#7A1F2B]/30 rounded-none",
+  "gallery-wall": "bg-white text-[#2A2A2A] border-[#B8875A]/40 rounded-none",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -184,4 +219,13 @@ export const shareItemStyles = {
   scrapbook: "bg-white text-[#2B2622] hover:bg-[#BFE3D0] border-2 border-[#2B2622] rounded-full",
   "media-kit":
     "bg-[#1F1C3D] text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/20 rounded-full",
+  "liner-notes":
+    "bg-white text-[#1D2A33] hover:bg-[#C8412F] hover:text-[#EEF2EF] border border-[#1D2A33]/20 rounded-full",
+  rounds:
+    "bg-[#E7EFF3] text-[#123B4A] hover:bg-[#123B4A] hover:text-white border border-[#C9D9E1] rounded-full",
+  "lesson-plan": "bg-white text-[#24303A] hover:bg-[#FFE37A] border border-[#B9D0E6] rounded-md",
+  manuscript:
+    "bg-white text-[#22201C] hover:bg-[#7A1F2B] hover:text-[#FBFAF7] border border-[#22201C]/20 rounded-none",
+  "gallery-wall":
+    "bg-[#F1F0EC] text-[#2A2A2A] hover:bg-[#B8875A] hover:text-white border border-[#2A2A2A]/15 rounded-none",
 } satisfies Record<SharePopoverVariant, string>;

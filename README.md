@@ -511,6 +511,11 @@ Built-in templates in `components/templates/`:
 | **Blueprint**            | Creative     | Cyanotype drawing sheet: grid paper, lettered sections, dimension-line dates, title block | Free               |
 | **Scrapbook**            | Creative     | Craft-paper desk: taped index cards, sticky-note skills, polaroid portrait                | Free               |
 | **Media Kit**            | Modern       | Bold colour blocks, a results wall pulled from your metrics, a by-the-numbers strip       | Free               |
+| **Liner Notes**          | Creative     | Album sleeve with the record sliding out, jobs as Side A tracks, recordings as Side B     | Free               |
+| **Rounds**               | Professional | Nurse ID badge on a lanyard, licenses first, career set as a shift log                    | Free               |
+| **Lesson Plan**          | Creative     | Ruled planner page with binder holes, coloured subject tabs, sticky note                  | Free               |
+| **Manuscript**           | Professional | Book spread: title page, table of contents, bylines as a bibliography                     | Free               |
+| **Gallery Wall**         | Creative     | Exhibition wall: hung works with wall labels and a printed artist CV                      | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 

@@ -170,4 +170,49 @@ export const THEME_PAGE_COPY: Record<
       "Nothing is rewritten: figures are shown exactly as you wrote them, and a resume with no metrics simply skips the wall. Experience, campaigns with their channels, a brands and teams list, and skills follow, ending in a dark contact band with your email as the call to action.",
     ],
   },
+  liner_notes: {
+    title: "Musician Website Template",
+    description:
+      "Build a free music portfolio website with Liner Notes: an album sleeve with the record sliding out, your jobs as Side A tracks and recordings on Side B.",
+    paragraphs: [
+      "Liner Notes is for musicians, actors, and dancers whose careers read as a list of credits. Your name is set as the album title on a sleeve with the record sliding out, your summary is the liner note, and each role is numbered as a Side A track with its dates on the right.",
+      "Recordings, tours, and other projects from your resume fill Side B, skills are set as personnel credits, and education sits under a recorded-at heading. On phones the sleeve stacks above the track list, and the paper-toned back cover keeps longer descriptions readable.",
+    ],
+  },
+  rounds: {
+    title: "Nurse Resume Website Template",
+    description:
+      "Create a free nursing portfolio website with Rounds: a staff ID badge on a lanyard, licenses and certifications first, and experience set as a shift log.",
+    paragraphs: [
+      "Rounds is for nurses and healthcare professionals whose licenses are the first thing a recruiter checks. A staff ID badge on a lanyard carries your name, credentials, and role, and licenses and certifications appear as cards before the rest of the page.",
+      "Experience reads as a shift log, with dates and units in a left column beside each role and its achievements. Clinical skills become pill-shaped chips, education closes the page in its own card, and a scrub-blue accent keeps the layout calm. On phones the badge moves above the shift log.",
+    ],
+  },
+  lesson_plan: {
+    title: "Teacher Portfolio Website Template",
+    description:
+      "Build a free teacher portfolio website with Lesson Plan: a ruled planner page with binder holes, coloured subject tabs and a handwritten sticky note.",
+    paragraphs: [
+      "Lesson Plan is for teachers, tutors, and school staff who want a portfolio that feels like their classroom. A handwritten greeting sits above your name on a ruled planner page with binder holes, a red margin line, and coloured subject tabs.",
+      "Each section is labelled with its own tab colour, a rotated sticky note carries your summary, and key lines such as awards are set in handwriting. Licenses and education sit side by side near the end, and the tabs and note hide on phones so the page stays a single column.",
+    ],
+  },
+  manuscript: {
+    title: "Writer Portfolio Website Template",
+    description:
+      "Create a free writer portfolio website with Manuscript: a two-page book spread with a table of contents, bylines as a bibliography and a ribbon bookmark.",
+    paragraphs: [
+      "Manuscript is for writers, journalists, editors, and copywriters who want their portfolio to read like a printed book. A two-page spread on a dark board opens with a title page, with your introduction set as a frontispiece quote and your contact details in the colophon.",
+      "The second page holds a table of contents and the chapters: staff positions, selected work set as a bibliography with italic publication names, and editing, education, and fellowships. A red ribbon bookmark marks the spread, and the two pages fold into one column on phones.",
+    ],
+  },
+  gallery_wall: {
+    title: "Art Portfolio Website Template",
+    description:
+      "Build a free art portfolio website with Gallery Wall: an exhibition title in vinyl, hung works with wall labels and an artist CV below the floor line.",
+    paragraphs: [
+      "Gallery Wall is for artists, illustrators, and makers whose work belongs on a wall. Your name is set as an exhibition title in vinyl lettering, and your projects hang at eye level, each with a white wall label carrying its year, medium, and description.",
+      "Below the floor line, experience and awards are printed the way galleries set an artist's CV, with dates in their own column and media and tools listed beside them. The hang and the CV collapse into one column on phones.",
+    ],
+  },
 };

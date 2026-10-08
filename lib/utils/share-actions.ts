@@ -33,6 +33,9 @@ export function getLinkedInIconVariant(
     case "media-kit":
     case "blueprint":
     case "contact-sheet":
+    case "liner-notes":
+    case "lesson-plan":
+    case "manuscript":
       return "white";
     default:
       return "black";
