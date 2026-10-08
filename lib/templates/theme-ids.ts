@@ -12,12 +12,17 @@ export const THEME_IDS = [
   "contact_sheet",
   "design_folio",
   "dev_terminal",
+  "gallery_wall",
   "glass",
+  "lesson_plan",
+  "liner_notes",
+  "manuscript",
   "media_kit",
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
   "retro_os",
+  "rounds",
   "scrapbook",
   "spotlight",
   "workspace",
@@ -118,11 +123,37 @@ export const THEME_METADATA = {
     category: "Developer",
     preview: "/previews/dev-terminal.webp",
   },
+  gallery_wall: {
+    name: "Gallery Wall",
+    description: "An exhibition wall with hung works on labels and a printed artist CV below",
+    category: "Creative",
+    preview: "/previews/gallery-wall.webp",
+  },
   glass: {
     name: "Glass Morphic",
     description: "Frosted glass panels over a deep indigo aurora",
     category: "Modern",
     preview: "/previews/glass.webp",
+  },
+  lesson_plan: {
+    name: "Lesson Plan",
+    description: "A ruled planner page with binder holes, coloured subject tabs and a sticky note",
+    category: "Creative",
+    preview: "/previews/lesson-plan.webp",
+  },
+  liner_notes: {
+    name: "Liner Notes",
+    description:
+      "An album sleeve with the record sliding out and your jobs listed as Side A tracks",
+    category: "Creative",
+    preview: "/previews/liner-notes.webp",
+  },
+  manuscript: {
+    name: "Manuscript",
+    description:
+      "A book spread with a title page, a table of contents and bylines as a bibliography",
+    category: "Professional",
+    preview: "/previews/manuscript.webp",
   },
   media_kit: {
     name: "Media Kit",
@@ -153,6 +184,13 @@ export const THEME_METADATA = {
     description: "A late-90s desktop where every section opens in its own bevelled window",
     category: "Creative",
     preview: "/previews/retro-os.webp",
+  },
+  rounds: {
+    name: "Rounds",
+    description:
+      "A nurse's ID badge on a lanyard, with licenses first and experience as a shift log",
+    category: "Professional",
+    preview: "/previews/rounds.webp",
   },
   scrapbook: {
     name: "Scrapbook",
@@ -204,4 +242,9 @@ export const themeToShareVariant = {
   blueprint: "blueprint",
   scrapbook: "scrapbook",
   media_kit: "media-kit",
+  liner_notes: "liner-notes",
+  rounds: "rounds",
+  lesson_plan: "lesson-plan",
+  manuscript: "manuscript",
+  gallery_wall: "gallery-wall",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

@@ -213,6 +213,41 @@ export default function TemplatesShowcasePage() {
           counted from your resume, and a Results wall that lifts figures like 212% or $2.1M out of
           your own highlights. Best for marketers, growth leads, and anyone who sells with numbers.
         </p>
+
+        <h3>{THEME_METADATA.liner_notes.name}</h3>
+        <p>
+          {THEME_METADATA.liner_notes.description}. Your name is set as the album title on a sleeve
+          with the record sliding out, jobs run as numbered Side A tracks, and recordings and
+          releases fill Side B. Best for musicians, actors, and dancers.
+        </p>
+
+        <h3>{THEME_METADATA.rounds.name}</h3>
+        <p>
+          {THEME_METADATA.rounds.description}. A staff badge on a lanyard carries your name and
+          credentials, licenses and certifications come first, and experience reads as a shift log
+          with dates in a left column. Best for nurses and healthcare professionals.
+        </p>
+
+        <h3>{THEME_METADATA.lesson_plan.name}</h3>
+        <p>
+          {THEME_METADATA.lesson_plan.description}. A handwritten greeting sits above your name,
+          sections carry coloured subject tabs, and a rotated sticky note holds your summary. Best
+          for teachers, tutors, and school staff.
+        </p>
+
+        <h3>{THEME_METADATA.manuscript.name}</h3>
+        <p>
+          {THEME_METADATA.manuscript.description}. A two-page spread opens with a title page, a
+          table of contents leads into chapters, and bylines are set as a bibliography beneath a
+          ribbon bookmark. Best for writers, journalists, and copywriters.
+        </p>
+
+        <h3>{THEME_METADATA.gallery_wall.name}</h3>
+        <p>
+          {THEME_METADATA.gallery_wall.description}. Your name is set as an exhibition title in
+          vinyl, projects hang with white wall labels, and an artist CV is printed below the floor
+          line. Best for artists, illustrators, and makers.
+        </p>
       </section>
 
       <section>

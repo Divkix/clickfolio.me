@@ -17,6 +17,11 @@ const ctaVariants = cva(
   {
     variants: {
       variant: {
+        liner_notes: "bg-[#1D2A33] text-[#EEF2EF] border border-[#1D2A33]",
+        rounds: "bg-[#123B4A] text-[#E7EFF3] border border-[#123B4A]",
+        lesson_plan: "bg-[#24303A] text-[#FCFCF8] border border-[#24303A]",
+        manuscript: "bg-[#22201C] text-[#FBFAF7] border border-[#7A1F2B]/40",
+        gallery_wall: "bg-[#2A2A2A] text-[#F1F0EC] border border-[#2A2A2A]",
         media_kit: "bg-[#4B2BFF] text-white border border-[#4B2BFF]",
         scrapbook:
           "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] shadow-[3px_3px_0_0_#2B2622]",
@@ -52,6 +57,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        liner_notes: "bg-[#C8412F] text-[#EEF2EF] hover:bg-[#D9584A]",
+        rounds: "bg-[#E06D5A] text-white hover:bg-[#E88473]",
+        lesson_plan: "bg-[#FFE37A] text-[#24303A] hover:bg-[#FFEC9E]",
+        manuscript: "bg-[#7A1F2B] text-[#FBFAF7] hover:bg-[#8F2836]",
+        gallery_wall: "bg-[#B8875A] text-white hover:bg-[#C79868]",
         media_kit: "bg-[#C6FF3D] text-[#14122B] hover:bg-white",
         scrapbook: "bg-[#2B2622] text-[#FFFDF8] hover:bg-[#443C35]",
         blueprint: "bg-[#FFD966] text-[#0E3A66] hover:bg-[#FFE38A]",
@@ -83,6 +93,11 @@ const buttonVariants = cva(
 const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
   variants: {
     variant: {
+      liner_notes: "hover:bg-white/10 text-[#EEF2EF]/70",
+      rounds: "hover:bg-white/10 text-[#E7EFF3]/70",
+      lesson_plan: "hover:bg-white/10 text-[#FCFCF8]/70",
+      manuscript: "hover:bg-white/10 text-[#FBFAF7]/70",
+      gallery_wall: "hover:bg-white/10 text-[#F1F0EC]/70",
       media_kit: "hover:bg-white/10 text-white/70",
       scrapbook: "hover:bg-black/10 text-[#2B2622]",
       blueprint: "hover:bg-white/10 text-[#EAF3FF]/70",

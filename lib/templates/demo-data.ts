@@ -213,6 +213,56 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-indigo-50",
     badgeTextColor: "text-indigo-700",
   },
+  {
+    id: "liner_notes",
+    name: "Theo Vance",
+    role: "Session Bassist & Music Director",
+    initials: "TV",
+    avatarGradient: "from-slate-800 to-red-600",
+    badgeLabel: "Liner Notes",
+    badgeBgColor: "bg-red-50",
+    badgeTextColor: "text-red-700",
+  },
+  {
+    id: "rounds",
+    name: "Grace Adeyemi",
+    role: "Critical Care Nurse",
+    initials: "GA",
+    avatarGradient: "from-sky-400 to-teal-600",
+    badgeLabel: "Rounds",
+    badgeBgColor: "bg-sky-50",
+    badgeTextColor: "text-sky-700",
+  },
+  {
+    id: "lesson_plan",
+    name: "Rosa Delgado",
+    role: "5th Grade Bilingual Teacher",
+    initials: "RD",
+    avatarGradient: "from-green-500 to-amber-400",
+    badgeLabel: "Lesson Plan",
+    badgeBgColor: "bg-green-50",
+    badgeTextColor: "text-green-700",
+  },
+  {
+    id: "manuscript",
+    name: "Nadia Kerr",
+    role: "Features Writer & Editor",
+    initials: "NK",
+    avatarGradient: "from-slate-600 to-rose-900",
+    badgeLabel: "Manuscript",
+    badgeBgColor: "bg-rose-50",
+    badgeTextColor: "text-rose-800",
+  },
+  {
+    id: "gallery_wall",
+    name: "Inès Moreau",
+    role: "Illustrator & Painter",
+    initials: "IM",
+    avatarGradient: "from-amber-400 to-teal-600",
+    badgeLabel: "Gallery Wall",
+    badgeBgColor: "bg-orange-50",
+    badgeTextColor: "text-orange-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -2068,6 +2118,510 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  liner_notes: {
+    full_name: "Theo Vance",
+    headline: "Session bassist and touring music director",
+    summary:
+      "Twelve years holding down the low end for country and Americana acts, from writers' rooms on Music Row to three-month arena runs. I chart, rehearse and lead the band so the artist only has to sing.",
+    contact: {
+      email: "theo.vance@example.com",
+      location: "Nashville, TN",
+      linkedin: "https://linkedin.com/in/theovance",
+      website: "https://theovance.example.com",
+    },
+    experience: [
+      {
+        title: "Music Director",
+        company: "Lainey Rourke",
+        location: "Nashville, TN",
+        start_date: "2022-04",
+        end_date: undefined,
+        description:
+          "Lead an eight-piece band across 140 shows a year for a country touring artist.",
+        highlights: [
+          "Rebuilt the set for in-ear click and playback, cutting changeover from 9 to 4 minutes",
+          "Chart every arrangement in the Nashville number system and run the daily band rehearsal",
+          "Hired and rehearsed the three dep players who now cover the full tour calendar",
+        ],
+      },
+      {
+        title: "Touring Bassist",
+        company: "The Holloway Pines",
+        location: "Nashville, TN",
+        start_date: "2018-01",
+        end_date: "2022-03",
+        description: "Held the low end on upright and electric through two North American tours.",
+        highlights: [
+          "Played the Grand Ole Opry debut and 180+ dates across the two album cycles",
+          "Arranged the acoustic set that became the band's live EP",
+        ],
+      },
+      {
+        title: "Session Bassist",
+        company: "Blackbird Studio",
+        location: "Nashville, TN",
+        start_date: "2014-06",
+        end_date: "2017-12",
+        description: "Upright and electric bass on tracking dates at a Music Row studio.",
+        highlights: ["First-call player for demo sessions with staff writers on 60+ dates"],
+      },
+    ],
+    education: [
+      {
+        degree: "BM in Commercial Music",
+        institution: "Belmont University",
+        location: "Nashville, TN",
+        graduation_date: "2014-05",
+      },
+    ],
+    skills: [
+      { category: "Instruments", items: ["Electric bass", "Upright bass", "Moog Taurus"] },
+      {
+        category: "Direction",
+        items: ["Nashville number charts", "Click and playback", "Band rehearsal"],
+      },
+      { category: "Studio", items: ["Pro Tools", "Ableton Live", "MainStage", "Logic Pro"] },
+    ],
+    certifications: [
+      { name: "Pro Tools Certified Operator", issuer: "Avid", date: "2017" },
+      { name: "Ableton Certified Trainer", issuer: "Ableton", date: "2019" },
+    ],
+    projects: [
+      {
+        title: "Rourke — Gravel & Glass",
+        description:
+          "Bass and string arrangements across ten tracks; debuted at #6 on the Billboard Country Albums chart.",
+        year: "2024",
+        technologies: ["Electric bass", "String arrangements"],
+        url: "https://theovance.example.com/gravel-and-glass",
+      },
+      {
+        title: "Holloway Pines — Live at the Ryman",
+        description:
+          "Upright bass and musical direction on the live record, cut over two nights at the Ryman.",
+        year: "2021",
+        technologies: ["Upright bass", "Musical direction"],
+      },
+      {
+        title: "Holloway Pines — The Acoustic Sessions",
+        description:
+          "Arranged and tracked the acoustic EP live to tape; two songs passed a million streams.",
+        year: "2020",
+        technologies: ["Arrangement", "Live tracking"],
+      },
+    ],
+  },
+
+  rounds: {
+    full_name: "Grace Adeyemi",
+    headline: "Critical care nurse, cardiac ICU",
+    summary:
+      "Eight years at the bedside in cardiac and surgical ICUs. I precept new graduates, chair our unit's sepsis committee and keep a calm room when a patient crashes. Open to charge nurse roles.",
+    contact: {
+      email: "grace.adeyemi@example.com",
+      phone: "(312) 555-0148",
+      location: "Chicago, IL",
+      linkedin: "https://linkedin.com/in/graceadeyemi",
+      website: "https://graceadeyemi.example.com",
+    },
+    experience: [
+      {
+        title: "Senior Staff Nurse and Preceptor",
+        company: "Northwestern Memorial Hospital",
+        location: "Chicago, IL",
+        start_date: "2021-06",
+        end_date: undefined,
+        description: "Cardiac ICU (CVICU), 24 beds. Charge nurse on the night rotation.",
+        highlights: [
+          "Precepted 14 new graduate nurses; every one passed orientation on schedule",
+          "Led the sepsis bundle audit that raised 3-hour compliance from 71% to 93%",
+          "Manage Impella, IABP and CRRT patients on a 1:2 assignment",
+        ],
+      },
+      {
+        title: "Staff Nurse",
+        company: "Rush University Medical Center",
+        location: "Chicago, IL",
+        start_date: "2017-06",
+        end_date: "2021-05",
+        description: "Surgical ICU (SICU), 18 beds, post-op transplant and trauma patients.",
+        highlights: [
+          "Managed patients on CRRT and ECMO through transplant and trauma recovery",
+          "Rapid response team member, 2019 to 2021",
+        ],
+      },
+      {
+        title: "Patient Care Technician",
+        company: "University of Chicago Medical Center",
+        location: "Chicago, IL",
+        start_date: "2015-05",
+        end_date: "2017-05",
+        description:
+          "Floated across medical-surgical and telemetry floors while completing nursing school.",
+        highlights: [
+          "Supported 12 to 15 patients a shift with vitals, mobility and glucose checks",
+        ],
+      },
+    ],
+    education: [
+      {
+        degree: "BSN, Nursing",
+        institution: "Loyola University Chicago",
+        location: "Chicago, IL",
+        graduation_date: "2017-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Critical care",
+        items: ["Hemodynamic monitoring", "CRRT", "ECMO", "Impella and IABP"],
+      },
+      {
+        category: "Procedures",
+        items: ["Titrating vasoactive drips", "Rapid response", "Post-op transplant care"],
+      },
+      {
+        category: "Systems",
+        items: ["Epic", "Sepsis bundle audits", "Precepting and orientation"],
+      },
+    ],
+    certifications: [
+      { name: "Registered Nurse (RN)", issuer: "Illinois Board of Nursing", date: "2017" },
+      { name: "CCRN, Adult Critical Care", issuer: "AACN", date: "2022" },
+      { name: "ACLS", issuer: "American Heart Association", date: "2025" },
+      { name: "BLS", issuer: "American Heart Association", date: "2025" },
+    ],
+    projects: [
+      {
+        title: "Sepsis bundle audit",
+        description:
+          "Led the chart review across a 24-bed CVICU; 3-hour compliance rose from 71% to 93%.",
+        year: "2023",
+        technologies: ["Quality improvement", "Epic reports"],
+      },
+      {
+        title: "New graduate preceptorship pathway",
+        description:
+          "Built a twelve-week orientation plan now used for every new CVICU hire; fourteen nurses through it so far.",
+        year: "2022",
+        technologies: ["Precepting", "Clinical education"],
+      },
+      {
+        title: "Rapid response team",
+        description:
+          "Two years on the hospital-wide team answering floor deteriorations and codes.",
+        year: "2021",
+        technologies: ["Acute deterioration", "ACLS"],
+      },
+    ],
+  },
+
+  lesson_plan: {
+    full_name: "Rosa Delgado",
+    headline: "5th grade dual-language teacher, Austin ISD",
+    summary:
+      "Nine years teaching upper elementary in Austin ISD. I run a dual-language classroom where reading conferences happen daily and every student keeps a portfolio of their own growth. Currently reading Wonder with Room 214.",
+    contact: {
+      email: "rosa.delgado@example.com",
+      location: "Austin, TX",
+      linkedin: "https://linkedin.com/in/rosadelgado",
+      website: "https://rosadelgado.example.com",
+    },
+    experience: [
+      {
+        title: "5th Grade Dual-Language Teacher",
+        company: "Becker Elementary, Austin ISD",
+        location: "Austin, TX",
+        start_date: "2019-08",
+        end_date: undefined,
+        description:
+          "Teach reading, writing and science in Spanish and English for a 22-student homeroom.",
+        highlights: [
+          "Raised the share of students meeting the STAAR reading standard from 58% to 81%",
+          "Grade-level team lead; wrote the 5th grade science unit now used across 11 campuses",
+          "Campus Teacher of the Year, 2023",
+        ],
+      },
+      {
+        title: "4th Grade Teacher",
+        company: "Pease Elementary, Austin ISD",
+        location: "Austin, TX",
+        start_date: "2016-08",
+        end_date: "2019-07",
+        description: "Taught a 4th grade class and ran the daily reading intervention block.",
+        highlights: ["Started the after-school robotics club: 22 students, two district trophies"],
+      },
+      {
+        title: "Bilingual Instructional Aide",
+        company: "Zavala Elementary, Austin ISD",
+        location: "Austin, TX",
+        start_date: "2014-08",
+        end_date: "2016-06",
+        description: "Supported dual-language classrooms while completing my teaching degree.",
+        highlights: ["Ran small-group reading in Spanish for 1st and 2nd grade newcomers"],
+      },
+    ],
+    education: [
+      {
+        degree: "M.Ed. in Curriculum and Instruction",
+        institution: "The University of Texas at Austin",
+        location: "Austin, TX",
+        graduation_date: "2020-05",
+      },
+      {
+        degree: "BA in Elementary Education",
+        institution: "Texas State University",
+        location: "San Marcos, TX",
+        graduation_date: "2016-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Classroom",
+        items: ["Dual-language instruction", "Reading conferences", "Portfolio assessment"],
+      },
+      {
+        category: "Curriculum",
+        items: ["Unit design", "STAAR preparation", "Science integration"],
+      },
+      { category: "Community", items: ["Bilingual family communication", "Team leadership"] },
+    ],
+    certifications: [
+      {
+        name: "Core Subjects EC–6 Teaching Certificate",
+        issuer: "Texas Education Agency",
+        date: "2016",
+      },
+      {
+        name: "Bilingual Education Supplemental Certificate",
+        issuer: "Texas Education Agency",
+        date: "2016",
+      },
+      { name: "ESL Supplemental Certificate", issuer: "Texas Education Agency", date: "2016" },
+    ],
+    projects: [
+      {
+        title: "5th grade science unit",
+        description: "Wrote the inquiry-based unit now taught across 11 Austin ISD campuses.",
+        year: "2021",
+        technologies: ["Curriculum design", "Bilingual"],
+      },
+      {
+        title: "Readers' portfolio system",
+        description:
+          "Every student keeps a portfolio of reading growth, reviewed in weekly one-to-one conferences.",
+        year: "2022",
+        technologies: ["Portfolio assessment", "Reading conferences"],
+      },
+      {
+        title: "After-school robotics club",
+        description: "Founded the club at Pease Elementary: 22 students and two district trophies.",
+        year: "2018",
+        technologies: ["Robotics", "After-school programme"],
+      },
+    ],
+  },
+
+  manuscript: {
+    full_name: "Nadia Kerr",
+    headline: "Features writer and editor",
+    summary:
+      "Long-form reporter on work, cities and the people who keep both running. Bylines in The Atlantic, Wired and Bloomberg Businessweek, where I report two cover-length features a quarter and edit the labor coverage.",
+    contact: {
+      email: "nadia.kerr@example.com",
+      location: "Brooklyn, NY",
+      linkedin: "https://linkedin.com/in/nadiakerr",
+      website: "https://nadiakerr.example.com",
+    },
+    experience: [
+      {
+        title: "Senior Features Writer",
+        company: "Bloomberg Businessweek",
+        location: "New York, NY",
+        start_date: "2021-01",
+        end_date: undefined,
+        description:
+          "Writes two cover-length features a quarter and edits the magazine's labor coverage.",
+        highlights: [
+          "Story on the night crews rebuilding the Brent Spence Bridge was a finalist for the 2024 National Magazine Award",
+          "Reported from 14 states on infrastructure, night work and the warehouse economy",
+          "Commissioned and edited four freelance writers for the labor section",
+        ],
+      },
+      {
+        title: "Staff Writer",
+        company: "Wired",
+        location: "New York, NY",
+        start_date: "2017-02",
+        end_date: "2020-12",
+        description: "Covered infrastructure, energy and the physical internet.",
+        highlights: [
+          "Rust Belt, Server Farm was one of the magazine's most-read stories of 2020",
+          "Wrote 40+ reported features and a monthly column on supply chains",
+        ],
+      },
+      {
+        title: "Associate Editor",
+        company: "The Ledger Review",
+        location: "Brooklyn, NY",
+        start_date: "2014-05",
+        end_date: "2017-01",
+        description:
+          "Edited long-form features and ran the books section at a regional arts weekly.",
+        highlights: ["Commissioned and edited 60+ features, including two anthologised essays"],
+      },
+    ],
+    education: [
+      {
+        degree: "MS in Journalism",
+        institution: "Columbia University",
+        location: "New York, NY",
+        graduation_date: "2014-05",
+      },
+      {
+        degree: "BA in English",
+        institution: "University of Michigan",
+        location: "Ann Arbor, MI",
+        graduation_date: "2012-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Reporting",
+        items: ["Long-form features", "FOIA requests", "Records and data", "Interviews"],
+      },
+      { category: "Editing", items: ["Structural edits", "Freelance commissioning"] },
+      { category: "Craft", items: ["Narrative structure", "Fact-checking", "Newsletters"] },
+    ],
+    certifications: [
+      {
+        name: "National Magazine Award Finalist, Feature Writing",
+        issuer: "American Society of Magazine Editors",
+        date: "2024",
+      },
+      {
+        name: "Investigative Reporting Fellowship",
+        issuer: "Center for Labor Reporting",
+        date: "2020",
+      },
+    ],
+    projects: [
+      {
+        title: "The Bridge That Never Sleeps",
+        description:
+          "Cover feature on the night crews rebuilding the Brent Spence Bridge. National Magazine Award finalist.",
+        year: "2024",
+        technologies: ["Bloomberg Businessweek", "Feature reporting"],
+        url: "https://nadiakerr.example.com/the-bridge-that-never-sleeps",
+      },
+      {
+        title: "Who Owns the Warehouse Clock?",
+        description:
+          "Reported essay on the algorithms that time warehouse work, from three months of night shifts.",
+        year: "2023",
+        technologies: ["The Atlantic", "Reported essay"],
+      },
+      {
+        title: "Rust Belt, Server Farm",
+        description:
+          "Feature on the data centres moving into former steel towns, reported across Ohio and Pennsylvania.",
+        year: "2020",
+        technologies: ["Wired", "Feature reporting"],
+      },
+    ],
+  },
+
+  gallery_wall: {
+    full_name: "Inès Moreau",
+    headline: "Illustrator and painter, Montréal",
+    summary:
+      "Illustrator and painter working in gouache and risograph. Editorial covers, picture books and large murals, represented by Atelier Nord. Recent clients include The New Yorker, Penguin Random House and Airbnb.",
+    contact: {
+      email: "studio@inesmoreau.example.com",
+      location: "Montréal, QC",
+      linkedin: "https://linkedin.com/in/inesmoreau",
+      website: "https://inesmoreau.example.com",
+    },
+    experience: [
+      {
+        title: "Freelance Illustrator",
+        company: "Studio Inès Moreau",
+        location: "Montréal, QC",
+        start_date: "2021-01",
+        end_date: undefined,
+        description: "Covers, picture books and murals for editorial and commercial clients.",
+        highlights: [
+          "Illustrated two New Yorker covers and a 32-page picture book",
+          "Painted the 14 × 6 m Marché Atwater mural with a team of three assistants",
+          "Silver Medal at the Society of Illustrators annual",
+        ],
+      },
+      {
+        title: "Staff Illustrator",
+        company: "La Presse",
+        location: "Montréal, QC",
+        start_date: "2018-01",
+        end_date: "2021-01",
+        description: "Illustrated news features, opinion and the Saturday culture section.",
+        highlights: ["Drew 400+ published illustrations, including the 2020 year-in-review cover"],
+      },
+      {
+        title: "Junior Designer",
+        company: "Pentagram Montréal",
+        location: "Montréal, QC",
+        start_date: "2016-06",
+        end_date: "2017-12",
+        description: "Supported identity and illustration work for studio clients.",
+        highlights: ["Drew the illustration set for two identity programmes"],
+      },
+    ],
+    education: [
+      {
+        degree: "BFA in Design and Computation Arts",
+        institution: "Concordia University",
+        location: "Montréal, QC",
+        graduation_date: "2016-05",
+      },
+    ],
+    skills: [
+      { category: "Media", items: ["Gouache", "Acrylic", "Risograph", "Editorial illustration"] },
+      { category: "Tools", items: ["Procreate", "Photoshop", "InDesign"] },
+      {
+        category: "Practice",
+        items: ["Murals", "Picture books", "Art direction", "Print production"],
+      },
+    ],
+    certifications: [
+      { name: "Silver Medal, Illustrators 66", issuer: "Society of Illustrators", date: "2024" },
+      {
+        name: "Governor General's Award shortlist, Illustrated Books",
+        issuer: "Governor General's Literary Awards",
+        date: "2023",
+      },
+    ],
+    projects: [
+      {
+        title: "Heatwave, Saint-Henri",
+        description:
+          "Cover for the July issue of The New Yorker; reissued as a limited print run of 200.",
+        year: "2024",
+        technologies: ["Gouache", "Editorial cover"],
+      },
+      {
+        title: "The Night Garden",
+        description: "Picture book printed in three risograph colours, 32 pages.",
+        year: "2023",
+        technologies: ["Risograph", "Picture book"],
+      },
+      {
+        title: "Marché Atwater mural",
+        description: "Four-colour mural painted on brick for the market's south entrance.",
+        year: "2022",
+        technologies: ["Acrylic", "Mural"],
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -2091,4 +2645,9 @@ export const TEMPLATE_BACKGROUNDS = {
   blueprint: { bg: "bg-[#0E3A66]", isDark: true },
   scrapbook: { bg: "bg-[#F1E6D3]", isDark: false },
   media_kit: { bg: "bg-[#F7F5FF]", isDark: false },
+  liner_notes: { bg: "bg-[#C9D6CF]", isDark: false },
+  rounds: { bg: "bg-[#E7EFF3]", isDark: false },
+  lesson_plan: { bg: "bg-[#3F6E5C]", isDark: true },
+  manuscript: { bg: "bg-[#3B4A52]", isDark: true },
+  gallery_wall: { bg: "bg-[#F1F0EC]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

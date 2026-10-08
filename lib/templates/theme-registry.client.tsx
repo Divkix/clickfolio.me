@@ -137,4 +137,34 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  liner_notes: dynamic(
+    () => import("@/components/templates/LinerNotes").then((m) => ({ default: m.LinerNotes })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  rounds: dynamic(
+    () => import("@/components/templates/Rounds").then((m) => ({ default: m.Rounds })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  lesson_plan: dynamic(
+    () => import("@/components/templates/LessonPlan").then((m) => ({ default: m.LessonPlan })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  manuscript: dynamic(
+    () => import("@/components/templates/Manuscript").then((m) => ({ default: m.Manuscript })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  gallery_wall: dynamic(
+    () => import("@/components/templates/GalleryWall").then((m) => ({ default: m.GalleryWall })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;
