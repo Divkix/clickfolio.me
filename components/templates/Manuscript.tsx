@@ -313,7 +313,8 @@ export const Manuscript: React.FC<TemplateProps> = ({ content, profile }) => {
         @media (max-width: 900px) {
           .ms-spread { grid-template-columns: minmax(0, 1fr); }
           .ms-spread::after { display: none; }
-          .ms-ribbon { right: 32px; height: 180px; }
+          /* short tab: ends above the title text (kicker box starts at the 56px page padding) */
+          .ms-ribbon { right: 32px; height: 56px; }
           .ms-page { padding: 56px 28px 40px; }
           .ms-title { position: static; min-height: 0; gap: 48px; }
           .ms-title h1 { font-size: 52px; }
