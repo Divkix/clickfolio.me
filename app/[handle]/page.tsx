@@ -6,7 +6,7 @@ import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { SharePopover } from "@/components/SharePopover";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
-import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
+import { getResume } from "@/lib/data/resume";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { buildProfileTitle, fitTitle } from "@/lib/seo/page-metadata";
 import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/templates/theme-ids";
@@ -43,14 +43,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const data = await getResumeMetadata(handle);
+  const resume = await getResume(handle);
 
-  if (!data) {
+  if (!resume?.metadata) {
     return {
       title: "Resume Not Found",
       description: "The requested resume could not be found.",
     };
   }
+
+  const data = resume.metadata;
 
   const { full_name, headline, indexable, location, skills, created_at, updated_at } = data;
 
@@ -133,13 +135,13 @@ export default async function HandlePage({ params }: PageProps) {
     notFound();
   }
 
-  const resumeData = await getResumeData(handle);
+  const resume = await getResume(handle);
 
-  if (!resumeData) {
+  if (!resume) {
     notFound();
   }
 
-  const metadata = await getResumeMetadata(handle);
+  const { data: resumeData, metadata } = resume;
 
   const { content, profile, theme_id, privacy_settings } = resumeData;
 
