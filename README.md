@@ -367,14 +367,19 @@ packages (`vite-plus`, the `vite` catalog alias, `vitest`, `@vitest/*`,
 | major                             | Left open for a human; review is requested from @Divkix |
 
 `.github/workflows/dependabot-automerge.yml` performs the merge
-(`gh pr merge --squash --delete-branch --match-head-commit <event SHA>`) only
-after it has observed, on the PR's head commit: `Code Quality`, `Tests`,
-`Build`, `CI Success`, `GitGuardian Security Checks` and
-`Workers Builds: clickfolio-me` present **and** successful, every other reported
-check/commit status settled green, and its own 45-minute budget not exhausted.
-Missing checks, failures, cancellations, timeouts, a moved head, conflicts,
-drafts, fork heads and non-Dependabot authors all fail closed — the PR stays
-open, the run log says why, and a human merges it.
+(`gh pr merge --squash --match-head-commit <event SHA>`) only after it has
+observed, on the PR's head commit: `Code Quality`, `Tests`, `Build`,
+`CI Success`, `GitGuardian Security Checks` and `Workers Builds: clickfolio-me`
+present **and** exactly successful, **every** other reported check/commit status
+exactly successful too (a skipped or neutral check is not green), and its own
+45-minute budget not exhausted. Its own check run is recognised by workflow-run
+identity rather than by name, so a foreign check sharing that name still has to
+pass. Author, same-repo head, base branch and head SHA are re-verified on every
+poll and again immediately before the merge. Missing checks, failures,
+cancellations, timeouts, a moved head, a retarget, a draft flip, conflicts, fork
+heads and non-Dependabot authors all fail closed — the PR stays open, the run log
+says why, and a human merges it. The branch is deleted by the repository setting
+`delete_branch_on_merge`, not by a merge flag.
 
 The workflow is metadata-only: it runs on `pull_request_target`, never checks
 out, installs or executes pull-request code, and receives every event value
