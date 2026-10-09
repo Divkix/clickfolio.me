@@ -89,28 +89,24 @@ export default async function ExplorePage({
     whereConditions.push(eq(user.role, roleFilter));
   }
 
-  // One repeatable-read snapshot keeps profile filtering and directory pagination consistent.
-  const usersWithData = await db.transaction(
-    async (tx) =>
-      tx
-        .select({
-          handle: user.handle,
-          role: user.role,
-          previewName: siteData.previewName,
-          previewHeadline: siteData.previewHeadline,
-          previewLocation: siteData.previewLocation,
-          previewExpCount: siteData.previewExpCount,
-          previewEduCount: siteData.previewEduCount,
-          previewSkills: siteData.previewSkills,
-          privacySettings: user.privacySettings,
-          content: siteData.content,
-        })
-        .from(user)
-        .innerJoin(siteData, eq(user.id, siteData.userId))
-        .where(and(...whereConditions))
-        .orderBy(desc(siteData.updatedAt), desc(siteData.userId)),
-    { isolationLevel: "repeatable read" },
-  );
+  // One statement is one snapshot, so filtering and pagination stay consistent without a transaction.
+  const usersWithData = await db
+    .select({
+      handle: user.handle,
+      role: user.role,
+      previewName: siteData.previewName,
+      previewHeadline: siteData.previewHeadline,
+      previewLocation: siteData.previewLocation,
+      previewExpCount: siteData.previewExpCount,
+      previewEduCount: siteData.previewEduCount,
+      previewSkills: siteData.previewSkills,
+      privacySettings: user.privacySettings,
+      content: siteData.content,
+    })
+    .from(user)
+    .innerJoin(siteData, eq(user.id, siteData.userId))
+    .where(and(...whereConditions))
+    .orderBy(desc(siteData.updatedAt), desc(siteData.userId));
 
   const indexableUsers = usersWithData.filter(
     (u): u is typeof u & { handle: string } =>
