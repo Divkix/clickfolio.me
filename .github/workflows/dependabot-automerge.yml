@@ -56,8 +56,9 @@ jobs:
     steps:
       - name: Read Dependabot metadata
         id: metadata
-        # Pin to the SHA published in the Dependabot docs (tag v2.3.0).
-        uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7 # v2.3.0
+        # Pin to the current stable release (tag v3.1.0, node24, verifies the
+        # author/commit by default).
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
