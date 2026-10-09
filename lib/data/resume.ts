@@ -2,7 +2,7 @@ import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 
-import { cache } from "react";
+import { cacheForRequest } from "vinext/cache";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
@@ -18,7 +18,6 @@ interface ResumeData {
   profile: {
     id: string;
     handle: string;
-    email: string;
     avatar_url: string | null;
     headline: string | null;
   };
@@ -44,15 +43,38 @@ interface ResumeMetadata {
   jsonLdBreadcrumbScript: string | null;
 }
 
-async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
+/** The user columns plus the site_data columns both projections below read. */
+interface ProfileRow {
+  id: string;
+  name: string;
+  handle: string | null;
+  headline: string | null;
+  image: string | null;
+  privacySettings: PrivacySettings;
+  siteData: {
+    content: ResumeContent;
+    themeId: string | null;
+    previewName: string | null;
+    previewHeadline: string | null;
+    previewLocation: string | null;
+    previewSkills: string[] | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}
+
+/**
+ * The request's only query: every column either projection below reads, so
+ * `generateMetadata` and the page body can share one row.
+ */
+async function fetchResumeRow(handle: string): Promise<ProfileRow | undefined> {
   const db = getDb(env.HYPERDRIVE);
 
-  const userData = await db.query.user.findFirst({
+  return db.query.user.findFirst({
     where: eq(user.handle, handle),
     columns: {
       id: true,
       name: true,
-      email: true,
       handle: true,
       headline: true,
       image: true,
@@ -63,31 +85,32 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
         columns: {
           content: true,
           themeId: true,
+          previewName: true,
+          previewHeadline: true,
+          previewLocation: true,
+          previewSkills: true,
           createdAt: true,
           updatedAt: true,
         },
       },
     },
   });
+}
 
-  if (!userData) {
-    return null;
-  }
+type ResumeSiteData = NonNullable<ProfileRow["siteData"]>;
 
-  if (!userData.siteData) {
-    return null;
-  }
-
-  let content = userData.siteData.content;
-
-  const privacySettings = normalizePrivacySettings(userData.privacySettings);
+/** What the page renders. */
+function buildResumeData(row: ProfileRow, siteData: ResumeSiteData): ResumeData {
+  const privacySettings = normalizePrivacySettings(row.privacySettings);
 
   // SAFETY: DB themeId is string|null validated immediately after via isValidThemeId; cast narrows to ThemeId for metadata lookup with fallback to DEFAULT_THEME
-  let themeId: ThemeId | null = userData.siteData.themeId as ThemeId | null;
+  let themeId: ThemeId | null = siteData.themeId as ThemeId | null;
 
   if (!themeId || !isValidThemeId(themeId)) {
     themeId = DEFAULT_THEME;
   }
+
+  let content = siteData.content;
 
   if (content.contact) {
     content = {
@@ -106,87 +129,59 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
 
   return {
     profile: {
-      id: userData.id,
-      handle: userData.handle!,
-      email: userData.email,
-      avatar_url: userData.image,
-      headline: userData.headline,
+      id: row.id,
+      handle: row.handle!,
+      avatar_url: row.image,
+      headline: row.headline,
     },
     content,
     theme_id: themeId,
     privacy_settings: privacySettings,
-    created_at: userData.siteData.createdAt,
-    updated_at: userData.siteData.updatedAt,
+    created_at: siteData.createdAt,
+    updated_at: siteData.updatedAt,
   };
 }
 
-async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
-  const db = getDb(env.HYPERDRIVE);
-
-  const userData = await db.query.user.findFirst({
-    where: eq(user.handle, handle),
-    columns: {
-      id: true,
-      name: true,
-      handle: true,
-      image: true,
-      headline: true,
-      privacySettings: true,
-    },
-    with: {
-      siteData: {
-        columns: {
-          previewName: true,
-          previewHeadline: true,
-          previewLocation: true,
-          previewSkills: true,
-          content: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-    },
-  });
-
-  if (!userData?.siteData) {
-    return null;
-  }
-
-  const fullName = userData.siteData.previewName?.trim() || userData.name?.trim() || null;
+/** What `<head>`, OpenGraph and the JSON-LD scripts use. */
+function buildResumeMetadata(
+  row: ProfileRow,
+  siteData: ResumeSiteData,
+  handle: string,
+): ResumeMetadata | null {
+  const fullName = siteData.previewName?.trim() || row.name?.trim() || null;
 
   if (!fullName) {
     return null;
   }
 
-  const parsedSettings = normalizePrivacySettings(userData.privacySettings);
-  const hideFromSearch = parsedSettings.hide_from_search;
-  const parsedSkills = normalizePreviewSkills(userData.siteData.previewSkills);
+  const privacySettings = normalizePrivacySettings(row.privacySettings);
+  const parsedSkills = normalizePreviewSkills(siteData.previewSkills);
 
-  let previewLocation = userData.siteData.previewLocation?.trim() || null;
+  let location = siteData.previewLocation?.trim() || null;
 
-  if (previewLocation && !parsedSettings.show_address) {
-    previewLocation = extractCityState(previewLocation) || null;
+  if (location && !privacySettings.show_address) {
+    location = extractCityState(location) || null;
   }
 
   let indexable = false;
   let jsonLdResumeScript: string | null = null;
   let jsonLdBreadcrumbScript: string | null = null;
 
-  if (userData.siteData.content) {
+  if (siteData.content) {
     try {
       // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
-      const content = userData.siteData.content as ResumeContent;
-      indexable = isIndexableProfile(content, parsedSettings);
+      const content = siteData.content as ResumeContent;
+      indexable = isIndexableProfile(content, privacySettings);
 
       if (indexable) {
         const profileUrl = `${siteConfig.url}/@${handle}`;
 
         const jsonLd = generateResumeJsonLd(content, {
           profileUrl,
-          avatarUrl: userData.image,
-          dateCreated: userData.siteData.createdAt,
-          dateModified: userData.siteData.updatedAt,
-          privacySettings: parsedSettings,
+          avatarUrl: row.image,
+          dateCreated: siteData.createdAt,
+          dateModified: siteData.updatedAt,
+          privacySettings,
         });
 
         if (jsonLd) {
@@ -201,20 +196,58 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 
   return {
     full_name: fullName,
-    headline: userData.siteData.previewHeadline?.trim() || userData.headline || null,
+    headline: siteData.previewHeadline?.trim() || row.headline || null,
     summary: null,
-    avatar_url: userData.image,
-    hide_from_search: hideFromSearch,
-    location: previewLocation,
+    avatar_url: row.image,
+    hide_from_search: privacySettings.hide_from_search,
+    location,
     skills: parsedSkills.length > 0 ? parsedSkills : null,
     indexable,
-    created_at: userData.siteData.createdAt,
-    updated_at: userData.siteData.updatedAt,
+    created_at: siteData.createdAt,
+    updated_at: siteData.updatedAt,
     jsonLdResumeScript,
     jsonLdBreadcrumbScript,
   };
 }
 
-export const getResumeData = cache((handle: string) => fetchResumeDataRaw(handle));
+interface PublicResume {
+  data: ResumeData;
+  metadata: ResumeMetadata | null;
+}
 
-export const getResumeMetadata = cache((handle: string) => fetchResumeMetadataRaw(handle));
+async function loadPublicResume(handle: string): Promise<PublicResume | null> {
+  const row = await fetchResumeRow(handle);
+
+  if (!row?.siteData) {
+    return null;
+  }
+
+  return {
+    data: buildResumeData(row, row.siteData),
+    metadata: buildResumeMetadata(row, row.siteData, handle),
+  };
+}
+
+/**
+ * Per-request memo for the row above. React's `cache()` does not span the
+ * metadata and page render passes; `cacheForRequest` keys into vinext's
+ * per-request WeakMap (node_modules/vinext/dist/shims/cache-for-request.js:59),
+ * which lives in the request's AsyncLocalStorage context and is shared by every
+ * nested shim scope, so both consumers await the same in-flight query.
+ */
+const getHandleLoads = cacheForRequest(() => new Map<string, Promise<PublicResume | null>>());
+
+export function getResume(handle: string): Promise<PublicResume | null> {
+  const loads = getHandleLoads();
+  const loaded = loads.get(handle);
+
+  if (loaded) {
+    return loaded;
+  }
+
+  const pending = loadPublicResume(handle);
+
+  loads.set(handle, pending);
+
+  return pending;
+}
