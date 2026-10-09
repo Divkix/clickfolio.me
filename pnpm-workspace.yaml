@@ -20,13 +20,16 @@ supportedArchitectures:
 overrides:
   # Vite+ 1.1.0 bundles Vitest 5.0.3 and refuses to run `--coverage` unless the
   # installed coverage provider is the same version (mixed versions otherwise
-  # fails CI at startup).
-  "@vitest/coverage-v8": "^5.0.3"
-  # Force vite-plus's internal @voidzero-dev/vite-plus-core dep to match the
-  # top-level `vite` alias. Without this, pnpm installs two copies of core (the
-  # alias version + vite-plus's pinned version) and the divergent PluginOption
-  # types break `tsc --noEmit` in vite.config.ts.
-  "@voidzero-dev/vite-plus-core": "^1.1.0"
+  # fails CI at startup). Both the override and the catalog entry below track the
+  # `vitest` catalog range, so a future bump moves them together.
+  "@vitest/coverage-v8": "catalog:"
+  # vite-plus hard-pins its own `vite` dependency to an exact
+  # `npm:@voidzero-dev/vite-plus-core@<version>` alias; routing every `vite`
+  # dependency through the catalog keeps the whole graph (vite-plus, plugins,
+  # vitest) on one core copy, which is what keeps PluginOption types identical
+  # for `tsc --noEmit` in vite.config.ts. No package depends on
+  # @voidzero-dev/vite-plus-core directly, so no separate core override is
+  # needed — the alias target below is the single source of truth.
   vite@*: "catalog:"
   vitest@*: "catalog:"
 

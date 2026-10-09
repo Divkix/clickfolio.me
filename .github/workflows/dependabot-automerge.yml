@@ -23,7 +23,8 @@
 # Gate behaviour (inline script): poll the check rollup plus commit statuses on
 # the event head SHA; merge only when every observed check/status is exactly
 # `success`. This job's own check runs are recognised as this workflow's runs on
-# the gated commit (check-suite ids) — never by name alone — so a cancelled
+# the gated commit (check-suite ids resolved once through the Actions API, which
+# is why the job needs `actions: read`) — never by name alone — so a cancelled
 # predecessor run cannot deadlock the gate and a foreign check that happens to
 # share the name still has to pass. Author, same-repo head, base branch and head
 # SHA are re-verified on every poll and again right before merging, so a
@@ -48,6 +49,7 @@ permissions:
   pull-requests: write # request review for majors, merge
   checks: read # read the check rollup
   statuses: read # read legacy commit statuses
+  actions: read # resolve this workflow's own runs for the self check-run identity
 
 jobs:
   auto-merge:
