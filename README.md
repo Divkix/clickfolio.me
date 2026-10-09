@@ -372,10 +372,11 @@ observed, on the PR's head commit: `Code Quality`, `Tests`, `Build`,
 `CI Success`, `GitGuardian Security Checks` and `Workers Builds: clickfolio-me`
 present **and** exactly successful, **every** other reported check/commit status
 exactly successful too (a skipped or neutral check is not green), and its own
-45-minute budget not exhausted. Its own check run is recognised by workflow-run
-identity rather than by name, so a foreign check sharing that name still has to
-pass. Author, same-repo head, base branch and head SHA are re-verified on every
-poll and again immediately before the merge. Missing checks, failures,
+45-minute budget not exhausted. Its own check runs are recognised as this
+workflow's runs on the gated commit (check-suite ids), not by name, so a foreign
+check sharing that name still has to pass while a cancelled predecessor run
+cannot deadlock the gate. Author, same-repo head, base branch and head SHA are
+re-verified on every poll and again immediately before the merge. Missing checks, failures,
 cancellations, timeouts, a moved head, a retarget, a draft flip, conflicts, fork
 heads and non-Dependabot authors all fail closed — the PR stays open, the run log
 says why, and a human merges it. The branch is deleted by the repository setting

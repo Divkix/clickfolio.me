@@ -128,10 +128,6 @@ jobs:
           SELF_RUN_ID = os.environ.get("SELF_RUN_ID", "")
           SELF_JOB_NAME = os.environ["SELF_JOB_NAME"]
           DRY_RUN = os.environ.get("DRY_RUN") == "1"
-          # Dry-run only: read pull.json/check-runs.json/statuses.json/run.json/
-          # runs.json from a directory instead of the API (used to prove the
-          # boundaries).
-          FIXTURE_DIR = os.environ.get("GATE_FIXTURE_DIR", "")
           POLL_SECONDS = int(os.environ.get("GATE_POLL_SECONDS", "15"))
           MAX_WAIT_SECONDS = int(os.environ.get("GATE_MAX_WAIT_SECONDS", "2700"))
           REQUIRED_CHECKS = tuple(
@@ -141,13 +137,8 @@ jobs:
           LAST_WAITING = []
 
 
-          def gh_json(endpoint, fixture_name, paginate=True):
+          def gh_json(endpoint, paginate=True):
               """Read-only API GET (never a write) through the stock gh CLI."""
-              if FIXTURE_DIR:
-                  if not DRY_RUN:
-                      fail("GATE_FIXTURE_DIR is only honoured with DRY_RUN=1")
-                  with open(os.path.join(FIXTURE_DIR, fixture_name), encoding="utf-8") as handle:
-                      return json.load(handle)
               command = ["gh", "api", endpoint]
               if paginate:
                   command += ["--paginate", "--slurp"]
@@ -176,7 +167,7 @@ jobs:
 
           def fetch_pull():
               # The pulls endpoint returns one object, so no --slurp wrapper.
-              return gh_json(f"repos/{REPO}/pulls/{PR_NUMBER}", "pull.json", paginate=False)
+              return gh_json(f"repos/{REPO}/pulls/{PR_NUMBER}", paginate=False)
 
 
           def validate(pull):
@@ -214,15 +205,14 @@ jobs:
               if not SELF_RUN_ID:
                   return set()
               workflow_id = gh_json(
-                  f"repos/{REPO}/actions/runs/{SELF_RUN_ID}", "run.json", paginate=False
+                  f"repos/{REPO}/actions/runs/{SELF_RUN_ID}", paginate=False
               )["workflow_id"]
               return {
                   run["check_suite_id"]
                   for run in flatten(
                       gh_json(
                           f"repos/{REPO}/actions/workflows/{workflow_id}/runs"
-                          f"?head_sha={HEAD_SHA}&per_page=100",
-                          "runs.json",
+                          f"?head_sha={HEAD_SHA}&per_page=100"
                       )
                   )
               }
@@ -251,7 +241,7 @@ jobs:
               # Latest run per check name wins, so a re-run supersedes its first result.
               latest_runs = {}
               for run in flatten(
-                  gh_json(f"repos/{REPO}/commits/{HEAD_SHA}/check-runs?per_page=100", "check-runs.json")
+                  gh_json(f"repos/{REPO}/commits/{HEAD_SHA}/check-runs?per_page=100")
               ):
                   if is_self(run):
                       continue  # this job's own check run; never wait on itself
@@ -279,7 +269,7 @@ jobs:
               # Legacy commit statuses post the newest entry first per context.
               statuses = {}
               for status in flatten(
-                  gh_json(f"repos/{REPO}/commits/{HEAD_SHA}/statuses?per_page=100", "statuses.json")
+                  gh_json(f"repos/{REPO}/commits/{HEAD_SHA}/statuses?per_page=100")
               ):
                   statuses.setdefault(status["context"], status["state"])
               for context, state in statuses.items():
@@ -353,6 +343,8 @@ jobs:
                   HEAD_SHA,
               ]
               if DRY_RUN:
+                  # Documented escape hatch: print the exact merge command and
+                  # exit without merging (used to exercise the gate safely).
                   log("DRY_RUN — would run: " + " ".join(command))
                   return
               result = subprocess.run(command, capture_output=True, text=True)
