@@ -22,12 +22,13 @@
 #
 # Gate behaviour (inline script): poll the check rollup plus commit statuses on
 # the event head SHA; merge only when every observed check/status is exactly
-# `success`. This job's own check run is recognised by workflow-run identity
-# (its check-run id belongs to this run), never by name, so a foreign check that
-# happens to share the name still has to pass. Author, same-repo head,
-# base branch and head SHA are re-verified on every poll and again right before
-# merging, so a retarget/draft flip cannot be merged. Missing, pending past a
-# 45-minute budget, failed, cancelled, timed-out, skipped/neutral, stale-head,
+# `success`. This job's own check runs are recognised as this workflow's runs on
+# the gated commit (check-suite ids) — never by name alone — so a cancelled
+# predecessor run cannot deadlock the gate and a foreign check that happens to
+# share the name still has to pass. Author, same-repo head, base branch and head
+# SHA are re-verified on every poll and again right before merging, so a
+# retarget/draft flip cannot be merged. Missing, pending past a 45-minute
+# budget, failed, cancelled, timed-out, skipped/neutral, stale-head,
 # blocked/dirty or any non-bot/fork PR fails closed (no merge, useful logs).
 # Branch deletion is the repo setting `delete_branch_on_merge`, not a flag.
 
@@ -87,6 +88,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
           SELF_RUN_ID: ${{ github.run_id }}
+          SELF_JOB_NAME: Dependabot auto-merge
           DRY_RUN: "0"
           # Every one of these must be present and exactly successful.
           EXPECTED_CHECKS: |
@@ -124,9 +126,11 @@ jobs:
           HEAD_SHA = os.environ["HEAD_SHA"]
           UPDATE_TYPE = os.environ.get("UPDATE_TYPE", "")
           SELF_RUN_ID = os.environ.get("SELF_RUN_ID", "")
+          SELF_JOB_NAME = os.environ["SELF_JOB_NAME"]
           DRY_RUN = os.environ.get("DRY_RUN") == "1"
-          # Dry-run only: read pull.json/check-runs.json/statuses.json/jobs.json
-          # from a directory instead of the API (used to prove the boundaries).
+          # Dry-run only: read pull.json/check-runs.json/statuses.json/run.json/
+          # runs.json from a directory instead of the API (used to prove the
+          # boundaries).
           FIXTURE_DIR = os.environ.get("GATE_FIXTURE_DIR", "")
           POLL_SECONDS = int(os.environ.get("GATE_POLL_SECONDS", "15"))
           MAX_WAIT_SECONDS = int(os.environ.get("GATE_MAX_WAIT_SECONDS", "2700"))
@@ -163,8 +167,8 @@ jobs:
                       records.extend(page["check_runs"])
                   elif "statuses" in page:
                       records.extend(page["statuses"])
-                  elif "jobs" in page:
-                      records.extend(page["jobs"])
+                  elif "workflow_runs" in page:
+                      records.extend(page["workflow_runs"])
                   else:
                       records.append(page)
               return records
@@ -199,27 +203,38 @@ jobs:
                   fail("pull request has merge conflicts")
 
 
-          def self_check_ids():
-              """Check-run ids created by THIS workflow run — identity, not name."""
+          def self_suite_ids():
+              """Check-suite ids of THIS workflow's runs for the gated commit.
+
+              Covers the in-flight run and any cancelled predecessor (two events
+              on one PR under `cancel-in-progress` leave a cancelled check run
+              behind that would otherwise block strict success forever), while a
+              check from any other workflow or app keeps a different suite.
+              """
               if not SELF_RUN_ID:
                   return set()
+              workflow_id = gh_json(
+                  f"repos/{REPO}/actions/runs/{SELF_RUN_ID}", "run.json", paginate=False
+              )["workflow_id"]
               return {
-                  job["id"]
-                  for job in flatten(
+                  run["check_suite_id"]
+                  for run in flatten(
                       gh_json(
-                          f"repos/{REPO}/actions/runs/{SELF_RUN_ID}/jobs?per_page=100",
-                          "jobs.json",
+                          f"repos/{REPO}/actions/workflows/{workflow_id}/runs"
+                          f"?head_sha={HEAD_SHA}&per_page=100",
+                          "runs.json",
                       )
                   )
               }
 
 
           def is_self(run):
-              # Actions check-run ids equal job ids, and the details URL pins the
-              # run, so a foreign check that shares this job's name still counts.
-              if SELF_RUN_ID and f"/runs/{SELF_RUN_ID}/job/" in (run.get("details_url") or ""):
-                  return True
-              return run["id"] in SELF_CHECK_IDS
+              # Our own job's check runs only: same job name AND a suite that
+              # belongs to a run of this workflow on this commit. A foreign check
+              # that happens to share the name keeps its own suite and blocks.
+              if run["name"] != SELF_JOB_NAME:
+                  return False
+              return (run.get("check_suite") or {}).get("id") in SELF_SUITE_IDS
 
 
           def worst(*states):
@@ -346,6 +361,6 @@ jobs:
               log("squash-merged; delete_branch_on_merge removes the branch")
 
 
-          SELF_CHECK_IDS = self_check_ids()
+          SELF_SUITE_IDS = self_suite_ids()
           main()
           PY
