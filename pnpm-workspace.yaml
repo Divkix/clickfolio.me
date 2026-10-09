@@ -18,15 +18,15 @@ supportedArchitectures:
     - current
 
 overrides:
-  # Vite+ 1.0.0-rc.0 bundles Vitest 5.0.1 and refuses to run `--coverage` unless
-  # the installed coverage provider is the exact same version (mixed versions
-  # otherwise fails CI at startup).
-  "@vitest/coverage-v8": 5.0.1
-  # Force vite-plus's internal hard-pinned @voidzero-dev/vite-plus-core dep to
-  # match the top-level `vite` alias. Without this, pnpm installs two copies of
-  # core (the alias version + vite-plus's pinned version) and the divergent
-  # PluginOption types break `tsc --noEmit` in vite.config.ts.
-  "@voidzero-dev/vite-plus-core": "1.0.0-rc.0"
+  # Vite+ 1.1.0 bundles Vitest 5.0.3 and refuses to run `--coverage` unless the
+  # installed coverage provider is the same version (mixed versions otherwise
+  # fails CI at startup).
+  "@vitest/coverage-v8": "^5.0.3"
+  # Force vite-plus's internal @voidzero-dev/vite-plus-core dep to match the
+  # top-level `vite` alias. Without this, pnpm installs two copies of core (the
+  # alias version + vite-plus's pinned version) and the divergent PluginOption
+  # types break `tsc --noEmit` in vite.config.ts.
+  "@voidzero-dev/vite-plus-core": "^1.1.0"
   vite@*: "catalog:"
   vitest@*: "catalog:"
 
@@ -38,10 +38,10 @@ allowBuilds:
   sharp: true
   workerd: true
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0
-  vitest: 5.0.1
-  vite-plus: 1.0.0-rc.0
-  "@vitest/coverage-v8": 5.0.1
+  vite: npm:@voidzero-dev/vite-plus-core@^1.1.0
+  vitest: ^5.0.3
+  vite-plus: ^1.1.0
+  "@vitest/coverage-v8": ^5.0.3
 peerDependencyRules:
   allowAny:
     - vite
@@ -50,24 +50,8 @@ peerDependencyRules:
     vite: "*"
     vitest: "*"
 # Supply-chain hardening: refuse any version whose trust signals (provenance,
-# signatures) regressed versus what we already resolved, and hold back releases
-# that are too fresh to have been vetted.
+# signatures) regressed versus what we already resolved.
 #
-# `minimumReleaseAge` holds releases for 1 day (pnpm's default, made strict by
-# setting it explicitly); bump a dependency sooner by adding it to
-# `minimumReleaseAgeExclude`.
+# Fresh releases are held back by pnpm's default `minimumReleaseAge` (1440
+# minutes) — no repo-level override.
 trustPolicy: no-downgrade
-minimumReleaseAge: 1440
-# pnpm >= 11.22 prunes exact-version excludes no longer resolved by the lockfile.
-minimumReleaseAgeExcludePrune: true
-minimumReleaseAgeExclude:
-  - vite-plus
-  - "@voidzero-dev/*"
-  - oxlint
-  - "@oxlint/*"
-  - oxlint-tsgolint
-  - "@oxlint-tsgolint/*"
-  - oxfmt
-  - "@oxfmt/*"
-  - vitest
-  - "@vitest/*"

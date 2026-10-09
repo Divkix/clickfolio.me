@@ -77,8 +77,8 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Adding a blog post** needs both a `BLOG_POSTS` entry (`lib/blog/posts.ts`) and `app/blog/<slug>/page.tsx` using `getPostBySlug("<slug>")!` at module scope (build throws if they diverge). Titles ≤ 60 chars / descriptions ≤ 160; set `metaTitle` when the H1 is longer.
 - **New static route** needs a key in `lib/seo/lastmod.json` and, if public, an entry in `lib/seo/static-pages.ts`.
 - **JSON-LD:** always embed via `serializeJsonLd()` (`lib/seo/json-ld.ts`).
-- **Toolchain pins:** `vite-plus`, `vitest`, `@vitest/coverage-v8` must stay on the same version in `pnpm-workspace.yaml` catalog + overrides, or `--coverage` aborts. Bump them only via `vp migrate` (dependabot ignores them).
-- **Fresh dependency versions are rejected** by `minimumReleaseAge` in `pnpm-workspace.yaml`; add the package to `minimumReleaseAgeExclude` or wait.
+- **Toolchain pins:** `vite-plus`, the `vite` catalog alias (`@voidzero-dev/vite-plus-core`), `vitest` and `@vitest/coverage-v8` must stay on the same release in `pnpm-workspace.yaml` catalog + overrides, or `--coverage` aborts. Bump them together; dependabot ignores them.
+- **Fresh dependency versions** are held back by pnpm's default `minimumReleaseAge` (1440 minutes) — nothing is configured per repo, so a release is picked up once it has aged in (`pnpm update` after ~1 day); do not re-add repo-level excludes.
 - **`ERR_PNPM_OUTDATED_LOCKFILE`** on a clean checkout after touching `catalog:` deps: run `pnpm install --no-frozen-lockfile` once and commit the lockfile.
 - **R2 lifecycle:** `deploy.ts` runs `wrangler r2 bucket lifecycle set`, which replaces all rules — keep every rule in `r2-lifecycle.json`.
 - **Build warning** `manualChunks option is ignored because the codeSplitting option is specified` means `clientVendorSplit()` in `vite.config.ts` is currently a no-op.
