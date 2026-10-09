@@ -354,6 +354,38 @@ Tests cover integration and security flows. CI collects whole-app coverage and
 enforces the remaining-suite baseline: 24% statements/lines, 16% branches, and
 14% functions.
 
+### Dependency Updates
+
+Dependabot checks daily with a 1-day cooldown, so a just-published release waits
+a day before it is proposed (security updates skip the cooldown). Vite+ toolchain
+packages (`vite-plus`, the `vite` catalog alias, `vitest`, `@vitest/*`,
+`@voidzero-dev/*`) are grouped into one PR because they only move in lockstep.
+
+| Kind                              | What happens                                            |
+| --------------------------------- | ------------------------------------------------------- |
+| minor / patch (grouped per group) | Auto-merged once every required check is green          |
+| major                             | Left open for a human; review is requested from @Divkix |
+
+`.github/workflows/dependabot-automerge.yml` performs the merge
+(`gh pr merge --squash --delete-branch --match-head-commit <event SHA>`) only
+after it has observed, on the PR's head commit: `Code Quality`, `Tests`,
+`Build`, `CI Success`, `GitGuardian Security Checks` and
+`Workers Builds: clickfolio-me` present **and** successful, every other reported
+check/commit status settled green, and its own 45-minute budget not exhausted.
+Missing checks, failures, cancellations, timeouts, a moved head, conflicts,
+drafts, fork heads and non-Dependabot authors all fail closed — the PR stays
+open, the run log says why, and a human merges it.
+
+The workflow is metadata-only: it runs on `pull_request_target`, never checks
+out, installs or executes pull-request code, and receives every event value
+through `env` (nothing is interpolated into the script). Repository Actions rule
+7006 allows the `pull_request_target` event for exactly this file and the
+`dependabot[bot]` actor, which keeps the November 2026 public-repo
+`pull_request_target` restriction from blocking it without widening the event
+for other workflows. A `pull_request_target` workflow only runs from the default
+branch, so this automation starts working once the workflow is on `main`; a
+manual re-run of an update may also need a Dependabot-side event to be eligible.
+
 ### Project Structure
 
 ```

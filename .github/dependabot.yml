@@ -5,22 +5,30 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    # Hold every version update for a day so a bad publish can be yanked
+    # (Dependabot's own default is 3 days). Security updates ignore cooldown.
+    cooldown:
+      default-days: 1
     commit-message:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
-    ignore:
-      # vite-plus toolchain moves in lockstep via `vp migrate` only.
-      # Dependabot only sees vite-plus by name and can't track/group the
-      # aliases, so any solo bump (vite-plus, vite, vitest, coverage, core)
-      # desyncs the set and breaks CI (TS2321/TS2769 or coverage abort).
-      - dependency-name: "vite-plus"
-      - dependency-name: "vite"
-      - dependency-name: "vitest"
-      - dependency-name: "@vitest/*"
-      - dependency-name: "@voidzero-dev/vite-plus-core"
     groups:
-      # Group all minor/patch updates
+      # Vite+ moves its toolchain in lockstep (vite-plus + the `vite`/`vitest`
+      # catalog aliases + the coverage provider), so group it FIRST: these are
+      # only ever bumped together, or `--coverage`/`tsc --noEmit` break.
+      toolchain-minor-patch:
+        patterns:
+          - "vite"
+          - "vite-plus"
+          - "vitest"
+          - "@vitest/*"
+          - "@voidzero-dev/*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Everything else: minor/patch updates arrive as one group.
+      # Majors stay ungrouped and are never auto-merged.
       all-minor-patch:
         patterns:
           - "*"
@@ -32,6 +40,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 1
     commit-message:
       prefix: "chore(ci)"
     labels:

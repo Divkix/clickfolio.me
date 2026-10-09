@@ -1,0 +1,316 @@
+# Auto-merges Dependabot minor/patch updates once every required check is green.
+#
+# Safety model — this workflow is metadata-only:
+#   * it runs on `pull_request_target`, so it always executes the copy of this
+#     file that lives on the default branch, never code from the pull request;
+#   * it never checks out, installs, builds or runs pull-request content and
+#     downloads no artifacts, so the write token is never exposed to it;
+#   * every event value reaches the gate through `env`, never interpolated into
+#     the script body, so a crafted branch name cannot inject shell commands;
+#   * majors are never merged — they only get a review request.
+#
+# Repository Actions policy (settings/actions/rules/7006) allows exactly this
+# file, triggered by dependabot[bot], for the pull_request_target event only —
+# which keeps the Nov 2026 public-repo `pull_request_target` restriction from
+# blocking it without opening the event up to other workflows. A manual
+# `synchronize` by a human may be blocked by that policy; Dependabot's own
+# opens/reopens/synchronizes are eligible.
+#
+# Activation: a `pull_request_target` workflow only starts running once this
+# file is on the default branch, so nothing here executes for the PR that adds
+# it — it activates after merge.
+#
+# Gate behaviour (inline script): poll the check rollup plus commit statuses on
+# the event head SHA; merge only when this repo's CI checks, GitGuardian and the
+# Cloudflare Workers build are all present and successful and every other
+# observed check/status is settled green. Missing, pending past a 45-minute
+# budget, failed, cancelled, timed-out, stale-head, blocked/dirty or any
+# non-bot/fork PR fails closed (no merge, useful logs).
+
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+concurrency:
+  # One gate per pull request; a newer event cancels an in-flight run.
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # merge the PR, delete the Dependabot branch
+  pull-requests: write # request review for majors, merge
+  checks: read # read the check rollup
+  statuses: read # read legacy commit statuses
+
+jobs:
+  auto-merge:
+    name: Dependabot auto-merge
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Read Dependabot metadata
+        id: metadata
+        # Pin to the SHA published in the Dependabot docs (tag v2.3.0).
+        uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7 # v2.3.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Majors stay manual: request a human review instead of merging.
+      # (`reviewers:` was dropped from dependabot.yml in 2025, so this step is
+      # the only place the request can be made.)
+      - name: Request review for major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr edit "$PR_URL" --add-reviewer Divkix
+
+      - name: Wait for green checks, then squash-merge
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          SELF_CHECK_NAME: Dependabot auto-merge
+          DRY_RUN: "0"
+          # Required checks must be present and exactly successful.
+          EXPECTED_CHECKS: |
+            Code Quality
+            Tests
+            Build
+            CI Success
+            GitGuardian Security Checks
+            Workers Builds: clickfolio-me
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          import time
+
+
+          def log(message):
+              print(f"gate: {message}", flush=True)
+
+
+          def fail(message):
+              log(f"FAIL — {message}")
+              sys.exit(1)
+
+
+          def skip(message):
+              log(f"skip — {message}")
+              sys.exit(0)
+
+
+          REPO = os.environ["REPO"]
+          PR_NUMBER = os.environ["PR_NUMBER"]
+          HEAD_SHA = os.environ["HEAD_SHA"]
+          UPDATE_TYPE = os.environ.get("UPDATE_TYPE", "")
+          SELF_CHECK_NAME = os.environ["SELF_CHECK_NAME"]
+          DRY_RUN = os.environ.get("DRY_RUN") == "1"
+          # Dry-run only: read pull.json/check-runs.json/statuses.json from a
+          # directory instead of the API (used to prove the fail boundaries).
+          FIXTURE_DIR = os.environ.get("GATE_FIXTURE_DIR", "")
+          POLL_SECONDS = int(os.environ.get("GATE_POLL_SECONDS", "15"))
+          MAX_WAIT_SECONDS = int(os.environ.get("GATE_MAX_WAIT_SECONDS", "2700"))
+          REQUIRED_CHECKS = tuple(
+              line.strip() for line in os.environ["EXPECTED_CHECKS"].splitlines() if line.strip()
+          )
+          # Conclusions that are settled green without being a plain success.
+          OK_CONCLUSIONS = ("success", "skipped", "neutral")
+          # Last "waiting on" list, so a timeout says what never turned green.
+          LAST_WAITING = []
+
+
+          def gh_json(endpoint, fixture_name, paginate=True):
+              """Read-only API GET (never a write) through the stock gh CLI."""
+              if FIXTURE_DIR:
+                  if not DRY_RUN:
+                      fail("GATE_FIXTURE_DIR is only honoured with DRY_RUN=1")
+                  with open(os.path.join(FIXTURE_DIR, fixture_name), encoding="utf-8") as handle:
+                      return json.load(handle)
+              command = ["gh", "api", endpoint]
+              if paginate:
+                  command += ["--paginate", "--slurp"]
+              result = subprocess.run(command, capture_output=True, text=True)
+              if result.returncode != 0:
+                  fail(f"gh api {endpoint} failed: {result.stderr.strip()}")
+              return json.loads(result.stdout or "[]")
+
+
+          def flatten(pages):
+              """`gh api --paginate --slurp` returns one entry per page."""
+              records = []
+              for page in pages:
+                  if isinstance(page, list):
+                      records.extend(page)
+                  elif "check_runs" in page:
+                      records.extend(page["check_runs"])
+                  elif "statuses" in page:
+                      records.extend(page["statuses"])
+                  else:
+                      records.append(page)
+              return records
+
+
+          def fetch_pull():
+              # The pulls endpoint returns one object, so no --slurp wrapper.
+              return gh_json(f"repos/{REPO}/pulls/{PR_NUMBER}", "pull.json", paginate=False)
+
+
+          def worst(*states):
+              for level in ("bad", "pending", "ok"):
+                  if level in states:
+                      return level
+              return "pending"
+
+
+          def poll_once():
+              """Return "merge" when everything is settled green, else "wait"."""
+              pull = fetch_pull()
+              if pull["head"]["sha"] != HEAD_SHA:
+                  fail(f"head moved to {pull['head']['sha']} (event head {HEAD_SHA})")
+              if pull["state"] != "open" or pull.get("merged"):
+                  skip(f"pull request is {pull['state']}")
+              if pull.get("draft"):
+                  skip("pull request is a draft")
+              if pull["base"]["ref"] != "main":
+                  fail(f"base branch is {pull['base']['ref']!r}, expected 'main'")
+              if pull["user"]["login"] != "dependabot[bot]":
+                  fail(f"author is {pull['user']['login']!r}, expected 'dependabot[bot]'")
+              if pull.get("mergeable_state") == "dirty":
+                  fail("pull request has merge conflicts")
+
+              # Latest run per check name wins, so a re-run supersedes its first result.
+              latest_runs = {}
+              for run in flatten(
+                  gh_json(f"repos/{REPO}/commits/{HEAD_SHA}/check-runs?per_page=100", "check-runs.json")
+              ):
+                  if run["name"] == SELF_CHECK_NAME:
+                      continue  # this job is still in flight; never wait on itself
+                  seen = latest_runs.get(run["name"])
+                  if seen is None or run["id"] > seen["id"]:
+                      latest_runs[run["name"]] = run
+
+              observed = {}
+              details = {}
+              for name, run in latest_runs.items():
+                  if run["status"] != "completed":
+                      level, detail = "pending", f"{name} ({run['status']})"
+                  elif run["conclusion"] == "success":
+                      level, detail = "ok", None
+                  elif run["conclusion"] in OK_CONCLUSIONS:
+                      level, detail = "ok", None  # settled, not a failure (e.g. skipped)
+                  else:
+                      level, detail = "bad", f"{name} ({run['conclusion']})"
+                  observed[name] = level
+                  if detail:
+                      details[name] = detail
+
+              # Legacy commit statuses post the newest entry first per context.
+              statuses = {}
+              for status in flatten(
+                  gh_json(f"repos/{REPO}/commits/{HEAD_SHA}/statuses?per_page=100", "statuses.json")
+              ):
+                  statuses.setdefault(status["context"], status["state"])
+              for context, state in statuses.items():
+                  if context == SELF_CHECK_NAME:
+                      continue
+                  if state == "success":
+                      level, detail = "ok", None
+                  elif state == "pending":
+                      level, detail = "pending", f"{context} (commit status pending)"
+                  else:
+                      level, detail = "bad", f"{context} (commit status {state})"
+                  observed[context] = worst(observed.get(context, level), level)
+                  if detail and observed[context] == level:
+                      details[context] = detail
+
+              broken = sorted(details[name] for name, level in observed.items() if level == "bad")
+              if broken:
+                  fail("not green: " + ", ".join(broken))
+
+              # Required checks must be exactly `success`: a skipped or neutral
+              # required check means CI never actually ran, and an unreported one
+              # is simply not there yet.
+              exact_success = {
+                  name
+                  for name, run in latest_runs.items()
+                  if run["status"] == "completed" and run["conclusion"] == "success"
+              } | {context for context, state in statuses.items() if state == "success"}
+
+              waiting = sorted(
+                  {
+                      details.get(name, f"{name} (not successful)")
+                      for name in REQUIRED_CHECKS
+                      if name not in exact_success
+                  }
+                  | {
+                      details.get(name, f"{name} (pending)")
+                      for name, level in observed.items()
+                      if level == "pending"
+                  }
+              )
+              if waiting:
+                  LAST_WAITING[:] = waiting
+                  log("waiting on: " + ", ".join(waiting))
+                  return "wait"
+              log("all checks green: " + ", ".join(sorted(observed)))
+              return "merge"
+
+
+          def main():
+              # The workflow only routes minor/patch PRs here; anything else is
+              # unclassifiable and must not be merged.
+              if UPDATE_TYPE not in ("version-update:semver-minor", "version-update:semver-patch"):
+                  fail(f"update type {UPDATE_TYPE!r} is not semver-minor/semver-patch")
+              log(f"{REPO}#{PR_NUMBER} @ {HEAD_SHA[:7]} — {UPDATE_TYPE}")
+              deadline = time.monotonic() + MAX_WAIT_SECONDS
+              while poll_once() != "merge":
+                  if time.monotonic() >= deadline:
+                      fail(
+                          f"timed out after {MAX_WAIT_SECONDS}s waiting on: "
+                          + (", ".join(LAST_WAITING) or "unknown")
+                      )
+                  time.sleep(POLL_SECONDS)
+
+              # Re-read before merging so the merge only hits the gated commit;
+              # --match-head-commit is the atomic guard against a late push.
+              pull = fetch_pull()
+              if pull["head"]["sha"] != HEAD_SHA or pull["state"] != "open" or pull.get("merged"):
+                  fail("pull request moved while waiting for checks")
+              command = [
+                  "gh",
+                  "pr",
+                  "merge",
+                  PR_NUMBER,
+                  "--repo",
+                  REPO,
+                  "--squash",
+                  "--delete-branch",
+                  "--match-head-commit",
+                  HEAD_SHA,
+              ]
+              if DRY_RUN:
+                  log("DRY_RUN — would run: " + " ".join(command))
+                  return
+              result = subprocess.run(command, capture_output=True, text=True)
+              if result.returncode != 0:
+                  fail(f"gh pr merge failed: {(result.stderr or result.stdout).strip()}")
+              log("squash-merged and deleted the branch")
+
+
+          main()
+          PY
