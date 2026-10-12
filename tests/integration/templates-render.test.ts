@@ -148,6 +148,17 @@ describe.each(THEME_IDS)("template %s", (themeId) => {
     expect(visibleText).not.toMatch(LEAKED);
   });
 
+  // Cloudflare Fonts rewrites Google Fonts <link rel="stylesheet"> tags into inline <style> at
+  // the edge; the served HTML then no longer matches the React tree and hydration fails (#418).
+  it("loads Google Fonts through @import, not a stylesheet link the edge rewrites", async () => {
+    const { html } = await render(themeId, DEMO_RESUME_CONTENT[themeId], PROFILES.withoutAvatar);
+
+    expect(html).not.toMatch(
+      /<link\b(?=[^>]*\brel="stylesheet")(?=[^>]*fonts\.googleapis\.com)[^>]*>/,
+    );
+    expect(html).toMatch(/<style>@import url\("https:\/\/fonts\.googleapis\.com\/css2\?/);
+  });
+
   it("does not render raw HTML from resume text", async () => {
     const hostile: ResumeContent = { ...SPARSE, full_name: "Evil <img src=x onerror=alert(1)>" };
     const { html } = await render(themeId, hostile, PROFILES.withoutAvatar);
