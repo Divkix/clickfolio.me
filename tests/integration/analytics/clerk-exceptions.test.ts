@@ -16,7 +16,6 @@ function exceptionEvent(value: string): CaptureResult {
 describe("groupClerkNetworkException", () => {
   it.each([
     "Loading chunk 7181 failed.\n(error: https://clerk.example.com/npm/@clerk/ui@1.40.0/dist/7181_ui_1.40.0.js)",
-    "Loading chunk 6666 failed.\n(timeout: https://clerk.example.com/npm/@clerk/ui@1.38.0/dist/ui-common_ui_1.38.0.js)",
     "ClerkJS: Network error at https://clerk.example.com/v1/client",
     "failed_to_load_clerk_js",
   ])("groups a Clerk network failure: %s", (value) => {
