@@ -36,6 +36,12 @@
       "bucket_name": "clickfolio-bucket",
     },
   ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["notifications@clickfolio.me"],
+    },
+  ],
   "workflows": [
     {
       "name": "clickfolio-resume-parse",
@@ -125,6 +131,7 @@
     // Note: R2 is accessed via binding (CLICKFOLIO_R2_BUCKET) - no API credentials needed
     "NODE_ENV": "production",
     "APP_URL": "https://clickfolio.me",
+    "EMAIL_FROM": "notifications@clickfolio.me",
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
     "AI_MODEL": "openai/gpt-6-luna:nitro",
     "AI_REASONING_EFFORT": "medium",
