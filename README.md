@@ -205,6 +205,22 @@ Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domain
 - `APP_URL` = `https://your-domain.com`
 - Point the Clerk webhook endpoint URL at `https://your-domain.com/api/webhooks/clerk`
 
+**Email notifications:** Permanent resume parse failures and unresolved cache waits
+send a dashboard link to the owner's verified Clerk account email. Email delivery is
+best effort and never blocks the resume status update. Successful parses do not email.
+Use a Workers Paid plan and onboard your sending domain under Cloudflare Dashboard →
+Compute → Email Service → Email Sending → Onboard Domain. Set `EMAIL_FROM` and the
+`EMAIL` binding's `allowed_sender_addresses` in `wrangler.jsonc` to your sender
+(default: `notifications@clickfolio.me`). No email API key is needed.
+See [Cloudflare's sending setup](https://developers.cloudflare.com/email-service/get-started/send-emails/).
+
+Local email sends are simulated. Adding `remote: true` to the `EMAIL` binding sends
+real mail during development; only enable it for deliberate delivery testing.
+Cloudflare Email Sending is currently beta. Email runs in its own journaled workflow
+step with automatic retries disabled: normal replay reuses the completed step,
+but a crash after provider acceptance and before persistence can still duplicate a
+notification. Delivery errors are logged, without recipient addresses, and are not retried.
+
 Then redeploy:
 
 ```bash
@@ -503,6 +519,7 @@ Durable resume parsing with per-step retries:
 - **Failure**: once retries are spent the workflow marks the row `failed`, notifies the Durable Object, and sends an alert
 - **Duplicate uploads**: an `await-cache` instance sleeps 10 minutes, then expires a `waiting_for_cache` row that never resolved
 - **Alerting**: Cloudflare Logpush by default, optional Slack/Discord webhook on permanent failures
+- **User email**: a separate best-effort `EMAIL` step sends a dashboard link after terminal failure or cache expiry, only to verified Clerk account owners; no automatic email retries
 
 ### R2 Cleanup
 

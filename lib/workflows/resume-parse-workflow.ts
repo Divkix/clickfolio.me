@@ -1,6 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import { ParseError } from "../parse/errors";
+import { sendResumeFailureEmail } from "../parse/email";
 import {
   claimResumeForParse,
   completeParsedResume,
@@ -10,6 +11,7 @@ import {
 } from "../parse/pipeline";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import type { ResumeParseParams } from "./resume-parse";
+import { log } from "../utils/log";
 
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
@@ -28,6 +30,20 @@ const PARSE_STEP = {
  * retries are spent. Replaces the parse queue, its DLQ, and the orphan-recovery cron.
  */
 export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, ResumeParseParams> {
+  private async emailFailure(resumeId: string, step: WorkflowStep): Promise<void> {
+    try {
+      // Journal email separately from retryable database work. The provider has no
+      // idempotency key, so do not retry an ambiguous send or a timed-out step.
+      await step.do(
+        "email parse failure",
+        { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
+        () => sendResumeFailureEmail(resumeId, this.env),
+      );
+    } catch {
+      log("error", "resume failure email step failed", { resumeId });
+    }
+  }
+
   async run(event: WorkflowEvent<ResumeParseParams>, step: WorkflowStep): Promise<string> {
     const params = event.payload;
 
@@ -37,6 +53,8 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
       const expired = await step.do("expire waiting row", DB_STEP, () =>
         expireWaitingForCache(params.resumeId, this.env),
       );
+
+      if (expired) await this.emailFailure(params.resumeId, step);
 
       return expired ? "expired" : "resolved";
     }
@@ -75,6 +93,8 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await step.do("mark failed", DB_STEP, () => markResumeParseFailed(job, message, this.env));
+
+      await this.emailFailure(job.resumeId, step);
 
       throw error;
     }

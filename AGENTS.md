@@ -34,6 +34,7 @@ worker/index.ts        real Worker entry: scanner-probe 404s → WS /ws/resume-s
 proxy.ts               edge gate (replaces middleware.ts): __session presence check
 lib/resume/            single owners: lifecycle.ts (status/retry rules), claim-intake.ts, completion.ts
 lib/parse/pipeline.ts  Workflow step bodies (must be replay-safe)
+lib/parse/email.ts     best-effort parse-failure mail to verified Clerk account owners
 lib/workflows/         Workflow classes + start/trigger helpers (parse, R2 delete)
 lib/durable-objects/   ClickfolioStatusDO (hibernation WebSocket status push)
 lib/stubs/             stubs for CF-incompatible modules (test aliases in vite.config.ts)
@@ -55,6 +56,7 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **DB:** `getDb(env.HYPERDRIVE)` per invocation, never cached at module scope. Multi-write → `db.transaction`. Postgres `23505` → HTTP 409. Driver: node-postgres (`pg` >= 8.16.3). Raw SQL goes through Drizzle `execute`; results expose `rows` and `rowCount`.
 - **Schema:** timestamps are `timestamptz` with `mode:"string"` (ISO strings in app); enum-like columns are `text` + TS union (no PG enums); JSON is `jsonb`, no manual `JSON.parse`.
 - **Resume state:** status transitions, retry eligibility and status presentation belong to `lib/resume/lifecycle.ts` — call it rather than re-deriving. Workflow steps use status-guarded `UPDATE … RETURNING` and SQL-side increments so replays are safe.
+- **Email:** Cloudflare `EMAIL` (`send_email`) sends permanent parse-failure/cache-expiry notifications in a separate journaled workflow step after DB work, with no automatic email retries. Use verified Clerk account email, never resume contact email. Sending failures must not block status updates. `EMAIL_FROM` and binding `allowed_sender_addresses` must match an onboarded domain; local sends are simulated unless `remote: true` is enabled. Provider acceptance followed by a crash before journaling can still duplicate an email.
 - **Logging** in worker/workflows/cron: `log(level, msg, fields)` from `lib/utils/log.ts` (JSON lines).
 - **Type assertions** need a `// SAFETY:` comment on the line above (lint rule `require-safety-comment-for-type-assertion`); the 18 `anti-slop/*` rules in `vite.config.ts` all run at error — read the rule file in `tools/oxlint/anti-slop/rules/` when one fires.
 - **Images:** plain `<img>`, not `next/image`.
