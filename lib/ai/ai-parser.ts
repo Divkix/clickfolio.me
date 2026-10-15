@@ -1,7 +1,9 @@
+import { Effect } from "effect";
+import { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
-import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
+import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import {
   DEFAULT_AI_MODEL,
@@ -185,185 +187,125 @@ function buildRetryPrompt(text: string, previousOutput: string): string {
   )}\n"""\n\n${buildPrompt(truncateResumeText(text))}`;
 }
 
-export async function parseWithAi(
+export function aiProviderFailure(cause: unknown): AiProviderFailed | AiTimedOut {
+  const message = cause instanceof Error ? cause.message : String(cause);
+
+  if (cause instanceof Error && /timeout|timed?\s*out|deadline/i.test(`${cause.name} ${message}`)) {
+    return new AiTimedOut({ message, cause });
+  }
+
+  // Includes AI_APICallError and NoObjectGeneratedError: provider failures, even
+  // when their messages contain JSON/schema wording or a rate-limit response.
+  return new AiProviderFailed({ message, cause });
+}
+
+export function generateAiText(
+  options: Parameters<typeof generateText>[0],
+  timeoutMs: number = TIMEOUT_MS,
+): Effect.Effect<string, AiProviderFailed | AiTimedOut> {
+  return Effect.tryPromise({
+    try: (signal) => generateText({ ...options, abortSignal: signal }),
+    catch: aiProviderFailure,
+  }).pipe(
+    Effect.map((result) => result.text),
+    Effect.timeoutOrElse({
+      duration: timeoutMs,
+      orElse: () =>
+        Effect.fail(new AiTimedOut({ message: `AI request timed out after ${timeoutMs}ms` })),
+    }),
+  );
+}
+
+export function parseWithAiEffect(
+  text: string,
+  env: Partial<AiEnvVars>,
+  model?: string,
+  retryContext?: { previousOutput: string; errors: string },
+  source: ResumeSource = "generic",
+): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
+  return Effect.gen(function* () {
+    const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
+    const provider = yield* Effect.try({ try: () => getAiProvider(env), catch: aiProviderFailure });
+    const providerOptions = withReasoning(PROVIDER_ROUTING, getReasoningEffort(env));
+
+    function attempt(path: ParseEvent["path"], system: string, prompt: string) {
+      return Effect.suspend(() => {
+        const startTime = Date.now();
+
+        return generateAiText({
+          model: provider(modelId),
+          system,
+          prompt,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          providerOptions,
+        }).pipe(
+          Effect.flatMap((responseText) => parseJsonWithRepairEffect(extractJson(responseText))),
+          Effect.tap(({ repaired }) =>
+            Effect.sync(() =>
+              logParseEvent({
+                modelId,
+                path,
+                durationMs: Date.now() - startTime,
+                success: true,
+                repaired: repaired || undefined,
+              }),
+            ),
+          ),
+          Effect.map(({ data }) => transformToSchema(normalizeAiKeys(data))),
+          Effect.tapError((error) =>
+            Effect.sync(() =>
+              logParseEvent({
+                modelId,
+                path,
+                durationMs: Date.now() - startTime,
+                success: false,
+                error: error.message,
+              }),
+            ),
+          ),
+        );
+      });
+    }
+
+    if (retryContext) {
+      return yield* attempt(
+        "error-feedback-retry",
+        `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`,
+        buildRetryPrompt(text, retryContext.previousOutput),
+      );
+    }
+
+    // Preserve the existing second, shorter prompt attempt. This is content
+    // fallback, not a retry policy: Workflows owns retries of the entire step.
+    return yield* attempt(
+      "text-fallback",
+      buildSystemPrompt(source),
+      buildPrompt(truncateResumeText(text)),
+    ).pipe(
+      Effect.catch(() =>
+        attempt(
+          "text-fallback-retry",
+          `${buildSystemPrompt(source)}\n\nIMPORTANT: Output a single valid JSON object only.`,
+          buildPrompt(truncateForRetry(text)),
+        ),
+      ),
+    );
+  });
+}
+
+export function parseWithAi(
   text: string,
   env: Partial<AiEnvVars>,
   model?: string,
   retryContext?: { previousOutput: string; errors: string },
   source: ResumeSource = "generic",
 ): Promise<AiParseResult> {
-  try {
-    const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
-    const provider = getAiProvider(env);
-    const reasoningEffort = getReasoningEffort(env);
-
-    if (retryContext) {
-      const retrySystem = `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`;
-
-      const startTime = Date.now();
-
-      try {
-        const { text: responseText } = await generateText({
-          model: provider(modelId),
-          system: retrySystem,
-          prompt: buildRetryPrompt(text, retryContext.previousOutput),
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-          abortSignal: AbortSignal.timeout(TIMEOUT_MS),
-          providerOptions: withReasoning(PROVIDER_ROUTING, reasoningEffort),
-        });
-
-        const jsonStr = extractJson(responseText);
-        const { data: parsed } = await parseJsonWithRepair(jsonStr);
-
-        if (!parsed) {
-          logParseEvent({
-            modelId,
-            path: "error-feedback-retry",
-            durationMs: Date.now() - startTime,
-            success: false,
-            error: "Failed to parse retry response as JSON",
-          });
-
-          return {
-            success: false,
-            data: null,
-            error: `Retry failed to produce valid JSON: ${jsonStr.slice(0, 200)}...`,
-          };
-        }
-
-        const normalized = normalizeAiKeys(parsed);
-        const transformed = transformToSchema(normalized);
-        logParseEvent({
-          modelId,
-          path: "error-feedback-retry",
-          durationMs: Date.now() - startTime,
-          success: true,
-        });
-
-        return { success: true, data: transformed };
-      } catch (retryError) {
-        logParseEvent({
-          modelId,
-          path: "error-feedback-retry",
-          durationMs: Date.now() - startTime,
-          success: false,
-          error: retryError instanceof Error ? retryError.message : String(retryError),
-        });
-        throw retryError;
-      }
-    }
-
-    const startTime = Date.now();
-
-    try {
-      const { text: responseText } = await generateText({
-        model: provider(modelId),
-        system: buildSystemPrompt(source),
-        prompt: buildPrompt(truncateResumeText(text)),
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        abortSignal: AbortSignal.timeout(TIMEOUT_MS),
-        providerOptions: withReasoning(PROVIDER_ROUTING, reasoningEffort),
-      });
-
-      const jsonStr = extractJson(responseText);
-      const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-
-      if (parsed) {
-        // SAFETY: parseJsonWithRepair guard ensures parsed is a non-null object; UnknownRecord is the safe JSON object type for AI normalization.
-        const normalized = normalizeAiKeys(parsed as UnknownRecord);
-        const transformed = transformToSchema(normalized);
-        logParseEvent({
-          modelId,
-          path: "text-fallback",
-          durationMs: Date.now() - startTime,
-          success: true,
-          repaired: repaired || undefined,
-        });
-
-        return { success: true, data: transformed };
-      }
-
-      logParseEvent({
-        modelId,
-        path: "text-fallback",
-        durationMs: Date.now() - startTime,
-        success: false,
-        error: "Failed to parse response as JSON",
-      });
-    } catch (fallbackError) {
-      if (
-        fallbackError instanceof Error &&
-        fallbackError.message.includes("AI Gateway not configured")
-      ) {
-        throw fallbackError;
-      }
-
-      logParseEvent({
-        modelId,
-        path: "text-fallback",
-        durationMs: Date.now() - startTime,
-        success: false,
-        error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-      });
-    }
-
-    const retryStartTime = Date.now();
-
-    try {
-      const retryText = truncateForRetry(text);
-
-      const { text: responseText } = await generateText({
-        model: provider(modelId),
-        system: `${buildSystemPrompt(source)}\n\nIMPORTANT: Output a single valid JSON object only.`,
-        prompt: buildPrompt(retryText),
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        abortSignal: AbortSignal.timeout(TIMEOUT_MS),
-        providerOptions: withReasoning(PROVIDER_ROUTING, reasoningEffort),
-      });
-
-      const jsonStr = extractJson(responseText);
-      const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-      logParseEvent({
-        modelId,
-        path: "text-fallback-retry",
-        durationMs: Date.now() - retryStartTime,
-        success: !!parsed,
-        repaired: repaired || undefined,
-        error: parsed ? undefined : "Failed to parse retry response as JSON",
-      });
-
-      if (!parsed) {
-        return {
-          success: false,
-          data: null,
-          error: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
-        };
-      }
-
-      // SAFETY: parseJsonWithRepair guard ensures parsed is a non-null object; UnknownRecord is the safe JSON object type for AI normalization.
-      const normalized = normalizeAiKeys(parsed as UnknownRecord);
-      const transformed = transformToSchema(normalized);
-
-      return { success: true, data: transformed };
-    } catch (retryError) {
-      if (retryError instanceof Error && retryError.message.includes("AI Gateway not configured")) {
-        throw retryError;
-      }
-
-      logParseEvent({
-        modelId,
-        path: "text-fallback-retry",
-        durationMs: Date.now() - retryStartTime,
-        success: false,
-        error: retryError instanceof Error ? retryError.message : String(retryError),
-      });
-      throw retryError;
-    }
-  } catch (error) {
-    return {
-      success: false,
-      data: null,
-      error: error instanceof Error ? error.message : "AI parsing failed",
-    };
-  }
+  return Effect.runPromise(
+    parseWithAiEffect(text, env, model, retryContext, source).pipe(
+      Effect.match({
+        onSuccess: (data) => ({ success: true, data }),
+        onFailure: (failure) => ({ success: false, data: null, error: failure.message }),
+      }),
+    ),
+  );
 }
