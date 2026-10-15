@@ -1,5 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
+import { Effect } from "effect";
 import { ParseError } from "../parse/errors";
 import { sendResumeFailureEmail } from "../parse/email";
 import {
@@ -73,6 +74,8 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
     try {
       const parsed = await step.do("parse", PARSE_STEP, async () => {
         try {
+          await Effect.runPromise(Effect.void);
+
           return await parseResumePdf(job, this.env);
         } catch (error) {
           if (error instanceof ParseError && !error.isRetryable()) {
