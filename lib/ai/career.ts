@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { AiOutputInvalid, AiProviderFailed, AiTimedOut } from "@/lib/parse/failures";
+import { AiOutputInvalid, AiTimedOut } from "@/lib/parse/failures";
 import { aiProviderFailure } from "./ai-parser";
 import { z } from "zod";
 import { ROLES, USER_ROLES, type UserRole } from "@/lib/config/roles";
@@ -44,9 +44,9 @@ export function classifyCareerEffect(
   const today = new Date().toISOString().slice(0, 10);
 
   return Effect.gen(function* () {
-    const response = yield* Effect.tryPromise({
-      try: (signal) =>
-        fetch(
+    const body = yield* Effect.tryPromise({
+      try: async (signal) => {
+        const response = await fetch(
           `https://gateway.ai.cloudflare.com/v1/${CF_AI_GATEWAY_ACCOUNT_ID}/${CF_AI_GATEWAY_ID}/openrouter/systemone`,
           {
             method: "POST",
@@ -92,14 +92,15 @@ export function classifyCareerEffect(
               },
             }),
           },
-        ),
+        );
+
+        if (!response.ok) throw new Error(`Jev HTTP ${response.status}`);
+
+        return response.json();
+      },
       catch: aiProviderFailure,
     });
 
-    if (!response.ok)
-      return yield* new AiProviderFailed({ message: `Jev HTTP ${response.status}` });
-
-    const body = yield* Effect.tryPromise({ try: () => response.json(), catch: aiProviderFailure });
     const parsed = jevResponseSchema.safeParse(body);
 
     if (!parsed.success)

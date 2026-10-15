@@ -41,7 +41,7 @@ const PDF_MESSAGES: Record<PdfInvalidReason, string> = {
 };
 
 export class PdfInvalid extends Data.TaggedError("PdfInvalid")<
-  FailureDetails & { readonly reason: PdfInvalidReason }
+  FailureDetails & { readonly reason: PdfInvalidReason; readonly pageCount?: number }
 > {
   readonly wireType = ParseErrorType.INVALID_PDF;
   readonly retryable = false;

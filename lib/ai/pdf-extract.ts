@@ -74,6 +74,7 @@ export function extractPdfTextEffect(buffer: ArrayBuffer): Effect.Effect<Extract
       return yield* new PdfInvalid({
         message: `PDF has ${pdf.numPages} pages (maximum 50). Please upload a shorter document.`,
         reason: "too-many-pages",
+        pageCount: pdf.numPages,
       });
     }
 
@@ -100,7 +101,7 @@ export function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractResult> {
         onFailure: (failure) => ({
           success: false,
           text: "",
-          pageCount: 0,
+          pageCount: failure.pageCount ?? 0,
           source: "generic" as const,
           error: failure.message,
         }),

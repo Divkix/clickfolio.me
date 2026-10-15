@@ -247,11 +247,16 @@ export function parseWithAiEffect(
                 path,
                 durationMs: Date.now() - startTime,
                 success: true,
-                repaired: repaired || undefined,
+                repaired: path === "error-feedback-retry" ? undefined : repaired || undefined,
               }),
             ),
           ),
-          Effect.map(({ data }) => transformToSchema(normalizeAiKeys(data))),
+          Effect.flatMap(({ data }) =>
+            Effect.try({
+              try: () => transformToSchema(normalizeAiKeys(data)),
+              catch: (cause) => new AiOutputInvalid({ message: "Invalid AI resume fields", cause }),
+            }),
+          ),
           Effect.tapError((error) =>
             Effect.sync(() =>
               logParseEvent({
@@ -259,7 +264,12 @@ export function parseWithAiEffect(
                 path,
                 durationMs: Date.now() - startTime,
                 success: false,
-                error: error.message,
+                error:
+                  error._tag === "AiOutputInvalid"
+                    ? path === "text-fallback"
+                      ? "Failed to parse response as JSON"
+                      : "Failed to parse retry response as JSON"
+                    : error.message,
               }),
             ),
           ),

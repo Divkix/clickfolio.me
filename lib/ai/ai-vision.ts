@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
+import { type AiProviderFailed, type AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
@@ -94,7 +94,10 @@ export function parsePdfWithVisionEffect(
       ),
     );
 
-    return yield* Effect.sync(() => transformToSchema(normalizeAiKeys(data))).pipe(
+    return yield* Effect.try({
+      try: () => transformToSchema(normalizeAiKeys(data)),
+      catch: (cause) => new AiOutputInvalid({ message: "Invalid AI resume fields", cause }),
+    }).pipe(
       Effect.tap(() =>
         Effect.sync(() =>
           log("info", "[ai-vision] parse success", {
@@ -117,7 +120,14 @@ export function parsePdfWithVision(
     parsePdfWithVisionEffect(pdfBuffer, env, model).pipe(
       Effect.match({
         onSuccess: (data) => ({ success: true, data }),
-        onFailure: (failure) => ({ success: false, data: null, error: failure.message }),
+        onFailure: (failure) => ({
+          success: false,
+          data: null,
+          error:
+            failure._tag === "AiOutputInvalid"
+              ? failure.message.replace("AI response as JSON", "vision response as JSON")
+              : failure.message,
+        }),
       }),
     ),
   );
