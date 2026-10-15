@@ -1,8 +1,9 @@
-import { generateText } from "ai";
-import type { JsonValue } from "@/lib/types/json";
-import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
+import { Effect } from "effect";
+import { type AiProviderFailed, type AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
-import { createAiProvider, type AiEnvVars } from "./ai-parser";
+import { aiProviderFailure, createAiProvider, generateAiText, type AiEnvVars } from "./ai-parser";
 import {
   DEFAULT_AI_MODEL,
   extractJson,
@@ -38,76 +39,96 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-export async function parsePdfWithVision(
+export function parsePdfWithVisionEffect(
   pdfBuffer: ArrayBuffer,
   env: Partial<AiEnvVars>,
   model?: string,
-): Promise<VisionParseResult> {
-  try {
+): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
+  return Effect.gen(function* () {
     const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
-    const provider = createAiProvider(env);
+
+    const provider = yield* Effect.try({
+      try: () => createAiProvider(env),
+      catch: aiProviderFailure,
+    });
+
     const base64 = arrayBufferToBase64(pdfBuffer);
     const startTime = Date.now();
 
-    try {
-      const { text: responseText } = await generateText({
+    const responseText = yield* generateAiText(
+      {
         model: provider(modelId),
         messages: [
           {
             role: "user",
             content: [
               { type: "text", text: VISION_SYSTEM_PROMPT },
-              {
-                type: "file",
-                data: base64,
-                mediaType: "application/pdf",
-              },
+              { type: "file", data: base64, mediaType: "application/pdf" },
             ],
           },
         ],
         maxOutputTokens: MAX_OUTPUT_TOKENS,
-        abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
         providerOptions: PROVIDER_ROUTING,
-      });
+      },
+      VISION_TIMEOUT_MS,
+    ).pipe(
+      Effect.tapError((error) =>
+        Effect.sync(() =>
+          log("warn", "[ai-vision] generateText failed", {
+            modelId,
+            durationMs: Date.now() - startTime,
+            error: error.message,
+          }),
+        ),
+      ),
+    );
 
-      const jsonStr = extractJson(responseText);
-      const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+    const { data, repaired } = yield* parseJsonWithRepairEffect(extractJson(responseText)).pipe(
+      Effect.tapError(() =>
+        Effect.sync(() =>
+          log("warn", "[ai-vision] Failed to parse response as JSON", {
+            modelId,
+            durationMs: Date.now() - startTime,
+          }),
+        ),
+      ),
+    );
 
-      if (parsed) {
-        const normalized = normalizeAiKeys(parsed);
-        const transformed = transformToSchema(normalized);
-        log("info", "[ai-vision] parse success", {
-          modelId,
-          durationMs: Date.now() - startTime,
-          repaired: repaired || undefined,
-        });
+    return yield* Effect.try({
+      try: () => transformToSchema(normalizeAiKeys(data)),
+      catch: (cause) => new AiOutputInvalid({ message: "Invalid AI resume fields", cause }),
+    }).pipe(
+      Effect.tap(() =>
+        Effect.sync(() =>
+          log("info", "[ai-vision] parse success", {
+            modelId,
+            durationMs: Date.now() - startTime,
+            repaired: repaired || undefined,
+          }),
+        ),
+      ),
+    );
+  });
+}
 
-        return { success: true, data: transformed };
-      }
-
-      log("warn", "[ai-vision] Failed to parse response as JSON", {
-        modelId,
-        durationMs: Date.now() - startTime,
-      });
-
-      return {
-        success: false,
-        data: null,
-        error: `Failed to parse vision response as JSON: ${jsonStr.slice(0, 200)}...`,
-      };
-    } catch (error) {
-      log("warn", "[ai-vision] generateText failed", {
-        modelId,
-        durationMs: Date.now() - startTime,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
-  } catch (error) {
-    return {
-      success: false,
-      data: null,
-      error: error instanceof Error ? error.message : "Vision parsing failed",
-    };
-  }
+export function parsePdfWithVision(
+  pdfBuffer: ArrayBuffer,
+  env: Partial<AiEnvVars>,
+  model?: string,
+): Promise<VisionParseResult> {
+  return Effect.runPromise(
+    parsePdfWithVisionEffect(pdfBuffer, env, model).pipe(
+      Effect.match({
+        onSuccess: (data) => ({ success: true, data }),
+        onFailure: (failure) => ({
+          success: false,
+          data: null,
+          error:
+            failure._tag === "AiOutputInvalid"
+              ? failure.message.replace("AI response as JSON", "vision response as JSON")
+              : failure.message,
+        }),
+      }),
+    ),
+  );
 }

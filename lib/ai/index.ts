@@ -1,11 +1,14 @@
+import { Effect } from "effect";
 import { z } from "zod";
-import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
-import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import { resumeContentSchema } from "@/lib/schemas/resume";
+import type { ResumeContent } from "@/lib/types/database";
+import type { JsonValue } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
+import { AiOutputInvalid, PdfInvalid, SchemaRejected, type ParseFailure } from "../parse/failures";
 import { coerceRecord } from "./ai-normalize";
-import { parseWithAi } from "./ai-parser";
+import { aiProviderFailure, parseWithAiEffect } from "./ai-parser";
 import { cleanLinkedInText } from "./linkedin";
-import { extractPdfText } from "./pdf-extract";
+import { extractPdfText, extractPdfTextEffect, type PdfExtractResult } from "./pdf-extract";
 import { truncateResumeText } from "./truncate";
 import { transformAiOutput, transformAiResponse } from "./transform";
 
@@ -23,215 +26,169 @@ function normalizeResumeText(text: string): string {
     .trim();
 }
 
-function isString(value: JsonValue): value is string {
-  return z.string().safeParse(value).success;
+function validateParseResult(
+  data: JsonValue,
+): Effect.Effect<ResumeContent, SchemaRejected | AiOutputInvalid> {
+  return Effect.gen(function* () {
+    // transformAiResponse can mutate its input; capture the original for feedback.
+    const previousOutput = JSON.stringify(data);
+
+    const withDefaults = yield* Effect.try({
+      try: () => transformAiResponse(data),
+      catch: (cause) => new AiOutputInvalid({ message: "Invalid AI resume fields", cause }),
+    });
+
+    for (const key of ["education", "skills", "certifications", "projects"]) {
+      if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
+    }
+
+    const result = resumeContentSchema.safeParse(withDefaults);
+
+    if (!result.success) {
+      return yield* Effect.fail(
+        new SchemaRejected({
+          message: "AI response failed schema validation",
+          previousOutput,
+          errors: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n"),
+        }),
+      );
+    }
+
+    return transformAiOutput(result.data);
+  });
 }
 
-type ValidateParseResult =
-  | { success: true; data: UnknownRecord }
-  | { success: false; errors: string };
+function validateWithFeedback(
+  data: JsonValue,
+  text: string,
+  env: Partial<CloudflareEnv>,
+  vision = false,
+) {
+  return validateParseResult(data).pipe(
+    Effect.catchTag("SchemaRejected", (failure) => {
+      log(
+        "warn",
+        vision
+          ? "Vision schema validation failed, retrying with error feedback"
+          : "Schema validation failed, retrying with error feedback",
+        { errors: failure.errors },
+      );
 
-function validateParseResult(data: JsonValue): ValidateParseResult {
-  const withDefaults: UnknownRecord = transformAiResponse(data);
-
-  for (const key of ["education", "skills", "certifications", "projects"]) {
-    if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
-  }
-
-  const result = resumeContentSchema.safeParse(withDefaults);
-
-  if (result.success) {
-    // SAFETY: resumeContentSchema.safeParse success guarantees result.data matches ResumeContent shape; UnknownRecord is the safe JSON representation for validated resume data.
-    return { success: true, data: result.data as UnknownRecord };
-  }
-
-  const errors = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
-
-  return { success: false, errors };
+      return parseWithAiEffect(text, env, undefined, {
+        previousOutput: failure.previousOutput ?? "",
+        errors: failure.errors ?? "",
+      }).pipe(
+        Effect.flatMap(validateParseResult),
+        // Retain the original validation failure if feedback also fails.
+        Effect.catch(() => Effect.fail(failure)),
+        Effect.tap(() =>
+          Effect.sync(() =>
+            log(
+              "info",
+              vision
+                ? "Vision retry with error feedback succeeded"
+                : "Retry with error feedback succeeded",
+            ),
+          ),
+        ),
+      );
+    }),
+  );
 }
 
-export async function parseResumeWithAi(
+type ExtractedPdf = Pick<PdfExtractResult, "text" | "pageCount" | "source">;
+
+function parseExtractedPdf(
+  extracted: ExtractedPdf,
+  pdfBuffer: ArrayBuffer,
+  env: Partial<CloudflareEnv>,
+): Effect.Effect<ResumeContent, ParseFailure> {
+  const textPath = Effect.gen(function* () {
+    const rawText = extracted.text.trim();
+
+    if (extracted.pageCount > 0 && rawText.length < extracted.pageCount * 30) {
+      return yield* new PdfInvalid({
+        message: "Scanned PDF requires vision extraction",
+        reason: "scanned-empty",
+      });
+    }
+
+    const sourceText =
+      extracted.source === "linkedin" ? cleanLinkedInText(extracted.text) : extracted.text;
+
+    const resumeText = truncateResumeText(normalizeResumeText(sourceText));
+
+    if (!resumeText.trim())
+      return yield* new PdfInvalid({ message: "Extracted resume text is empty", reason: "empty" });
+
+    if (extracted.source === "linkedin") log("info", "LinkedIn profile export detected");
+
+    const data = yield* parseWithAiEffect(resumeText, env, undefined, undefined, extracted.source);
+
+    return yield* validateWithFeedback(data, resumeText, env);
+  });
+
+  return textPath.pipe(
+    Effect.catchTag("PdfInvalid", (failure) => {
+      if (failure.reason !== "scanned-empty") return Effect.fail(failure);
+
+      return Effect.gen(function* () {
+        log("info", "scanned PDF detected, falling back to Luna vision", {
+          pageCount: extracted.pageCount,
+          charCount: extracted.text.trim().length,
+        });
+        // Preserve lazy vision loading and the original, undetached PDF bytes.
+        const { parsePdfWithVisionEffect } = yield* Effect.promise(() => import("./ai-vision"));
+        const data = yield* parsePdfWithVisionEffect(pdfBuffer, env);
+        const raw = coerceRecord(data) ?? {};
+        const name = z.string().safeParse(raw.full_name);
+        const hasName = name.success && name.data.trim().length > 0;
+        const hasExperience = Array.isArray(raw.experience) && raw.experience.length > 0;
+
+        if (!hasName && !hasExperience) {
+          return yield* new PdfInvalid({
+            message:
+              "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.",
+            reason: "scanned-empty",
+          });
+        }
+
+        return yield* validateWithFeedback(data, "", env, true);
+      });
+    }),
+  );
+}
+
+export function parseResumeWithAiEffect(
+  pdfBuffer: ArrayBuffer,
+  env: Partial<CloudflareEnv>,
+): Effect.Effect<ResumeContent, ParseFailure> {
+  return extractPdfTextEffect(pdfBuffer).pipe(
+    Effect.flatMap((extracted) => parseExtractedPdf(extracted, pdfBuffer, env)),
+  );
+}
+
+// Temporary wrapper preserves the old contract (including PDF mocks) during migration.
+export function parseResumeWithAi(
   pdfBuffer: ArrayBuffer,
   env: Partial<CloudflareEnv>,
 ): Promise<ParseResumeResult> {
-  try {
-    const extractResult = await extractPdfText(pdfBuffer);
-
-    const rawText = extractResult.text ?? "";
-    const trimmedForScanCheck = rawText.trim();
-    const MIN_CHARS_PER_PAGE = 30;
-    const VISION_MAX_PAGES = 50;
-
-    const isScanned =
-      extractResult.success &&
-      extractResult.pageCount > 0 &&
-      (trimmedForScanCheck.length === 0 ||
-        trimmedForScanCheck.length < extractResult.pageCount * MIN_CHARS_PER_PAGE);
-
-    if (isScanned) {
-      log("info", "scanned PDF detected, falling back to Luna vision", {
-        pageCount: extractResult.pageCount,
-        charCount: trimmedForScanCheck.length,
-      });
-
-      if (extractResult.pageCount > VISION_MAX_PAGES) {
-        return {
-          success: false,
-          parsedContent: "",
-          error: `Scanned PDF has ${extractResult.pageCount} pages (maximum ${VISION_MAX_PAGES} for scanned). Please upload a shorter document or export as text PDF.`,
-        };
-      }
-
-      try {
-        // Dynamic import avoids bundling `ai` file-part handling into page/workflow hot paths (same pattern as lib/parse/pipeline.ts lazy AI import).
-        const { parsePdfWithVision } = await import("./ai-vision");
-        const visionResult = await parsePdfWithVision(pdfBuffer, env);
-
-        if (visionResult.success && visionResult.data) {
-          const raw: UnknownRecord = coerceRecord(visionResult.data) ?? {};
-          const fullName = raw["full_name"];
-          const hasName = isString(fullName) && fullName.trim().length > 0;
-          const expUnknown = raw["experience"];
-          const hasExp = Array.isArray(expUnknown) && expUnknown.length > 0;
-
-          if (!hasName && !hasExp) {
-            return {
-              success: false,
-              parsedContent: "",
-              error:
-                "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.",
-            };
-          }
-
-          const dataForRetry = structuredClone(visionResult.data);
-          let validation = validateParseResult(visionResult.data);
-
-          if (!validation.success && validation.errors) {
-            log("warn", "Vision schema validation failed, retrying with error feedback", {
-              errors: validation.errors,
-            });
-
-            const retryResult = await parseWithAi("", env, undefined, {
-              previousOutput: JSON.stringify(dataForRetry),
-              errors: validation.errors,
-            });
-
-            if (retryResult.success && retryResult.data) {
-              validation = validateParseResult(retryResult.data);
-
-              if (validation.success) log("info", "Vision retry with error feedback succeeded");
-            }
-          }
-
-          if (!validation.success) {
-            return {
-              success: false,
-              parsedContent: "",
-              error: "AI response failed schema validation",
-            };
-          }
-
-          // SAFETY: validation guarantees ResumeContentFormData shape; cast preserves type for final cleanup
-          const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-
-          return {
-            success: true,
-            parsedContent: JSON.stringify(finalData),
-          };
-        }
-
-        return {
-          success: false,
-          parsedContent: "",
-          error:
-            visionResult.error ||
-            "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.",
-        };
-      } catch (error) {
-        return {
-          success: false,
-          parsedContent: "",
-          error: error instanceof Error ? error.message : "Vision parsing failed",
-        };
-      }
-    }
-
-    if (!extractResult.success || !extractResult.text) {
-      return {
-        success: false,
-        parsedContent: "",
-        error: extractResult.error || "PDF extraction failed",
-      };
-    }
-
-    const { source } = extractResult;
-
-    const sourceText =
-      source === "linkedin" ? cleanLinkedInText(extractResult.text) : extractResult.text;
-
-    const normalizedText = normalizeResumeText(sourceText);
-    const resumeText = truncateResumeText(normalizedText);
-
-    if (!resumeText.trim()) {
-      return {
-        success: false,
-        parsedContent: "",
-        error: "Extracted resume text is empty",
-      };
-    }
-
-    if (source === "linkedin") log("info", "LinkedIn profile export detected");
-
-    const parseResult = await parseWithAi(resumeText, env, undefined, undefined, source);
-
-    if (!parseResult.success || !parseResult.data) {
-      return {
-        success: false,
-        parsedContent: "",
-        error: parseResult.error || "AI parsing failed",
-      };
-    }
-
-    const dataForRetry = structuredClone(parseResult.data);
-    let validation = validateParseResult(parseResult.data);
-
-    if (!validation.success && validation.errors) {
-      log("warn", "Schema validation failed, retrying with error feedback", {
-        errors: validation.errors,
-      });
-
-      const retryResult = await parseWithAi(resumeText, env, undefined, {
-        previousOutput: JSON.stringify(dataForRetry),
-        errors: validation.errors,
-      });
-
-      if (retryResult.success && retryResult.data) {
-        validation = validateParseResult(retryResult.data);
-
-        if (validation.success) log("info", "Retry with error feedback succeeded");
-      }
-    }
-
-    if (!validation.success) {
-      return {
-        success: false,
-        parsedContent: "",
-        error: "AI response failed schema validation",
-      };
-    }
-
-    // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
-    const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-
-    return {
-      success: true,
-      parsedContent: JSON.stringify(finalData),
-    };
-  } catch (error) {
-    return {
-      success: false,
-      parsedContent: "",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
+  return Effect.runPromise(
+    Effect.tryPromise({ try: () => extractPdfText(pdfBuffer), catch: aiProviderFailure }).pipe(
+      Effect.flatMap((result) =>
+        result?.success
+          ? parseExtractedPdf(result, pdfBuffer, env)
+          : Effect.fail(
+              new PdfInvalid({
+                message: result?.error || "PDF extraction failed",
+                reason: "corrupt",
+              }),
+            ),
+      ),
+      Effect.match({
+        onSuccess: (data) => ({ success: true, parsedContent: JSON.stringify(data) }),
+        onFailure: (failure) => ({ success: false, parsedContent: "", error: failure.message }),
+      }),
+    ),
+  );
 }

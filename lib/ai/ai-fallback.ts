@@ -1,28 +1,52 @@
+import { Effect } from "effect";
 import type { UnknownRecord } from "@/lib/types/json";
+import { AiOutputInvalid } from "@/lib/parse/failures";
 import { parsePartialJson } from "ai";
 
-export async function parseJsonWithRepair(
+export function parseJsonWithRepairEffect(
+  jsonStr: string,
+): Effect.Effect<{ data: UnknownRecord; repaired: boolean }, AiOutputInvalid> {
+  const invalid = (cause?: unknown) =>
+    new AiOutputInvalid({
+      message: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
+      cause,
+    });
+
+  return Effect.gen(function* () {
+    const result = yield* Effect.try({
+      try: () => ({ value: JSON.parse(jsonStr), repaired: false }),
+      catch: invalid,
+    }).pipe(
+      Effect.catchTag("AiOutputInvalid", () =>
+        Effect.tryPromise({
+          try: () => parsePartialJson(jsonStr),
+          catch: invalid,
+        }).pipe(Effect.map((result) => ({ value: result.value, repaired: true }))),
+      ),
+    );
+
+    if (result.value === null || Array.isArray(result.value) || !(result.value instanceof Object)) {
+      return yield* invalid();
+    }
+
+    // SAFETY: JSON/repair output is a non-null non-array object; AI normalization accepts its JSON fields.
+    const data = result.value as UnknownRecord;
+
+    return { data, repaired: result.repaired };
+  });
+}
+
+export function parseJsonWithRepair(
   jsonStr: string,
 ): Promise<{ data: UnknownRecord | null; repaired: boolean }> {
-  try {
-    const parsed = JSON.parse(jsonStr);
-
-    if (parsed === null || Array.isArray(parsed) || !(parsed instanceof Object)) {
-      return { data: null, repaired: false };
-    }
-
-    // SAFETY: null and object guard above ensures parsed is a non-null non-array object; UnknownRecord is the safe JSON object type for AI repair handling.
-    return { data: parsed as UnknownRecord, repaired: false };
-  } catch {
-    const repaired = await parsePartialJson(jsonStr);
-
-    if (!repaired.value || Array.isArray(repaired.value) || !(repaired.value instanceof Object)) {
-      return { data: null, repaired: false };
-    }
-
-    // SAFETY: null and object guard above ensures repaired.value is a non-null non-array object; UnknownRecord is the safe JSON object type for AI repair handling.
-    return { data: repaired.value as UnknownRecord, repaired: true };
-  }
+  return Effect.runPromise(
+    parseJsonWithRepairEffect(jsonStr).pipe(
+      Effect.match({
+        onSuccess: (result) => result,
+        onFailure: () => ({ data: null, repaired: false }),
+      }),
+    ),
+  );
 }
 
 export function transformToSchema(data: UnknownRecord): UnknownRecord {
