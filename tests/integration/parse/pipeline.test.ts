@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { ParseError, ParseErrorType } from "@/lib/parse/errors";
+import { Effect } from "effect";
+import { ParseErrorType } from "@/lib/parse/errors";
+import {
+  AiProviderFailed,
+  PdfInvalid,
+  R2ObjectMissing,
+  UnknownParseFailure,
+  toParseErrorJson,
+} from "@/lib/parse/failures";
 import type { UnknownRecord } from "@/lib/types/json";
 
 // Step bodies of ResumeParseWorkflow, driven against an in-memory Drizzle stand-in.
@@ -52,7 +60,7 @@ const mocks = vi.hoisted(() => {
     notifyStatusChange: vi.fn(async (_input: UnknownRecord) => undefined),
     sendAlert: vi.fn(async (_payload: UnknownRecord) => undefined),
     parseResumeWithAi: vi.fn(),
-    classifyCareer: vi.fn(),
+    classifyCareerEffect: vi.fn(),
   };
 });
 
@@ -76,7 +84,7 @@ vi.mock("@/lib/parse/alert", () => ({
 
 vi.mock("@/lib/ai", () => ({ parseResumeWithAi: mocks.parseResumeWithAi }));
 
-vi.mock("@/lib/ai/career", () => ({ classifyCareer: mocks.classifyCareer }));
+vi.mock("@/lib/ai/career", () => ({ classifyCareerEffect: mocks.classifyCareerEffect }));
 
 const VALID_CONTENT = {
   full_name: "Test User",
@@ -113,11 +121,10 @@ beforeEach(() => {
   mocks.state.updateReturning = [];
   mocks.state.updateSets = [];
   mocks.state.r2.clear();
-  mocks.parseResumeWithAi.mockResolvedValue({
-    success: true,
-    parsedContent: JSON.stringify(VALID_CONTENT),
-  });
-  mocks.classifyCareer.mockResolvedValue({ role: "mid_level", isFreelance: false });
+  mocks.parseResumeWithAi.mockReturnValue(Effect.succeed(VALID_CONTENT));
+  mocks.classifyCareerEffect.mockReturnValue(
+    Effect.succeed({ role: "mid_level", isFreelance: false }),
+  );
 });
 
 describe("claimResumeForParse", () => {
@@ -177,11 +184,11 @@ describe("parseResumePdf", () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
     mocks.state.r2.set(JOB.r2Key, pdfBuffer());
 
-    const parsed = await parseResumePdf(JOB, ENV);
+    const parsed = await Effect.runPromise(parseResumePdf(JOB, ENV));
 
     expect(parsed?.parsedContent.full_name).toBe("Test User");
     expect(parsed?.career).toEqual({ role: "mid_level", isFreelance: false });
-    expect(mocks.classifyCareer).toHaveBeenCalledWith(parsed?.parsedContent, ENV);
+    expect(mocks.classifyCareerEffect).toHaveBeenCalledWith(parsed?.parsedContent, ENV);
     // Evaluated by the database so a replayed step cannot lose an attempt.
     expect(mocks.state.updateSets[0].totalAttempts).toHaveProperty("queryChunks");
   });
@@ -190,42 +197,50 @@ describe("parseResumePdf", () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
     mocks.state.updateReturning.push([]);
 
-    await expect(parseResumePdf(JOB, ENV)).resolves.toBeNull();
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).resolves.toBeNull();
     expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
   });
 
-  it("throws a permanent ParseError and records it when the PDF is missing", async () => {
+  it("throws a permanent tagged failure and records it when the PDF is missing", async () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
 
-    await expect(parseResumePdf(JOB, ENV)).rejects.toSatisfy(
-      (error: ParseError) => error instanceof ParseError && !error.isRetryable(),
-    );
-    expect(mocks.state.updateSets).toContainEqual({
-      lastAttemptError: expect.stringContaining("Failed to fetch PDF"),
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toMatchObject({
+      _tag: "R2ObjectMissing",
+      retryable: false,
     });
+    expect(mocks.state.updateSets).toContainEqual(
+      expect.objectContaining({
+        lastAttemptError: expect.stringContaining("Failed to fetch PDF"),
+      }),
+    );
   });
 
   it("records a friendly message when the AI reports failure", async () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
     mocks.state.r2.set(JOB.r2Key, pdfBuffer());
-    mocks.parseResumeWithAi.mockResolvedValue({ success: false, error: "PDF is encrypted" });
+    mocks.parseResumeWithAi.mockReturnValue(
+      Effect.fail(new PdfInvalid({ message: "PDF is encrypted", reason: "encrypted" })),
+    );
 
-    await expect(parseResumePdf(JOB, ENV)).rejects.toThrow("PDF is encrypted");
-    expect(mocks.state.updateSets).toContainEqual({
-      errorMessage: "Your PDF is password-protected. Please upload an unprotected version.",
-    });
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toThrow("PDF is encrypted");
+    expect(mocks.state.updateSets).toContainEqual(
+      expect.objectContaining({
+        errorMessage: "Your PDF is password-protected. Please upload an unprotected version.",
+      }),
+    );
   });
 
-  it("throws a retryable ParseError for a transient AI failure without failing the row", async () => {
+  it("throws a retryable tagged failure for a transient AI failure without failing the row", async () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
     mocks.state.r2.set(JOB.r2Key, pdfBuffer());
-    mocks.parseResumeWithAi.mockRejectedValue(
-      new ParseError(ParseErrorType.AI_PROVIDER_ERROR, "AI provider timeout"),
+    mocks.parseResumeWithAi.mockReturnValue(
+      Effect.fail(new AiProviderFailed({ message: "AI provider timeout" })),
     );
 
-    await expect(parseResumePdf(JOB, ENV)).rejects.toSatisfy(
-      (error: ParseError) => error instanceof ParseError && error.isRetryable(),
-    );
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toMatchObject({
+      _tag: "AiProviderFailed",
+      retryable: true,
+    });
     expect(mocks.state.updateSets).not.toContainEqual(
       expect.objectContaining({ status: "failed" }),
     );
@@ -273,7 +288,11 @@ describe("markResumeParseFailed", () => {
     const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
     mocks.state.updateReturning.push([{ totalAttempts: 4 }]);
 
-    await markResumeParseFailed(JOB, "Failed to fetch PDF from R2: key", ENV);
+    await markResumeParseFailed(
+      JOB,
+      toParseErrorJson(new R2ObjectMissing({ message: "Failed to fetch PDF from R2: key" })),
+      ENV,
+    );
 
     expect(mocks.state.updateSets[0]).toMatchObject({ status: "failed" });
     // COALESCE keeps a friendlier message written by the parse step.
@@ -299,7 +318,11 @@ describe("markResumeParseFailed", () => {
       [{ id: "waiting-1" }, { id: "waiting-2" }],
     );
 
-    await markResumeParseFailed(JOB, `invalid_pdf: ${friendly}`, ENV);
+    await markResumeParseFailed(
+      JOB,
+      toParseErrorJson(new PdfInvalid({ message: friendly, reason: "scanned-empty" })),
+      ENV,
+    );
 
     expect(mocks.state.updateSets[1]).toMatchObject({ status: "failed", errorMessage: friendly });
     expect(JSON.parse(String(mocks.state.updateSets[1].lastAttemptError))).toMatchObject({
@@ -319,7 +342,11 @@ describe("markResumeParseFailed", () => {
     const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
     mocks.state.updateReturning.push([]);
 
-    await markResumeParseFailed(JOB, "boom", ENV);
+    await markResumeParseFailed(
+      JOB,
+      toParseErrorJson(new UnknownParseFailure({ message: "boom" })),
+      ENV,
+    );
 
     expect(mocks.notifyStatusChange).not.toHaveBeenCalled();
     expect(mocks.sendAlert).not.toHaveBeenCalled();
@@ -343,5 +370,68 @@ describe("expireWaitingForCache", () => {
 
     await expect(expireWaitingForCache(JOB.resumeId, ENV)).resolves.toBe(false);
     expect(mocks.notifyStatusChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("typed parse failure boundaries", () => {
+  it.each([
+    ["NoSuchKey", "R2ObjectMissing", false],
+    ["R2 object does not exist", "R2ObjectMissing", false],
+    ["object not found (404)", "R2ObjectMissing", false],
+    ["R2 binding not available", "R2BindingMissing", false],
+    ["R2 temporarily unavailable", "R2Throttled", true],
+  ])("classifies R2 %s at its source", async (message, tag, retryable) => {
+    const { R2 } = await import("@/lib/r2");
+    const { parseResumePdf } = await import("@/lib/parse/pipeline");
+    vi.mocked(R2.getAsArrayBuffer).mockRejectedValueOnce(new Error(message));
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toMatchObject({
+      _tag: tag,
+      retryable,
+    });
+  });
+
+  it("records a defect while retaining its identity", async () => {
+    const { parseResumePdf } = await import("@/lib/parse/pipeline");
+    const defect = new Error("unexpected transform bug");
+    mocks.state.r2.set(JOB.r2Key, pdfBuffer());
+    mocks.parseResumeWithAi.mockReturnValue(Effect.die(defect));
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toBe(defect);
+    expect(mocks.state.updateSets).toContainEqual(
+      expect.objectContaining({
+        lastAttemptError: expect.stringContaining("unexpected transform bug"),
+      }),
+    );
+  });
+
+  it("keeps the original failure when recording it also fails", async () => {
+    const { parseResumePdf } = await import("@/lib/parse/pipeline");
+    const failure = new PdfInvalid({ message: "encrypted", reason: "encrypted" });
+    mocks.state.r2.set(JOB.r2Key, pdfBuffer());
+    mocks.parseResumeWithAi.mockImplementationOnce(() => {
+      mocks.db.update.mockImplementationOnce(() => {
+        throw new Error("database connection reset");
+      });
+
+      return Effect.fail(failure);
+    });
+    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toBe(failure);
+  });
+
+  it("finishes terminal updates even when notifications and alerting reject", async () => {
+    const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
+    mocks.state.updateReturning.push([{ totalAttempts: 4 }], [{ id: "waiting-1" }]);
+    mocks.notifyStatusChange
+      .mockRejectedValueOnce(new Error("DO unavailable"))
+      .mockRejectedValueOnce(new Error("DO unavailable"));
+    mocks.sendAlert.mockRejectedValueOnce(new Error("webhook unavailable"));
+    await expect(
+      markResumeParseFailed(
+        JOB,
+        toParseErrorJson(new UnknownParseFailure({ message: "failure" })),
+        ENV,
+      ),
+    ).resolves.toBeUndefined();
+    expect(mocks.state.updateSets).toHaveLength(2);
+    expect(mocks.sendAlert).toHaveBeenCalled();
   });
 });

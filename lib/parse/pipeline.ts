@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import { z } from "zod";
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import type { CareerProfile } from "../ai/career";
 import { resumes } from "../db/schema";
@@ -5,10 +7,16 @@ import { getDb } from "../db";
 import { getR2Binding, R2 } from "../r2";
 import { buildWaitingForCacheTimeoutUpdate } from "../resume/lifecycle";
 import { completeResumes } from "../resume/completion";
-import { resumeContentSchema } from "../schemas/resume";
 import type { ResumeContent } from "../types/database";
 import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
-import { classifyParseError, type ParseErrorInput } from "./errors";
+import { classifyParseError, readStoredParseError, type ParseErrorJson } from "./errors";
+import {
+  R2BindingMissing,
+  R2ObjectMissing,
+  R2Throttled,
+  toParseErrorJson,
+  type ParseFailure,
+} from "./failures";
 import { notifyStatusChange } from "./notify-status";
 import { log } from "../utils/log";
 
@@ -30,38 +38,49 @@ export type ParsedResume = {
   career: CareerProfile | null;
 };
 
-function getUserFriendlyError(rawError: string): string {
-  const lower = rawError.toLowerCase();
+const GENERIC_ERROR_MESSAGE = "Something went wrong while parsing your resume. Please try again.";
 
-  if (/password.protected|encrypted/.test(lower)) {
-    return "Your PDF is password-protected. Please upload an unprotected version.";
+function ignoreAndLog(task: () => Promise<void>, message: string): Promise<void> {
+  return Effect.runPromise(
+    Effect.tryPromise({ try: task, catch: (cause) => cause }).pipe(
+      Effect.catch((cause) => Effect.sync(() => log("error", message, { error: String(cause) }))),
+    ),
+  );
+}
+
+function r2Failure(cause: unknown): R2ObjectMissing | R2BindingMissing | R2Throttled {
+  const parsed = z
+    .object({
+      message: z.string().optional(),
+      code: z.string().optional(),
+      name: z.string().optional(),
+      status: z.number().optional(),
+    })
+    .safeParse(cause);
+
+  const message =
+    cause instanceof Error
+      ? cause.message
+      : parsed.success
+        ? (parsed.data.message ?? String(cause))
+        : String(cause);
+
+  const code = parsed.success ? `${parsed.data.code ?? ""} ${parsed.data.name ?? ""}` : "";
+
+  if (
+    (parsed.success && parsed.data.status === 404) ||
+    /NoSuchKey|no such key|object.*not.*found|key.*not.*found|file.*not.*found|object.*does.*not.*exist|\b404\b/i.test(
+      `${code} ${message}`,
+    )
+  ) {
+    return new R2ObjectMissing({ message, cause });
   }
 
-  if (/invalid.*pdf|corrupt/.test(lower)) {
-    return "Your PDF couldn't be read. Please upload a valid PDF file.";
+  if (/binding.*not.*available|binding.*not.*found|MissingBinding/i.test(`${code} ${message}`)) {
+    return new R2BindingMissing({ message, cause });
   }
 
-  if (/scanned.*pdf.*clearer|scanned.*pdf.*export|clearer.*photo/.test(lower)) {
-    return "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.";
-  }
-
-  if (/extracted.*text.*is.*empty/.test(lower)) {
-    return "No text could be extracted from your PDF. It may be a scanned image.";
-  }
-
-  if (/pdf.*has.*\d+.*pages/.test(lower)) {
-    return "Your PDF is too long. Please upload a resume under 50 pages.";
-  }
-
-  if (/schema.*validation/.test(lower)) {
-    return "We couldn't parse your resume format. Please try again.";
-  }
-
-  if (/timeout|timed.*out/.test(lower)) {
-    return "Processing timed out. Please try again.";
-  }
-
-  return "Something went wrong while parsing your resume. Please try again.";
+  return new R2Throttled({ message, cause });
 }
 
 /**
@@ -141,76 +160,92 @@ export async function claimResumeForParse(
   return "parse";
 }
 
-/**
- * One parse attempt. Records the attempt on the row, then throws a classified
- * ParseError on failure so the workflow can decide whether to retry.
- * Returns null when the row left `processing` (deleted or completed elsewhere).
- */
-export async function parseResumePdf(
+/** One replay-safe parse attempt; the Workflow adapter owns retries. */
+export function parseResumePdf(
   job: ResumeParseJob,
   env: CloudflareEnv,
-): Promise<ParsedResume | null> {
-  const db = getDb(env.HYPERDRIVE);
+): Effect.Effect<ParsedResume | null, ParseFailure> {
+  return Effect.gen(function* () {
+    const db = getDb(env.HYPERDRIVE);
 
-  const attempt = await db
-    .update(resumes)
-    .set({ totalAttempts: sql`${resumes.totalAttempts} + 1` })
-    .where(and(eq(resumes.id, job.resumeId), eq(resumes.status, "processing")))
-    .returning({ id: resumes.id });
+    const recordFailure = (failure: ParseFailure) =>
+      Effect.tryPromise({
+        try: () =>
+          db
+            .update(resumes)
+            .set({
+              errorMessage: failure.userMessage,
+              lastAttemptError: JSON.stringify(toParseErrorJson(failure)),
+            })
+            .where(and(ne(resumes.status, "completed"), eq(resumes.id, job.resumeId))),
+        catch: classifyParseError,
+      }).pipe(
+        Effect.tapError((error) =>
+          Effect.sync(() =>
+            log("error", "failed to record parse attempt", {
+              resumeId: job.resumeId,
+              error: error.message,
+            }),
+          ),
+        ),
+        Effect.catch(() => Effect.void),
+      );
 
-  if (attempt.length === 0) {
-    log("info", "resume no longer processing, skipping parse attempt", {
-      resumeId: job.resumeId,
+    const attempt = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .update(resumes)
+          .set({ totalAttempts: sql`${resumes.totalAttempts} + 1` })
+          .where(and(eq(resumes.id, job.resumeId), eq(resumes.status, "processing")))
+          .returning({ id: resumes.id }),
+      catch: classifyParseError,
     });
 
-    return null;
-  }
+    if (attempt.length === 0) {
+      log("info", "resume no longer processing, skipping parse attempt", {
+        resumeId: job.resumeId,
+      });
 
-  try {
-    const r2Binding = getR2Binding(env);
-
-    if (!r2Binding) {
-      throw new Error("R2 binding not available");
+      return null;
     }
 
-    const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, job.r2Key);
+    return yield* Effect.gen(function* () {
+      const r2Binding = getR2Binding(env);
 
-    if (!pdfBuffer) {
-      throw new Error(`Failed to fetch PDF from R2: ${job.r2Key}`);
-    }
+      if (!r2Binding) return yield* new R2BindingMissing({ message: "R2 binding not available" });
 
-    const { parseResumeWithAi } = await import("../ai");
-    const parseResult = await parseResumeWithAi(pdfBuffer, env);
+      const pdfBuffer = yield* Effect.tryPromise({
+        try: () => R2.getAsArrayBuffer(r2Binding, job.r2Key),
+        catch: r2Failure,
+      });
 
-    if (!parseResult.success) {
-      const rawError = parseResult.error || "AI parser returned no result";
-      await db
-        .update(resumes)
-        .set({ errorMessage: getUserFriendlyError(rawError) })
-        .where(eq(resumes.id, job.resumeId));
-      throw new Error(rawError);
-    }
+      if (!pdfBuffer)
+        return yield* new R2ObjectMissing({ message: `Failed to fetch PDF from R2: ${job.r2Key}` });
+      const { parseResumeWithAi } = yield* Effect.promise(() => import("../ai"));
+      const parsedContent = yield* parseResumeWithAi(pdfBuffer, env);
+      const { classifyCareerEffect } = yield* Effect.promise(() => import("../ai/career"));
+      const career = yield* classifyCareerEffect(parsedContent, env);
 
-    let parsedContent: ResumeContent;
+      return { parsedContent, career };
+    }).pipe(
+      Effect.tapError(recordFailure),
+      Effect.tapDefect((cause) => recordFailure(classifyParseError(cause))),
+    );
+  });
+}
 
-    try {
-      parsedContent = resumeContentSchema.parse(JSON.parse(parseResult.parsedContent));
-    } catch {
-      throw new Error(`Invalid JSON response from AI parser for resume ${job.resumeId}`);
-    }
+/** Read inside the retryable terminal step, including after a Workflow replay. */
+export async function readLastParseFailure(
+  job: ResumeParseJob,
+  env: CloudflareEnv,
+): Promise<ParseErrorJson | null> {
+  const [row] = await getDb(env.HYPERDRIVE)
+    .select({ lastAttemptError: resumes.lastAttemptError })
+    .from(resumes)
+    .where(eq(resumes.id, job.resumeId))
+    .limit(1);
 
-    const { classifyCareer } = await import("../ai/career");
-
-    return { parsedContent, career: await classifyCareer(parsedContent, env) };
-  } catch (error) {
-    // SAFETY: catch error is unknown; ParseErrorInput covers Error|string|object for classification.
-    const classified = classifyParseError(error as ParseErrorInput);
-    await db
-      .update(resumes)
-      .set({ lastAttemptError: JSON.stringify(classified.toJSON()) })
-      .where(and(ne(resumes.status, "completed"), eq(resumes.id, job.resumeId)));
-    throw classified;
-  }
+  return readStoredParseError(row?.lastAttemptError ?? null);
 }
 
 /** Marks the row completed and fans the result out to identical uploads waiting on it. */
@@ -257,18 +292,17 @@ export async function completeParsedResume(
 /** Terminal failure: every retry is spent or the error is permanent. */
 export async function markResumeParseFailed(
   job: ResumeParseJob,
-  errorMessage: string,
+  storedError: ParseErrorJson,
   env: CloudflareEnv,
 ): Promise<void> {
   const db = getDb(env.HYPERDRIVE);
-  const classified = classifyParseError(errorMessage);
 
   const failed = await db
     .update(resumes)
     .set({
       status: "failed",
-      errorMessage: sql`COALESCE(${resumes.errorMessage}, ${getUserFriendlyError(errorMessage)})`,
-      lastAttemptError: JSON.stringify(classified.toJSON()),
+      errorMessage: sql`COALESCE(${resumes.errorMessage}, ${GENERIC_ERROR_MESSAGE})`,
+      lastAttemptError: JSON.stringify(storedError),
       updatedAt: new Date().toISOString(),
     })
     .where(and(ne(resumes.status, "completed"), eq(resumes.id, job.resumeId)))
@@ -277,12 +311,16 @@ export async function markResumeParseFailed(
   // Row gone (account deletion cascade) or completed elsewhere: nothing to report.
   if (failed.length === 0) return;
 
-  await notifyStatusChange({
-    resumeId: job.resumeId,
-    status: "failed",
-    error: classified.message,
-    env,
-  });
+  await ignoreAndLog(
+    () =>
+      notifyStatusChange({
+        resumeId: job.resumeId,
+        status: "failed",
+        error: storedError.message,
+        env,
+      }),
+    "failed to notify parse status",
+  );
 
   // Identical uploads waiting on this parse would otherwise sit until their
   // waiting_for_cache timer and report a misleading timeout.
@@ -290,8 +328,8 @@ export async function markResumeParseFailed(
     .update(resumes)
     .set({
       status: "failed",
-      errorMessage: failed[0].errorMessage ?? getUserFriendlyError(errorMessage),
-      lastAttemptError: JSON.stringify(classified.toJSON()),
+      errorMessage: failed[0].errorMessage ?? GENERIC_ERROR_MESSAGE,
+      lastAttemptError: JSON.stringify(storedError),
       updatedAt: new Date().toISOString(),
     })
     .where(
@@ -305,23 +343,36 @@ export async function markResumeParseFailed(
 
   await Promise.all(
     waitingFailed.map((row) =>
-      notifyStatusChange({ resumeId: row.id, status: "failed", error: classified.message, env }),
+      ignoreAndLog(
+        () =>
+          notifyStatusChange({
+            resumeId: row.id,
+            status: "failed",
+            error: storedError.message,
+            env,
+          }),
+        "failed to notify waiting status",
+      ),
     ),
   );
 
   // SAFETY: env is CloudflareEnv with optional AlertEnv fields; cast narrows to AlertEnv for alert channel access, fallback via getAlertChannel.
   const alertEnv = env as AlertEnv;
-  await sendAlert(
-    {
-      resumeId: job.resumeId,
-      userId: job.userId,
-      failureReason: classified.message,
-      errorType: classified.type,
-      totalAttempts: failed[0].totalAttempts ?? 0,
-      timestamp: new Date().toISOString(),
-    },
-    getAlertChannel(alertEnv.ALERT_CHANNEL),
-    alertEnv,
+  await ignoreAndLog(
+    () =>
+      sendAlert(
+        {
+          resumeId: job.resumeId,
+          userId: job.userId,
+          failureReason: storedError.message,
+          errorType: storedError.type,
+          totalAttempts: failed[0].totalAttempts ?? 0,
+          timestamp: new Date().toISOString(),
+        },
+        getAlertChannel(alertEnv.ALERT_CHANNEL),
+        alertEnv,
+      ),
+    "failed to send parse alert",
   );
 }
 

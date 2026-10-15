@@ -1,7 +1,9 @@
+import { Cause, Effect } from "effect";
+import type { ParseErrorJson } from "../parse/errors";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import { NonRetryableError } from "cloudflare:workflows";
-import { Effect } from "effect";
-import { ParseError } from "../parse/errors";
+import { classifyParseError, decodeParseError } from "../parse/errors";
+import { toParseErrorJson } from "../parse/failures";
+import { runStep } from "./run-step";
 import { sendResumeFailureEmail } from "../parse/email";
 import {
   claimResumeForParse,
@@ -9,6 +11,7 @@ import {
   expireWaitingForCache,
   markResumeParseFailed,
   parseResumePdf,
+  readLastParseFailure,
 } from "../parse/pipeline";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import type { ResumeParseParams } from "./resume-parse";
@@ -71,22 +74,27 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
     if (claim !== "parse") return claim;
 
+    let failedDuringParse = true;
+    let currentFailure: ParseErrorJson | null = null;
+
     try {
-      const parsed = await step.do("parse", PARSE_STEP, async () => {
-        try {
-          await Effect.runPromise(Effect.void);
+      const parsed = await step.do("parse", PARSE_STEP, () =>
+        runStep(
+          parseResumePdf(job, this.env).pipe(
+            Effect.tapCause((cause) =>
+              Effect.sync(() => {
+                const defect = cause.reasons.find(Cause.isDieReason);
+                currentFailure = toParseErrorJson(
+                  classifyParseError(defect ? defect.defect : Cause.squash(cause)),
+                );
+              }),
+            ),
+          ),
+        ),
+      );
 
-          return await parseResumePdf(job, this.env);
-        } catch (error) {
-          if (error instanceof ParseError && !error.isRetryable()) {
-            // Keep the default name: the engine only skips retries when
-            // name === "NonRetryableError", so the type goes in the message.
-            throw new NonRetryableError(`${error.type}: ${error.message}`);
-          }
-
-          throw error;
-        }
-      });
+      failedDuringParse = false;
+      currentFailure = null;
 
       if (!parsed) return "skipped";
 
@@ -94,8 +102,27 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
       return "completed";
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await step.do("mark failed", DB_STEP, () => markResumeParseFailed(job, message, this.env));
+      await step.do("mark failed", DB_STEP, async () => {
+        // The Workflow engine may serialize thrown Errors. The row retains the
+        // original failure metadata even when Error.cause is lost on replay.
+        const fallback = toParseErrorJson(classifyParseError(error));
+
+        const currentDatabaseFailure =
+          fallback.type === "db_connection_error" || fallback.type === "parse_validation_error"
+            ? fallback
+            : null;
+
+        const carried =
+          currentFailure ?? (error instanceof Error ? decodeParseError(error.cause) : null);
+
+        const stored =
+          failedDuringParse && !carried && !currentDatabaseFailure
+            ? await readLastParseFailure(job, this.env)
+            : null;
+
+        const failure = carried ?? currentDatabaseFailure ?? stored ?? fallback;
+        await markResumeParseFailed(job, failure, this.env);
+      });
 
       await this.emailFailure(job.resumeId, step);
 

@@ -1,3 +1,10 @@
+import { Effect } from "effect";
+import {
+  AiProviderFailed,
+  PdfInvalid,
+  UnknownParseFailure,
+  toParseErrorJson,
+} from "@/lib/parse/failures";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 import type { ResumeParseParams } from "@/lib/workflows/resume-parse";
@@ -10,9 +17,8 @@ import type {
 
 const mocks = vi.hoisted(() => ({
   claim: vi.fn(async () => "parse"),
-  parse: vi.fn(async () => {
-    throw new Error("Original parse failure");
-  }),
+  parse: vi.fn(),
+  readFailure: vi.fn(),
   complete: vi.fn(),
   fail: vi.fn(),
   expire: vi.fn(async () => true),
@@ -29,11 +35,19 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-vi.mock("cloudflare:workflows", () => ({ NonRetryableError: class extends Error {} }));
+vi.mock("cloudflare:workflows", () => ({
+  NonRetryableError: class extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "NonRetryableError";
+    }
+  },
+}));
 
 vi.mock("@/lib/parse/pipeline", () => ({
   claimResumeForParse: mocks.claim,
   parseResumePdf: mocks.parse,
+  readLastParseFailure: mocks.readFailure,
   completeParsedResume: mocks.complete,
   markResumeParseFailed: mocks.fail,
   expireWaitingForCache: mocks.expire,
@@ -51,7 +65,12 @@ const JOB: ResumeParseParams = {
   fileHash: "hash",
 };
 
-async function runWorkflow(params = JOB, emailTimeout = false) {
+async function runWorkflow(
+  params = JOB,
+  emailTimeout = false,
+  replayedParseError?: Error,
+  retryParseOnce = false,
+) {
   const { ResumeParseWorkflow } = await import("@/lib/workflows/resume-parse-workflow");
   const results = new Map<string, JsonValue | void>();
 
@@ -69,11 +88,19 @@ async function runWorkflow(params = JOB, emailTimeout = false) {
       return results.get(name) as T;
     }
 
+    if (name === "parse" && replayedParseError) throw replayedParseError;
+
     if (emailTimeout && name === "email parse failure") throw new Error("Email step timed out");
     const execute = callback ?? configOrCallback;
 
     if (!(execute instanceof Function)) throw new Error("Missing workflow callback");
-    const result = await execute();
+
+    const result = await Promise.resolve(execute()).catch((error: Error) => {
+      if (name === "parse" && retryParseOnce && error.name === "Error") return execute();
+
+      throw error;
+    });
+
     // SAFETY: mocked steps in this suite return only JSON values or void.
     results.set(name, result as JsonValue | void);
 
@@ -98,6 +125,10 @@ async function runWorkflow(params = JOB, emailTimeout = false) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.claim.mockResolvedValue("parse");
+  mocks.parse.mockReturnValue(
+    Effect.fail(new UnknownParseFailure({ message: "Original parse failure" })),
+  );
+  mocks.readFailure.mockResolvedValue(null);
   mocks.expire.mockResolvedValue(true);
 });
 
@@ -144,5 +175,101 @@ describe("resume failure email workflow step", () => {
     const workflow = await runWorkflow();
     await expect(workflow.run()).resolves.toBe("cached");
     expect(mocks.email).not.toHaveBeenCalled();
+  });
+});
+
+describe("Workflow failure metadata and successful replay", () => {
+  it("uses the stored wire error when a replay loses the thrown error metadata", async () => {
+    const stored = toParseErrorJson(
+      new PdfInvalid({ message: "old encrypted PDF", reason: "encrypted" }),
+    );
+
+    mocks.readFailure.mockResolvedValue(stored);
+    const workflow = await runWorkflow(JOB, false, new Error("serialized workflow failure"));
+    await expect(workflow.run()).rejects.toThrow("serialized workflow failure");
+    expect(mocks.fail).toHaveBeenCalledWith(
+      expect.objectContaining({ resumeId: "resume-1" }),
+      stored,
+      expect.any(Object),
+    );
+  });
+
+  it("prefers the current typed failure when its DB write failed and the row is stale", async () => {
+    const current = new PdfInvalid({ message: "current encrypted PDF", reason: "encrypted" });
+    mocks.parse.mockReturnValue(Effect.fail(current));
+    mocks.readFailure.mockResolvedValue(
+      toParseErrorJson(new AiProviderFailed({ message: "previous failure" })),
+    );
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toMatchObject({ name: "NonRetryableError" });
+    expect(mocks.fail.mock.calls[0][1]).toEqual(toParseErrorJson(current));
+  });
+
+  it("replays a successful parse payload unchanged when complete must retry", async () => {
+    const parsed = { parsedContent: { full_name: "Legacy User" } };
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockRejectedValueOnce(new Error("ECONNRESET"));
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toThrow("ECONNRESET");
+    expect(mocks.readFailure).not.toHaveBeenCalled();
+    expect(mocks.fail.mock.calls[0][1]).toMatchObject({
+      type: "db_connection_error",
+      isRetryable: true,
+    });
+    await expect(workflow.run()).resolves.toBe("completed");
+    expect(mocks.parse).toHaveBeenCalledTimes(1);
+    expect(mocks.complete).toHaveBeenLastCalledWith(expect.any(Object), parsed, expect.any(Object));
+    expect(workflow.doStep).toHaveBeenCalledWith(
+      "parse",
+      { retries: { limit: 3, delay: "30 seconds", backoff: "exponential" }, timeout: "10 minutes" },
+      expect.any(Function),
+    );
+  });
+});
+
+describe("current defects", () => {
+  it("does not replace a fresh defect with a previous attempt's stored error", async () => {
+    const defect = new Error("current programming defect");
+    mocks.parse.mockReturnValue(Effect.die(defect));
+    mocks.readFailure.mockResolvedValue(
+      toParseErrorJson(new AiProviderFailed({ message: "previous provider failure" })),
+    );
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toBe(defect);
+    expect(mocks.fail.mock.calls[0][1]).toMatchObject({
+      message: "current programming defect",
+      type: "unknown",
+    });
+    expect(mocks.readFailure).not.toHaveBeenCalled();
+  });
+});
+
+describe("latest Workflow failure", () => {
+  it("forgets a recovered parse failure before marking a completion failure", async () => {
+    mocks.parse
+      .mockReturnValueOnce(
+        Effect.fail(new AiProviderFailed({ message: "recovered provider failure" })),
+      )
+      .mockReturnValueOnce(Effect.succeed({ parsedContent: { full_name: "User" }, career: null }));
+    mocks.complete.mockRejectedValueOnce(new Error("ECONNRESET"));
+    const workflow = await runWorkflow(JOB, false, undefined, true);
+    await expect(workflow.run()).rejects.toThrow("ECONNRESET");
+    expect(mocks.parse).toHaveBeenCalledTimes(2);
+    expect(mocks.fail.mock.calls[0][1]).toMatchObject({
+      type: "db_connection_error",
+      message: "ECONNRESET",
+    });
+  });
+
+  it("uses a replayed database failure instead of an older stored parse failure", async () => {
+    mocks.readFailure.mockResolvedValue(
+      toParseErrorJson(new PdfInvalid({ message: "old PDF failure", reason: "corrupt" })),
+    );
+    const workflow = await runWorkflow(JOB, false, new Error("ECONNRESET"));
+    await expect(workflow.run()).rejects.toThrow("ECONNRESET");
+    expect(mocks.fail.mock.calls[0][1]).toMatchObject({
+      type: "db_connection_error",
+      message: "ECONNRESET",
+    });
   });
 });

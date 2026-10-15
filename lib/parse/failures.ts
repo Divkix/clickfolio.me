@@ -1,5 +1,26 @@
 import { Data } from "effect";
-import { ParseErrorType, type ParseErrorJson } from "./errors";
+
+export enum ParseErrorType {
+  DB_CONNECTION_ERROR = "db_connection_error",
+  SERVICE_BINDING_TIMEOUT = "service_binding_timeout",
+  R2_THROTTLE = "r2_throttle",
+  AI_PROVIDER_ERROR = "ai_provider_error",
+
+  INVALID_PDF = "invalid_pdf",
+  MALFORMED_RESPONSE = "malformed_response",
+  SERVICE_BINDING_NOT_FOUND = "service_binding_not_found",
+  FILE_NOT_FOUND = "file_not_found",
+  PARSE_VALIDATION_ERROR = "parse_validation_error",
+  UNKNOWN = "unknown",
+}
+
+export type ParseErrorJson = {
+  name: string;
+  type: ParseErrorType;
+  message: string;
+  isRetryable: boolean;
+  originalError: unknown;
+};
 
 type FailureDetails = { readonly message: string; readonly cause?: unknown };
 
@@ -95,6 +116,21 @@ export type ParseFailure =
   | AiOutputInvalid
   | SchemaRejected
   | UnknownParseFailure;
+
+export function isParseFailure(cause: unknown): cause is ParseFailure {
+  return (
+    cause instanceof DbUnavailable ||
+    cause instanceof AiProviderFailed ||
+    cause instanceof AiTimedOut ||
+    cause instanceof R2Throttled ||
+    cause instanceof PdfInvalid ||
+    cause instanceof R2ObjectMissing ||
+    cause instanceof R2BindingMissing ||
+    cause instanceof AiOutputInvalid ||
+    cause instanceof SchemaRejected ||
+    cause instanceof UnknownParseFailure
+  );
+}
 
 export function toParseErrorJson(failure: ParseFailure): ParseErrorJson {
   return {

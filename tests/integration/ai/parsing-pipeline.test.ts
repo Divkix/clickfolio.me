@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import { PdfInvalid } from "@/lib/parse/failures";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { GenerateTextResult, ToolSet } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -15,7 +17,7 @@ vi.mock("@ai-sdk/openai-compatible", () => ({
 }));
 
 vi.mock("@/lib/ai/pdf-extract", () => ({
-  extractPdfText: vi.fn(),
+  extractPdfTextEffect: vi.fn(),
   isValidPdf: vi.fn(() => true),
 }));
 
@@ -400,31 +402,34 @@ describe("AI Parsing Pipeline", () => {
 
   describe("parseResumeWithAi", () => {
     it("should complete full parse pipeline with valid PDF", async () => {
-      const { extractPdfText } = await import("@/lib/ai/pdf-extract");
-      vi.mocked(extractPdfText).mockResolvedValueOnce({
-        success: true,
-        text: SAMPLE_RESUME_TEXT,
-        pageCount: 1,
-        source: "generic",
-      });
+      const { extractPdfTextEffect } = await import("@/lib/ai/pdf-extract");
+      vi.mocked(extractPdfTextEffect).mockReturnValueOnce(
+        Effect.succeed({
+          text: SAMPLE_RESUME_TEXT,
+          pageCount: 1,
+          source: "generic",
+        }),
+      );
 
       const { generateText } = await import("ai");
       vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const mockPdfBuffer = new ArrayBuffer(100);
-      const result = await parseResumeWithAi(mockPdfBuffer, mockEnv);
+      const result = await Effect.runPromise(parseResumeWithAi(mockPdfBuffer, mockEnv));
 
-      expect(result.success).toBe(true);
-      expect(result.parsedContent).toBeDefined();
+      expect(result.full_name).toBe("John Doe");
     });
 
     it("should handle PDF extraction failure gracefully", async () => {
       const emptyBuffer = new ArrayBuffer(0);
 
-      const result = await parseResumeWithAi(emptyBuffer, mockEnv);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      const { extractPdfTextEffect } = await import("@/lib/ai/pdf-extract");
+      vi.mocked(extractPdfTextEffect).mockReturnValueOnce(
+        Effect.fail(new PdfInvalid({ message: "Invalid PDF", reason: "corrupt" })),
+      );
+      await expect(
+        Effect.runPromise(parseResumeWithAi(emptyBuffer, mockEnv)),
+      ).rejects.toMatchObject({ _tag: "PdfInvalid" });
     });
 
     it("should validate final output against schema", async () => {

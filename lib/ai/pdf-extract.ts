@@ -11,15 +11,11 @@ export function isValidPdf(buffer: ArrayBuffer): boolean {
   return String.fromCharCode(...header).startsWith("%PDF-");
 }
 
-export interface PdfExtractResult {
-  success: boolean;
+export interface ExtractedPdf {
   text: string;
   pageCount: number;
   source: ResumeSource;
-  error?: string;
 }
-
-type ExtractedPdf = { text: string; pageCount: number; source: ResumeSource };
 
 type PdfDocument = Awaited<ReturnType<typeof getDocumentProxy>>;
 
@@ -91,22 +87,4 @@ export function extractPdfTextEffect(buffer: ArrayBuffer): Effect.Effect<Extract
       source: detectResumeSource(text ?? "", info),
     };
   });
-}
-
-// Compatibility boundary while callers migrate from the result-object contract.
-export function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractResult> {
-  return Effect.runPromise(
-    extractPdfTextEffect(buffer).pipe(
-      Effect.match({
-        onFailure: (failure) => ({
-          success: false,
-          text: "",
-          pageCount: failure.pageCount ?? 0,
-          source: "generic" as const,
-          error: failure.message,
-        }),
-        onSuccess: (extracted) => ({ success: true, ...extracted }),
-      }),
-    ),
-  );
 }

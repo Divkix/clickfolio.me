@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { generateText, type GenerateTextResult, type ToolSet } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
-import { parseResumeWithAiEffect } from "@/lib/ai";
+import { parseResumeWithAi } from "@/lib/ai";
 import { extractPdfTextEffect } from "@/lib/ai/pdf-extract";
 import { classifyCareerEffect } from "@/lib/ai/career";
 
@@ -145,7 +145,7 @@ describe("Effect AI boundaries", () => {
 
   it("returns typed resume content without serializing it", async () => {
     vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
-    expect(await Effect.runPromise(parseResumeWithAiEffect(pdfBuffer(), ENV))).toMatchObject({
+    expect(await Effect.runPromise(parseResumeWithAi(pdfBuffer(), ENV))).toMatchObject({
       full_name: "Test User",
     });
   });
@@ -159,7 +159,7 @@ describe("Effect AI boundaries", () => {
         }),
       ),
     );
-    const failure = await Effect.runPromise(Effect.flip(parseResumeWithAiEffect(pdfBuffer(), ENV)));
+    const failure = await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)));
     expect(failure).toMatchObject({ _tag: "SchemaRejected", retryable: false });
     expect(generateText).toHaveBeenCalledTimes(2);
     expect(vi.mocked(generateText).mock.calls[1][0].system).toContain("Validation errors found");
@@ -169,7 +169,7 @@ describe("Effect AI boundaries", () => {
     mocks.extract.mockResolvedValue({ text: "", totalPages: 1 });
     vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
     const buffer = pdfBuffer();
-    expect(await Effect.runPromise(parseResumeWithAiEffect(buffer, ENV))).toMatchObject({
+    expect(await Effect.runPromise(parseResumeWithAi(buffer, ENV))).toMatchObject({
       full_name: "Test User",
     });
     expect(buffer.byteLength).toBeGreaterThan(0);
@@ -191,9 +191,9 @@ describe("Effect AI boundaries", () => {
   it("rejects an unreadable scan instead of accepting an empty portfolio", async () => {
     mocks.extract.mockResolvedValue({ text: "", totalPages: 1 });
     vi.mocked(generateText).mockResolvedValue(textResult("{}"));
-    expect(
-      await Effect.runPromise(Effect.flip(parseResumeWithAiEffect(pdfBuffer(), ENV))),
-    ).toMatchObject({ _tag: "PdfInvalid", reason: "scanned-empty" });
+    expect(await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)))).toMatchObject(
+      { _tag: "PdfInvalid", reason: "scanned-empty" },
+    );
   });
 
   it("leaves career unchanged when classification fails", async () => {
@@ -212,9 +212,9 @@ describe("Effect input and cancellation regressions", () => {
     vi.mocked(generateText).mockResolvedValue(
       textResult(JSON.stringify({ ...CONTENT, full_name: { toString: 42 } })),
     );
-    expect(
-      await Effect.runPromise(Effect.flip(parseResumeWithAiEffect(pdfBuffer(), ENV))),
-    ).toMatchObject({ _tag: "AiOutputInvalid", retryable: false });
+    expect(await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)))).toMatchObject(
+      { _tag: "AiOutputInvalid", retryable: false },
+    );
   });
 
   it("does not log response excerpts when JSON parsing fails", async () => {

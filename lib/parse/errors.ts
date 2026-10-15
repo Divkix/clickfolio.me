@@ -1,279 +1,109 @@
 import { z } from "zod";
-import type { JsonValue } from "@/lib/types/json";
+import {
+  AiTimedOut,
+  ParseErrorType,
+  type ParseErrorJson,
+  DbUnavailable,
+  SchemaRejected,
+  UnknownParseFailure,
+  isParseFailure,
+  type ParseFailure,
+} from "./failures";
 
-export type ParseErrorInput =
-  | Error
-  | ParseError
-  | string
-  | { message?: string; error?: string; status?: number; cause?: JsonValue }
-  | null
-  | undefined;
+export { ParseErrorType, type ParseErrorJson } from "./failures";
 
-export enum ParseErrorType {
-  DB_CONNECTION_ERROR = "db_connection_error",
-  SERVICE_BINDING_TIMEOUT = "service_binding_timeout",
-  R2_THROTTLE = "r2_throttle",
-  AI_PROVIDER_ERROR = "ai_provider_error",
+const storedErrorSchema = z.object({
+  name: z.string(),
+  type: z.enum(ParseErrorType),
+  message: z.string(),
+  isRetryable: z.boolean(),
+  originalError: z.unknown().optional(),
+});
 
-  INVALID_PDF = "invalid_pdf",
-  MALFORMED_RESPONSE = "malformed_response",
-  SERVICE_BINDING_NOT_FOUND = "service_binding_not_found",
-  FILE_NOT_FOUND = "file_not_found",
-  PARSE_VALIDATION_ERROR = "parse_validation_error",
-  UNKNOWN = "unknown",
+export function decodeParseError(cause: unknown): ParseErrorJson | null {
+  const parsed = storedErrorSchema.safeParse(cause);
+
+  return parsed.success ? { ...parsed.data, originalError: parsed.data.originalError } : null;
 }
 
-const TRANSIENT_ERROR_TYPES = new Set<ParseErrorType>([
-  ParseErrorType.DB_CONNECTION_ERROR,
-  ParseErrorType.SERVICE_BINDING_TIMEOUT,
-  ParseErrorType.R2_THROTTLE,
-  ParseErrorType.AI_PROVIDER_ERROR,
-]);
+export function readStoredParseError(raw: string | null): ParseErrorJson | null {
+  if (!raw) return null;
 
-export class ParseError extends Error {
-  readonly type: ParseErrorType;
-  readonly originalError?: ParseErrorInput;
-
-  constructor(type: ParseErrorType, message: string, originalError?: ParseErrorInput) {
-    super(message);
-    this.name = "ParseError";
-    this.type = type;
-    this.originalError = originalError;
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ParseError);
-    }
-  }
-
-  isRetryable(): boolean {
-    return TRANSIENT_ERROR_TYPES.has(this.type);
-  }
-
-  toJSON(): ParseErrorJson {
-    return {
-      name: this.name,
-      type: this.type,
-      message: this.message,
-      isRetryable: this.isRetryable(),
-      originalError:
-        this.originalError instanceof Error
-          ? {
-              name: this.originalError.name,
-              message: this.originalError.message,
-            }
-          : this.originalError,
-    };
+  try {
+    return decodeParseError(JSON.parse(raw));
+  } catch {
+    return null;
   }
 }
 
-export type ParseErrorJson = {
-  name: string;
-  type: ParseErrorType;
-  message: string;
-  isRetryable: boolean;
-  originalError: unknown;
-};
+// Only foreign database/network errors reach this fallback. PDF, AI and R2
+// failures are tagged at their own I/O boundaries instead of guessed from text.
+export function classifyParseError(cause: unknown): ParseFailure {
+  if (isParseFailure(cause)) return cause;
+  const message = extractErrorMessage(cause);
+  const details = { message, cause };
 
-const ERROR_PATTERNS: Array<{ pattern: RegExp; type: ParseErrorType }> = [
-  {
-    pattern:
-      /duplicate key value violates unique constraint|violates foreign key constraint|violates not-null constraint|violates check constraint|violates exclusion constraint/i,
-    type: ParseErrorType.PARSE_VALIDATION_ERROR,
-  },
-  {
-    pattern: /\[pg_code=(?:23000|23001|23502|23503|23505|23514)\]/,
-    type: ParseErrorType.PARSE_VALIDATION_ERROR,
-  },
-
-  {
-    pattern:
-      /\[pg_code=(?:08000|08001|08003|08004|08006|53300|53400|57P01|57P02|57P03|40001|40P01|55P03)\]/,
-    type: ParseErrorType.DB_CONNECTION_ERROR,
-  },
-  {
-    pattern:
-      /database.*connection|connection.*(?:refused|reset|terminated|closed|aborted|timed?\s*out)|server closed the connection|terminating connection|too many clients|too many connections|ECONNREFUSED|ECONNRESET|ECONNABORTED|EPIPE|ETIMEDOUT|ENOTFOUND|getaddrinfo|failed to connect/i,
-    type: ParseErrorType.DB_CONNECTION_ERROR,
-  },
-  {
-    pattern:
-      /database.*unavailable|db.*timeout|transaction.*failed|deadlock detected|serialization failure|could not serialize|statement timeout|lock wait timeout/i,
-    type: ParseErrorType.DB_CONNECTION_ERROR,
-  },
-
-  {
-    pattern: /R2.*temporarily.*unavailable|R2.*service.*unavailable/i,
-    type: ParseErrorType.R2_THROTTLE,
-  },
-
-  {
-    pattern: /invalid.*pdf|corrupt.*pdf|pdf.*corrupt|pdf.*invalid|malformed.*pdf/i,
-    type: ParseErrorType.INVALID_PDF,
-  },
-  {
-    pattern: /not.*a.*pdf|pdf.*extraction.*failed|cannot.*parse.*pdf/i,
-    type: ParseErrorType.INVALID_PDF,
-  },
-  {
-    pattern: /encrypted.*pdf|password.*protected|pdf.*encrypted/i,
-    type: ParseErrorType.INVALID_PDF,
-  },
-  {
-    pattern: /extracted.*resume.*text.*is.*empty/i,
-    type: ParseErrorType.INVALID_PDF,
-  },
-  {
-    pattern: /scanned.*pdf|clearer.*photo|export.*as.*text.*pdf/i,
-    type: ParseErrorType.INVALID_PDF,
-  },
-  {
-    pattern: /pdf.*has.*\d+.*pages|too.*many.*pages/i,
-    type: ParseErrorType.INVALID_PDF,
-  },
-
-  {
-    pattern: /NoObjectGeneratedError|no.*object.*generated/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-  {
-    pattern: /ai parser returned no result/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-  {
-    pattern: /API.*error|api.*request.*failed|provider.*error/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-  {
-    pattern: /model.*not.*found|model.*unavailable|insufficient.*credits/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-  {
-    pattern:
-      /HTTP\s*5\d{2}|status.*5\d{2}|internal.*server.*error|bad.*gateway|service.*unavailable/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-  {
-    pattern: /AI_APICallError|ai_apicall_error|cannot connect to api/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-  {
-    pattern: /failed to process (error|successful) response/i,
-    type: ParseErrorType.AI_PROVIDER_ERROR,
-  },
-
-  {
-    pattern: /timeout|timed?\s*out|deadline.*exceeded|worker.*timeout/i,
-    type: ParseErrorType.SERVICE_BINDING_TIMEOUT,
-  },
-  {
-    pattern: /request.*took.*too.*long|exceeded.*time.*limit/i,
-    type: ParseErrorType.SERVICE_BINDING_TIMEOUT,
-  },
-
-  {
-    pattern: /R2.*throttle|rate.*limit|too.*many.*requests|429/i,
-    type: ParseErrorType.R2_THROTTLE,
-  },
-  {
-    pattern: /invalid.*json|json.*parse|unexpected.*token|malformed.*response/i,
-    type: ParseErrorType.MALFORMED_RESPONSE,
-  },
-  {
-    pattern: /invalid.*json.*response.*from.*ai/i,
-    type: ParseErrorType.MALFORMED_RESPONSE,
-  },
-  {
-    pattern: /ai.*parsing.*failed|parsing.*failed/i,
-    type: ParseErrorType.MALFORMED_RESPONSE,
-  },
-
-  {
-    pattern: /worker.*not.*available|binding.*not.*available|service.*not.*found/i,
-    type: ParseErrorType.SERVICE_BINDING_NOT_FOUND,
-  },
-  {
-    pattern: /pdf.*worker.*not.*available|ai.*parser.*not.*available/i,
-    type: ParseErrorType.SERVICE_BINDING_NOT_FOUND,
-  },
-  {
-    pattern: /R2.*binding.*not.*available/i,
-    type: ParseErrorType.SERVICE_BINDING_NOT_FOUND,
-  },
-
-  {
-    pattern: /file.*not.*found|object.*not.*found|key.*not.*found|\b404\b/i,
-    type: ParseErrorType.FILE_NOT_FOUND,
-  },
-  {
-    pattern: /failed.*to.*fetch.*pdf.*from.*r2/i,
-    type: ParseErrorType.FILE_NOT_FOUND,
-  },
-  {
-    pattern: /r2.*object.*does.*not.*exist|no.*such.*key/i,
-    type: ParseErrorType.FILE_NOT_FOUND,
-  },
-
-  {
-    pattern: /validation.*error|schema.*validation|zod.*error/i,
-    type: ParseErrorType.PARSE_VALIDATION_ERROR,
-  },
-  {
-    pattern: /required.*field.*missing|invalid.*field|type.*mismatch/i,
-    type: ParseErrorType.PARSE_VALIDATION_ERROR,
-  },
-];
-
-export function classifyParseError(error: ParseErrorInput): ParseError {
-  const errorMessage = extractErrorMessage(error);
-
-  for (const { pattern, type } of ERROR_PATTERNS) {
-    if (pattern.test(errorMessage)) {
-      return new ParseError(type, errorMessage, error);
-    }
+  if (
+    /duplicate key value violates unique constraint|violates foreign key constraint|violates not-null constraint|violates check constraint|violates exclusion constraint|\[pg_code=(?:23000|23001|23502|23503|23505|23514)\]/i.test(
+      message,
+    )
+  ) {
+    return new SchemaRejected(details);
   }
 
-  return new ParseError(ParseErrorType.UNKNOWN, errorMessage, error);
+  if (
+    /\[pg_code=(?:08000|08001|08003|08004|08006|53300|53400|57P01|57P02|57P03|40001|40P01|55P03)\]|database.*connection|connection.*(?:refused|reset|terminated|closed|aborted|timed?\s*out)|server closed the connection|terminating connection|too many clients|too many connections|ECONNREFUSED|ECONNRESET|ECONNABORTED|EPIPE|ETIMEDOUT|ENOTFOUND|getaddrinfo|failed to connect|database.*unavailable|db.*timeout|transaction.*failed|deadlock detected|serialization failure|could not serialize|statement timeout|lock wait timeout/i.test(
+      message,
+    )
+  ) {
+    return new DbUnavailable(details);
+  }
+
+  if (
+    /timeout|timed?\s*out|deadline.*exceeded|request.*took.*too.*long|exceeded.*time.*limit/i.test(
+      message,
+    )
+  ) {
+    return new AiTimedOut(details);
+  }
+
+  return new UnknownParseFailure(details);
 }
 
-function extractErrorMessage(error: ParseErrorInput): string {
-  if (error instanceof Error) {
-    const pgCode = z
+function extractErrorMessage(cause: unknown, seen = new WeakSet<Error>()): string {
+  if (cause instanceof Error) {
+    if (seen.has(cause)) return cause.message;
+    seen.add(cause);
+
+    const code = z
       .string()
       .min(1)
-      .safeParse("code" in error ? error.code : undefined);
+      .safeParse("code" in cause ? cause.code : undefined);
 
-    const codeTag = pgCode.success ? ` [pg_code=${pgCode.data}]` : "";
+    const codeTag = code.success ? ` [pg_code=${code.data}]` : "";
+    const nested = cause.cause != null ? ` (cause: ${extractErrorMessage(cause.cause, seen)})` : "";
 
-    // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; ParseErrorInput is safe union for recursion.
-    const cause =
-      error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as ParseErrorInput)})` : "";
-
-    return `${error.message}${codeTag}${cause}`;
+    return `${cause.message}${codeTag}${nested}`;
   }
 
-  if (z.string().safeParse(error).success) {
-    // SAFETY: zod safeParse above guarantees error is string.
-    return error as string;
-  }
+  const text = z.string().safeParse(cause);
 
-  if (error != null && error instanceof Object) {
-    // SAFETY: Object guard above ensures error is a non-null object; Record cast is safe for dynamic key access.
-    const record = error as Record<string, JsonValue>;
+  if (text.success) return text.data;
 
-    if ("message" in record && z.string().safeParse(record.message).success) {
-      // SAFETY: zod safeParse above guarantees record.message is string.
-      return record.message as string;
-    }
+  const record = z
+    .object({
+      message: z.string().optional(),
+      error: z.string().optional(),
+      status: z.number().optional(),
+    })
+    .safeParse(cause);
 
-    if ("error" in record && z.string().safeParse(record.error).success) {
-      // SAFETY: zod safeParse above guarantees record.error is string.
-      return record.error as string;
-    }
-
-    if ("status" in record && z.number().safeParse(record.status).success) {
-      // SAFETY: zod safeParse above guarantees record.status is number.
-      return `HTTP ${String(record.status as number)}`;
-    }
+  if (record.success) {
+    return (
+      record.data.message ??
+      record.data.error ??
+      (record.data.status != null ? `HTTP ${record.data.status}` : "Unknown error")
+    );
   }
 
   return "Unknown error";
