@@ -117,8 +117,66 @@ const legacyPatterns = [
   ["something unexpected", "unknown"],
 ] as const;
 
-describe("legacy classifier golden cases", () => {
+describe("legacy stored error golden cases", () => {
   it.each(legacyPatterns)("classifies %s as %s", (message, type) => {
-    expect(classifyParseError(new Error(message)).type).toBe(type);
+    const stored = JSON.stringify({
+      name: "ParseError",
+      type,
+      message,
+      isRetryable: [
+        "db_connection_error",
+        "service_binding_timeout",
+        "r2_throttle",
+        "ai_provider_error",
+      ].includes(type),
+      originalError: { name: "Error", message },
+    });
+
+    expect(parseLastAttemptError(stored)).toMatchObject({ type, message });
+  });
+});
+
+describe("foreign database/network fallback", () => {
+  it.each([
+    "08000",
+    "08001",
+    "08003",
+    "08004",
+    "08006",
+    "53300",
+    "53400",
+    "57P01",
+    "57P02",
+    "57P03",
+    "40001",
+    "40P01",
+    "55P03",
+  ])("keeps PostgreSQL %s retryable", (code) => {
+    const cause = new Error("query failed", {
+      cause: Object.assign(new Error("driver"), { code }),
+    });
+
+    expect(classifyParseError(cause)).toMatchObject({ _tag: "DbUnavailable", retryable: true });
+  });
+  it.each(["23502", "23503", "23505", "23514"])("keeps PostgreSQL %s permanent", (code) => {
+    expect(classifyParseError(Object.assign(new Error("query failed"), { code }))).toMatchObject({
+      _tag: "SchemaRejected",
+      retryable: false,
+    });
+  });
+  it.each(["ECONNRESET", "ENOTFOUND", "deadlock detected", "server closed the connection"])(
+    "recognizes %s",
+    (message) => {
+      expect(classifyParseError(new Error(message))).toMatchObject({ _tag: "DbUnavailable" });
+    },
+  );
+  it("preserves an already tagged error without inspecting its message", () => {
+    const failure = new AiProviderFailed({ message: "invalid JSON" });
+    expect(classifyParseError(failure)).toBe(failure);
+  });
+  it("does not guess an unknown source from PDF or AI wording", () => {
+    expect(classifyParseError(new Error("invalid PDF"))).toMatchObject({
+      _tag: "UnknownParseFailure",
+    });
   });
 });

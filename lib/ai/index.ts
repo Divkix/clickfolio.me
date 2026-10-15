@@ -6,17 +6,11 @@ import type { JsonValue } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
 import { AiOutputInvalid, PdfInvalid, SchemaRejected, type ParseFailure } from "../parse/failures";
 import { coerceRecord } from "./ai-normalize";
-import { aiProviderFailure, parseWithAiEffect } from "./ai-parser";
+import { parseWithAiEffect } from "./ai-parser";
 import { cleanLinkedInText } from "./linkedin";
-import { extractPdfText, extractPdfTextEffect, type PdfExtractResult } from "./pdf-extract";
+import { extractPdfTextEffect, type ExtractedPdf } from "./pdf-extract";
 import { truncateResumeText } from "./truncate";
 import { transformAiOutput, transformAiResponse } from "./transform";
-
-export interface ParseResumeResult {
-  success: boolean;
-  parsedContent: string;
-  error?: string;
-}
 
 function normalizeResumeText(text: string): string {
   return text
@@ -96,8 +90,6 @@ function validateWithFeedback(
   );
 }
 
-type ExtractedPdf = Pick<PdfExtractResult, "text" | "pageCount" | "source">;
-
 function parseExtractedPdf(
   extracted: ExtractedPdf,
   pdfBuffer: ArrayBuffer,
@@ -159,36 +151,11 @@ function parseExtractedPdf(
   );
 }
 
-export function parseResumeWithAiEffect(
+export function parseResumeWithAi(
   pdfBuffer: ArrayBuffer,
   env: Partial<CloudflareEnv>,
 ): Effect.Effect<ResumeContent, ParseFailure> {
   return extractPdfTextEffect(pdfBuffer).pipe(
     Effect.flatMap((extracted) => parseExtractedPdf(extracted, pdfBuffer, env)),
-  );
-}
-
-// Temporary wrapper preserves the old contract (including PDF mocks) during migration.
-export function parseResumeWithAi(
-  pdfBuffer: ArrayBuffer,
-  env: Partial<CloudflareEnv>,
-): Promise<ParseResumeResult> {
-  return Effect.runPromise(
-    Effect.tryPromise({ try: () => extractPdfText(pdfBuffer), catch: aiProviderFailure }).pipe(
-      Effect.flatMap((result) =>
-        result?.success
-          ? parseExtractedPdf(result, pdfBuffer, env)
-          : Effect.fail(
-              new PdfInvalid({
-                message: result?.error || "PDF extraction failed",
-                reason: "corrupt",
-              }),
-            ),
-      ),
-      Effect.match({
-        onSuccess: (data) => ({ success: true, parsedContent: JSON.stringify(data) }),
-        onFailure: (failure) => ({ success: false, parsedContent: "", error: failure.message }),
-      }),
-    ),
   );
 }

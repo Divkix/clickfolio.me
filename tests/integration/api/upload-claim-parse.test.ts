@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
@@ -621,9 +622,9 @@ describe("Parse pipeline → siteData Creation", () => {
     CLICKFOLIO_R2_BUCKET: mockR2Binding,
   } as CloudflareEnv;
 
-  it("22. Transient parse failure → retryable ParseError for the workflow step", async () => {
+  it("22. Transient parse failure → retryable tagged failure for the workflow step", async () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
-    const { ParseError, ParseErrorType } = await import("@/lib/parse/errors");
+    const { AiProviderFailed } = await import("@/lib/parse/failures");
 
     const userId = "user-1";
     const r2Key = `users/${userId}/123456/resume.pdf`;
@@ -631,16 +632,16 @@ describe("Parse pipeline → siteData Creation", () => {
     mockR2Store.set(r2Key, makePdfBuffer());
 
     vi.doMock("@/lib/ai", () => ({
-      parseResumeWithAi: vi
-        .fn()
-        .mockRejectedValue(new ParseError(ParseErrorType.AI_PROVIDER_ERROR, "AI provider timeout")),
+      parseResumeWithAi: vi.fn(() =>
+        Effect.fail(new AiProviderFailed({ message: "AI provider timeout" })),
+      ),
     }));
 
     const job = { resumeId: crypto.randomUUID(), userId, r2Key, fileHash: "abc123".repeat(8) };
-    await expect(parseResumePdf(job, env)).rejects.toSatisfy(
-      (error: InstanceType<typeof ParseError>) =>
-        error instanceof ParseError && error.isRetryable(),
-    );
+    await expect(Effect.runPromise(parseResumePdf(job, env))).rejects.toMatchObject({
+      _tag: "AiProviderFailed",
+      retryable: true,
+    });
   });
 
   it("25. Claim with cached fileHash → skip AI, complete from cache", async () => {

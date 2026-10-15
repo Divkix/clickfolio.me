@@ -57,7 +57,7 @@ export function parseLastAttemptError(
   if (!raw) return null;
 
   try {
-    // SAFETY: ParseError JSON is from classifyParseError().toJSON() validated at write; parse failure falls back to unknown.
+    // SAFETY: Parse error JSON is from toParseErrorJson(), with legacy rows using the same wire shape; parse failure falls back to unknown.
     const parsed = JSON.parse(raw) as {
       type?: string;
       message?: string;
