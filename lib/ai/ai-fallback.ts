@@ -36,19 +36,6 @@ export function parseJsonWithRepairEffect(
   });
 }
 
-export function parseJsonWithRepair(
-  jsonStr: string,
-): Promise<{ data: UnknownRecord | null; repaired: boolean }> {
-  return Effect.runPromise(
-    parseJsonWithRepairEffect(jsonStr).pipe(
-      Effect.match({
-        onSuccess: (result) => result,
-        onFailure: () => ({ data: null, repaired: false }),
-      }),
-    ),
-  );
-}
-
 export function transformToSchema(data: UnknownRecord): UnknownRecord {
   const result = { ...data };
 

@@ -3,9 +3,9 @@ import { PdfInvalid } from "@/lib/parse/failures";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { GenerateTextResult, ToolSet } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
+import { parseJsonWithRepairEffect, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
-import { parseWithAi } from "@/lib/ai/ai-parser";
+import { parseWithAiEffect } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai/index";
 import { resumeContentSchema } from "@/lib/schemas/resume";
 
@@ -167,8 +167,30 @@ const VALID_AI_RESPONSE = {
 };
 
 function textResult(text: string): GenerateTextResult<ToolSet, never, never> {
-  // SAFETY: parseWithAi destructures only `text` from the generateText result (lib/ai/ai-parser.ts:297) and parseResumeWithAi delegates to it, so every other result member (output, usage, finishReason, response, providerMetadata, ...) is never read by the code under test.
+  // SAFETY: parseWithAiEffect destructures only `text` from the generateText result (lib/ai/ai-parser.ts:297) and parseResumeWithAi delegates to it, so every other result member (output, usage, finishReason, response, providerMetadata, ...) is never read by the code under test.
   return { text } as GenerateTextResult<ToolSet, never, never>;
+}
+
+function parseWithAi(text: string, env: Parameters<typeof parseWithAiEffect>[1]) {
+  return Effect.runPromise(
+    parseWithAiEffect(text, env).pipe(
+      Effect.match({
+        onSuccess: (data) => ({ success: true, data, error: undefined }),
+        onFailure: (failure) => ({ success: false, data: null, error: failure.message }),
+      }),
+    ),
+  );
+}
+
+function parseJsonWithRepair(jsonStr: string) {
+  return Effect.runPromise(
+    parseJsonWithRepairEffect(jsonStr).pipe(
+      Effect.match({
+        onSuccess: (result) => result,
+        onFailure: () => ({ data: null, repaired: false }),
+      }),
+    ),
+  );
 }
 
 function cast<T>(data: UnknownRecord, key?: string): T {

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
-import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import type { UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import {
@@ -51,12 +51,6 @@ Rules:
 - If a required field is missing, extract it from the resume text below.
   Do NOT invent or fabricate values not present in the resume.
 - Do not add markdown, commentary, or code fences`;
-
-export interface AiParseResult {
-  success: boolean;
-  data: JsonValue;
-  error?: string;
-}
 
 export type AiEnvVars = Pick<
   CloudflareEnv,
@@ -301,21 +295,4 @@ export function parseWithAiEffect(
       ),
     );
   });
-}
-
-export function parseWithAi(
-  text: string,
-  env: Partial<AiEnvVars>,
-  model?: string,
-  retryContext?: { previousOutput: string; errors: string },
-  source: ResumeSource = "generic",
-): Promise<AiParseResult> {
-  return Effect.runPromise(
-    parseWithAiEffect(text, env, model, retryContext, source).pipe(
-      Effect.match({
-        onSuccess: (data) => ({ success: true, data }),
-        onFailure: (failure) => ({ success: false, data: null, error: failure.message }),
-      }),
-    ),
-  );
 }
