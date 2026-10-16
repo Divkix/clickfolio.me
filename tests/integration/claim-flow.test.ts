@@ -175,8 +175,8 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
 }));
 
 vi.mock("@/lib/utils/security-headers", () => ({
-  createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
-    return new Response(JSON.stringify({ error }), { status });
+  createErrorResponse: vi.fn((error: string, code: string, status: number) => {
+    return new Response(JSON.stringify({ error, code }), { status });
   }),
   createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
@@ -455,8 +455,53 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(500);
+    const body: { error: string; code: string } = await response.json();
+    expect(body).toMatchObject({
+      error: "Failed to start resume processing",
+      code: "EXTERNAL_SERVICE_ERROR",
+    });
     // No instance exists, so nothing would ever pick the queued row up.
-    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
+    expect(mockDbUpdateSet).toHaveBeenCalledWith({
+      status: "failed",
+      errorMessage: "Failed to start processing. Please try again.",
+    });
+  });
+
+  it("fails the resume with the returned message when the R2 put fails", async () => {
+    authedAs("user-1");
+    mockR2Put.mockRejectedValueOnce(new Error("R2 unavailable"));
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(500);
+    const body: { error: string; code: string } = await response.json();
+    expect(body).toMatchObject({
+      error: "Failed to store file for processing",
+      code: "EXTERNAL_SERVICE_ERROR",
+    });
+    expect(mockDbUpdateSet).toHaveBeenCalledWith({
+      status: "failed",
+      errorMessage: "Failed to store file for processing",
+    });
+  });
+
+  it("fails the resume with a database error when queuing the row throws", async () => {
+    authedAs("user-1");
+    mockDbUpdateReturning.mockRejectedValueOnce(new Error("connection reset"));
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(500);
+    const body: { error: string; code: string } = await response.json();
+    expect(body).toMatchObject({ error: "Failed to update resume status", code: "DATABASE_ERROR" });
+    expect(mockDbUpdateSet).toHaveBeenCalledWith({
+      status: "failed",
+      errorMessage: "Failed to update resume status",
+    });
   });
 
   it("returns already_claimed BEFORE rate limiting (double-claim does not burn a rate-limit slot)", async () => {
