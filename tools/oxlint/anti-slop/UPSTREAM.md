@@ -30,8 +30,7 @@ Installed paths:
 
 - `index.ts` — generic plugin; registers the 18 rules under `anti-slop/`
 - `rules/`, `shared/` — rule implementations and their helpers
-- `effect/` — opt-in Effect plugin; **vendored but not registered** (this repository has no direct
-  `effect` dependency, so `anti-slop-effect/*` deliberately stays off)
+- `effect/` — opt-in Effect plugin; registered as `anti-slop-effect` (see below)
 - `vendor/eslint-stylistic/` — `padding-line-between-statements` plus its `LICENSE` and its own
   `UPSTREAM.md`. Keep the license and provenance file with every redistributed copy.
   `require-readable-spacing` imports this rule at runtime and this directory is covered by a `!vendor/`
@@ -73,14 +72,14 @@ of the loading binary is unverified. Move the toolchain with `vp migrate`.
   `--fix` stability.
 - `pnpm exec vp check` → 0 errors (8 pre-existing `react(purity)` warnings, unrelated).
 
-## Pending decision: Effect plugin
+## Effect plugin (registered 2026-10-15)
 
-`effect` is now a direct dependency (`4.0.4`), the condition the install used to keep `anti-slop-effect`
-off. A probe over the repo reports 19 errors: 15 `no-manual-tagged-construction` (all in `tests/`),
-3 `prefer-effect-match` (`hooks/useResumeStatus.ts`, `app/api/health/route.ts`, `lib/seo/sitemap.ts`)
-and 1 `no-manual-tag-comparison` (`lib/ai/ai-parser.ts`). AGENTS.md confines Effect to `lib/ai/` and the
-parse step, so enabling it globally would push Effect `Match` into code that must stay plain async/await.
-It stays unregistered until a scoped override (`lib/ai/**`, `lib/parse/**`) or a global opt-in is chosen.
+`effect` became a direct dependency (`4.0.4`), so `anti-slop-effect` is now registered in `vite.config.ts`
+with all five rules at `"error"`, repo-wide. The first run reported 19 errors, all fixed without spreading
+Effect beyond `lib/ai/` and the parse step (AGENTS.md): chained literal ternaries in
+`hooks/useResumeStatus.ts`, `app/api/health/route.ts` and `lib/seo/sitemap.ts` became an early return, a
+single comparison and an `if` helper; `lib/ai/ai-parser.ts` uses `instanceof AiOutputInvalid`; the 15
+`toMatchObject({ _tag })` assertions in `tests/` now use `toBeInstanceOf(<TaggedError class>)`.
 
 ## Verification of the original install (2026-09-21, oxlint 1.81.0)
 
