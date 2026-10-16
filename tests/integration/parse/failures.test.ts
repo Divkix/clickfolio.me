@@ -156,18 +156,19 @@ describe("foreign database/network fallback", () => {
       cause: Object.assign(new Error("driver"), { code }),
     });
 
-    expect(classifyParseError(cause)).toMatchObject({ _tag: "DbUnavailable", retryable: true });
+    const failure = classifyParseError(cause);
+    expect(failure).toBeInstanceOf(DbUnavailable);
+    expect(failure.retryable).toBe(true);
   });
   it.each(["23502", "23503", "23505", "23514"])("keeps PostgreSQL %s permanent", (code) => {
-    expect(classifyParseError(Object.assign(new Error("query failed"), { code }))).toMatchObject({
-      _tag: "SchemaRejected",
-      retryable: false,
-    });
+    const failure = classifyParseError(Object.assign(new Error("query failed"), { code }));
+    expect(failure).toBeInstanceOf(SchemaRejected);
+    expect(failure.retryable).toBe(false);
   });
   it.each(["ECONNRESET", "ENOTFOUND", "deadlock detected", "server closed the connection"])(
     "recognizes %s",
     (message) => {
-      expect(classifyParseError(new Error(message))).toMatchObject({ _tag: "DbUnavailable" });
+      expect(classifyParseError(new Error(message))).toBeInstanceOf(DbUnavailable);
     },
   );
   it("preserves an already tagged error without inspecting its message", () => {
@@ -175,8 +176,6 @@ describe("foreign database/network fallback", () => {
     expect(classifyParseError(failure)).toBe(failure);
   });
   it("does not guess an unknown source from PDF or AI wording", () => {
-    expect(classifyParseError(new Error("invalid PDF"))).toMatchObject({
-      _tag: "UnknownParseFailure",
-    });
+    expect(classifyParseError(new Error("invalid PDF"))).toBeInstanceOf(UnknownParseFailure);
   });
 });

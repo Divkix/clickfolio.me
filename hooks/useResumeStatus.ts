@@ -221,14 +221,9 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     // WS pushes are the fast path: poll slowly while it is healthy (or still
     // connecting, which can hang without ever firing onclose), and at the
     // fallback cadence once the socket is gone.
-    const intervalMs =
-      connectionState === "fallback"
-        ? POLL_INTERVAL_MS
-        : connectionState === "closed"
-          ? null
-          : SLOW_POLL_INTERVAL_MS;
+    if (connectionState === "closed") return;
 
-    if (intervalMs === null) return;
+    const intervalMs = connectionState === "fallback" ? POLL_INTERVAL_MS : SLOW_POLL_INTERVAL_MS;
 
     intervalRef.current = setInterval(fetchStatus, intervalMs);
 

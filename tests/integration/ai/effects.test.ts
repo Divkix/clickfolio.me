@@ -5,6 +5,13 @@ import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai";
 import { extractPdfTextEffect } from "@/lib/ai/pdf-extract";
 import { classifyCareerEffect } from "@/lib/ai/career";
+import {
+  AiOutputInvalid,
+  AiProviderFailed,
+  AiTimedOut,
+  PdfInvalid,
+  SchemaRejected,
+} from "@/lib/parse/failures";
 
 const mocks = vi.hoisted(() => {
   const pdf = { numPages: 1, getMetadata: vi.fn(async () => ({ info: {} })) };
@@ -80,9 +87,9 @@ afterEach(() => {
 
 describe("Effect PDF failures", () => {
   it("rejects a non-PDF before invoking pdf.js", async () => {
-    expect(
-      await Effect.runPromise(Effect.flip(extractPdfTextEffect(new ArrayBuffer(0)))),
-    ).toMatchObject({ _tag: "PdfInvalid", reason: "corrupt", retryable: false });
+    const failure = await Effect.runPromise(Effect.flip(extractPdfTextEffect(new ArrayBuffer(0))));
+    expect(failure).toBeInstanceOf(PdfInvalid);
+    expect(failure).toMatchObject({ reason: "corrupt", retryable: false });
     expect(mocks.document).not.toHaveBeenCalled();
   });
 
@@ -90,9 +97,9 @@ describe("Effect PDF failures", () => {
     "tags %s",
     async (message) => {
       mocks.document.mockRejectedValueOnce(new Error(message));
-      expect(await Effect.runPromise(Effect.flip(extractPdfTextEffect(pdfBuffer())))).toMatchObject(
-        { _tag: "PdfInvalid", reason: "encrypted" },
-      );
+      const failure = await Effect.runPromise(Effect.flip(extractPdfTextEffect(pdfBuffer())));
+      expect(failure).toBeInstanceOf(PdfInvalid);
+      expect(failure).toMatchObject({ reason: "encrypted" });
     },
   );
 
@@ -126,7 +133,8 @@ describe("Effect AI boundaries", () => {
       Effect.flip(generateAiText({ model: "test", prompt: "resume" }, 5)),
     );
 
-    expect(failure).toMatchObject({ _tag: "AiTimedOut", retryable: true });
+    expect(failure).toBeInstanceOf(AiTimedOut);
+    expect(failure.retryable).toBe(true);
     expect(signal?.aborted).toBe(true);
     expect(generateText).toHaveBeenCalledTimes(1);
   });
@@ -138,7 +146,8 @@ describe("Effect AI boundaries", () => {
       error.name = name;
       vi.mocked(generateText).mockRejectedValue(error);
       const failure = await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", ENV)));
-      expect(failure).toMatchObject({ _tag: "AiProviderFailed", retryable: true });
+      expect(failure).toBeInstanceOf(AiProviderFailed);
+      expect(failure.retryable).toBe(true);
       expect(generateText).toHaveBeenCalledTimes(2);
     },
   );
@@ -160,7 +169,8 @@ describe("Effect AI boundaries", () => {
       ),
     );
     const failure = await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)));
-    expect(failure).toMatchObject({ _tag: "SchemaRejected", retryable: false });
+    expect(failure).toBeInstanceOf(SchemaRejected);
+    expect(failure.retryable).toBe(false);
     expect(generateText).toHaveBeenCalledTimes(2);
     expect(vi.mocked(generateText).mock.calls[1][0].system).toContain("Validation errors found");
   });
@@ -191,9 +201,9 @@ describe("Effect AI boundaries", () => {
   it("rejects an unreadable scan instead of accepting an empty portfolio", async () => {
     mocks.extract.mockResolvedValue({ text: "", totalPages: 1 });
     vi.mocked(generateText).mockResolvedValue(textResult("{}"));
-    expect(await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)))).toMatchObject(
-      { _tag: "PdfInvalid", reason: "scanned-empty" },
-    );
+    const failure = await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)));
+    expect(failure).toBeInstanceOf(PdfInvalid);
+    expect(failure).toMatchObject({ reason: "scanned-empty" });
   });
 
   it("leaves career unchanged when classification fails", async () => {
@@ -212,9 +222,9 @@ describe("Effect input and cancellation regressions", () => {
     vi.mocked(generateText).mockResolvedValue(
       textResult(JSON.stringify({ ...CONTENT, full_name: { toString: 42 } })),
     );
-    expect(await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)))).toMatchObject(
-      { _tag: "AiOutputInvalid", retryable: false },
-    );
+    const failure = await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)));
+    expect(failure).toBeInstanceOf(AiOutputInvalid);
+    expect(failure.retryable).toBe(false);
   });
 
   it("does not log response excerpts when JSON parsing fails", async () => {

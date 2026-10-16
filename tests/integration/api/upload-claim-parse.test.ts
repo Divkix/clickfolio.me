@@ -638,10 +638,9 @@ describe("Parse pipeline → siteData Creation", () => {
     }));
 
     const job = { resumeId: crypto.randomUUID(), userId, r2Key, fileHash: "abc123".repeat(8) };
-    await expect(Effect.runPromise(parseResumePdf(job, env))).rejects.toMatchObject({
-      _tag: "AiProviderFailed",
-      retryable: true,
-    });
+    const failure = await Effect.runPromise(Effect.flip(parseResumePdf(job, env)));
+    expect(failure).toBeInstanceOf(AiProviderFailed);
+    expect(failure.retryable).toBe(true);
   });
 
   it("25. Claim with cached fileHash → skip AI, complete from cache", async () => {

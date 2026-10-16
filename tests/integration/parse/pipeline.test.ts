@@ -204,10 +204,9 @@ describe("parseResumePdf", () => {
   it("throws a permanent tagged failure and records it when the PDF is missing", async () => {
     const { parseResumePdf } = await import("@/lib/parse/pipeline");
 
-    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toMatchObject({
-      _tag: "R2ObjectMissing",
-      retryable: false,
-    });
+    const failure = await Effect.runPromise(Effect.flip(parseResumePdf(JOB, ENV)));
+    expect(failure).toBeInstanceOf(R2ObjectMissing);
+    expect(failure.retryable).toBe(false);
     expect(mocks.state.updateSets).toContainEqual(
       expect.objectContaining({
         lastAttemptError: expect.stringContaining("Failed to fetch PDF"),
@@ -237,10 +236,9 @@ describe("parseResumePdf", () => {
       Effect.fail(new AiProviderFailed({ message: "AI provider timeout" })),
     );
 
-    await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toMatchObject({
-      _tag: "AiProviderFailed",
-      retryable: true,
-    });
+    const failure = await Effect.runPromise(Effect.flip(parseResumePdf(JOB, ENV)));
+    expect(failure).toBeInstanceOf(AiProviderFailed);
+    expect(failure.retryable).toBe(true);
     expect(mocks.state.updateSets).not.toContainEqual(
       expect.objectContaining({ status: "failed" }),
     );

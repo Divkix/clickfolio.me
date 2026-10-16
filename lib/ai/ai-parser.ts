@@ -259,7 +259,7 @@ export function parseWithAiEffect(
                 durationMs: Date.now() - startTime,
                 success: false,
                 error:
-                  error._tag === "AiOutputInvalid"
+                  error instanceof AiOutputInvalid
                     ? path === "text-fallback"
                       ? "Failed to parse response as JSON"
                       : "Failed to parse retry response as JSON"

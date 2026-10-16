@@ -449,9 +449,9 @@ describe("AI Parsing Pipeline", () => {
       vi.mocked(extractPdfTextEffect).mockReturnValueOnce(
         Effect.fail(new PdfInvalid({ message: "Invalid PDF", reason: "corrupt" })),
       );
-      await expect(
-        Effect.runPromise(parseResumeWithAi(emptyBuffer, mockEnv)),
-      ).rejects.toMatchObject({ _tag: "PdfInvalid" });
+      expect(
+        await Effect.runPromise(Effect.flip(parseResumeWithAi(emptyBuffer, mockEnv))),
+      ).toBeInstanceOf(PdfInvalid);
     });
 
     it("should validate final output against schema", async () => {

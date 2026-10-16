@@ -1,25 +1,36 @@
 # Vendored anti-slop Oxlint plugin
 
 Source: [dmmulroy/anti-slop](https://github.com/dmmulroy/anti-slop), commit
-`e6676e8d0bf17c678cb45b9dacb2bd6ca8dea53a` (2026-09-10, "feat(effect): prefer Match for literal branches").
-Copied from the skill bundle for `skills/install-anti-slop` (`~/.agents/skills/install-anti-slop`), whose
-folder hash at that revision is `89044d21c75a367eac1ddbaf208e650b1a7d5820` — the same hash recorded for
-`install-anti-slop` in `~/.agents/.skill-lock.json`.
+`13909c9e07590f5a85d93c62712259fe14a883f7` (2026-10-13, merge of #45 "keep consecutive single-line bindings
+grouped in require-readable-spacing"), path `skills/install-anti-slop/assets/anti-slop/`. The local skill
+bundle used for the update was compared against that tree: byte-identical.
 
-Identity was verified, not inferred: all 38 files copied from
-`skills/install-anti-slop/assets/anti-slop/` were compared byte-for-byte against the upstream blobs at
-that revision (`git hash-object` against the GitHub tree API) — 0 missing, 0 extra, 0 mismatches. The
-vendored tree is therefore a pristine copy of an identified revision, so a future update can replace it
-rather than reconstruct a merge base. The only local addition is this file; no upstream file has been
-edited. The upstream tracked revision is not the newest commit on the default branch — re-resolve before
-the next update.
+Merge base: upstream `e6676e8d0bf17c678cb45b9dacb2bd6ca8dea53a` (the original install, verified then
+byte-for-byte against the upstream blobs). Recover it with
+`git archive e6676e8 skills/install-anti-slop/assets/anti-slop` from an upstream clone.
+
+## Local deviation (the only one)
+
+Every `@oxlint/plugins` import specifier is rewritten to `vite-plus/lint/plugins` (commit `6a83c4a7`,
+"migrate to vite+ fully") — 50 import lines across all 35 `.ts` files, including the single-quoted import in
+`vendor/eslint-stylistic/padding-line-between-statements.ts`. No other upstream byte differs. An earlier
+version of this file called the tree pristine after that rewrite; it was not. On the next update, take
+incoming files and re-apply the same specifier rewrite (`grep -rn "oxlint/plugins" .` must only hit
+Markdown afterwards).
+
+## Update history
+
+- 2026-10-15: `e6676e8` → `13909c9`. Upstream changed three files, all adopted:
+  `rules/require-readable-spacing.ts`, `vendor/eslint-stylistic/padding-line-between-statements.ts`
+  (new optional `statementTypes` argument) and `vendor/eslint-stylistic/UPSTREAM.md`. The whole snapshot
+  is reconciled; remaining differences are the import rewrite above. No rules added or removed, no
+  config or dependency change.
 
 Installed paths:
 
 - `index.ts` — generic plugin; registers the 18 rules under `anti-slop/`
 - `rules/`, `shared/` — rule implementations and their helpers
-- `effect/` — opt-in Effect plugin; **vendored but not registered** (this repository has no direct
-  `effect` dependency, so `anti-slop-effect/*` deliberately stays off)
+- `effect/` — opt-in Effect plugin; registered as `anti-slop-effect` (see below)
 - `vendor/eslint-stylistic/` — `padding-line-between-statements` plus its `LICENSE` and its own
   `UPSTREAM.md`. Keep the license and provenance file with every redistributed copy.
   `require-readable-spacing` imports this rule at runtime and this directory is covered by a `!vendor/`
@@ -53,7 +64,24 @@ of the loading binary is unverified. Move the toolchain with `vp migrate`.
   leaves files unchanged before keeping the result. Its fixes are whitespace-only: keep them out of
   semantic commits.
 
-## Verification of this install (2026-09-21, oxlint 1.81.0)
+## Verification of the 2026-10-15 update (oxlint 1.88.0 via vite-plus 1.2.0)
+
+- Upstream tests: all 24 `src/**/*.test.ts` files from `13909c9` run with Node against **this** vendored
+  copy (imports pointed here, `RuleTester` from `vite-plus/lint/plugins-dev`) — 24/24 pass, including
+  `require-readable-spacing-cli.test.ts`, which loads `index.ts` through the oxlint binary and checks
+  `--fix` stability.
+- `pnpm exec vp check` → 0 errors (8 pre-existing `react(purity)` warnings, unrelated).
+
+## Effect plugin (registered 2026-10-15)
+
+`effect` became a direct dependency (`4.0.4`), so `anti-slop-effect` is now registered in `vite.config.ts`
+with all five rules at `"error"`, repo-wide. The first run reported 19 errors, all fixed without spreading
+Effect beyond `lib/ai/` and the parse step (AGENTS.md): chained literal ternaries in
+`hooks/useResumeStatus.ts`, `app/api/health/route.ts` and `lib/seo/sitemap.ts` became an early return, a
+single comparison and an `if` helper; `lib/ai/ai-parser.ts` uses `instanceof AiOutputInvalid`; the 15
+`toMatchObject({ _tag })` assertions in `tests/` now use `toBeInstanceOf(<TaggedError class>)`.
+
+## Verification of the original install (2026-09-21, oxlint 1.81.0)
 
 - Reachability: `tools/oxlint/anti-slop/**` is lint-ignored, so the directory being present proves nothing.
   A throwaway probe file was linted instead; every listed rule, including `oxc/no-accumulating-spread`,
