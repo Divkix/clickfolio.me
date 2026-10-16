@@ -69,6 +69,18 @@ function parseTimestamp(value: string | Date | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function staticPageLastmod(
+  path: string,
+  newestPortfolioPublish: Date | null,
+  newestBlogPost: Date,
+): Date | undefined {
+  if (path === "/explore") return newestPortfolioPublish ?? newestBlogPost;
+
+  if (path === "/blog") return newestBlogPost;
+
+  return getStaticLastmod(path);
+}
+
 /**
  * Static entries with deterministic lastmods: page dates come from lastmod.json (bumped by the
  * pre-commit hook). `/explore` lists portfolios, so it moves with the newest publish when the DB
@@ -82,12 +94,7 @@ function buildStaticSitemapEntries(
 
   const entries: MetadataRoute.Sitemap = STATIC_PAGES.map((page) => ({
     url: page.path === "/" ? baseUrl : `${baseUrl}${page.path}`,
-    lastModified:
-      page.path === "/explore"
-        ? (newestPortfolioPublish ?? newestBlogPost)
-        : page.path === "/blog"
-          ? newestBlogPost
-          : getStaticLastmod(page.path),
+    lastModified: staticPageLastmod(page.path, newestPortfolioPublish, newestBlogPost),
     changeFrequency: page.changeFrequency,
     priority: page.priority,
   }));

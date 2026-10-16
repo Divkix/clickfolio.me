@@ -119,8 +119,7 @@ export async function GET() {
       services,
     };
 
-    const httpStatus =
-      response.status === "healthy" ? 200 : response.status === "degraded" ? 200 : 503;
+    const httpStatus = response.status === "unhealthy" ? 503 : 200;
 
     return createSuccessResponse(response, httpStatus);
   } catch (error) {
