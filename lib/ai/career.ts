@@ -121,10 +121,3 @@ export function classifyCareerEffect(
     Effect.catch(() => Effect.succeed(null)),
   );
 }
-
-export function classifyCareer(
-  content: ResumeContent,
-  env: Partial<AiEnvVars>,
-): Promise<CareerProfile | null> {
-  return Effect.runPromise(classifyCareerEffect(content, env));
-}
