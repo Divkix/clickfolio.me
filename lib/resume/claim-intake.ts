@@ -45,6 +45,19 @@ export type ClaimIntakeDeps = {
   tempKey: string;
 };
 
+type ClaimError = Extract<ClaimIntakeOutcome, { kind: "error" }>;
+
+function claimError(message: string, code: ClaimError["code"], httpStatus: number): ClaimError {
+  return { kind: "error", message, code, httpStatus };
+}
+
+function alreadyClaimed(existing: { id: string; status: string }): ClaimIntakeOutcome {
+  return { kind: "already_claimed", resumeId: existing.id, status: existing.status };
+}
+
+const rowRemoved = (): ClaimError =>
+  claimError("Resume was removed while claiming it", "NOT_FOUND", 404);
+
 function isLikelyMissingObjectError(cause: unknown): boolean {
   if (!(cause instanceof Error)) return false;
 
@@ -99,20 +112,9 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     if (!buffer) {
       const existing = await findExistingClaim();
 
-      if (existing) {
-        return {
-          kind: "already_claimed",
-          resumeId: existing.id,
-          status: existing.status,
-        };
-      }
+      if (existing) return alreadyClaimed(existing);
 
-      return {
-        kind: "error",
-        message: "File not found. The upload may have expired.",
-        code: "VALIDATION_ERROR",
-        httpStatus: 404,
-      };
+      return claimError("File not found. The upload may have expired.", "VALIDATION_ERROR", 404);
     }
 
     fileBuffer = buffer;
@@ -120,23 +122,17 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     computedFileHash = await sha256Hex(fileBuffer);
 
     if (fileBuffer.byteLength > MAX_FILE_SIZE) {
-      return {
-        kind: "error",
-        message: `File size exceeds ${MAX_FILE_SIZE_LABEL} limit (${Math.round(fileBuffer.byteLength / 1024 / 1024)}MB)`,
-        code: "VALIDATION_ERROR",
-        httpStatus: 400,
-      };
+      return claimError(
+        `File size exceeds ${MAX_FILE_SIZE_LABEL} limit (${Math.round(fileBuffer.byteLength / 1024 / 1024)}MB)`,
+        "VALIDATION_ERROR",
+        400,
+      );
     }
 
     const pdfBytes = new Uint8Array(fileBuffer.slice(0, 5));
 
     if (!String.fromCharCode(...pdfBytes).startsWith("%PDF-")) {
-      return {
-        kind: "error",
-        message: "Invalid PDF format",
-        code: "VALIDATION_ERROR",
-        httpStatus: 400,
-      };
+      return claimError("Invalid PDF format", "VALIDATION_ERROR", 400);
     }
   } catch (error) {
     log("error", "Error fetching file from R2", { error: String(error) });
@@ -145,13 +141,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       try {
         const existing = await findExistingClaim();
 
-        if (existing) {
-          return {
-            kind: "already_claimed",
-            resumeId: existing.id,
-            status: existing.status,
-          };
-        }
+        if (existing) return alreadyClaimed(existing);
       } catch (recentResumeError) {
         log("error", "Error checking recent resumes after R2 fetch failure", {
           error: String(recentResumeError),
@@ -159,12 +149,11 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       }
     }
 
-    return {
-      kind: "error",
-      message: "Failed to retrieve file. The upload may have expired.",
-      code: "EXTERNAL_SERVICE_ERROR",
-      httpStatus: 500,
-    };
+    return claimError(
+      "Failed to retrieve file. The upload may have expired.",
+      "EXTERNAL_SERVICE_ERROR",
+      500,
+    );
   }
 
   const filename = tempKey.split("/").pop();
@@ -240,11 +229,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     // (the no-op DO UPDATE returns the locked row), so a claim of the same file is
     // already underway: report it instead of inserting a second row or burning
     // quota on its behalf.
-    return {
-      kind: "already_claimed",
-      resumeId: arbitration.existing.id,
-      status: arbitration.existing.status,
-    };
+    return alreadyClaimed(arbitration.existing);
   }
 
   const failResume = async (errorMessage: string): Promise<void> => {
@@ -252,6 +237,33 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       .update(resumes)
       .set({ status: "failed", errorMessage })
       .where(eq(resumes.id, resumeId));
+  };
+
+  // Marks the row failed with the same message the caller receives.
+  const failClaim = async (message: string, code: ClaimError["code"]): Promise<ClaimError> => {
+    await failResume(message);
+
+    return claimError(message, code, 500);
+  };
+
+  // An identical earlier file this user already parsed, if any.
+  const findCompletedContent = async (): Promise<ResumeContent | null> => {
+    const completed = await db
+      .select({ parsedContent: resumes.parsedContent })
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.userId, userId),
+          eq(resumes.fileHash, computedFileHash),
+          eq(resumes.status, "completed"),
+          isNotNull(resumes.parsedContent),
+          ne(resumes.id, resumeId),
+        ),
+      )
+      .limit(1);
+
+    // SAFETY: parsedContent is schema-validated JSONB written only by the parse pipeline; cast bridges the column's wide Record type to ResumeContent.
+    return (completed[0]?.parsedContent as ResumeContent | null) ?? null;
   };
 
   // Account deletion can remove the row mid-claim; nothing references the temp
@@ -331,36 +343,15 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     }
   };
 
-  const cached = await db
-    .select({ id: resumes.id, parsedContent: resumes.parsedContent })
-    .from(resumes)
-    .where(
-      and(
-        eq(resumes.userId, userId),
-        eq(resumes.fileHash, computedFileHash),
-        eq(resumes.status, "completed"),
-        isNotNull(resumes.parsedContent),
-        ne(resumes.id, resumeId),
-      ),
-    )
-    .limit(1);
-
-  // SAFETY: parsedContent is schema-validated JSONB written only by the parse pipeline; cast bridges the column's wide Record type to ResumeContent.
-  const cachedContent = (cached[0]?.parsedContent as ResumeContent | null) ?? null;
+  const cachedContent = await findCompletedContent();
 
   if (cachedContent) {
     try {
       await moveTempFile(r2, tempKey, newKey, fileBuffer);
     } catch (r2Error) {
       log("error", "R2 operations failed for cached resume", { error: String(r2Error) });
-      await failResume("Failed to store file for processing");
 
-      return {
-        kind: "error",
-        message: "Failed to store file for processing",
-        code: "EXTERNAL_SERVICE_ERROR",
-        httpStatus: 500,
-      };
+      return failClaim("Failed to store file for processing", "EXTERNAL_SERVICE_ERROR");
     }
 
     if (await completeFromCachedContent(cachedContent)) {
@@ -388,14 +379,8 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
     } catch (error) {
       log("error", "R2 operations failed for waiting resume", { error: String(error) });
-      await failResume("Failed to store file for processing");
 
-      return {
-        kind: "error",
-        message: "Failed to store file for processing",
-        code: "EXTERNAL_SERVICE_ERROR",
-        httpStatus: 500,
-      };
+      return failClaim("Failed to store file for processing", "EXTERNAL_SERVICE_ERROR");
     }
 
     try {
@@ -408,46 +393,20 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       if (waiting.length === 0) {
         await discardObjectsIfRowGone();
 
-        return {
-          kind: "error",
-          message: "Resume was removed while claiming it",
-          code: "NOT_FOUND",
-          httpStatus: 404,
-        };
+        return rowRemoved();
       }
 
       await deleteTempObject(r2, tempKey);
     } catch (waitError) {
       log("error", "Failed to set waiting_for_cache status", { error: String(waitError) });
       await deleteR2Objects(r2, r2DeleteWorkflow, [newKey]);
-      await failResume("Failed to prepare resume for processing");
 
-      return {
-        kind: "error",
-        message: "Failed to prepare resume for processing",
-        code: "DATABASE_ERROR",
-        httpStatus: 500,
-      };
+      return failClaim("Failed to prepare resume for processing", "DATABASE_ERROR");
     }
 
     // The producer may have completed mid-move: complete inline instead of waiting
     // for a fan-out that already ran.
-    const completed = await db
-      .select({ parsedContent: resumes.parsedContent })
-      .from(resumes)
-      .where(
-        and(
-          eq(resumes.userId, userId),
-          eq(resumes.fileHash, computedFileHash),
-          eq(resumes.status, "completed"),
-          isNotNull(resumes.parsedContent),
-          ne(resumes.id, resumeId),
-        ),
-      )
-      .limit(1);
-
-    // SAFETY: parsedContent is schema-validated JSONB written only by the parse pipeline; cast bridges the column's wide Record type to ResumeContent.
-    const completedContent = (completed[0]?.parsedContent as ResumeContent | null) ?? null;
+    const completedContent = await findCompletedContent();
 
     if (completedContent && (await completeFromCachedContent(completedContent))) {
       return { kind: "cached", resumeId };
@@ -455,14 +414,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
     // The row itself may have been deleted mid-move (account deletion cascade):
     // the sweep may already have run, so drop the copy instead of orphaning it.
-    if (await discardObjectsIfRowGone()) {
-      return {
-        kind: "error",
-        message: "Resume was removed while claiming it",
-        code: "NOT_FOUND",
-        httpStatus: 404,
-      };
-    }
+    if (await discardObjectsIfRowGone()) return rowRemoved();
 
     // Durable timer: fails the row if no identical parse completes it in time.
     // Best-effort — the status view already presents the timeout virtually.
@@ -485,14 +437,8 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     await moveTempFile(r2, tempKey, newKey, fileBuffer);
   } catch (error) {
     log("error", "R2 put error", { error: String(error) });
-    await failResume("Failed to store file for processing");
 
-    return {
-      kind: "error",
-      message: "Failed to store file for processing",
-      code: "EXTERNAL_SERVICE_ERROR",
-      httpStatus: 500,
-    };
+    return failClaim("Failed to store file for processing", "EXTERNAL_SERVICE_ERROR");
   }
 
   try {
@@ -506,37 +452,20 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       // Row deleted mid-claim (account deletion cascade) after the bytes landed:
       // the account sweep may already have missed the object, so remove it.
       await discardObjectsIfRowGone();
-      await failResume("Failed to update resume status");
 
-      return {
-        kind: "error",
-        message: "Failed to update resume status",
-        code: "DATABASE_ERROR",
-        httpStatus: 500,
-      };
+      return failClaim("Failed to update resume status", "DATABASE_ERROR");
     }
   } catch (updateError) {
     log("error", "Failed to update resume with queued status", { error: String(updateError) });
-    await failResume("Failed to update resume status");
 
-    return {
-      kind: "error",
-      message: "Failed to update resume status",
-      code: "DATABASE_ERROR",
-      httpStatus: 500,
-    };
+    return failClaim("Failed to update resume status", "DATABASE_ERROR");
   }
 
   const failUnstarted = async (): Promise<ClaimIntakeOutcome> => {
     // `failed` with no lastAttemptError stays manually retryable.
     await failResume("Failed to start processing. Please try again.");
 
-    return {
-      kind: "error",
-      message: "Failed to start resume processing",
-      code: "EXTERNAL_SERVICE_ERROR",
-      httpStatus: 500,
-    };
+    return claimError("Failed to start resume processing", "EXTERNAL_SERVICE_ERROR", 500);
   };
 
   if (!parseWorkflow) {
