@@ -40,12 +40,12 @@ export type ParsedResume = {
 
 const GENERIC_ERROR_MESSAGE = "Something went wrong while parsing your resume. Please try again.";
 
-function ignoreAndLog(task: () => Promise<void>, message: string): Promise<void> {
-  return Effect.runPromise(
-    Effect.tryPromise({ try: task, catch: (cause) => cause }).pipe(
-      Effect.catch((cause) => Effect.sync(() => log("error", message, { error: String(cause) }))),
-    ),
-  );
+async function ignoreAndLog(task: () => Promise<void>, message: string): Promise<void> {
+  try {
+    await task();
+  } catch (cause) {
+    log("error", message, { error: String(cause) });
+  }
 }
 
 function r2Failure(cause: unknown): R2ObjectMissing | R2BindingMissing | R2Throttled {
