@@ -6,6 +6,15 @@ const R2_BUCKET = "clickfolio-bucket";
 
 const R2_LIFECYCLE_FILE = "r2-lifecycle.json";
 
+/** Fills site_data.content_indexable where NULL; idempotent. Needs DATABASE_URL. */
+function backfillContentIndexable(): void {
+  const backfill = spawnSync("pnpm", ["run", "db:backfill-indexable"], { stdio: "inherit" });
+
+  if (backfill.status !== 0) {
+    process.exit(backfill.status ?? 1);
+  }
+}
+
 export async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
   const dryRun = args.includes("--dry-run");
@@ -29,6 +38,9 @@ export async function main(): Promise<void> {
     if (migrate.status !== 0) {
       process.exit(migrate.status ?? 1);
     }
+
+    // The new Worker filters on content_indexable, so it must be filled before that code goes live.
+    backfillContentIndexable();
 
     const lifecycle = spawnSync(
       "pnpm",
@@ -61,6 +73,9 @@ export async function main(): Promise<void> {
   }
 
   if (!dryRun) {
+    // Second pass: the old Worker kept writing content without the flag until the deploy above.
+    backfillContentIndexable();
+
     // Best-effort search-engine ping; the script always exits 0, and its status is ignored anyway.
     spawnSync("pnpm", ["exec", "tsx", "scripts/submit-indexnow.ts"], { stdio: "inherit" });
   }

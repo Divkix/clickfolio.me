@@ -15,9 +15,7 @@ const MIGRATIONS_DIR = "migrations_pg";
 
 const journalSchema = z.object({ entries: z.array(z.object({ tag: z.string() })) });
 
-export async function createTestDb() {
-  const client = new PGlite();
-
+export async function createTestDb(client: PGlite = new PGlite()) {
   const journal = journalSchema.parse(
     JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8")),
   );

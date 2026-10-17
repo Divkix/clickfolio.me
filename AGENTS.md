@@ -8,23 +8,24 @@ When you change something this file describes, update it in the same commit.
 
 Use the Node version in `.node-version` and pnpm 12.6.0.
 
-| Task                  | Command                                                                                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Install               | `pnpm install` (runs `vp config` → installs git hooks)                                                                                                 |
-| Dev (:3000)           | `pnpm run dev` — needs Hyperdrive env var, see Gotchas                                                                                                 |
-| Build                 | `pnpm run build` → `dist/`                                                                                                                             |
-| Worker preview        | `pnpm run preview` (build + `wrangler dev`)                                                                                                            |
-| Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                                                                                                  |
-| Typecheck only        | `pnpm run type-check`                                                                                                                                  |
-| Full gate             | `pnpm run verify` (`check` + `type-check` + `knip` unused exports/deps)                                                                                |
-| All tests             | `pnpm run test` (integration and security projects)                                                                                                    |
-| One suite             | `pnpm run test:integration` / `test:security`                                                                                                          |
-| One file              | `pnpm run test tests/integration/claim-flow.test.ts`                                                                                                   |
-| One test by name      | `pnpm run test -t "claim"`                                                                                                                             |
-| Suites with coverage  | `pnpm run test:coverage` (CI; integration/security baseline thresholds in `vite.config.ts`)                                                            |
-| DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)                                                                                        |
-| Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                                                                                                      |
-| Deploy                | `pnpm run deploy` (`scripts/deploy.ts`: build → `db:migrate` → R2 lifecycle → `wrangler deploy`; needs `DATABASE_URL`; `--dry-run` skips side effects) |
+| Task                  | Command                                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Install               | `pnpm install` (runs `vp config` → installs git hooks)                                                                                                                                                           |
+| Dev (:3000)           | `pnpm run dev` — needs Hyperdrive env var, see Gotchas                                                                                                                                                           |
+| Build                 | `pnpm run build` → `dist/`                                                                                                                                                                                       |
+| Worker preview        | `pnpm run preview` (build + `wrangler dev`)                                                                                                                                                                      |
+| Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                                                                                                                                                            |
+| Typecheck only        | `pnpm run type-check`                                                                                                                                                                                            |
+| Full gate             | `pnpm run verify` (`check` + `type-check` + `knip` unused exports/deps)                                                                                                                                          |
+| All tests             | `pnpm run test` (integration and security projects)                                                                                                                                                              |
+| One suite             | `pnpm run test:integration` / `test:security`                                                                                                                                                                    |
+| One file              | `pnpm run test tests/integration/claim-flow.test.ts`                                                                                                                                                             |
+| One test by name      | `pnpm run test -t "claim"`                                                                                                                                                                                       |
+| Suites with coverage  | `pnpm run test:coverage` (CI; integration/security baseline thresholds in `vite.config.ts`)                                                                                                                      |
+| DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)                                                                                                                                                  |
+| Backfill flag         | `pnpm run db:backfill-indexable` — sets NULL `site_data.content_indexable` (idempotent; needs `DATABASE_URL`)                                                                                                    |
+| Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                                                                                                                                                                |
+| Deploy                | `pnpm run deploy` (`scripts/deploy.ts`: build → `db:migrate` → `db:backfill-indexable` → R2 lifecycle → `wrangler deploy` → `db:backfill-indexable` again; needs `DATABASE_URL`; `--dry-run` skips side effects) |
 
 ## Repo map (non-obvious parts only)
 
