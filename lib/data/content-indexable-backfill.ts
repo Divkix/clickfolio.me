@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, gt, gte, isNull, or } from "drizzle-orm";
 import type { PgQueryable } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
 import { isIndexableContent } from "@/lib/seo/profile-indexability";
@@ -11,6 +11,10 @@ export interface BackfillResult {
   malformed: number;
 }
 
+// A row skipped because its content changed mid-pass is retried on the next pass; a row that keeps
+// changing is left for the next run rather than looping forever.
+const MAX_PASSES = 5;
+
 /** `null` when the stored content is malformed enough to make the predicate throw. */
 function tryIsIndexableContent(content: ResumeContent): boolean | null {
   try {
@@ -21,50 +25,66 @@ function tryIsIndexableContent(content: ResumeContent): boolean | null {
 }
 
 /**
- * Fills `site_data.content_indexable` for rows that predate the column (or were written by code
- * that did not set it). Idempotent: only touches NULL rows. Each update is guarded by the
- * `updated_at` it read, so a concurrent content write is never stamped with a flag computed from
- * the old content; that row stays NULL and the next batch re-reads it.
+ * Computes `site_data.content_indexable` for rows where it is NULL (written before the column or
+ * by code that does not set it) and, with `updatedSince`, also recomputes every row whose content
+ * changed since then: code that predates the flag rewrites content without touching it, so a flag
+ * set earlier can go stale (e.g. the old Worker serving writes between the pre-deploy backfill
+ * and `wrangler deploy`, or after a rollback). Idempotent.
+ *
+ * Each update is guarded by the `updated_at` it read, so a concurrent content write is never
+ * stamped with a flag computed from the old content; such rows are re-read on another pass.
  */
 export async function backfillContentIndexable(
   db: PgQueryable,
-  { batchSize = 100 }: { batchSize?: number } = {},
+  { batchSize = 100, updatedSince }: { batchSize?: number; updatedSince?: string } = {},
 ): Promise<BackfillResult> {
   const result: BackfillResult = { updated: 0, indexable: 0, malformed: 0 };
 
-  for (;;) {
-    const rows = await db
-      .select({ id: siteData.id, content: siteData.content, updatedAt: siteData.updatedAt })
-      .from(siteData)
-      .where(isNull(siteData.contentIndexable))
-      .orderBy(asc(siteData.id))
-      .limit(batchSize);
+  const needsFlag = updatedSince
+    ? or(isNull(siteData.contentIndexable), gte(siteData.updatedAt, updatedSince))
+    : isNull(siteData.contentIndexable);
 
-    if (rows.length === 0) return result;
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    let skipped = 0;
+    let afterId = "";
 
-    for (const row of rows) {
-      const verdict = tryIsIndexableContent(row.content);
-      const indexable = verdict ?? false;
+    for (;;) {
+      const rows = await db
+        .select({ id: siteData.id, content: siteData.content, updatedAt: siteData.updatedAt })
+        .from(siteData)
+        .where(and(needsFlag, gt(siteData.id, afterId)))
+        .orderBy(asc(siteData.id))
+        .limit(batchSize);
 
-      const updated = await db
-        .update(siteData)
-        .set({ contentIndexable: indexable })
-        .where(
-          and(
-            eq(siteData.id, row.id),
-            isNull(siteData.contentIndexable),
-            eq(siteData.updatedAt, row.updatedAt),
-          ),
-        )
-        .returning({ id: siteData.id });
+      if (rows.length === 0) break;
 
-      if (updated.length === 0) continue;
+      afterId = rows[rows.length - 1].id;
 
-      result.updated++;
+      for (const row of rows) {
+        const verdict = tryIsIndexableContent(row.content);
+        const indexable = verdict ?? false;
 
-      if (indexable) result.indexable++;
+        const updated = await db
+          .update(siteData)
+          .set({ contentIndexable: indexable })
+          .where(and(eq(siteData.id, row.id), eq(siteData.updatedAt, row.updatedAt)))
+          .returning({ id: siteData.id });
 
-      if (verdict === null) result.malformed++;
+        if (updated.length === 0) {
+          skipped++;
+          continue;
+        }
+
+        result.updated++;
+
+        if (indexable) result.indexable++;
+
+        if (verdict === null) result.malformed++;
+      }
     }
+
+    if (skipped === 0) break;
   }
+
+  return result;
 }

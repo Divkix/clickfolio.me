@@ -6,9 +6,17 @@ const R2_BUCKET = "clickfolio-bucket";
 
 const R2_LIFECYCLE_FILE = "r2-lifecycle.json";
 
-/** Fills site_data.content_indexable where NULL; idempotent. Needs DATABASE_URL. */
-function backfillContentIndexable(): void {
-  const backfill = spawnSync("pnpm", ["run", "db:backfill-indexable"], { stdio: "inherit" });
+// updated_at comes from Worker clocks, not this machine's, so the post-deploy pass looks back
+// further than the pre-deploy pass started. Recomputing a few extra rows is harmless.
+const CLOCK_SKEW_MARGIN_MS = 60 * 60 * 1000;
+
+/** Fills site_data.content_indexable (NULL rows, plus rows updated since `since`). Needs DATABASE_URL. */
+function backfillContentIndexable(since?: string): void {
+  const backfill = spawnSync(
+    "pnpm",
+    ["run", "db:backfill-indexable", ...(since ? ["--since", since] : [])],
+    { stdio: "inherit" },
+  );
 
   if (backfill.status !== 0) {
     process.exit(backfill.status ?? 1);
@@ -18,6 +26,7 @@ function backfillContentIndexable(): void {
 export async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
   const dryRun = args.includes("--dry-run");
+  const backfillSince = new Date(Date.now() - CLOCK_SKEW_MARGIN_MS).toISOString();
 
   const build = spawnSync("pnpm", ["run", "build"], {
     stdio: "inherit",
@@ -73,8 +82,9 @@ export async function main(): Promise<void> {
   }
 
   if (!dryRun) {
-    // Second pass: the old Worker kept writing content without the flag until the deploy above.
-    backfillContentIndexable();
+    // The old Worker kept rewriting content without touching the flag until the deploy above, so
+    // flags set by the first pass can be stale: recompute every row changed since it started.
+    backfillContentIndexable(backfillSince);
 
     // Best-effort search-engine ping; the script always exits 0, and its status is ignored anyway.
     spawnSync("pnpm", ["exec", "tsx", "scripts/submit-indexnow.ts"], { stdio: "inherit" });

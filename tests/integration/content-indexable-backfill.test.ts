@@ -85,6 +85,27 @@ describe("backfillContentIndexable", () => {
     expect(await flags()).toEqual({ a: true, b: true });
   });
 
+  it("with updatedSince, recomputes stale flags on rows changed since then (old-Worker writes)", async () => {
+    // First pass already ran; then the old Worker rewrote content without touching the flag.
+    await seedLegacyRow("a", THIN_CONTENT, true);
+    await seedLegacyRow("b", INDEXABLE_CONTENT, false);
+    await seedLegacyRow("c", INDEXABLE_CONTENT);
+    await db
+      .update(siteData)
+      .set({ updatedAt: "2026-03-01T00:00:00.000Z" })
+      .where(eq(siteData.id, "b"));
+
+    const result = await backfillContentIndexable(db, {
+      batchSize: 1,
+      updatedSince: "2026-02-01T00:00:00.000Z",
+    });
+
+    // "a" was last written before the cutoff, so its (deliberately wrong) flag is left alone;
+    // "b" changed after it and is corrected; "c" is NULL and filled regardless of the cutoff.
+    expect(result).toEqual({ updated: 2, indexable: 2, malformed: 0 });
+    expect(await flags()).toEqual({ a: true, b: true, c: true });
+  });
+
   it("stores malformed legacy content as not indexable instead of aborting", async () => {
     await seedLegacyRow("a", INDEXABLE_CONTENT);
     // Legacy jsonb without the experience array makes the predicate throw.
