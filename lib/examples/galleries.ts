@@ -9,8 +9,8 @@ export interface ExampleGallery {
   forSlug: string;
   themes: readonly ThemeId[];
   /**
-   * Hand-picked directory profiles. The page re-checks showInDirectory + isIndexableProfile on
-   * every render, so a user who opts out or unpublishes drops out without a code change.
+   * Hand-picked directory profiles. The page re-checks showInDirectory + indexableProfileCondition
+   * on every render, so a user who opts out or unpublishes drops out without a code change.
    */
   handles: readonly string[];
 }

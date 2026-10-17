@@ -20,7 +20,7 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
-import { isIndexableProfile } from "@/lib/seo/profile-indexability";
+import { indexableProfileCondition } from "@/lib/data/indexable-profiles";
 import { THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
@@ -120,7 +120,6 @@ const loadGalleryProfiles = cache(async (gallery: ExampleGallery): Promise<Direc
       previewEduCount: siteData.previewEduCount,
       previewSkills: siteData.previewSkills,
       privacySettings: user.privacySettings,
-      content: siteData.content,
     })
     .from(user)
     .innerJoin(siteData, eq(user.id, siteData.userId))
@@ -129,15 +128,12 @@ const loadGalleryProfiles = cache(async (gallery: ExampleGallery): Promise<Direc
         inArray(user.handle, [...gallery.handles]),
         eq(user.showInDirectory, true),
         eq(user.onboardingCompleted, true),
+        indexableProfileCondition(),
       ),
     );
 
   return rows
-    .filter(
-      (u): u is typeof u & { handle: string } =>
-        u.handle !== null &&
-        isIndexableProfile(u.content, normalizePrivacySettings(u.privacySettings)),
-    )
+    .filter((u): u is typeof u & { handle: string } => u.handle !== null)
     .sort((a, b) => gallery.handles.indexOf(a.handle) - gallery.handles.indexOf(b.handle))
     .map((u) => {
       const previewSkills = normalizePreviewSkills(u.previewSkills);
