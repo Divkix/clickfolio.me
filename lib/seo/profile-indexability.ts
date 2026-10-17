@@ -84,16 +84,23 @@ function isRealLabel(value: string | null | undefined): boolean {
   return Boolean(normalized && !Object.hasOwn(PLACEHOLDER_VALUES, normalized));
 }
 
-export function isIndexableProfile(
-  content: ResumeContent,
-  privacySettings: Pick<PrivacySettings, "hide_from_search">,
-): boolean {
+/**
+ * Content-only half of {@link isIndexableProfile}. Persisted as `site_data.content_indexable` on
+ * every content write (see `siteDataContentColumns`), so list queries can filter in SQL.
+ */
+export function isIndexableContent(content: ResumeContent): boolean {
   return (
-    !privacySettings.hide_from_search &&
     isRealLabel(content.full_name) &&
     isRealLabel(content.headline) &&
     (content.experience.length > 0 || (content.education?.length ?? 0) > 0) &&
     calculateCompleteness(content) >= 40 &&
     countVisibleWords(content) >= MIN_INDEXABLE_WORDS
   );
+}
+
+export function isIndexableProfile(
+  content: ResumeContent,
+  privacySettings: Pick<PrivacySettings, "hide_from_search">,
+): boolean {
+  return !privacySettings.hide_from_search && isIndexableContent(content);
 }

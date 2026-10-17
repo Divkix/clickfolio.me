@@ -1,13 +1,12 @@
 import { sql } from "drizzle-orm";
-import type { Database } from "@/lib/db";
+import type { PgQueryable } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 import { extractPreviewFields } from "@/lib/utils/preview-fields";
-
-type DbOrTx = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+import { siteDataContentColumns } from "@/lib/data/site-data-content";
 
 export function buildSiteDataUpsert(
-  db: DbOrTx,
+  db: PgQueryable,
   userId: string,
   resumeId: string,
   content: ResumeContent,
@@ -15,6 +14,7 @@ export function buildSiteDataUpsert(
 ) {
   const now = new Date().toISOString();
   const previewFields = extractPreviewFields(content);
+  const contentColumns = siteDataContentColumns(content);
   const publish = opts?.publish ?? true;
   const onlyIfUpdatedAtLte = opts?.onlyIfUpdatedAtLte;
   // publish=false must not overwrite lastPublishedAt: an empty set omits the key so onConflictDoUpdate leaves the column untouched.
@@ -24,7 +24,7 @@ export function buildSiteDataUpsert(
     id: crypto.randomUUID(),
     userId,
     resumeId,
-    content,
+    ...contentColumns,
     ...previewFields,
     lastPublishedAt: publish ? now : null,
     createdAt: now,
@@ -40,7 +40,7 @@ export function buildSiteDataUpsert(
         target: siteData.userId,
         set: {
           resumeId,
-          content,
+          ...contentColumns,
           ...previewFields,
           updatedAt: now,
           // publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
@@ -57,7 +57,7 @@ export function buildSiteDataUpsert(
       target: siteData.userId,
       set: {
         resumeId,
-        content,
+        ...contentColumns,
         ...previewFields,
         updatedAt: now,
         // publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race

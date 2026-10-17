@@ -1107,8 +1107,30 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const body: { success: boolean; data: { id: string } } = await response.json();
       expect(body.success).toBe(true);
       expect(body.data.id).toBe("site-data-123");
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ content: validResumeContent, contentIndexable: true }),
+      );
       expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
       expect(mockedIndexNow).toHaveBeenCalledWith(["testuser"]);
+    });
+
+    it("stores content_indexable=false for thin content", async () => {
+      authedAs("user-123");
+      const thinContent = { ...validResumeContent, headline: "Your headline" };
+      mockReturning.mockResolvedValue([
+        { id: "site-data-123", lastPublishedAt: new Date().toISOString(), content: thinContent },
+      ]);
+
+      const { PUT } = await import("@/app/api/resume/update/route");
+
+      const response = await PUT(
+        makeRequest("http://localhost:3000/api/resume/update", "PUT", { content: thinContent }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ contentIndexable: false }),
+      );
     });
     it("does not notify IndexNow when saved content is not indexable", async () => {
       authedAs("user-123");

@@ -28,6 +28,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
+    "db:backfill-indexable": "tsx scripts/backfill-content-indexable.ts",
     "db:studio": "drizzle-kit studio --port 4984",
     "analyze": "ANALYZE=true vp build",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv lib/cloudflare-env.d.ts",
@@ -73,6 +74,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.64.0",
+    "@electric-sql/pglite": "^0.5.10",
     "@posthog/rollup-plugin": "^1.6.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",

@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import type { ResumeContent } from "../../types/database";
 import { user } from "./auth";
 import { resumes } from "./resume";
@@ -15,6 +15,9 @@ export const siteData = pgTable(
       onDelete: "set null",
     }),
     content: jsonb("content").$type<ResumeContent>().notNull(),
+    // isIndexableContent(content), written with content via siteDataContentColumns. NULL = not
+    // computed yet (backfill pending) and is treated as not indexable.
+    contentIndexable: boolean("content_indexable"),
     themeId: text("theme_id").default("minimalist_editorial"),
     lastPublishedAt: timestamp("last_published_at", {
       withTimezone: true,

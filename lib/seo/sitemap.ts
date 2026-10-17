@@ -1,16 +1,14 @@
 import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
-import { isNotNull, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
 import { z } from "zod";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { getDb } from "@/lib/db";
-import { siteData, user } from "@/lib/db/schema";
+import { countIndexableProfiles, getIndexableProfileWindow } from "@/lib/data/indexable-profiles";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { getStaticLastmod } from "@/lib/seo/lastmod";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
-import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
@@ -150,38 +148,17 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
   let newestPortfolioPublish: Date | null = null;
 
   try {
-    const db = getDb(env.HYPERDRIVE);
-
-    const profiles = await db
-      .select({
-        handle: user.handle,
-        userUpdatedAt: user.updatedAt,
-        siteUpdatedAt: siteData.updatedAt,
-        lastPublishedAt: siteData.lastPublishedAt,
-        privacySettings: user.privacySettings,
-        content: siteData.content,
-      })
-      .from(user)
-      .innerJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(isNotNull(user.handle))
-      .orderBy(user.handle, user.id);
-
-    const indexableProfiles = profiles.filter(
-      (profile) =>
-        profile.handle !== null && isIndexableProfile(profile.content, profile.privacySettings),
-    );
-
-    newestPortfolioPublish = indexableProfiles.reduce<Date | null>((newest, profile) => {
-      const publishedAt = parseTimestamp(profile.lastPublishedAt);
-
-      return publishedAt && (!newest || publishedAt > newest) ? publishedAt : newest;
-    }, null);
-
-    if (id >= getSitemapShardCount(indexableProfiles.length)) return null;
-
     const { limit, offset } = getUserShardWindow(id);
 
-    for (const entry of indexableProfiles.slice(offset, offset + limit)) {
+    // Indexability, the total and the newest publish are computed in SQL over the whole filtered
+    // set (window aggregates), so the shard check and lastmods match one snapshot.
+    const shard = await getIndexableProfileWindow(getDb(env.HYPERDRIVE), { limit, offset });
+
+    newestPortfolioPublish = parseTimestamp(shard.newestPublishedAt);
+
+    if (id >= getSitemapShardCount(shard.totalCount)) return null;
+
+    for (const entry of shard.profiles) {
       if (!entry.handle) continue;
 
       const lastModified = entry.lastPublishedAt || entry.siteUpdatedAt || entry.userUpdatedAt;
@@ -205,19 +182,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
 }
 
 export async function getTotalIndexableUserCount(): Promise<number> {
-  const db = getDb(env.HYPERDRIVE);
-
-  const profiles = await db
-    .select({
-      content: siteData.content,
-      privacySettings: user.privacySettings,
-    })
-    .from(user)
-    .innerJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-    .where(isNotNull(user.handle));
-
-  return profiles.filter((profile) => isIndexableProfile(profile.content, profile.privacySettings))
-    .length;
+  return countIndexableProfiles(getDb(env.HYPERDRIVE));
 }
 
 export function buildSitemapIndexXml(shardCount: number): string {

@@ -1,0 +1,1 @@
+ALTER TABLE "site_data" ADD COLUMN "content_indexable" boolean;

@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,10 +13,9 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
-import { siteData, user } from "@/lib/db/schema";
-import { isUserRole, ROLE_OPTIONS, type UserRole } from "@/lib/config/roles";
+import { getDirectoryPage, type DirectoryRoleFilter } from "@/lib/data/indexable-profiles";
+import { isUserRole, ROLE_OPTIONS } from "@/lib/config/roles";
 import { generateExploreJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
-import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
@@ -30,7 +28,7 @@ const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
 const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
-function getRoleFilter(role: string | undefined): UserRole | "freelance" | "" {
+function getRoleFilter(role: string | undefined): DirectoryRoleFilter {
   return isUserRole(role) || role === "freelance" ? role : "";
 }
 
@@ -72,57 +70,18 @@ export default async function ExplorePage({
 }) {
   const params = await searchParams;
   const currentPage = parsePageParam(params.page) ?? 1;
-  // "freelance" rides the same dropdown/param but filters the separate isFreelance flag.
   const roleFilter = getRoleFilter(params.role);
 
-  const db = getDb(env.HYPERDRIVE);
+  // Indexability (content flag + hide_from_search), the count and the page window all run in SQL.
+  const { users: pageUsers, totalCount } = await getDirectoryPage(getDb(env.HYPERDRIVE), {
+    roleFilter,
+    page: currentPage,
+    pageSize: ITEMS_PER_PAGE,
+  });
 
-  const whereConditions = [
-    isNotNull(user.handle),
-    eq(user.showInDirectory, true),
-    eq(user.onboardingCompleted, true),
-  ];
-
-  if (roleFilter === "freelance") {
-    whereConditions.push(eq(user.isFreelance, true));
-  } else if (roleFilter) {
-    whereConditions.push(eq(user.role, roleFilter));
-  }
-
-  // One statement is one snapshot, so filtering and pagination stay consistent without a transaction.
-  const usersWithData = await db
-    .select({
-      handle: user.handle,
-      role: user.role,
-      previewName: siteData.previewName,
-      previewHeadline: siteData.previewHeadline,
-      previewLocation: siteData.previewLocation,
-      previewExpCount: siteData.previewExpCount,
-      previewEduCount: siteData.previewEduCount,
-      previewSkills: siteData.previewSkills,
-      privacySettings: user.privacySettings,
-      content: siteData.content,
-    })
-    .from(user)
-    .innerJoin(siteData, eq(user.id, siteData.userId))
-    .where(and(...whereConditions))
-    .orderBy(desc(siteData.updatedAt), desc(siteData.userId));
-
-  const indexableUsers = usersWithData.filter(
-    (u): u is typeof u & { handle: string } =>
-      u.handle !== null &&
-      isIndexableProfile(u.content, normalizePrivacySettings(u.privacySettings)),
-  );
-
-  const totalCount = indexableUsers.length;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   if (currentPage > 1 && currentPage > totalPages) notFound();
-
-  const pageUsers = indexableUsers.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
 
   const directoryUsers: DirectoryUser[] = pageUsers.map((u) => {
     const previewSkills = normalizePreviewSkills(u.previewSkills);
