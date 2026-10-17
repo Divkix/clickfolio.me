@@ -73,6 +73,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.64.0",
+    "@electric-sql/pglite": "^0.5.10",
     "@posthog/rollup-plugin": "^1.6.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",

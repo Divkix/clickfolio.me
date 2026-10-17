@@ -71,6 +71,13 @@
       "when": 1790526788573,
       "tag": "0009_decode_html_escaped_location",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792250814470,
+      "tag": "0010_site_data_content_indexable",
+      "breakpoints": true
     }
   ]
 }

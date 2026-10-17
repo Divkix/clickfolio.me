@@ -7,6 +7,7 @@ import type { ResumeContent } from "@/lib/types/database";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { extractPreviewFields } from "@/lib/utils/preview-fields";
+import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import {
@@ -76,7 +77,7 @@ export async function PUT(request: Request) {
       const updateResult = await db
         .update(siteData)
         .set({
-          content,
+          ...siteDataContentColumns(content),
           ...previewFields,
           lastPublishedAt: now,
           updatedAt: now,

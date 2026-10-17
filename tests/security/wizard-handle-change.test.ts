@@ -351,6 +351,11 @@ describe("wizard/complete handle-change rate limit", () => {
     expect(txStatementCount).toBe(2);
     expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
     expect(txInsert).toHaveBeenNthCalledWith(2, handleChanges);
+    // The placeholder row is never indexable, and says so instead of leaving the flag NULL.
+    expect(txValues[0]).toMatchObject({
+      content: expect.objectContaining({ full_name: "Pending" }),
+      contentIndexable: false,
+    });
   });
 
   it("skips the rate limit when an onboarded user keeps the same handle", async () => {

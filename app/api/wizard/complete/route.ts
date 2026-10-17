@@ -3,6 +3,7 @@ import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 
+import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
@@ -173,7 +174,7 @@ export async function POST(request: Request) {
               .values({
                 id: crypto.randomUUID(),
                 userId: authUser.id,
-                content: PENDING_RESUME_CONTENT,
+                ...siteDataContentColumns(PENDING_RESUME_CONTENT),
                 themeId: body.theme_id,
                 createdAt: now,
                 updatedAt: now,
@@ -189,7 +190,7 @@ export async function POST(request: Request) {
               .values({
                 id: crypto.randomUUID(),
                 userId: authUser.id,
-                content: PENDING_RESUME_CONTENT,
+                ...siteDataContentColumns(PENDING_RESUME_CONTENT),
                 themeId: body.theme_id,
                 createdAt: now,
                 updatedAt: now,
