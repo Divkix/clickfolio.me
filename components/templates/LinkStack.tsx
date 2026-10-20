@@ -56,11 +56,24 @@ function LinkCard({
 }
 
 export const LinkStack: React.FC<TemplateProps> = ({ content, profile }) => {
-  const { full_name, summary, headline, contact, experience, education, skills, certifications, projects } =
-    content;
+  const {
+    full_name,
+    summary,
+    headline,
+    contact,
+    experience,
+    education,
+    skills,
+    certifications,
+    projects,
+  } = content;
 
   const contactLinks = getContactLinks(contact);
-  const socialLinks = contactLinks.filter((l) => l.type !== "location" && l.type !== "email" && l.type !== "phone");
+
+  const socialLinks = contactLinks.filter(
+    (l) => l.type !== "location" && l.type !== "email" && l.type !== "phone",
+  );
+
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
 
   return (

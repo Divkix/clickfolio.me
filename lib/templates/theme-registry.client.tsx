@@ -167,4 +167,88 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  sidebar_photo: dynamic(
+    () => import("@/components/templates/SidebarPhoto").then((m) => ({ default: m.SidebarPhoto })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  infographic: dynamic(
+    () => import("@/components/templates/Infographic").then((m) => ({ default: m.Infographic })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  timeline: dynamic(
+    () => import("@/components/templates/Timeline").then((m) => ({ default: m.Timeline })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  networked: dynamic(
+    () => import("@/components/templates/Networked").then((m) => ({ default: m.Networked })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  consulting_brief: dynamic(
+    () =>
+      import("@/components/templates/ConsultingBrief").then((m) => ({
+        default: m.ConsultingBrief,
+      })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  quota: dynamic(() => import("@/components/templates/Quota").then((m) => ({ default: m.Quota })), {
+    loading: TemplateLoadingFallback,
+  }),
+  the_brief: dynamic(
+    () => import("@/components/templates/TheBrief").then((m) => ({ default: m.TheBrief })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  open_house: dynamic(
+    () => import("@/components/templates/OpenHouse").then((m) => ({ default: m.OpenHouse })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  the_menu: dynamic(
+    () => import("@/components/templates/TheMenu").then((m) => ({ default: m.TheMenu })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  personal_best: dynamic(
+    () => import("@/components/templates/PersonalBest").then((m) => ({ default: m.PersonalBest })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  pitch_deck: dynamic(
+    () => import("@/components/templates/PitchDeck").then((m) => ({ default: m.PitchDeck })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  dashboard: dynamic(
+    () => import("@/components/templates/Dashboard").then((m) => ({ default: m.Dashboard })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  reel: dynamic(() => import("@/components/templates/Reel").then((m) => ({ default: m.Reel })), {
+    loading: TemplateLoadingFallback,
+  }),
+  link_stack: dynamic(
+    () => import("@/components/templates/LinkStack").then((m) => ({ default: m.LinkStack })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  noir: dynamic(() => import("@/components/templates/Noir").then((m) => ({ default: m.Noir })), {
+    loading: TemplateLoadingFallback,
+  }),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

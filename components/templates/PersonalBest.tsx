@@ -20,6 +20,7 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
 
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
+
   const stats = (experience ?? [])
     .flatMap((job) => job.highlights ?? [])
     .map((h) => ({ num: firstNumber(h), text: h }))
@@ -92,7 +93,9 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
             </ul>
           )}
 
-          {summary && <p className="mt-7 text-[1.0625rem] leading-[1.7] text-[#D7D7D5]">{summary}</p>}
+          {summary && (
+            <p className="mt-7 text-[1.0625rem] leading-[1.7] text-[#D7D7D5]">{summary}</p>
+          )}
 
           {stats.length > 0 && (
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -112,15 +115,17 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {skillGroups.length > 0 && (
             <div className="mt-10 flex flex-wrap gap-2">
-              {skillGroups.flatMap((g) => g.items).map((item) => (
-                <span
-                  key={item}
-                  className="text-[0.8125rem] font-bold uppercase tracking-wide rounded px-3 py-1.5"
-                  style={{ backgroundColor: `${CYAN}1A`, color: CYAN }}
-                >
-                  {item}
-                </span>
-              ))}
+              {skillGroups
+                .flatMap((g) => g.items)
+                .map((item) => (
+                  <span
+                    key={item}
+                    className="text-[0.8125rem] font-bold uppercase tracking-wide rounded px-3 py-1.5"
+                    style={{ backgroundColor: `${CYAN}1A`, color: CYAN }}
+                  >
+                    {item}
+                  </span>
+                ))}
             </div>
           )}
 
@@ -144,7 +149,9 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
                     </div>
                     <p className="text-sm font-semibold text-[#C8C8C6]">
                       {job.company}
-                      {job.location && <span className="text-[#9A9A98] font-normal">, {job.location}</span>}
+                      {job.location && (
+                        <span className="text-[#9A9A98] font-normal">, {job.location}</span>
+                      )}
                     </p>
                     {job.description && (
                       <p className="mt-2 text-[0.9375rem] text-[#D7D7D5]">{job.description}</p>
@@ -152,7 +159,10 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
                     {job.highlights && job.highlights.length > 0 && (
                       <ul className="mt-2 space-y-1">
                         {job.highlights.map((highlight) => (
-                          <li key={`${job.title}-${highlight}`} className="text-[0.9375rem] text-[#D7D7D5]">
+                          <li
+                            key={`${job.title}-${highlight}`}
+                            className="text-[0.9375rem] text-[#D7D7D5]"
+                          >
                             {highlight}
                           </li>
                         ))}

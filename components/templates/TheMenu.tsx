@@ -1,5 +1,6 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import type { ContactLinkDescriptor } from "@/lib/templates/contact-links";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
@@ -9,6 +10,29 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // listing, a thin gold rule under the header, warm charcoal-on-cream paper.
 
 const GOLD = "#A9842F";
+
+function ContactLinkLabel({ link }: { link: ContactLinkDescriptor }): React.ReactElement {
+  if (link.type === "location") return <>{link.label}</>;
+
+  if (link.type === "phone") {
+    return (
+      <a href={link.href} className="hover:text-[#2B2620]">
+        {link.label}
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={link.href}
+      target={link.isExternal ? "_blank" : undefined}
+      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+      className="hover:text-[#2B2620]"
+    >
+      {link.label}
+    </a>
+  );
+}
 
 const COURSE_LABELS = ["First Course", "Second Course", "Entrée", "Fourth Course", "Fifth Course"];
 
@@ -58,9 +82,7 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
             <h1 className="mt-5 text-[clamp(2rem,6vw,3rem)] font-semibold leading-tight break-words [text-wrap:balance]">
               {full_name}
             </h1>
-            {headline && (
-              <p className="mt-2 text-lg italic text-[#5E5648]">{headline}</p>
-            )}
+            {headline && <p className="mt-2 text-lg italic text-[#5E5648]">{headline}</p>}
             <div
               aria-hidden="true"
               className="mx-auto mt-5 h-px w-24"
@@ -70,22 +92,7 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
               <ul className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm text-[#5E5648]">
                 {contactLinks.map((link) => (
                   <li key={link.type} className="min-w-0 break-all">
-                    {link.type === "location" ? (
-                      link.label
-                    ) : link.type === "phone" ? (
-                      <a href={link.href} className="hover:text-[#2B2620]">
-                        {link.label}
-                      </a>
-                    ) : (
-                      <a
-                        href={link.href}
-                        target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                        className="hover:text-[#2B2620]"
-                      >
-                        {link.label}
-                      </a>
-                    )}
+                    <ContactLinkLabel link={link} />
                   </li>
                 ))}
               </ul>
@@ -100,12 +107,18 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {experience && experience.length > 0 && (
             <section className="mt-14">
-              <h2 className="text-center text-sm font-medium uppercase tracking-[0.25em] mb-8" style={{ color: GOLD }}>
+              <h2
+                className="text-center text-sm font-medium uppercase tracking-[0.25em] mb-8"
+                style={{ color: GOLD }}
+              >
                 The Menu
               </h2>
               <div className="space-y-10">
                 {experience.map((job, i) => (
-                  <article key={`${job.company}-${job.title}-${job.start_date}`} className="text-center">
+                  <article
+                    key={`${job.company}-${job.title}-${job.start_date}`}
+                    className="text-center"
+                  >
                     <p className="text-xs uppercase tracking-[0.2em]" style={{ color: GOLD }}>
                       {COURSE_LABELS[i] ?? `Course ${i + 1}`}
                     </p>
@@ -144,7 +157,10 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {projects && projects.length > 0 && (
             <section className="mt-12">
-              <h2 className="text-center text-sm font-medium uppercase tracking-[0.25em] mb-6" style={{ color: GOLD }}>
+              <h2
+                className="text-center text-sm font-medium uppercase tracking-[0.25em] mb-6"
+                style={{ color: GOLD }}
+              >
                 Chef's Specials
               </h2>
               <div className="space-y-5 text-center">
@@ -165,7 +181,9 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
                       )}
                     </h3>
                     {project.description && (
-                      <p className="mt-1 text-[0.9375rem] max-w-md mx-auto">{project.description}</p>
+                      <p className="mt-1 text-[0.9375rem] max-w-md mx-auto">
+                        {project.description}
+                      </p>
                     )}
                   </article>
                 ))}
@@ -176,7 +194,10 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
           <div className="mt-12 grid sm:grid-cols-2 gap-10 text-center sm:text-left">
             {education && education.length > 0 && (
               <section>
-                <h2 className="text-sm font-medium uppercase tracking-[0.25em] mb-4" style={{ color: GOLD }}>
+                <h2
+                  className="text-sm font-medium uppercase tracking-[0.25em] mb-4"
+                  style={{ color: GOLD }}
+                >
                   Training
                 </h2>
                 <div className="space-y-3">
@@ -185,7 +206,9 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
                       <p className="font-semibold break-words">{edu.degree}</p>
                       <p className="text-sm text-[#5E5648]">
                         {edu.institution}
-                        {edu.graduation_date && <span> · {formatShortDate(edu.graduation_date)}</span>}
+                        {edu.graduation_date && (
+                          <span> · {formatShortDate(edu.graduation_date)}</span>
+                        )}
                       </p>
                     </div>
                   ))}
@@ -195,7 +218,10 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
 
             {(skillGroups.length > 0 || (certifications && certifications.length > 0)) && (
               <section>
-                <h2 className="text-sm font-medium uppercase tracking-[0.25em] mb-4" style={{ color: GOLD }}>
+                <h2
+                  className="text-sm font-medium uppercase tracking-[0.25em] mb-4"
+                  style={{ color: GOLD }}
+                >
                   Palate
                 </h2>
                 {skillGroups.length > 0 && (
@@ -217,7 +243,10 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
             )}
           </div>
 
-          <footer className="mt-16 pt-6 border-t flex flex-wrap items-center justify-center sm:justify-between gap-4" style={{ borderColor: `${GOLD}33` }}>
+          <footer
+            className="mt-16 pt-6 border-t flex flex-wrap items-center justify-center sm:justify-between gap-4"
+            style={{ borderColor: `${GOLD}33` }}
+          >
             <p className="text-sm text-[#8A8071]">@{profile.handle}</p>
             <ShareBar
               handle={profile.handle}

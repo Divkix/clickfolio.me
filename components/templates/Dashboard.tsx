@@ -25,8 +25,17 @@ function KpiTile({ value, label }: { value: string | number; label: string }): R
 }
 
 export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
-  const { full_name, summary, headline, contact, experience, education, skills, certifications, projects } =
-    content;
+  const {
+    full_name,
+    summary,
+    headline,
+    contact,
+    experience,
+    education,
+    skills,
+    certifications,
+    projects,
+  } = content;
 
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
@@ -43,7 +52,10 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
     .filter((y) => !Number.isNaN(y));
 
   if (years.length > 0) {
-    kpis.push({ value: `${new Date().getFullYear() - Math.min(...years)}+`, label: "Years experience" });
+    kpis.push({
+      value: `${new Date().getFullYear() - Math.min(...years)}+`,
+      label: "Years experience",
+    });
   }
 
   if (certifications && certifications.length > 0) {
@@ -143,9 +155,13 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
                         </div>
                         <p className="text-sm font-semibold" style={{ color: colorFor(i) }}>
                           {job.company}
-                          {job.location && <span className="text-[#6B7390] font-normal">, {job.location}</span>}
+                          {job.location && (
+                            <span className="text-[#6B7390] font-normal">, {job.location}</span>
+                          )}
                         </p>
-                        {job.description && <p className="mt-2 text-[0.9375rem]">{job.description}</p>}
+                        {job.description && (
+                          <p className="mt-2 text-[0.9375rem]">{job.description}</p>
+                        )}
                         {job.highlights && job.highlights.length > 0 && (
                           <ul className="mt-2.5 flex flex-wrap gap-1.5">
                             {job.highlights.map((highlight) => (
@@ -237,7 +253,9 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
                         <p className="text-[0.8125rem] font-bold break-words">{edu.degree}</p>
                         <p className="text-[0.75rem] text-[#6B7390]">
                           {edu.institution}
-                          {edu.graduation_date && <span> · {formatShortDate(edu.graduation_date)}</span>}
+                          {edu.graduation_date && (
+                            <span> · {formatShortDate(edu.graduation_date)}</span>
+                          )}
                         </p>
                       </div>
                     ))}

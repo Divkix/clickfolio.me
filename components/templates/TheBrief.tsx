@@ -1,9 +1,33 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import type { ContactLinkDescriptor } from "@/lib/templates/contact-links";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
+
+function ContactLinkLabel({ link }: { link: ContactLinkDescriptor }): React.ReactElement {
+  if (link.type === "location") return <>{link.label}</>;
+
+  if (link.type === "phone") {
+    return (
+      <a href={link.href} className="hover:underline">
+        {link.label}
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={link.href}
+      target={link.isExternal ? "_blank" : undefined}
+      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+      className="hover:underline"
+    >
+      {link.label}
+    </a>
+  );
+}
 
 // A legal resume styled like a filed brief: a boxed caption header, roman-numeral section
 // headings, double-spaced serif body, thin rules. Navy and muted gold, never burgundy —
@@ -63,14 +87,8 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
       `}</style>
       <div className="tb-root min-h-screen bg-[#FBF8F0] text-[#1C1A16] overflow-x-hidden">
         <main className="mx-auto max-w-[40rem] px-5 sm:px-8 pt-16 pb-24">
-          <header
-            className="border-2 px-6 py-7 text-center"
-            style={{ borderColor: NAVY }}
-          >
-            <p
-              className="text-xs font-semibold uppercase tracking-[0.2em]"
-              style={{ color: GOLD }}
-            >
+          <header className="border-2 px-6 py-7 text-center" style={{ borderColor: NAVY }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: GOLD }}>
               Professional Profile
             </p>
             <h1 className="mt-3 text-[clamp(1.75rem,5vw,2.5rem)] font-bold break-words [text-wrap:balance]">
@@ -85,22 +103,7 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
               <ul className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm">
                 {contactLinks.map((link) => (
                   <li key={link.type} className="min-w-0 break-all">
-                    {link.type === "location" ? (
-                      link.label
-                    ) : link.type === "phone" ? (
-                      <a href={link.href} className="hover:underline">
-                        {link.label}
-                      </a>
-                    ) : (
-                      <a
-                        href={link.href}
-                        target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                        className="hover:underline"
-                      >
-                        {link.label}
-                      </a>
-                    )}
+                    <ContactLinkLabel link={link} />
                   </li>
                 ))}
               </ul>
@@ -167,7 +170,9 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
                     ) : (
                       project.title
                     )}
-                    {project.year && <span className="font-normal tabular-nums"> ({project.year})</span>}
+                    {project.year && (
+                      <span className="font-normal tabular-nums"> ({project.year})</span>
+                    )}
                   </p>
                   {project.description && <p className="leading-[1.8]">{project.description}</p>}
                 </article>

@@ -39,7 +39,11 @@ function Sidebar({ content, avatarUrl }: { content: Content; avatarUrl: string |
             className="h-full w-full object-cover"
           />
         ) : (
-          <span className="font-head-sp text-3xl font-bold" style={{ color: AMBER }} aria-hidden="true">
+          <span
+            className="font-head-sp text-3xl font-bold"
+            style={{ color: AMBER }}
+            aria-hidden="true"
+          >
             {getInitials(content.full_name)}
           </span>
         )}
@@ -104,7 +108,10 @@ function Sidebar({ content, avatarUrl }: { content: Content; avatarUrl: string |
                     <span
                       key={item}
                       className="rounded-full border px-2.5 py-1 text-[12.5px] leading-none text-white/90"
-                      style={{ borderColor: "rgba(255,255,255,0.18)", backgroundColor: "rgba(255,255,255,0.06)" }}
+                      style={{
+                        borderColor: "rgba(255,255,255,0.18)",
+                        backgroundColor: "rgba(255,255,255,0.06)",
+                      }}
                     >
                       {item}
                     </span>
@@ -174,7 +181,9 @@ export const SidebarPhoto: React.FC<TemplateProps> = ({ content, profile }) => {
                         {job.company}
                         {job.location && <span style={{ color: SLATE }}>, {job.location}</span>}
                       </p>
-                      {job.description && <p className="mt-2.5 leading-relaxed">{job.description}</p>}
+                      {job.description && (
+                        <p className="mt-2.5 leading-relaxed">{job.description}</p>
+                      )}
                       {job.highlights && job.highlights.length > 0 && (
                         <ul className="mt-2.5 space-y-1.5">
                           {job.highlights.map((highlight, i) => (

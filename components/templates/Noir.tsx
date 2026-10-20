@@ -22,8 +22,17 @@ function Masthead({ children }: { children: React.ReactNode }): React.ReactEleme
 }
 
 export const Noir: React.FC<TemplateProps> = ({ content, profile }) => {
-  const { full_name, summary, headline, contact, experience, education, skills, certifications, projects } =
-    content;
+  const {
+    full_name,
+    summary,
+    headline,
+    contact,
+    experience,
+    education,
+    skills,
+    certifications,
+    projects,
+  } = content;
 
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
@@ -36,11 +45,11 @@ export const Noir: React.FC<TemplateProps> = ({ content, profile }) => {
         .font-nr-body, .font-nr-body :is(p, li, dt, dd, a, span) { font-family: 'Jost', ui-sans-serif, sans-serif; }
       `}</style>
       <div className="font-nr-body font-nr-head min-h-screen bg-[#0A0A0A] text-[#E7E4DC] overflow-x-hidden">
-        <header className="px-5 sm:px-8 pt-20 pb-14 text-center border-b" style={{ borderColor: `${GOLD}2A` }}>
-          <p
-            className="text-[0.75rem] uppercase tracking-[0.35em]"
-            style={{ color: GOLD }}
-          >
+        <header
+          className="px-5 sm:px-8 pt-20 pb-14 text-center border-b"
+          style={{ borderColor: `${GOLD}2A` }}
+        >
+          <p className="text-[0.75rem] uppercase tracking-[0.35em]" style={{ color: GOLD }}>
             Portfolio
           </p>
           <h1 className="mt-4 text-[clamp(2.75rem,9vw,5rem)] font-medium leading-[0.95] break-words">
@@ -94,7 +103,10 @@ export const Noir: React.FC<TemplateProps> = ({ content, profile }) => {
               <Masthead>Experience</Masthead>
               <div className="space-y-9">
                 {experience.map((job) => (
-                  <article key={`${job.company}-${job.title}-${job.start_date}`} className="min-w-0">
+                  <article
+                    key={`${job.company}-${job.title}-${job.start_date}`}
+                    className="min-w-0"
+                  >
                     <p className="font-nr-body text-[0.75rem] uppercase tracking-[0.15em] text-[#8A8578]">
                       {formatDateSpan(job.start_date, job.end_date)}
                     </p>
@@ -167,11 +179,17 @@ export const Noir: React.FC<TemplateProps> = ({ content, profile }) => {
               <Masthead>Education</Masthead>
               <div className="space-y-3">
                 {education.map((edu) => (
-                  <p key={`${edu.institution}-${edu.degree}`} className="font-nr-body text-[0.9375rem]">
+                  <p
+                    key={`${edu.institution}-${edu.degree}`}
+                    className="font-nr-body text-[0.9375rem]"
+                  >
                     <span className="font-semibold">{edu.degree}</span>
                     <span className="text-[#8A8578]"> — {edu.institution}</span>
                     {edu.graduation_date && (
-                      <span className="text-[#8A8578]"> · {formatShortDate(edu.graduation_date)}</span>
+                      <span className="text-[#8A8578]">
+                        {" "}
+                        · {formatShortDate(edu.graduation_date)}
+                      </span>
                     )}
                   </p>
                 ))}

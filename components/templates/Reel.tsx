@@ -11,8 +11,17 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 const RED = "#E53935";
 
 export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
-  const { full_name, summary, headline, contact, experience, education, skills, projects, certifications } =
-    content;
+  const {
+    full_name,
+    summary,
+    headline,
+    contact,
+    experience,
+    education,
+    skills,
+    projects,
+    certifications,
+  } = content;
 
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
@@ -49,7 +58,9 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
               <h1 className="text-[clamp(1.875rem,5.5vw,2.75rem)] uppercase tracking-tight leading-[1.02] break-words">
                 {full_name}
               </h1>
-              {headline && <p className="font-rl-mono mt-1.5 text-[#A3A39B] break-words">{headline}</p>}
+              {headline && (
+                <p className="font-rl-mono mt-1.5 text-[#A3A39B] break-words">{headline}</p>
+              )}
             </div>
           </header>
 
@@ -81,15 +92,17 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {skillGroups.length > 0 && (
             <div className="mt-7 flex flex-wrap gap-2">
-              {skillGroups.flatMap((g) => g.items).map((item) => (
-                <span
-                  key={item}
-                  className="font-rl-mono text-[0.75rem] uppercase tracking-wide rounded border px-2.5 py-1"
-                  style={{ borderColor: `${RED}66`, color: "#D6D6D0" }}
-                >
-                  {item}
-                </span>
-              ))}
+              {skillGroups
+                .flatMap((g) => g.items)
+                .map((item) => (
+                  <span
+                    key={item}
+                    className="font-rl-mono text-[0.75rem] uppercase tracking-wide rounded border px-2.5 py-1"
+                    style={{ borderColor: `${RED}66`, color: "#D6D6D0" }}
+                  >
+                    {item}
+                  </span>
+                ))}
             </div>
           )}
 
@@ -184,7 +197,10 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
                     <span className="font-bold">{edu.degree}</span>
                     <span className="text-[#A3A39B]"> — {edu.institution}</span>
                     {edu.graduation_date && (
-                      <span className="font-rl-mono tc text-[#A3A39B]"> · {formatShortDate(edu.graduation_date)}</span>
+                      <span className="font-rl-mono tc text-[#A3A39B]">
+                        {" "}
+                        · {formatShortDate(edu.graduation_date)}
+                      </span>
                     )}
                   </p>
                 ))}

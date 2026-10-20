@@ -163,8 +163,7 @@ export const shareButtonStyles = {
     "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
   dashboard:
     "bg-white text-[#3B6CE0] hover:bg-[#3B6CE0] hover:text-white border border-[#E2E6F0] rounded-md px-3 py-1.5 text-sm",
-  reel:
-    "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
+  reel: "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
   "link-stack":
     "bg-white/80 text-[#5B3DCB] hover:bg-white border border-black/5 rounded-full px-3 py-1.5 text-sm",
   noir: "bg-transparent text-[#EDEAE2] hover:text-[#C9A86A] border border-[#C9A86A]/30 hover:border-[#C9A86A] rounded-sm px-3 py-1.5 text-sm",
@@ -317,4 +316,22 @@ export const shareItemStyles = {
     "bg-white text-[#22201C] hover:bg-[#7A1F2B] hover:text-[#FBFAF7] border border-[#22201C]/20 rounded-none",
   "gallery-wall":
     "bg-[#F1F0EC] text-[#2A2A2A] hover:bg-[#B8875A] hover:text-white border border-[#2A2A2A]/15 rounded-none",
+  "sidebar-photo":
+    "bg-white text-[#0B4A42] hover:bg-[#0B4A42] hover:text-white border border-[#8FBBAE]/50",
+  infographic: "bg-white text-[#232019] hover:bg-[#FFE8DD] border border-[#EBE7DC]",
+  timeline: "bg-white text-[#1E1B16] hover:bg-[#3730A3] hover:text-white border border-[#E6E1D4]",
+  networked: "bg-white text-[#15202B] hover:text-[#0B5FA8] border border-[#E1E8ED]",
+  "consulting-brief": "bg-white text-black hover:bg-black hover:text-white border border-black",
+  quota: "bg-white text-[#1F1C19] hover:bg-[#E8491D] hover:text-white border border-[#1F1C19]/20",
+  "the-brief": "bg-[#FBF8F0] text-[#1C1A16] hover:text-[#1B2A4A] border border-[#1B2A4A]/25",
+  "open-house":
+    "bg-white text-[#2A2117] hover:bg-[#B5562B] hover:text-white border border-[#2A2117]/15",
+  "the-menu":
+    "bg-[#F7F1E6] text-[#2B2620] hover:bg-[#A9842F] hover:text-white border border-[#A9842F]/30",
+  "personal-best": "bg-[#17171A] text-[#F2F2F0] hover:text-[#37E6E0] border border-[#2A2A2E]",
+  "pitch-deck": "bg-white text-[#191B2B] hover:text-[#2F5CFF] border border-[#E7E9F5]",
+  dashboard: "bg-white text-[#1A2240] hover:text-[#3B6CE0] border border-[#E2E6F0]",
+  reel: "bg-[#17171A] text-[#E7E6E2] hover:text-[#E5342B] border border-white/10",
+  "link-stack": "bg-white text-[#2A2440] hover:bg-[#F3ECFF] border border-black/5",
+  noir: "bg-black text-[#A8A196] hover:text-[#C9A86A] border border-[#C9A86A]/20",
 } satisfies Record<SharePopoverVariant, string>;

@@ -74,7 +74,10 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&display=swap" />
       <style>{`.font-head-tl { font-family: 'Fraunces', Georgia, serif; }`}</style>
 
-      <main className="min-h-screen bg-[#FBF8F3] text-[15.5px] leading-relaxed antialiased" style={{ color: INK }}>
+      <main
+        className="min-h-screen bg-[#FBF8F3] text-[15.5px] leading-relaxed antialiased"
+        style={{ color: INK }}
+      >
         <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
           <header className="flex items-start gap-5 sm:gap-6">
             {profile.avatar_url ? (
@@ -98,11 +101,15 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
               <h1 className="font-head-tl text-[clamp(1.875rem,5.5vw,2.625rem)] font-semibold leading-tight break-words [text-wrap:unset]">
                 {content.full_name}
               </h1>
-              {content.headline && <p className="mt-1.5 text-lg leading-snug text-[#6B6158]">{content.headline}</p>}
+              {content.headline && (
+                <p className="mt-1.5 text-lg leading-snug text-[#6B6158]">{content.headline}</p>
+              )}
             </div>
           </header>
 
-          {content.summary && <p className="mt-8 max-w-[62ch] text-[1.0625rem] leading-[1.65]">{content.summary}</p>}
+          {content.summary && (
+            <p className="mt-8 max-w-[62ch] text-[1.0625rem] leading-[1.65]">{content.summary}</p>
+          )}
 
           {contactLinks.length > 0 && (
             <ul aria-label="Contact" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
@@ -130,7 +137,10 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {experienceEntries.length > 0 && (
             <section aria-labelledby="tl-experience" className="mt-14">
-              <h2 id="tl-experience" className="font-head-tl mb-8 text-2xl font-semibold tracking-[-0.01em]">
+              <h2
+                id="tl-experience"
+                className="font-head-tl mb-8 text-2xl font-semibold tracking-[-0.01em]"
+              >
                 Experience
               </h2>
               <RoadLine
@@ -141,7 +151,10 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
                     <div>
                       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                         <h3 className="text-lg font-bold leading-snug break-words">{job.title}</h3>
-                        <p className="shrink-0 text-sm font-medium tabular-nums" style={{ color: SIENNA }}>
+                        <p
+                          className="shrink-0 text-sm font-medium tabular-nums"
+                          style={{ color: SIENNA }}
+                        >
                           {formatDateSpan(job.start_date, job.end_date)}
                         </p>
                       </div>
@@ -149,7 +162,9 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
                         {job.company}
                         {job.location && <span>, {job.location}</span>}
                       </p>
-                      {job.description && <p className="mt-2.5 leading-relaxed">{job.description}</p>}
+                      {job.description && (
+                        <p className="mt-2.5 leading-relaxed">{job.description}</p>
+                      )}
                       {job.highlights && job.highlights.length > 0 && (
                         <ul className="mt-2.5 space-y-1.5">
                           {job.highlights.map((highlight, i) => (
@@ -173,13 +188,18 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {educationEntries.length > 0 && (
             <section aria-labelledby="tl-education" className="mt-14">
-              <h2 id="tl-education" className="font-head-tl mb-8 text-2xl font-semibold tracking-[-0.01em]">
+              <h2
+                id="tl-education"
+                className="font-head-tl mb-8 text-2xl font-semibold tracking-[-0.01em]"
+              >
                 Education
               </h2>
               <RoadLine
                 entries={educationEntries}
                 renderMarker={({ edu }) => (
-                  <Marker>{edu.graduation_date ? formatYear(edu.graduation_date).slice(-2) : ""}</Marker>
+                  <Marker>
+                    {edu.graduation_date ? formatYear(edu.graduation_date).slice(-2) : ""}
+                  </Marker>
                 )}
                 renderBody={({ edu }) => {
                   return (
@@ -187,7 +207,10 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
                       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                         <h3 className="text-lg font-bold leading-snug break-words">{edu.degree}</h3>
                         {edu.graduation_date && (
-                          <p className="shrink-0 text-sm font-medium tabular-nums" style={{ color: SIENNA }}>
+                          <p
+                            className="shrink-0 text-sm font-medium tabular-nums"
+                            style={{ color: SIENNA }}
+                          >
                             {formatYear(edu.graduation_date)}
                           </p>
                         )}
@@ -205,7 +228,10 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {projects.length > 0 && (
             <section aria-labelledby="tl-projects" className="mt-14">
-              <h2 id="tl-projects" className="font-head-tl mb-6 text-2xl font-semibold tracking-[-0.01em]">
+              <h2
+                id="tl-projects"
+                className="font-head-tl mb-6 text-2xl font-semibold tracking-[-0.01em]"
+              >
                 Projects
               </h2>
               <div className="grid gap-5 sm:grid-cols-2">
@@ -230,12 +256,18 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
                         )}
                       </h3>
                       {project.year && (
-                        <span className="shrink-0 text-xs tabular-nums text-[#847A70]">{project.year}</span>
+                        <span className="shrink-0 text-xs tabular-nums text-[#847A70]">
+                          {project.year}
+                        </span>
                       )}
                     </div>
-                    {project.description && <p className="mt-1.5 text-sm leading-relaxed">{project.description}</p>}
+                    {project.description && (
+                      <p className="mt-1.5 text-sm leading-relaxed">{project.description}</p>
+                    )}
                     {project.technologies && project.technologies.length > 0 && (
-                      <p className="mt-2 text-xs text-[#847A70]">{project.technologies.join(" · ")}</p>
+                      <p className="mt-2 text-xs text-[#847A70]">
+                        {project.technologies.join(" · ")}
+                      </p>
                     )}
                   </article>
                 ))}
@@ -245,7 +277,10 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {skills.length > 0 && (
             <section aria-labelledby="tl-skills" className="mt-14">
-              <h2 id="tl-skills" className="font-head-tl mb-5 text-2xl font-semibold tracking-[-0.01em]">
+              <h2
+                id="tl-skills"
+                className="font-head-tl mb-5 text-2xl font-semibold tracking-[-0.01em]"
+              >
                 Skills
               </h2>
               <dl className="space-y-3">
@@ -261,12 +296,18 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {certifications.length > 0 && (
             <section aria-labelledby="tl-certifications" className="mt-14">
-              <h2 id="tl-certifications" className="font-head-tl mb-6 text-2xl font-semibold tracking-[-0.01em]">
+              <h2
+                id="tl-certifications"
+                className="font-head-tl mb-6 text-2xl font-semibold tracking-[-0.01em]"
+              >
                 Certifications
               </h2>
               <ul className="space-y-3">
                 {certifications.map((cert) => (
-                  <li key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
+                  <li
+                    key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`}
+                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5"
+                  >
                     <p className="font-bold leading-snug break-words">
                       {cert.url ? (
                         <a
@@ -280,10 +321,14 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
                       ) : (
                         cert.name
                       )}
-                      {cert.issuer && <span className="font-normal text-[#847A70]"> — {cert.issuer}</span>}
+                      {cert.issuer && (
+                        <span className="font-normal text-[#847A70]"> — {cert.issuer}</span>
+                      )}
                     </p>
                     {cert.date && (
-                      <p className="shrink-0 text-sm tabular-nums text-[#847A70]">{formatYear(cert.date)}</p>
+                      <p className="shrink-0 text-sm tabular-nums text-[#847A70]">
+                        {formatYear(cert.date)}
+                      </p>
                     )}
                   </li>
                 ))}
@@ -292,7 +337,12 @@ export const Timeline: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           <div className="mt-16 border-t border-[#E6DED3] pt-8">
-            <ShareBar handle={profile.handle} title={`${content.full_name}'s Portfolio`} name={content.full_name} variant="timeline" />
+            <ShareBar
+              handle={profile.handle}
+              title={`${content.full_name}'s Portfolio`}
+              name={content.full_name}
+              variant="timeline"
+            />
           </div>
         </div>
       </main>

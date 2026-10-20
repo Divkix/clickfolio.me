@@ -86,8 +86,14 @@ function SkillRing({
 
 function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <h2 className="font-head-ig mb-6 flex items-center gap-2.5 text-[1.375rem] font-extrabold tracking-[-0.01em]" style={{ color: INK }}>
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${TEAL}1A`, color: TEAL }}>
+    <h2
+      className="font-head-ig mb-6 flex items-center gap-2.5 text-[1.375rem] font-extrabold tracking-[-0.01em]"
+      style={{ color: INK }}
+    >
+      <span
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: `${TEAL}1A`, color: TEAL }}
+      >
         {icon}
       </span>
       {children}
@@ -130,7 +136,10 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="font-head-ig text-[clamp(2rem,5.5vw,2.75rem)] font-extrabold leading-tight tracking-[-0.01em] break-words [text-wrap:unset]" style={{ color: INK }}>
+              <h1
+                className="font-head-ig text-[clamp(2rem,5.5vw,2.75rem)] font-extrabold leading-tight tracking-[-0.01em] break-words [text-wrap:unset]"
+                style={{ color: INK }}
+              >
                 {content.full_name}
               </h1>
               {content.headline && (
@@ -141,11 +150,26 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </header>
 
-          {(experience.length > 0 || skills.length > 0 || projects.length > 0 || certifications.length > 0) && (
+          {(experience.length > 0 ||
+            skills.length > 0 ||
+            projects.length > 0 ||
+            certifications.length > 0) && (
             <div className="mt-8 flex flex-wrap gap-3">
-              <StatChip value={experience.length} label={experience.length === 1 ? "role" : "roles"} color={CORAL} />
-              <StatChip value={skills.length} label={skills.length === 1 ? "skill area" : "skill areas"} color={TEAL} />
-              <StatChip value={projects.length} label={projects.length === 1 ? "project" : "projects"} color={AMBER} />
+              <StatChip
+                value={experience.length}
+                label={experience.length === 1 ? "role" : "roles"}
+                color={CORAL}
+              />
+              <StatChip
+                value={skills.length}
+                label={skills.length === 1 ? "skill area" : "skill areas"}
+                color={TEAL}
+              />
+              <StatChip
+                value={projects.length}
+                label={projects.length === 1 ? "project" : "projects"}
+                color={AMBER}
+              />
               <StatChip
                 value={certifications.length}
                 label={certifications.length === 1 ? "certification" : "certifications"}
@@ -215,7 +239,9 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {experience.length > 0 && (
             <section aria-labelledby="ig-experience" className="mt-14">
-              <SectionLabel icon={<Briefcase className="h-4 w-4" aria-hidden="true" />}>Experience</SectionLabel>
+              <SectionLabel icon={<Briefcase className="h-4 w-4" aria-hidden="true" />}>
+                Experience
+              </SectionLabel>
               <ol className="space-y-7">
                 {experience.map((job) => (
                   <li
@@ -224,7 +250,10 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <h3 className="text-lg font-bold leading-snug break-words">{job.title}</h3>
-                      <p className="shrink-0 text-sm font-medium tabular-nums" style={{ color: CORAL }}>
+                      <p
+                        className="shrink-0 text-sm font-medium tabular-nums"
+                        style={{ color: CORAL }}
+                      >
                         {formatDateSpan(job.start_date, job.end_date)}
                       </p>
                     </div>
@@ -255,7 +284,9 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {projects.length > 0 && (
             <section aria-labelledby="ig-projects" className="mt-14">
-              <SectionLabel icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}>Projects</SectionLabel>
+              <SectionLabel icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}>
+                Projects
+              </SectionLabel>
               <div className="grid gap-5 sm:grid-cols-2">
                 {projects.map((project) => (
                   <article
@@ -283,7 +314,9 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
                         </span>
                       )}
                     </div>
-                    {project.description && <p className="mt-1.5 text-sm leading-relaxed">{project.description}</p>}
+                    {project.description && (
+                      <p className="mt-1.5 text-sm leading-relaxed">{project.description}</p>
+                    )}
                     {project.technologies && project.technologies.length > 0 && (
                       <p className="mt-2.5 text-xs" style={{ color: AMBER }}>
                         {project.technologies.join(" · ")}
@@ -297,7 +330,9 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {education.length > 0 && (
             <section aria-labelledby="ig-education" className="mt-14">
-              <SectionLabel icon={<GraduationCap className="h-4 w-4" aria-hidden="true" />}>Education</SectionLabel>
+              <SectionLabel icon={<GraduationCap className="h-4 w-4" aria-hidden="true" />}>
+                Education
+              </SectionLabel>
               <ul className="space-y-4">
                 {education.map((edu) => (
                   <li
@@ -324,7 +359,9 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {certifications.length > 0 && (
             <section aria-labelledby="ig-certifications" className="mt-14">
-              <SectionLabel icon={<Award className="h-4 w-4" aria-hidden="true" />}>Certifications</SectionLabel>
+              <SectionLabel icon={<Award className="h-4 w-4" aria-hidden="true" />}>
+                Certifications
+              </SectionLabel>
               <div className="flex flex-wrap gap-3">
                 {certifications.map((cert) => (
                   <div
@@ -347,7 +384,9 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
                     </p>
                     {(cert.issuer || cert.date) && (
                       <p className="text-xs" style={{ color: MUTED }}>
-                        {[cert.issuer, cert.date ? formatYear(cert.date) : null].filter(Boolean).join(" · ")}
+                        {[cert.issuer, cert.date ? formatYear(cert.date) : null]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                     )}
                   </div>

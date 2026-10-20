@@ -26,7 +26,10 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
 
   const contactLinks = getContactLinks(contact).filter((link) => link.type !== "location");
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
-  const heroStat = experience?.length ? { value: experience.length, label: experience.length === 1 ? "role" : "roles" } : null;
+
+  const heroStat = experience?.length
+    ? { value: experience.length, label: experience.length === 1 ? "role" : "roles" }
+    : null;
 
   return (
     <>
@@ -130,26 +133,34 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {skillGroups.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-sm font-bold uppercase tracking-[0.1em] mb-3" style={{ color: TERRACOTTA }}>
+              <h2
+                className="text-sm font-bold uppercase tracking-[0.1em] mb-3"
+                style={{ color: TERRACOTTA }}
+              >
                 Amenities
               </h2>
               <div className="flex flex-wrap gap-2">
-                {skillGroups.flatMap((g) => g.items).map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border px-3 py-1 text-sm"
-                    style={{ borderColor: `${TERRACOTTA}55`, color: TERRACOTTA }}
-                  >
-                    {item}
-                  </span>
-                ))}
+                {skillGroups
+                  .flatMap((g) => g.items)
+                  .map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border px-3 py-1 text-sm"
+                      style={{ borderColor: `${TERRACOTTA}55`, color: TERRACOTTA }}
+                    >
+                      {item}
+                    </span>
+                  ))}
               </div>
             </section>
           )}
 
           {experience && experience.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-sm font-bold uppercase tracking-[0.1em] mb-5" style={{ color: TERRACOTTA }}>
+              <h2
+                className="text-sm font-bold uppercase tracking-[0.1em] mb-5"
+                style={{ color: TERRACOTTA }}
+              >
                 Listings on Record
               </h2>
               <div className="space-y-6">
@@ -188,7 +199,10 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {projects && projects.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-sm font-bold uppercase tracking-[0.1em] mb-5" style={{ color: TERRACOTTA }}>
+              <h2
+                className="text-sm font-bold uppercase tracking-[0.1em] mb-5"
+                style={{ color: TERRACOTTA }}
+              >
                 Highlighted Wins
               </h2>
               <div className="space-y-4">
@@ -208,7 +222,9 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
                         project.title
                       )}
                     </h3>
-                    {project.description && <p className="text-[0.9375rem]">{project.description}</p>}
+                    {project.description && (
+                      <p className="text-[0.9375rem]">{project.description}</p>
+                    )}
                   </article>
                 ))}
               </div>
@@ -217,7 +233,10 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {education && education.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-sm font-bold uppercase tracking-[0.1em] mb-5" style={{ color: TERRACOTTA }}>
+              <h2
+                className="text-sm font-bold uppercase tracking-[0.1em] mb-5"
+                style={{ color: TERRACOTTA }}
+              >
                 Credentials
               </h2>
               <div className="space-y-3">
@@ -226,7 +245,9 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
                     <p className="font-semibold break-words">{edu.degree}</p>
                     <p className="text-sm text-[#6B5A47]">
                       {edu.institution}
-                      {edu.graduation_date && <span> · {formatShortDate(edu.graduation_date)}</span>}
+                      {edu.graduation_date && (
+                        <span> · {formatShortDate(edu.graduation_date)}</span>
+                      )}
                     </p>
                   </div>
                 ))}

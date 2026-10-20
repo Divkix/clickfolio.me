@@ -1,5 +1,6 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import type { ContactLinkDescriptor } from "@/lib/templates/contact-links";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
@@ -7,6 +8,29 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 // The McKinsey/Harvard "one-pager": black on white, thin rules, dash-led bullets,
 // tabular numerals, almost no decoration. Built to be screenshotted and printed as one page.
+
+function ContactLinkLabel({ link }: { link: ContactLinkDescriptor }): React.ReactElement {
+  if (link.type === "location") return <>{link.label}</>;
+
+  if (link.type === "phone") {
+    return (
+      <a href={link.href} className="hover:underline">
+        {link.label}
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={link.href}
+      target={link.isExternal ? "_blank" : undefined}
+      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+      className="hover:underline"
+    >
+      {link.label}
+    </a>
+  );
+}
 
 export const ConsultingBrief: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
@@ -41,23 +65,12 @@ export const ConsultingBrief: React.FC<TemplateProps> = ({ content, profile }) =
               {contactLinks.length > 0 && headline && <span aria-hidden="true">—</span>}
               {contactLinks.map((link, i) => (
                 <span key={link.type} className="min-w-0 break-all">
-                  {i > 0 && <span aria-hidden="true" className="mr-2">|</span>}
-                  {link.type === "location" ? (
-                    link.label
-                  ) : link.type === "phone" ? (
-                    <a href={link.href} className="hover:underline">
-                      {link.label}
-                    </a>
-                  ) : (
-                    <a
-                      href={link.href}
-                      target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                      className="hover:underline"
-                    >
-                      {link.label}
-                    </a>
+                  {i > 0 && (
+                    <span aria-hidden="true" className="mr-2">
+                      |
+                    </span>
                   )}
+                  <ContactLinkLabel link={link} />
                 </span>
               ))}
             </div>
@@ -76,9 +89,7 @@ export const ConsultingBrief: React.FC<TemplateProps> = ({ content, profile }) =
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4">
                       <h3 className="font-bold break-words">
                         {job.company}
-                        {job.location && (
-                          <span className="font-normal"> — {job.location}</span>
-                        )}
+                        {job.location && <span className="font-normal"> — {job.location}</span>}
                       </h3>
                       <p className="text-sm tabular-nums shrink-0">
                         {formatDateSpan(job.start_date, job.end_date)}
@@ -114,7 +125,12 @@ export const ConsultingBrief: React.FC<TemplateProps> = ({ content, profile }) =
                   <p key={`${project.title}-${project.year ?? ""}`}>
                     <span className="font-bold break-words">
                       {project.url ? (
-                        <a href={project.url} target="_blank" rel="ugc nofollow noopener noreferrer" className="hover:underline">
+                        <a
+                          href={project.url}
+                          target="_blank"
+                          rel="ugc nofollow noopener noreferrer"
+                          className="hover:underline"
+                        >
                           {project.title}
                         </a>
                       ) : (

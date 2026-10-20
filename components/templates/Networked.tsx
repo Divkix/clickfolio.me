@@ -195,9 +195,7 @@ export const Networked: React.FC<TemplateProps> = ({ content, profile }) => {
                       )}
                     </h3>
                     {project.description && (
-                      <p className="mt-1 text-[0.9375rem] leading-relaxed">
-                        {project.description}
-                      </p>
+                      <p className="mt-1 text-[0.9375rem] leading-relaxed">{project.description}</p>
                     )}
                     {project.technologies && project.technologies.length > 0 && (
                       <p className="mt-1 text-sm text-[#536471]">

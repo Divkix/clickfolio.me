@@ -36,13 +36,23 @@ function Slide({
 }
 
 export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
-  const { full_name, summary, headline, contact, experience, education, skills, projects, certifications } =
-    content;
+  const {
+    full_name,
+    summary,
+    headline,
+    contact,
+    experience,
+    education,
+    skills,
+    projects,
+    certifications,
+  } = content;
 
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
 
   let slideNo = 1;
+
   const nextSlide = () => {
     slideNo += 1;
 
@@ -133,7 +143,9 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
                     </div>
                     <p className="text-sm font-semibold" style={{ color: BLUE }}>
                       {job.company}
-                      {job.location && <span className="text-[#6B6F8A] font-normal">, {job.location}</span>}
+                      {job.location && (
+                        <span className="text-[#6B6F8A] font-normal">, {job.location}</span>
+                      )}
                     </p>
                     {job.description && <p className="mt-2 text-[0.9375rem]">{job.description}</p>}
                     {job.highlights && job.highlights.length > 0 && (
@@ -186,15 +198,17 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           {skillGroups.length > 0 && (
             <Slide n={nextSlide()} title="Stack">
               <div className="flex flex-wrap gap-2">
-                {skillGroups.flatMap((g) => g.items).map((item) => (
-                  <span
-                    key={item}
-                    className="text-sm font-semibold rounded-full px-3.5 py-1.5"
-                    style={{ backgroundColor: `${BLUE}14`, color: BLUE }}
-                  >
-                    {item}
-                  </span>
-                ))}
+                {skillGroups
+                  .flatMap((g) => g.items)
+                  .map((item) => (
+                    <span
+                      key={item}
+                      className="text-sm font-semibold rounded-full px-3.5 py-1.5"
+                      style={{ backgroundColor: `${BLUE}14`, color: BLUE }}
+                    >
+                      {item}
+                    </span>
+                  ))}
               </div>
             </Slide>
           )}
@@ -207,7 +221,9 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
                     <p className="font-bold break-words">{edu.degree}</p>
                     <p className="text-sm text-[#6B6F8A]">
                       {edu.institution}
-                      {edu.graduation_date && <span> · {formatShortDate(edu.graduation_date)}</span>}
+                      {edu.graduation_date && (
+                        <span> · {formatShortDate(edu.graduation_date)}</span>
+                      )}
                     </p>
                   </div>
                 ))}

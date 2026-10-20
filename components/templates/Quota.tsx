@@ -1,5 +1,6 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import type { ContactLinkDescriptor } from "@/lib/templates/contact-links";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
@@ -9,6 +10,29 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // straight from the data (never fabricated), and highlights read as bold call-outs.
 
 const ACCENT = "#E8491D";
+
+function ContactLinkLabel({ link }: { link: ContactLinkDescriptor }): React.ReactElement {
+  if (link.type === "location") return <>{link.label}</>;
+
+  if (link.type === "phone") {
+    return (
+      <a href={link.href} className="hover:text-[#1F1C19]">
+        {link.label}
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={link.href}
+      target={link.isExternal ? "_blank" : undefined}
+      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+      className="hover:text-[#1F1C19]"
+    >
+      {link.label}
+    </a>
+  );
+}
 
 export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
@@ -72,7 +96,10 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
             <div className="mt-8 flex flex-wrap gap-6 sm:gap-10 border-y-2 border-[#1F1C19] py-5">
               {stats.map((stat) => (
                 <div key={stat.label}>
-                  <p className="qt-num text-4xl font-bold tabular-nums leading-none" style={{ color: ACCENT }}>
+                  <p
+                    className="qt-num text-4xl font-bold tabular-nums leading-none"
+                    style={{ color: ACCENT }}
+                  >
                     {stat.value}
                   </p>
                   <p className="text-xs uppercase tracking-[0.08em] text-[#5A5450] mt-1">
@@ -89,22 +116,7 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
             <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[#5A5450]">
               {contactLinks.map((link) => (
                 <li key={link.type} className="min-w-0 break-all">
-                  {link.type === "location" ? (
-                    link.label
-                  ) : link.type === "phone" ? (
-                    <a href={link.href} className="hover:text-[#1F1C19]">
-                      {link.label}
-                    </a>
-                  ) : (
-                    <a
-                      href={link.href}
-                      target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                      className="hover:text-[#1F1C19]"
-                    >
-                      {link.label}
-                    </a>
-                  )}
+                  <ContactLinkLabel link={link} />
                 </li>
               ))}
             </ul>
@@ -112,9 +124,7 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {experience && experience.length > 0 && (
             <section className="mt-12">
-              <h2 className="qt-num text-2xl font-bold uppercase tracking-wide mb-6">
-                Experience
-              </h2>
+              <h2 className="qt-num text-2xl font-bold uppercase tracking-wide mb-6">Experience</h2>
               <div className="space-y-8">
                 {experience.map((job) => (
                   <article
@@ -175,9 +185,7 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
                       )}
                     </h3>
                     {project.description && (
-                      <p className="mt-1 text-[0.9375rem] leading-relaxed">
-                        {project.description}
-                      </p>
+                      <p className="mt-1 text-[0.9375rem] leading-relaxed">{project.description}</p>
                     )}
                   </article>
                 ))}
@@ -211,15 +219,17 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
               <section>
                 <h2 className="qt-num text-2xl font-bold uppercase tracking-wide mb-5">Skills</h2>
                 <div className="flex flex-wrap gap-2">
-                  {skillGroups.flatMap((g) => g.items).map((item) => (
-                    <span
-                      key={item}
-                      className="rounded px-2.5 py-1 text-sm font-semibold"
-                      style={{ backgroundColor: `${ACCENT}1A`, color: ACCENT }}
-                    >
-                      {item}
-                    </span>
-                  ))}
+                  {skillGroups
+                    .flatMap((g) => g.items)
+                    .map((item) => (
+                      <span
+                        key={item}
+                        className="rounded px-2.5 py-1 text-sm font-semibold"
+                        style={{ backgroundColor: `${ACCENT}1A`, color: ACCENT }}
+                      >
+                        {item}
+                      </span>
+                    ))}
                 </div>
               </section>
             )}
