@@ -4,7 +4,11 @@ import { z } from "zod";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 import { getOptionalEnvValue } from "@/lib/utils/env";
-import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
+import {
+  COOKIE_MAX_AGE,
+  COOKIE_NAME,
+  createSignedCookieValue,
+} from "@/lib/utils/pending-upload-cookie";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -181,13 +185,14 @@ export async function POST(request: Request) {
       return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
 
-    // 10. Create signed cookie for claim verification (Issue #89)
+    // Signed cookie for claim verification (Issue #89); /api/upload/pending refreshes it
+    // for the wizard flow, so both writers must use the same attributes and max-age.
     const cookieSecret = getOptionalEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
     let setCookieHeader: string | undefined;
 
     if (cookieSecret && z.string().safeParse(cookieSecret).success) {
       const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
-      setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=1800; Path=/`;
+      setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Lax; Max-Age=${COOKIE_MAX_AGE}; Path=/`;
 
       if (typedEnv.NODE_ENV === "production") {
         setCookieHeader += "; Secure";
