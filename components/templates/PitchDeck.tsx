@@ -10,22 +10,35 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const BLUE = "#2F5CFF";
 
+const DOT_GRID_LIGHT: React.CSSProperties = {
+  backgroundImage: "radial-gradient(circle, rgba(47,92,255,0.09) 1px, transparent 1px)",
+  backgroundSize: "20px 20px",
+};
+
+const DOT_GRID_ON_BLUE: React.CSSProperties = {
+  backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px)",
+  backgroundSize: "18px 18px",
+};
+
 function Slide({
   n,
+  total,
   title,
   children,
 }: {
   n: number;
+  total: number;
   title: string;
   children: React.ReactNode;
 }): React.ReactElement {
   return (
-    <section className="relative rounded-2xl border border-[#E7E9F5] bg-white px-6 sm:px-10 py-8 mt-6">
+    <section className="relative rounded-2xl border-2 border-[#E7E9F5] bg-white px-6 sm:px-10 py-8 mt-7 shadow-[0_10px_28px_-18px_rgba(47,92,255,0.35)]">
       <span
         className="absolute -top-3 left-6 sm:left-10 text-[0.6875rem] font-bold tabular-nums rounded-full px-2.5 py-1 text-white"
         style={{ backgroundColor: BLUE }}
       >
         {String(n).padStart(2, "0")}
+        <span className="opacity-60">/{String(total).padStart(2, "0")}</span>
       </span>
       <h2 className="text-sm font-extrabold uppercase tracking-[0.1em] text-[#6B6F8A] mb-5">
         {title}
@@ -61,6 +74,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
   ].filter((key): key is string => key !== null);
 
   const slideNumber = (key: string) => sectionOrder.indexOf(key) + 2;
+  const totalSlides = sectionOrder.length + 1;
 
   return (
     <>
@@ -68,16 +82,25 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
       <style>{`
         .font-pd-body, .font-pd-body :is(h1, h2, h3, p, li, dt, dd, a, span) { font-family: 'Space Grotesk', ui-sans-serif, sans-serif; }
       `}</style>
-      <div className="font-pd-body min-h-screen bg-[#F4F5FB] text-[#191B2B] overflow-x-hidden">
+      <div
+        className="font-pd-body min-h-screen bg-[#F4F5FB] text-[#191B2B] overflow-x-hidden"
+        style={DOT_GRID_LIGHT}
+      >
         <main className="mx-auto max-w-[48rem] px-5 sm:px-8 pt-14 pb-24">
           <section
-            className="relative rounded-2xl px-6 sm:px-10 py-12 text-white overflow-hidden"
+            className="relative rounded-2xl px-6 sm:px-10 py-12 text-white overflow-hidden shadow-[0_18px_40px_-20px_rgba(47,92,255,0.55)]"
             style={{ backgroundColor: BLUE }}
           >
-            <span className="absolute -top-3 left-6 sm:left-10 text-[0.6875rem] font-bold tabular-nums rounded-full px-2.5 py-1 bg-white text-[#191B2B]">
-              01
+            <div className="absolute inset-0 z-0" style={DOT_GRID_ON_BLUE} aria-hidden="true" />
+            <div
+              className="absolute -right-10 -top-10 z-0 h-40 w-40 rounded-full opacity-25"
+              style={{ background: "radial-gradient(circle, #FFFFFF, transparent 70%)" }}
+              aria-hidden="true"
+            />
+            <span className="absolute z-10 -top-3 left-6 sm:left-10 text-[0.6875rem] font-bold tabular-nums rounded-full px-2.5 py-1 bg-white text-[#191B2B]">
+              01<span className="opacity-50">/{String(totalSlides).padStart(2, "0")}</span>
             </span>
-            <div className="flex flex-wrap items-center gap-6">
+            <div className="relative z-10 flex flex-wrap items-center gap-6">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -103,7 +126,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             {contactLinks.length > 0 && (
-              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+              <ul className="relative z-10 mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
                 {contactLinks.map((link) => (
                   <li key={link.type} className="min-w-0 break-all">
                     {link.href ? (
@@ -125,13 +148,13 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           </section>
 
           {summary && (
-            <Slide n={slideNumber("summary")} title="The One-Liner">
+            <Slide n={slideNumber("summary")} total={totalSlides} title="The One-Liner">
               <p className="text-[1.0625rem] leading-[1.7]">{summary}</p>
             </Slide>
           )}
 
           {experience && experience.length > 0 && (
-            <Slide n={slideNumber("experience")} title="Traction">
+            <Slide n={slideNumber("experience")} total={totalSlides} title="Traction">
               <div className="space-y-6">
                 {experience.map((job) => (
                   <article
@@ -170,7 +193,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {projects && projects.length > 0 && (
-            <Slide n={slideNumber("projects")} title="Side Bets">
+            <Slide n={slideNumber("projects")} total={totalSlides} title="Side Bets">
               <div className="grid sm:grid-cols-2 gap-4">
                 {projects.map((project) => (
                   <div key={`${project.title}-${project.year ?? ""}`} className="min-w-0">
@@ -199,7 +222,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {skillGroups.length > 0 && (
-            <Slide n={slideNumber("skills")} title="Stack">
+            <Slide n={slideNumber("skills")} total={totalSlides} title="Stack">
               <div className="flex flex-wrap gap-2">
                 {skillGroups
                   .flatMap((g) => g.items)
@@ -217,7 +240,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {education && education.length > 0 && (
-            <Slide n={slideNumber("education")} title="Background">
+            <Slide n={slideNumber("education")} total={totalSlides} title="Background">
               <div className="space-y-3">
                 {education.map((edu) => (
                   <div key={`${edu.institution}-${edu.degree}`} className="min-w-0">
@@ -235,7 +258,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {certifications && certifications.length > 0 && (
-            <Slide n={slideNumber("certifications")} title="Credentials">
+            <Slide n={slideNumber("certifications")} total={totalSlides} title="Credentials">
               <ul className="space-y-1.5">
                 {certifications.map((cert) => (
                   <li key={`${cert.name}-${cert.issuer ?? ""}`} className="text-[0.9375rem]">

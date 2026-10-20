@@ -162,7 +162,7 @@ export const shareButtonStyles = {
   "pitch-deck":
     "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
   dashboard:
-    "bg-white text-[#3B6CE0] hover:bg-[#3B6CE0] hover:text-white border border-[#E2E6F0] rounded-md px-3 py-1.5 text-sm",
+    "bg-transparent text-[#E8EBF3] hover:text-[#4C8DFF] border border-[#1F2530] hover:border-[#4C8DFF] rounded-md px-3 py-1.5 text-sm",
   reel: "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
   "link-stack":
     "bg-white/80 text-[#5B3DCB] hover:bg-white border border-black/5 rounded-full px-3 py-1.5 text-sm",
@@ -221,7 +221,7 @@ export const shareTriggerStyles = {
   "the-menu": "bg-[#2B2620] text-[#F7F1E6] border-[#A9842F]/50 rounded-full shadow-lg",
   "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/50 rounded-sm shadow-lg",
   "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
-  dashboard: "bg-[#3B6CE0] text-white border-[#3B6CE0] rounded-md shadow-md",
+  dashboard: "bg-[#10141C] text-[#E8EBF3] border-[#1F2530] rounded-md shadow-lg",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
   "link-stack": "bg-white text-[#5B3DCB] border-black/5 rounded-full shadow-md",
   noir: "bg-black text-[#C9A86A] border-[#C9A86A]/40 rounded-sm shadow-lg",
@@ -266,7 +266,7 @@ export const sharePanelStyles = {
   "the-menu": "bg-[#F7F1E6] text-[#2B2620] border-[#A9842F]/40 rounded-xl",
   "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/40 rounded-sm",
   "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
-  dashboard: "bg-white text-[#1A2240] border-[#E2E6F0] rounded-md",
+  dashboard: "bg-[#10141C] text-[#E8EBF3] border-[#1F2530] rounded-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
   "link-stack": "bg-white text-[#2A2440] border-black/5 rounded-2xl",
   noir: "bg-black text-[#EDEAE2] border-[#C9A86A]/30 rounded-sm",
@@ -330,7 +330,7 @@ export const shareItemStyles = {
     "bg-[#F7F1E6] text-[#2B2620] hover:bg-[#A9842F] hover:text-white border border-[#A9842F]/30",
   "personal-best": "bg-[#17171A] text-[#F2F2F0] hover:text-[#37E6E0] border border-[#2A2A2E]",
   "pitch-deck": "bg-white text-[#191B2B] hover:text-[#2F5CFF] border border-[#E7E9F5]",
-  dashboard: "bg-white text-[#1A2240] hover:text-[#3B6CE0] border border-[#E2E6F0]",
+  dashboard: "bg-[#161B24] text-[#9099AD] hover:text-[#4C8DFF] border border-[#1F2530]",
   reel: "bg-[#17171A] text-[#E7E6E2] hover:text-[#E5342B] border border-white/10",
   "link-stack": "bg-white text-[#2A2440] hover:bg-[#F3ECFF] border border-black/5",
   noir: "bg-black text-[#A8A196] hover:text-[#C9A86A] border border-[#C9A86A]/20",

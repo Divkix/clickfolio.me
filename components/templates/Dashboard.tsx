@@ -5,21 +5,54 @@ import { formatDateSpan, formatShortDate, getInitials } from "@/lib/templates/he
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-// An analytics dashboard read on a career: KPI tiles up top, skills as mini bar-chart rows,
-// experience as metric-tagged panels. Bar lengths are derived from a stable index, not
+// A real analytics-tool read on a career: dark canvas, monospace numerals, a dotted grid, and
+// bar chart that is actually a chart. Bar lengths derive from a stable index, never
 // Math.random, so server and client markup match.
 
-const PALETTE = ["#3B6CE0", "#1FA679", "#D98A2B", "#8457E0"];
+const PALETTE = ["#4C8DFF", "#2DD4BF", "#F5A623", "#A78BFA"];
 
 function colorFor(i: number): string {
   return PALETTE[i % PALETTE.length] ?? PALETTE[0];
 }
 
-function KpiTile({ value, label }: { value: string | number; label: string }): React.ReactElement {
+function Sparkbars({ seed, color }: { seed: number; color: string }): React.ReactElement {
+  const bars = Array.from({ length: 7 }, (_, i) => 22 + ((seed * 7 + i * 11) % 68));
+
   return (
-    <div className="rounded-xl border border-[#E2E6F0] bg-white px-4 py-3.5 min-w-0">
-      <p className="text-2xl font-bold tabular-nums text-[#1A2240]">{value}</p>
-      <p className="mt-0.5 text-[0.75rem] text-[#6B7390] break-words">{label}</p>
+    <div className="mt-2.5 flex items-end gap-[3px] h-5" aria-hidden="true">
+      {bars.map((h, i) => (
+        <span
+          key={`${seed}-${i}`}
+          className="w-[3px] rounded-full"
+          style={{
+            height: `${h}%`,
+            backgroundColor: color,
+            opacity: 0.35 + (i / bars.length) * 0.65,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function KpiTile({
+  value,
+  label,
+  index,
+}: {
+  value: string | number;
+  label: string;
+  index: number;
+}): React.ReactElement {
+  const color = colorFor(index);
+
+  return (
+    <div className="rounded-lg border border-[#1F2530] bg-[#10141C] px-4 py-3.5 min-w-0">
+      <p className="font-db-mono text-[1.625rem] font-semibold tabular-nums text-[#E8EBF3] leading-none">
+        {value}
+      </p>
+      <p className="mt-1.5 text-[0.75rem] text-[#7A8296] break-words">{label}</p>
+      <Sparkbars seed={index + 1} color={color} />
     </div>
   );
 }
@@ -40,6 +73,7 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
   const allSkillItems = skillGroups.flatMap((g) => g.items);
+  const maxSkillBar = Math.min(allSkillItems.length, 8);
 
   const kpis: Array<{ value: string | number; label: string }> = [];
 
@@ -68,11 +102,18 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" />
       <style>{`
-        .font-db-body, .font-db-body :is(h1, h2, h3, p, li, dt, dd, a, span) { font-family: 'Inter', ui-sans-serif, sans-serif; }
+        .font-db-body, .font-db-body :is(p, li, dt, dd, a, span, button) { font-family: 'Inter', ui-sans-serif, sans-serif; }
+        .font-db-body :is(h1, h2, h3), .font-db-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
       `}</style>
-      <div className="font-db-body min-h-screen bg-[#F3F5FA] text-[#1A2240] overflow-x-hidden">
+      <div
+        className="font-db-body min-h-screen bg-[#0A0D12] text-[#E8EBF3] overflow-x-hidden"
+        style={{
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
+        }}
+      >
         <main className="mx-auto max-w-[52rem] px-5 sm:px-8 pt-14 pb-24">
           <header className="flex flex-wrap items-center gap-5">
             {profile.avatar_url ? (
@@ -81,21 +122,25 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
                 alt=""
                 width={76}
                 height={76}
-                className="w-[4.75rem] h-[4.75rem] rounded-xl object-cover shrink-0"
+                className="w-[4.75rem] h-[4.75rem] rounded-lg object-cover shrink-0 ring-1 ring-[#1F2530]"
               />
             ) : (
               <div
                 aria-hidden="true"
-                className="w-[4.75rem] h-[4.75rem] rounded-xl bg-[#3B6CE0]/10 text-[#3B6CE0] flex items-center justify-center text-xl font-bold shrink-0"
+                className="w-[4.75rem] h-[4.75rem] rounded-lg bg-[#4C8DFF]/10 text-[#4C8DFF] flex items-center justify-center text-xl font-bold shrink-0 ring-1 ring-[#1F2530]"
               >
                 {getInitials(full_name)}
               </div>
             )}
             <div className="min-w-0">
-              <h1 className="text-[clamp(1.75rem,5vw,2.5rem)] font-bold leading-tight break-words">
+              <div className="flex items-center gap-2 text-[0.6875rem] uppercase tracking-[0.12em] text-[#4C8DFF] font-db-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2DD4BF]" aria-hidden="true" />
+                live profile
+              </div>
+              <h1 className="mt-1 text-[clamp(1.75rem,5vw,2.5rem)] font-bold leading-tight break-words text-white">
                 {full_name}
               </h1>
-              {headline && <p className="mt-1 text-[#6B7390] break-words">{headline}</p>}
+              {headline && <p className="mt-1 text-[#9099AD] break-words">{headline}</p>}
             </div>
           </header>
 
@@ -108,12 +153,12 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
                       href={link.href}
                       target={link.isExternal ? "_blank" : undefined}
                       rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                      className="font-semibold text-[#3B6CE0] hover:underline"
+                      className="font-semibold text-[#4C8DFF] hover:text-[#7AABFF]"
                     >
                       {link.label}
                     </a>
                   ) : (
-                    <span className="text-[#6B7390]">{link.label}</span>
+                    <span className="text-[#7A8296]">{link.label}</span>
                   )}
                 </li>
               ))}
@@ -122,54 +167,60 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {kpis.length > 0 && (
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {kpis.map((kpi) => (
-                <KpiTile key={kpi.label} value={kpi.value} label={kpi.label} />
+              {kpis.map((kpi, i) => (
+                <KpiTile key={kpi.label} value={kpi.value} label={kpi.label} index={i} />
               ))}
             </div>
           )}
 
           {summary && (
-            <p className="mt-8 rounded-xl border border-[#E2E6F0] bg-white px-5 py-4 text-[1rem] leading-[1.7]">
+            <p className="mt-6 rounded-lg border border-[#1F2530] bg-[#10141C] px-5 py-4 text-[1rem] leading-[1.7] text-[#CBD1E0]">
               {summary}
             </p>
           )}
 
-          <div className="mt-10 grid lg:grid-cols-[1fr_16rem] gap-8">
+          <div className="mt-10 grid lg:grid-cols-[1fr_17rem] gap-8">
             <div className="min-w-0">
               {experience && experience.length > 0 && (
                 <section>
-                  <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#6B7390] mb-4">
+                  <h2 className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#7A8296] mb-4 flex items-center gap-2">
+                    <span className="h-px flex-1 bg-[#1F2530]" aria-hidden="true" />
                     Experience
                   </h2>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {experience.map((job, i) => (
                       <article
                         key={`${job.company}-${job.title}-${job.start_date}`}
-                        className="rounded-xl border border-[#E2E6F0] bg-white p-5 min-w-0"
+                        className="rounded-lg border border-[#1F2530] bg-[#10141C] p-5 min-w-0 border-l-[3px]"
+                        style={{ borderLeftColor: colorFor(i) }}
                       >
                         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                          <h3 className="font-bold break-words">{job.title}</h3>
-                          <p className="text-sm text-[#6B7390] tabular-nums shrink-0">
+                          <h3 className="font-bold break-words text-white">{job.title}</h3>
+                          <p className="font-db-mono text-[0.8125rem] text-[#7A8296] tabular-nums shrink-0">
                             {formatDateSpan(job.start_date, job.end_date)}
                           </p>
                         </div>
                         <p className="text-sm font-semibold" style={{ color: colorFor(i) }}>
                           {job.company}
                           {job.location && (
-                            <span className="text-[#6B7390] font-normal">, {job.location}</span>
+                            <span className="text-[#7A8296] font-normal">, {job.location}</span>
                           )}
                         </p>
                         {job.description && (
-                          <p className="mt-2 text-[0.9375rem]">{job.description}</p>
+                          <p className="mt-2 text-[0.9375rem] text-[#CBD1E0]">{job.description}</p>
                         )}
                         {job.highlights && job.highlights.length > 0 && (
-                          <ul className="mt-2.5 flex flex-wrap gap-1.5">
+                          <ul className="mt-3 space-y-1.5">
                             {job.highlights.map((highlight) => (
                               <li
                                 key={`${job.title}-${highlight}`}
-                                className="text-[0.75rem] font-semibold rounded-full px-2.5 py-1"
-                                style={{ backgroundColor: `${colorFor(i)}14`, color: colorFor(i) }}
+                                className="text-[0.8125rem] text-[#CBD1E0] flex items-start gap-2"
                               >
+                                <span
+                                  className="mt-1.5 h-1 w-1 rounded-full shrink-0"
+                                  style={{ backgroundColor: colorFor(i) }}
+                                  aria-hidden="true"
+                                />
                                 {highlight}
                               </li>
                             ))}
@@ -183,16 +234,17 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
 
               {projects && projects.length > 0 && (
                 <section className="mt-8">
-                  <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#6B7390] mb-4">
+                  <h2 className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#7A8296] mb-4 flex items-center gap-2">
+                    <span className="h-px flex-1 bg-[#1F2530]" aria-hidden="true" />
                     Projects
                   </h2>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {projects.map((project, i) => (
                       <div
                         key={`${project.title}-${project.year ?? ""}`}
-                        className="rounded-xl border border-[#E2E6F0] bg-white p-4 min-w-0"
+                        className="rounded-lg border border-[#1F2530] bg-[#10141C] p-4 min-w-0"
                       >
-                        <h3 className="font-bold break-words">
+                        <h3 className="font-bold break-words text-white">
                           {project.url ? (
                             <a
                               href={project.url}
@@ -208,7 +260,7 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
                           )}
                         </h3>
                         {project.description && (
-                          <p className="mt-1 text-sm text-[#44475E]">{project.description}</p>
+                          <p className="mt-1 text-sm text-[#9099AD]">{project.description}</p>
                         )}
                       </div>
                     ))}
@@ -217,41 +269,48 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
               )}
             </div>
 
-            <aside className="min-w-0 space-y-6">
+            <aside className="min-w-0 space-y-4">
               {allSkillItems.length > 0 && (
-                <div className="rounded-xl border border-[#E2E6F0] bg-white p-4">
-                  <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#6B7390] mb-4">
+                <div className="rounded-lg border border-[#1F2530] bg-[#10141C] p-4">
+                  <h2 className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#7A8296] mb-4">
                     Skills
                   </h2>
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {allSkillItems.slice(0, 8).map((item, i) => (
-                      <div key={item} className="min-w-0">
-                        <p className="text-[0.8125rem] font-medium mb-1 break-words">{item}</p>
-                        <div className="h-1.5 rounded-full bg-[#EEF0F7] overflow-hidden">
+                      <div key={item} className="min-w-0 flex items-center gap-2.5">
+                        <div className="h-1.5 flex-1 rounded-full bg-[#1A1F2A] overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{
-                              width: `${55 + ((i * 13) % 40)}%`,
+                              width: `${48 + ((i * 13) % 45)}%`,
                               backgroundColor: colorFor(i),
                             }}
                           />
                         </div>
+                        <p className="text-[0.75rem] text-[#CBD1E0] shrink-0 text-right w-20 truncate">
+                          {item}
+                        </p>
                       </div>
                     ))}
                   </div>
+                  <p className="mt-3 text-[0.625rem] font-db-mono text-[#4A5062] tabular-nums">
+                    {String(maxSkillBar).padStart(2, "0")} tracked
+                  </p>
                 </div>
               )}
 
               {education && education.length > 0 && (
-                <div className="rounded-xl border border-[#E2E6F0] bg-white p-4">
-                  <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#6B7390] mb-3">
+                <div className="rounded-lg border border-[#1F2530] bg-[#10141C] p-4">
+                  <h2 className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#7A8296] mb-3">
                     Education
                   </h2>
                   <div className="space-y-3">
                     {education.map((edu) => (
                       <div key={`${edu.institution}-${edu.degree}`} className="min-w-0">
-                        <p className="text-[0.8125rem] font-bold break-words">{edu.degree}</p>
-                        <p className="text-[0.75rem] text-[#6B7390]">
+                        <p className="text-[0.8125rem] font-bold break-words text-white">
+                          {edu.degree}
+                        </p>
+                        <p className="text-[0.75rem] text-[#7A8296]">
                           {edu.institution}
                           {edu.graduation_date && (
                             <span> · {formatShortDate(edu.graduation_date)}</span>
@@ -264,15 +323,15 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
               )}
 
               {certifications && certifications.length > 0 && (
-                <div className="rounded-xl border border-[#E2E6F0] bg-white p-4">
-                  <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[#6B7390] mb-3">
+                <div className="rounded-lg border border-[#1F2530] bg-[#10141C] p-4">
+                  <h2 className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[#7A8296] mb-3">
                     Certifications
                   </h2>
                   <ul className="space-y-2">
                     {certifications.map((cert) => (
                       <li key={`${cert.name}-${cert.issuer ?? ""}`} className="text-[0.8125rem]">
-                        <p className="font-bold break-words">{cert.name}</p>
-                        {cert.issuer && <p className="text-[#6B7390]">{cert.issuer}</p>}
+                        <p className="font-bold break-words text-white">{cert.name}</p>
+                        {cert.issuer && <p className="text-[#7A8296]">{cert.issuer}</p>}
                       </li>
                     ))}
                   </ul>
@@ -281,8 +340,8 @@ export const Dashboard: React.FC<TemplateProps> = ({ content, profile }) => {
             </aside>
           </div>
 
-          <footer className="mt-10 pt-6 border-t border-[#E2E6F0] flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-[#6B7390]">@{profile.handle}</p>
+          <footer className="mt-10 pt-6 border-t border-[#1F2530] flex flex-wrap items-center justify-between gap-4">
+            <p className="font-db-mono text-sm text-[#7A8296]">@{profile.handle}</p>
             <ShareBar
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}

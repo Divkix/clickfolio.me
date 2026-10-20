@@ -101,6 +101,21 @@ function SectionLabel({ icon, children }: { icon: React.ReactNode; children: Rea
   );
 }
 
+function DotRule(): React.ReactElement {
+  return (
+    <div className="flex items-center gap-1.5 my-14" aria-hidden="true">
+      {Array.from({ length: 3 }, (_, i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: RING_COLORS[i % RING_COLORS.length] }}
+        />
+      ))}
+      <span className="h-px flex-1" style={{ backgroundColor: "#E7E4DC" }} />
+    </div>
+  );
+}
+
 export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
   const experience = content.experience ?? [];
   const education = content.education ?? [];
@@ -124,12 +139,13 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
                 alt={`Portrait of ${content.full_name}`}
                 width={88}
                 height={88}
-                className="h-20 w-20 shrink-0 rounded-2xl object-cover sm:h-24 sm:w-24"
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover sm:h-24 sm:w-24 ring-4"
+                style={{ boxShadow: `0 0 0 4px ${CORAL}26` }}
               />
             ) : (
               <div
                 className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-2xl font-extrabold text-white sm:h-24 sm:w-24"
-                style={{ backgroundColor: CORAL }}
+                style={{ backgroundColor: CORAL, boxShadow: `0 0 0 4px ${CORAL}26` }}
                 aria-hidden="true"
               >
                 {getInitials(content.full_name)}
@@ -137,13 +153,16 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
             )}
             <div className="min-w-0">
               <h1
-                className="font-head-ig text-[clamp(2rem,5.5vw,2.75rem)] font-extrabold leading-tight tracking-[-0.01em] break-words [text-wrap:unset]"
+                className="font-head-ig text-[clamp(2.25rem,6vw,3.25rem)] font-extrabold leading-[1.03] tracking-[-0.015em] break-words [text-wrap:unset]"
                 style={{ color: INK }}
               >
                 {content.full_name}
               </h1>
               {content.headline && (
-                <p className="mt-1.5 text-lg leading-snug" style={{ color: MUTED }}>
+                <p
+                  className="font-head-ig mt-2 inline-block text-lg font-semibold leading-snug"
+                  style={{ color: TEAL }}
+                >
                   {content.headline}
                 </p>
               )}
@@ -211,7 +230,10 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
               <h2 id="ig-skills" className="sr-only">
                 Skills
               </h2>
-              <div className="flex flex-wrap gap-x-8 gap-y-6 rounded-2xl border border-[#E7E4DC] bg-white p-6">
+              <div
+                className="flex flex-wrap gap-x-8 gap-y-6 rounded-2xl border-t-[3px] bg-white p-6 shadow-[0_1px_2px_rgba(20,20,20,0.04)]"
+                style={{ borderTopColor: TEAL }}
+              >
                 {skills.map((group, i) => (
                   <SkillRing
                     key={group.category}
@@ -238,52 +260,62 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {experience.length > 0 && (
-            <section aria-labelledby="ig-experience" className="mt-14">
+            <section aria-labelledby="ig-experience" className="mt-0">
+              <DotRule />
               <SectionLabel icon={<Briefcase className="h-4 w-4" aria-hidden="true" />}>
                 Experience
               </SectionLabel>
-              <ol className="space-y-7">
-                {experience.map((job) => (
-                  <li
-                    key={`${job.title}-${job.company}-${job.start_date}`}
-                    className="min-w-0 rounded-2xl border border-[#E7E4DC] bg-white p-5 sm:p-6"
-                  >
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <h3 className="text-lg font-bold leading-snug break-words">{job.title}</h3>
-                      <p
-                        className="shrink-0 text-sm font-medium tabular-nums"
-                        style={{ color: CORAL }}
-                      >
-                        {formatDateSpan(job.start_date, job.end_date)}
+              <ol className="space-y-5">
+                {experience.map((job, i) => {
+                  const accent = RING_COLORS[i % RING_COLORS.length] ?? CORAL;
+
+                  return (
+                    <li
+                      key={`${job.title}-${job.company}-${job.start_date}`}
+                      className="min-w-0 rounded-2xl bg-white p-5 sm:p-6 border-l-[5px] shadow-[0_1px_2px_rgba(20,20,20,0.04)]"
+                      style={{ borderLeftColor: accent }}
+                    >
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <h3 className="text-lg font-bold leading-snug break-words">{job.title}</h3>
+                        <p
+                          className="shrink-0 text-sm font-medium tabular-nums"
+                          style={{ color: accent }}
+                        >
+                          {formatDateSpan(job.start_date, job.end_date)}
+                        </p>
+                      </div>
+                      <p className="text-sm" style={{ color: MUTED }}>
+                        {job.company}
+                        {job.location && <span>, {job.location}</span>}
                       </p>
-                    </div>
-                    <p className="text-sm" style={{ color: MUTED }}>
-                      {job.company}
-                      {job.location && <span>, {job.location}</span>}
-                    </p>
-                    {job.description && <p className="mt-3 leading-relaxed">{job.description}</p>}
-                    {job.highlights && job.highlights.length > 0 && (
-                      <ul className="mt-3 space-y-1.5">
-                        {job.highlights.map((highlight, i) => (
-                          <li key={`${job.title}-${i}`} className="relative pl-5 leading-relaxed">
-                            <span
-                              className="absolute left-0 top-[0.65em] h-1.5 w-1.5 rounded-full"
-                              style={{ backgroundColor: TEAL }}
-                              aria-hidden="true"
-                            />
-                            {highlight}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
+                      {job.description && <p className="mt-3 leading-relaxed">{job.description}</p>}
+                      {job.highlights && job.highlights.length > 0 && (
+                        <ul className="mt-3 space-y-1.5">
+                          {job.highlights.map((highlight, hi) => (
+                            <li
+                              key={`${job.title}-${hi}`}
+                              className="relative pl-5 leading-relaxed"
+                            >
+                              <span
+                                className="absolute left-0 top-[0.65em] h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: accent }}
+                                aria-hidden="true"
+                              />
+                              {highlight}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </section>
           )}
 
           {projects.length > 0 && (
-            <section aria-labelledby="ig-projects" className="mt-14">
+            <section aria-labelledby="ig-projects" className="mt-0">
+              <DotRule />
               <SectionLabel icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}>
                 Projects
               </SectionLabel>
@@ -329,7 +361,8 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {education.length > 0 && (
-            <section aria-labelledby="ig-education" className="mt-14">
+            <section aria-labelledby="ig-education" className="mt-0">
+              <DotRule />
               <SectionLabel icon={<GraduationCap className="h-4 w-4" aria-hidden="true" />}>
                 Education
               </SectionLabel>
@@ -358,7 +391,8 @@ export const Infographic: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {certifications.length > 0 && (
-            <section aria-labelledby="ig-certifications" className="mt-14">
+            <section aria-labelledby="ig-certifications" className="mt-0">
+              <DotRule />
               <SectionLabel icon={<Award className="h-4 w-4" aria-hidden="true" />}>
                 Certifications
               </SectionLabel>

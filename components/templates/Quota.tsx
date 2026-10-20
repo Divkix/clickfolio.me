@@ -64,7 +64,12 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
         .qt-root, .qt-root :is(p, li, dt, dd, a, span, button) { font-family: 'Inter', system-ui, sans-serif; }
         .qt-root :is(h1, h2, h3), .qt-num { font-family: 'Barlow Condensed', system-ui, sans-serif; }
       `}</style>
-      <div className="qt-root min-h-screen bg-[#FBFAF8] text-[#1F1C19] overflow-x-hidden">
+      <div
+        className="qt-root min-h-screen bg-[#FBFAF8] text-[#1F1C19] overflow-x-hidden"
+        style={{
+          backgroundImage: `repeating-linear-gradient(135deg, ${ACCENT}08 0px, ${ACCENT}08 2px, transparent 2px, transparent 14px)`,
+        }}
+      >
         <main className="mx-auto max-w-[42rem] px-5 sm:px-8 pt-16 pb-24">
           <header className="flex items-start gap-5">
             {profile.avatar_url ? (
@@ -93,16 +98,16 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
           </header>
 
           {stats.length > 0 && (
-            <div className="mt-8 flex flex-wrap gap-6 sm:gap-10 border-y-2 border-[#1F1C19] py-5">
-              {stats.map((stat) => (
+            <div className="mt-8 flex flex-wrap gap-8 sm:gap-12 border-y-2 border-[#1F1C19] py-6">
+              {stats.map((stat, i) => (
                 <div key={stat.label}>
                   <p
-                    className="qt-num text-4xl font-bold tabular-nums leading-none"
-                    style={{ color: ACCENT }}
+                    className="qt-num text-5xl sm:text-6xl font-bold tabular-nums leading-none"
+                    style={{ color: i === 0 ? ACCENT : "#1F1C19" }}
                   >
                     {stat.value}
                   </p>
-                  <p className="text-xs uppercase tracking-[0.08em] text-[#5A5450] mt-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#5A5450] mt-2">
                     {stat.label}
                   </p>
                 </div>

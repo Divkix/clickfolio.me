@@ -11,6 +11,14 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const BANNER = "#0B5FA8";
 
+const BANNER_STYLE: React.CSSProperties = {
+  backgroundImage: `
+    radial-gradient(circle at 15% 15%, rgba(255,255,255,0.16) 0, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(255,255,255,0.12) 0, transparent 50%),
+    linear-gradient(135deg, ${BANNER}, #0A3F70)
+  `,
+};
+
 export const Networked: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
     full_name,
@@ -41,13 +49,7 @@ export const Networked: React.FC<TemplateProps> = ({ content, profile }) => {
         .nw-root, .nw-root :is(h1, h2, h3, p, li, dt, dd, a, span, button) { font-family: 'Figtree', system-ui, sans-serif; }
       `}</style>
       <div className="nw-root min-h-screen bg-white text-[#15202B] overflow-x-hidden">
-        <div
-          aria-hidden="true"
-          className="h-28 sm:h-36"
-          style={{
-            background: `linear-gradient(135deg, ${BANNER}, #0A4C87)`,
-          }}
-        />
+        <div aria-hidden="true" className="h-28 sm:h-36" style={BANNER_STYLE} />
         <main className="mx-auto max-w-[42rem] px-5 sm:px-8 pb-24">
           <header className="relative -mt-12 sm:-mt-14 pb-6">
             {profile.avatar_url ? (
@@ -68,7 +70,7 @@ export const Networked: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
             )}
 
-            <h1 className="mt-4 text-[clamp(1.75rem,5vw,2.5rem)] font-extrabold leading-tight break-words [text-wrap:balance]">
+            <h1 className="mt-4 text-[clamp(1.875rem,5.5vw,2.75rem)] font-extrabold leading-[1.05] tracking-[-0.015em] break-words [text-wrap:balance]">
               {full_name}
             </h1>
             {headline && <p className="mt-1 text-lg text-[#536471] break-words">{headline}</p>}
@@ -79,7 +81,8 @@ export const Networked: React.FC<TemplateProps> = ({ content, profile }) => {
                 {stats.map((stat) => (
                   <span
                     key={stat.label}
-                    className="inline-flex items-baseline gap-1.5 rounded-full border border-[#E1E8ED] px-3.5 py-1.5 text-sm"
+                    className="inline-flex items-baseline gap-1.5 rounded-full px-3.5 py-1.5 text-sm"
+                    style={{ backgroundColor: `${BANNER}0F` }}
                   >
                     <span className="font-bold tabular-nums" style={{ color: BANNER }}>
                       {stat.value}

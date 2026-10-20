@@ -236,10 +236,11 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-sm hover:shadow-md",
     },
     dashboard: {
-      container: "bg-white/95 border border-[#E2E6F0] text-[#6B7390] hover:text-[#1A2240]",
-      accent: "text-[#3B6CE0]",
-      shimmer: "from-transparent via-[#3B6CE0]/15 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
+      container:
+        "bg-[#10141C]/95 backdrop-blur-md border border-[#1F2530] text-[#9099AD] hover:text-[#E8EBF3]",
+      accent: "text-[#4C8DFF]",
+      shimmer: "from-transparent via-[#4C8DFF]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
     },
     reel: {
       container:

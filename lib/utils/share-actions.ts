@@ -39,6 +39,7 @@ export function getLinkedInIconVariant(
     case "personal-best":
     case "reel":
     case "noir":
+    case "dashboard":
       return "white";
     default:
       return "black";
