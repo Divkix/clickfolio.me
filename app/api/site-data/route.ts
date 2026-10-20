@@ -28,18 +28,7 @@ export async function GET(request?: Request) {
         return createSuccessResponse(null);
       }
 
-      const content = userSiteData.content ?? null;
-
-      return createSuccessResponse({
-        id: userSiteData.id,
-        userId: userSiteData.userId,
-        resumeId: userSiteData.resumeId,
-        content,
-        themeId: userSiteData.themeId,
-        lastPublishedAt: userSiteData.lastPublishedAt,
-        createdAt: userSiteData.createdAt,
-        updatedAt: userSiteData.updatedAt,
-      });
+      return createSuccessResponse(userSiteData);
     },
     "You must be logged in to access site data",
   );
