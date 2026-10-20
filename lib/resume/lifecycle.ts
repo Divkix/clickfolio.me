@@ -1,7 +1,7 @@
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { z } from "zod";
-import { ParseErrorType } from "@/lib/parse/errors";
+import { ParseErrorType } from "@/lib/parse/error-types";
 
 function isString(value: JsonValue): value is string {
   return z.string().safeParse(value).success;

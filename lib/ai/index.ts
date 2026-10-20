@@ -73,8 +73,13 @@ function validateWithFeedback(
         errors: failure.errors ?? "",
       }).pipe(
         Effect.flatMap(validateParseResult),
-        // Retain the original validation failure if feedback also fails.
-        Effect.catch(() => Effect.fail(failure)),
+        // Retain the original validation failure when the feedback attempt also
+        // produces unusable output. Provider and timeout failures stay retryable
+        // so the Workflow can retry the step instead of failing the upload.
+        Effect.catchTags({
+          SchemaRejected: () => Effect.fail(failure),
+          AiOutputInvalid: () => Effect.fail(failure),
+        }),
         Effect.tap(() =>
           Effect.sync(() =>
             log(
