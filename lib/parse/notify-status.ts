@@ -1,6 +1,7 @@
+import type { ResumeStatus } from "../db/schema/resume";
 import { log } from "../utils/log";
 
-type NotifyBody = { status: string; error?: string; version?: number };
+type NotifyBody = { status: ResumeStatus; error?: string; version?: number };
 
 export async function notifyStatusChange({
   resumeId,
@@ -9,7 +10,7 @@ export async function notifyStatusChange({
   env,
 }: {
   resumeId: string;
-  status: string;
+  status: ResumeStatus;
   error?: string;
   env: { CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined };
 }): Promise<void> {
@@ -27,11 +28,15 @@ export async function notifyStatusChange({
       body.error = error;
     }
 
-    await stub.fetch("https://do-internal/notify", {
+    const response = await stub.fetch("https://do-internal/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+
+    if (!response.ok) {
+      throw new Error(`status DO rejected notify: ${response.status}`);
+    }
   } catch (err) {
     log("error", "notify-status: failed to notify DO for resume", { resumeId, error: String(err) });
   }
@@ -39,7 +44,7 @@ export async function notifyStatusChange({
 
 export async function notifyStatusChangeBatch(
   resumeIds: string[],
-  status: string,
+  status: ResumeStatus,
   env: { CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined },
 ): Promise<void> {
   await Promise.allSettled(
