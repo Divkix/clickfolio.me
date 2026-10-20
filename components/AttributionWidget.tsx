@@ -168,6 +168,99 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-white/40 to-transparent",
       shadow: "shadow-none",
     },
+    sidebar_photo: {
+      container: "bg-white/95 border border-[#8FBBAE]/40 text-[#4C6B63] hover:text-[#0B4A42]",
+      accent: "text-[#0B4A42]",
+      shimmer: "from-transparent via-[#8FBBAE]/30 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    infographic: {
+      container: "bg-white/95 border border-[#EBE7DC] text-[#8A8578] hover:text-[#232019]",
+      accent: "text-[#C24E1F]",
+      shimmer: "from-transparent via-[#FFE8DD]/60 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    timeline: {
+      container: "bg-white/95 border border-[#E6E1D4] text-[#8A8071] hover:text-[#1E1B16]",
+      accent: "text-[#3730A3]",
+      shimmer: "from-transparent via-[#3730A3]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    networked: {
+      container: "bg-white/95 border border-[#E1E8ED] text-[#536471] hover:text-[#15202B]",
+      accent: "text-[#0B5FA8]",
+      shimmer: "from-transparent via-[#0B5FA8]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    consulting_brief: {
+      container: "bg-white border-2 border-black text-black/70 hover:text-black",
+      accent: "text-black",
+      shimmer: "from-transparent via-black/10 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    quota: {
+      container: "bg-white/95 border border-[#1F1C19]/20 text-[#5A5450] hover:text-[#1F1C19]",
+      accent: "text-[#E8491D]",
+      shimmer: "from-transparent via-[#E8491D]/20 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    the_brief: {
+      container: "bg-[#FBF8F0]/95 border border-[#1B2A4A]/25 text-[#5B5748] hover:text-[#1B2A4A]",
+      accent: "text-[#B08D3D]",
+      shimmer: "from-transparent via-[#B08D3D]/20 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    open_house: {
+      container: "bg-white/95 border border-[#2A2117]/15 text-[#6B5A47] hover:text-[#2A2117]",
+      accent: "text-[#B5562B]",
+      shimmer: "from-transparent via-[#B5562B]/20 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    the_menu: {
+      container: "bg-[#F7F1E6]/95 border border-[#A9842F]/25 text-[#5E5648] hover:text-[#2B2620]",
+      accent: "text-[#A9842F]",
+      shimmer: "from-transparent via-[#A9842F]/20 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    personal_best: {
+      container:
+        "bg-[#0B0B0D]/90 backdrop-blur-md border border-[#37E6E0]/25 text-[#C8C8C6] hover:text-[#F2F2F0]",
+      accent: "text-[#37E6E0]",
+      shimmer: "from-transparent via-[#37E6E0]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    pitch_deck: {
+      container: "bg-white/95 border border-[#E7E9F5] text-[#6B6F8A] hover:text-[#191B2B]",
+      accent: "text-[#2F5CFF]",
+      shimmer: "from-transparent via-[#2F5CFF]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    dashboard: {
+      container: "bg-white/95 border border-[#E2E6F0] text-[#6B7390] hover:text-[#1A2240]",
+      accent: "text-[#3B6CE0]",
+      shimmer: "from-transparent via-[#3B6CE0]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    reel: {
+      container:
+        "bg-[#0C0C0E]/90 backdrop-blur-md border border-white/10 text-[#A8A6A0] hover:text-[#E7E6E2]",
+      accent: "text-[#E5342B]",
+      shimmer: "from-transparent via-[#E5342B]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    link_stack: {
+      container: "bg-white/90 border border-black/5 text-[#8A8398] hover:text-[#2A2440]",
+      accent: "text-[#8B6DD6]",
+      shimmer: "from-transparent via-[#8B6DD6]/20 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    noir: {
+      container:
+        "bg-black/90 backdrop-blur-md border border-[#C9A86A]/25 text-[#A8A196] hover:text-[#EDEAE2]",
+      accent: "text-[#C9A86A]",
+      shimmer: "from-transparent via-[#C9A86A]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
   } as const satisfies Record<
     ThemeId,
     { container: string; accent: string; shimmer: string; shadow: string }
