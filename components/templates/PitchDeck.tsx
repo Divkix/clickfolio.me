@@ -51,13 +51,16 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
 
-  let slideNo = 1;
+  const sectionOrder = [
+    summary ? "summary" : null,
+    experience && experience.length > 0 ? "experience" : null,
+    projects && projects.length > 0 ? "projects" : null,
+    skillGroups.length > 0 ? "skills" : null,
+    education && education.length > 0 ? "education" : null,
+    certifications && certifications.length > 0 ? "certifications" : null,
+  ].filter((key): key is string => key !== null);
 
-  const nextSlide = () => {
-    slideNo += 1;
-
-    return slideNo;
-  };
+  const slideNumber = (key: string) => sectionOrder.indexOf(key) + 2;
 
   return (
     <>
@@ -122,13 +125,13 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           </section>
 
           {summary && (
-            <Slide n={nextSlide()} title="The One-Liner">
+            <Slide n={slideNumber("summary")} title="The One-Liner">
               <p className="text-[1.0625rem] leading-[1.7]">{summary}</p>
             </Slide>
           )}
 
           {experience && experience.length > 0 && (
-            <Slide n={nextSlide()} title="Traction">
+            <Slide n={slideNumber("experience")} title="Traction">
               <div className="space-y-6">
                 {experience.map((job) => (
                   <article
@@ -167,7 +170,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {projects && projects.length > 0 && (
-            <Slide n={nextSlide()} title="Side Bets">
+            <Slide n={slideNumber("projects")} title="Side Bets">
               <div className="grid sm:grid-cols-2 gap-4">
                 {projects.map((project) => (
                   <div key={`${project.title}-${project.year ?? ""}`} className="min-w-0">
@@ -196,7 +199,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {skillGroups.length > 0 && (
-            <Slide n={nextSlide()} title="Stack">
+            <Slide n={slideNumber("skills")} title="Stack">
               <div className="flex flex-wrap gap-2">
                 {skillGroups
                   .flatMap((g) => g.items)
@@ -214,7 +217,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {education && education.length > 0 && (
-            <Slide n={nextSlide()} title="Background">
+            <Slide n={slideNumber("education")} title="Background">
               <div className="space-y-3">
                 {education.map((edu) => (
                   <div key={`${edu.institution}-${edu.degree}`} className="min-w-0">
@@ -232,7 +235,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {certifications && certifications.length > 0 && (
-            <Slide n={nextSlide()} title="Credentials">
+            <Slide n={slideNumber("certifications")} title="Credentials">
               <ul className="space-y-1.5">
                 {certifications.map((cert) => (
                   <li key={`${cert.name}-${cert.issuer ?? ""}`} className="text-[0.9375rem]">
