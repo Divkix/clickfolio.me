@@ -158,11 +158,11 @@ export const shareButtonStyles = {
   "the-menu":
     "bg-transparent text-[#2B2620] hover:bg-[#2B2620] hover:text-[#F7F1E6] border border-[#A9842F]/50 rounded-full px-3 py-1.5 text-sm",
   "personal-best":
-    "bg-transparent text-[#E7FF4D] hover:bg-[#E7FF4D] hover:text-black border border-[#E7FF4D]/50 rounded-sm px-3 py-1.5 text-sm font-semibold",
+    "bg-transparent text-[#37E6E0] hover:bg-[#37E6E0] hover:text-[#0B0B0D] border border-[#37E6E0]/50 rounded-sm px-3 py-1.5 text-sm font-bold",
   "pitch-deck":
     "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
   dashboard:
-    "bg-white text-[#1E3A5F] hover:text-[#2F6FED] border border-[#D7E1EC] rounded-md px-3 py-1.5 text-sm",
+    "bg-white text-[#3B6CE0] hover:bg-[#3B6CE0] hover:text-white border border-[#E2E6F0] rounded-md px-3 py-1.5 text-sm",
   reel:
     "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
   "link-stack":
@@ -220,9 +220,9 @@ export const shareTriggerStyles = {
   "the-brief": "bg-[#FBF8F0] text-[#1B2A4A] border-[#1B2A4A]/40 rounded-sm shadow-md",
   "open-house": "bg-[#B5562B] text-white border-[#B5562B] rounded-xl shadow-lg",
   "the-menu": "bg-[#2B2620] text-[#F7F1E6] border-[#A9842F]/50 rounded-full shadow-lg",
-  "personal-best": "bg-[#0C0C0E] text-[#E7FF4D] border-[#E7FF4D]/50 rounded-sm shadow-lg",
+  "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/50 rounded-sm shadow-lg",
   "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
-  dashboard: "bg-white text-[#1E3A5F] border-[#D7E1EC] rounded-md shadow-md",
+  dashboard: "bg-[#3B6CE0] text-white border-[#3B6CE0] rounded-md shadow-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
   "link-stack": "bg-white text-[#5B3DCB] border-black/5 rounded-full shadow-md",
   noir: "bg-black text-[#C9A86A] border-[#C9A86A]/40 rounded-sm shadow-lg",
@@ -265,9 +265,9 @@ export const sharePanelStyles = {
   "the-brief": "bg-[#FBF8F0] text-[#1C1A16] border-[#1B2A4A]/30 rounded-sm",
   "open-house": "bg-[#FCF7EF] text-[#2A2117] border-[#2A2117]/10 rounded-xl",
   "the-menu": "bg-[#F7F1E6] text-[#2B2620] border-[#A9842F]/40 rounded-xl",
-  "personal-best": "bg-[#0C0C0E] text-[#E7FF4D] border-[#E7FF4D]/40 rounded-sm",
+  "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/40 rounded-sm",
   "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
-  dashboard: "bg-white text-[#1E3A5F] border-[#D7E1EC] rounded-md",
+  dashboard: "bg-white text-[#1A2240] border-[#E2E6F0] rounded-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
   "link-stack": "bg-white text-[#2A2440] border-black/5 rounded-2xl",
   noir: "bg-black text-[#EDEAE2] border-[#C9A86A]/30 rounded-sm",
