@@ -15,8 +15,7 @@ export const revalidate = 86400;
 
 const title = "Portfolio Website for Designers";
 
-const description =
-  "Turn your PDF into a stunning design portfolio website. Showcase your work with 10 beautiful templates — free, no signup required. Custom @handle URL included.";
+const description = `Turn your PDF into a stunning design portfolio website. Showcase your work with ${TEMPLATE_COUNT} beautiful templates — free, no signup required. Custom @handle URL included.`;
 
 const path = "/for/designer";
 
