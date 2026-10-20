@@ -275,7 +275,7 @@ beforeEach(() => {
   mockLimit.mockReset().mockResolvedValue([]);
 });
 
-describe("Admin API Integration Tests (15 tests)", () => {
+describe("Admin API Integration Tests", () => {
   describe("GET /api/admin/analytics", () => {
     it("returns Umami analytics data for admin (test 1)", async () => {
       adminAuthed();
@@ -458,87 +458,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
     });
   });
 
-  describe("GET /api/admin/stats", () => {
-    it("returns aggregate statistics for admin (test 4)", async () => {
-      adminAuthed();
-
-      mockLimit.mockImplementation(async () => [
-        { total: 100 },
-        { count: 75 },
-        { status: "completed", count: 50 },
-        { status: "processing", count: 10 },
-        { status: "failed", count: 5 },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/stats/route");
-      const response = await GET();
-
-      expect([200, 500, 503]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: {
-          totalUsers: number;
-          publishedResumes: number;
-          processingResumes: number;
-          failedResumes: number;
-          dailyViews: JsonValue[];
-        } = await response.json();
-
-        expect(body.totalUsers).toBeDefined();
-        expect(body.publishedResumes).toBeDefined();
-        expect(body.dailyViews).toBeDefined();
-      }
-    });
-
-    it("includes recent signups in stats (test 4)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValue([
-        { email: "user1@test.com", createdAt: new Date().toISOString() },
-        { email: "user2@test.com", createdAt: new Date().toISOString() },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/stats/route");
-      const response = await GET();
-
-      expect([200, 500, 503]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: { recentSignups: JsonValue[] } = await response.json();
-        expect(body.recentSignups).toBeDefined();
-      }
-    });
-
-    it("returns 403 for non-admin users (test 7)", async () => {
-      regularUserAuthed();
-
-      const { GET } = await import("@/app/api/admin/stats/route");
-      const response = await GET();
-
-      expect(response.status).toBe(403);
-    });
-
-    it("returns 401 when not authenticated (test 14)", async () => {
-      unauthenticated();
-
-      const { GET } = await import("@/app/api/admin/stats/route");
-      const response = await GET();
-
-      expect(response.status).toBe(401);
-    });
-
-    it("handles database errors gracefully (test 4 edge)", async () => {
-      adminAuthed();
-
-      mockLimit.mockRejectedValueOnce(new Error("Database error"));
-
-      const { GET } = await import("@/app/api/admin/stats/route");
-      const response = await GET();
-
-      expect(response.status).toBe(503);
-    });
-  });
-
   describe("GET /api/admin/users", () => {
     it("returns paginated user list for admin (test 5)", async () => {
       adminAuthed();
@@ -676,8 +595,8 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const error = new Response(JSON.stringify({ error: "User not found" }), { status: 401 });
       mockedAdminAuth.mockResolvedValue({ user: null, error });
 
-      const { GET } = await import("@/app/api/admin/stats/route");
-      const response = await GET();
+      const { GET } = await import("@/app/api/admin/users/route");
+      const response = await GET(makeRequest("http://localhost:3000/api/admin/users"));
 
       expect(response.status).toBe(401);
     });
@@ -692,30 +611,29 @@ describe("Admin API Integration Tests (15 tests)", () => {
 
       mockedAdminAuth.mockResolvedValue({ user: adminUser, error: null });
 
-      const { GET } = await import("@/app/api/admin/stats/route");
-      await GET();
+      const { GET } = await import("@/app/api/admin/users/route");
+      await GET(makeRequest("http://localhost:3000/api/admin/users"));
 
       expect(mockedAdminAuth).toHaveBeenCalled();
     });
 
     it("handles all admin routes consistently (test 5-7 combined)", async () => {
+      const { GET: AnalyticsGET } = await import("@/app/api/admin/analytics/route");
+      const { GET: ResumesGET } = await import("@/app/api/admin/resumes/route");
+      const { GET: UsersGET } = await import("@/app/api/admin/users/route");
+
       const routes = [
-        "/api/admin/analytics",
-        "/api/admin/resumes",
-        "/api/admin/stats",
-        "/api/admin/users",
+        { get: AnalyticsGET, path: "/api/admin/analytics" },
+        { get: ResumesGET, path: "/api/admin/resumes" },
+        { get: UsersGET, path: "/api/admin/users" },
       ];
 
-      for (const _route of routes) {
+      for (const route of routes) {
         unauthenticated();
 
-        const { GET: AnalyticsGET } = await import("@/app/api/admin/analytics/route");
+        const response = await route.get(makeRequest(`http://localhost:3000${route.path}`));
 
-        const analyticsResponse = await AnalyticsGET(
-          makeRequest("http://localhost:3000/api/admin/analytics"),
-        );
-
-        expect(analyticsResponse.status).toBe(401);
+        expect(response.status).toBe(401);
       }
     });
   });
