@@ -263,6 +263,156 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-orange-50",
     badgeTextColor: "text-orange-800",
   },
+  {
+    id: "sidebar_photo",
+    name: "Natalie Brooks",
+    role: "Operations Manager",
+    initials: "NB",
+    avatarGradient: "from-teal-600 to-emerald-700",
+    badgeLabel: "Sidebar Photo",
+    badgeBgColor: "bg-teal-50",
+    badgeTextColor: "text-teal-700",
+  },
+  {
+    id: "infographic",
+    name: "Priya Desai",
+    role: "Marketing & Operations Generalist",
+    initials: "PD",
+    avatarGradient: "from-orange-400 to-violet-500",
+    badgeLabel: "Infographic",
+    badgeBgColor: "bg-orange-50",
+    badgeTextColor: "text-orange-700",
+  },
+  {
+    id: "timeline",
+    name: "Jonah Pierce",
+    role: "Program Manager",
+    initials: "JP",
+    avatarGradient: "from-indigo-500 to-violet-600",
+    badgeLabel: "Timeline",
+    badgeBgColor: "bg-indigo-50",
+    badgeTextColor: "text-indigo-700",
+  },
+  {
+    id: "networked",
+    name: "Marcus Webb",
+    role: "Business Development Director",
+    initials: "MW",
+    avatarGradient: "from-blue-500 to-sky-600",
+    badgeLabel: "Networked",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-700",
+  },
+  {
+    id: "consulting_brief",
+    name: "Alain Dupont",
+    role: "Senior Management Consultant",
+    initials: "AD",
+    avatarGradient: "from-gray-700 to-gray-900",
+    badgeLabel: "Consulting Brief",
+    badgeBgColor: "bg-gray-100",
+    badgeTextColor: "text-gray-800",
+  },
+  {
+    id: "quota",
+    name: "Devon Marsh",
+    role: "Senior Account Executive",
+    initials: "DM",
+    avatarGradient: "from-orange-500 to-red-600",
+    badgeLabel: "Quota",
+    badgeBgColor: "bg-orange-50",
+    badgeTextColor: "text-orange-700",
+  },
+  {
+    id: "the_brief",
+    name: "Vivian Okonjo",
+    role: "Senior Associate Attorney",
+    initials: "VO",
+    avatarGradient: "from-blue-900 to-amber-600",
+    badgeLabel: "The Brief",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-900",
+  },
+  {
+    id: "open_house",
+    name: "Renata Silva",
+    role: "Luxury Real Estate Agent",
+    initials: "RS",
+    avatarGradient: "from-orange-400 to-amber-600",
+    badgeLabel: "Open House",
+    badgeBgColor: "bg-orange-50",
+    badgeTextColor: "text-orange-800",
+  },
+  {
+    id: "the_menu",
+    name: "Julien Marchetti",
+    role: "Executive Chef",
+    initials: "JM",
+    avatarGradient: "from-amber-600 to-stone-800",
+    badgeLabel: "The Menu",
+    badgeBgColor: "bg-amber-50",
+    badgeTextColor: "text-amber-800",
+  },
+  {
+    id: "personal_best",
+    name: "Deshawn Carter",
+    role: "Strength & Conditioning Coach",
+    initials: "DC",
+    avatarGradient: "from-cyan-400 to-teal-500",
+    badgeLabel: "Personal Best",
+    badgeBgColor: "bg-cyan-50",
+    badgeTextColor: "text-cyan-700",
+  },
+  {
+    id: "pitch_deck",
+    name: "Ingrid Solberg",
+    role: "Startup Founder & CEO",
+    initials: "IS",
+    avatarGradient: "from-blue-600 to-indigo-700",
+    badgeLabel: "Pitch Deck",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-700",
+  },
+  {
+    id: "dashboard",
+    name: "Omar Haddad",
+    role: "Senior Data Analyst",
+    initials: "OH",
+    avatarGradient: "from-blue-500 to-purple-600",
+    badgeLabel: "Dashboard",
+    badgeBgColor: "bg-blue-50",
+    badgeTextColor: "text-blue-700",
+  },
+  {
+    id: "reel",
+    name: "Carmen Ruiz",
+    role: "Video Editor & Filmmaker",
+    initials: "CR",
+    avatarGradient: "from-red-600 to-stone-900",
+    badgeLabel: "Reel",
+    badgeBgColor: "bg-red-50",
+    badgeTextColor: "text-red-700",
+  },
+  {
+    id: "link_stack",
+    name: "Zoë Patterson",
+    role: "Freelance Content Creator & Consultant",
+    initials: "ZP",
+    avatarGradient: "from-violet-400 to-pink-400",
+    badgeLabel: "Link Stack",
+    badgeBgColor: "bg-violet-50",
+    badgeTextColor: "text-violet-700",
+  },
+  {
+    id: "noir",
+    name: "Beatrice Lindqvist",
+    role: "Fashion & Luxury Brand Director",
+    initials: "BL",
+    avatarGradient: "from-yellow-700 to-stone-950",
+    badgeLabel: "Noir",
+    badgeBgColor: "bg-stone-100",
+    badgeTextColor: "text-stone-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -2622,6 +2772,984 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  sidebar_photo: {
+    full_name: "Natalie Brooks",
+    headline: "Operations Manager keeping fulfillment on schedule",
+    summary:
+      "Operations manager with 9 years running distribution and fulfillment teams for mid-size retailers. I build the playbooks that keep a warehouse on schedule during peak season and the dashboards that tell leadership why.",
+    contact: {
+      email: "natalie.brooks@example.com",
+      phone: "(503) 555-0142",
+      location: "Portland, OR",
+      linkedin: "https://linkedin.com/in/nataliebrooks",
+    },
+    experience: [
+      {
+        title: "Operations Manager",
+        company: "Harbor Supply Co.",
+        location: "Portland, OR",
+        start_date: "2021-04",
+        end_date: undefined,
+        description: "Runs two distribution centers totaling 140 staff across three shifts.",
+        highlights: [
+          "Cut average order-to-ship time from 36 to 19 hours",
+          "Rolled out a new WMS across both sites with zero peak-season downtime",
+          "Reduced seasonal overtime spend by 22% through shift rebalancing",
+        ],
+      },
+      {
+        title: "Senior Operations Supervisor",
+        company: "Meridian Logistics",
+        location: "Tacoma, WA",
+        start_date: "2017-06",
+        end_date: "2021-03",
+        description: "Supervised receiving and outbound operations for a 250k sq ft facility.",
+        highlights: ["Led the team through a 40% volume increase during a client onboarding"],
+      },
+      {
+        title: "Warehouse Supervisor",
+        company: "Meridian Logistics",
+        location: "Tacoma, WA",
+        start_date: "2015-01",
+        end_date: "2017-05",
+        description: "Managed a receiving team of 18 across two shifts.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Supply Chain Management",
+        institution: "University of Washington",
+        location: "Seattle, WA",
+        graduation_date: "2014-06",
+      },
+    ],
+    skills: [
+      { category: "Operations", items: ["WMS implementation", "Labor planning", "Shift design"] },
+      { category: "Tools", items: ["NetSuite", "Excel", "Power BI"] },
+      { category: "Leadership", items: ["Team building", "Vendor management"] },
+    ],
+    certifications: [{ name: "CPIM-F", issuer: "ASCM", date: "2020-08" }],
+    projects: [
+      {
+        title: "Peak Season Playbook",
+        description: "Shift-scheduling and staffing template adopted at both distribution sites",
+        year: "2023",
+      },
+    ],
+  },
+
+  infographic: {
+    full_name: "Priya Desai",
+    headline: "Marketing & Operations Generalist for early-stage teams",
+    summary:
+      "Generalist who has run marketing, customer ops and a bit of finance for three seed-to-Series-A startups. I like the roles that don't have a department yet.",
+    contact: {
+      email: "priya@example.com",
+      location: "Austin, TX",
+      linkedin: "https://linkedin.com/in/priyadesai",
+      website: "https://priyadesai.com",
+    },
+    experience: [
+      {
+        title: "Head of Growth & Ops",
+        company: "Fernlight",
+        location: "Austin, TX",
+        start_date: "2022-05",
+        end_date: undefined,
+        description: "First marketing hire at a climate-tech seed startup.",
+        highlights: [
+          "Grew the waitlist from 300 to 14,000 signups ahead of launch",
+          "Set up the CRM and onboarding flow still used by the team today",
+          "Ran the first three customer advisory sessions that shaped the roadmap",
+        ],
+      },
+      {
+        title: "Marketing & Ops Lead",
+        company: "Coopers Kitchen",
+        location: "Remote",
+        start_date: "2020-02",
+        end_date: "2022-04",
+        description: "Owned acquisition, retention email and vendor relationships.",
+        highlights: ["Doubled email revenue share through a rebuilt lifecycle program"],
+      },
+      {
+        title: "Marketing Coordinator",
+        company: "Brightside Agency",
+        location: "Austin, TX",
+        start_date: "2018-07",
+        end_date: "2020-01",
+        description: "Coordinated paid social campaigns for six client accounts.",
+      },
+    ],
+    education: [
+      {
+        degree: "BBA in Marketing",
+        institution: "University of Texas at Austin",
+        location: "Austin, TX",
+        graduation_date: "2018-05",
+      },
+    ],
+    skills: [
+      { category: "Growth", items: ["Lifecycle email", "Paid social", "Landing pages"] },
+      { category: "Operations", items: ["CRM setup", "Onboarding flows", "Vendor management"] },
+      { category: "Tools", items: ["HubSpot", "Figma", "Notion", "Klaviyo"] },
+    ],
+    certifications: [
+      { name: "HubSpot Growth-Driven Design", issuer: "HubSpot Academy", date: "2021" },
+    ],
+    projects: [
+      {
+        title: "Waitlist Launch Kit",
+        description:
+          "Referral-driven waitlist template reused by two other founders in her network",
+        year: "2022",
+      },
+    ],
+  },
+
+  timeline: {
+    full_name: "Jonah Pierce",
+    headline: "Program Manager shipping cross-team launches",
+    summary:
+      "Program manager with 10 years keeping hardware and software launches on the same calendar. I translate between engineering, supply chain and marketing so launch day isn't a surprise to anyone.",
+    contact: {
+      email: "jonah.pierce@example.com",
+      location: "San Diego, CA",
+      linkedin: "https://linkedin.com/in/jonahpierce",
+    },
+    experience: [
+      {
+        title: "Senior Program Manager",
+        company: "Current Audio",
+        location: "San Diego, CA",
+        start_date: "2021-09",
+        end_date: undefined,
+        description: "Owns the launch calendar for three hardware product lines.",
+        highlights: [
+          "Shipped four product launches on their original ship dates in two years",
+          "Built the cross-functional RAID log now used by every program at the company",
+        ],
+      },
+      {
+        title: "Program Manager",
+        company: "Velarion Robotics",
+        location: "San Diego, CA",
+        start_date: "2017-03",
+        end_date: "2021-08",
+        description: "Coordinated firmware, mechanical and ops teams on two robot platforms.",
+        highlights: ["Cut average launch-slip from six weeks to nine days across five programs"],
+      },
+      {
+        title: "Project Coordinator",
+        company: "Velarion Robotics",
+        location: "San Diego, CA",
+        start_date: "2014-06",
+        end_date: "2017-02",
+        description: "Supported scheduling and vendor coordination for the engineering team.",
+      },
+      {
+        title: "Operations Intern",
+        company: "Qualcomm",
+        location: "San Diego, CA",
+        start_date: "2013-06",
+        end_date: "2013-09",
+        description: "Supported the test-equipment procurement team.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Industrial Engineering",
+        institution: "San Diego State University",
+        location: "San Diego, CA",
+        graduation_date: "2014-05",
+      },
+    ],
+    skills: [
+      { category: "Program Management", items: ["Cross-functional planning", "Risk tracking"] },
+      { category: "Tools", items: ["Jira", "Smartsheet", "Asana"] },
+    ],
+    certifications: [{ name: "PMP", issuer: "Project Management Institute", date: "2019-04" }],
+    projects: [],
+  },
+
+  networked: {
+    full_name: "Marcus Webb",
+    headline: "Business Development Director building channel partnerships",
+    summary:
+      "I build and run partner programs for B2B software companies — currently the channel behind a mid-market fintech's fastest-growing segment.",
+    contact: {
+      email: "marcus.webb@example.com",
+      location: "Chicago, IL",
+      linkedin: "https://linkedin.com/in/marcuswebb",
+      website: "https://marcuswebb.biz",
+    },
+    experience: [
+      {
+        title: "Director of Business Development",
+        company: "Ledgerline",
+        location: "Chicago, IL",
+        start_date: "2022-02",
+        end_date: undefined,
+        description: "Runs the partner program connecting Ledgerline to 40+ accounting firms.",
+        highlights: [
+          "Built the partner program from zero to 40 active referral partners",
+          "Closed a strategic integration deal with a top-5 payroll provider",
+          "Grew partner-sourced revenue to 28% of new ARR",
+        ],
+      },
+      {
+        title: "Senior Business Development Manager",
+        company: "Fieldstone Payments",
+        location: "Chicago, IL",
+        start_date: "2018-09",
+        end_date: "2022-01",
+        description: "Managed enterprise partnership accounts across the Midwest.",
+        highlights: ["Renewed 95% of managed partner accounts over three years"],
+      },
+      {
+        title: "Account Executive",
+        company: "Fieldstone Payments",
+        location: "Chicago, IL",
+        start_date: "2015-06",
+        end_date: "2018-08",
+        description: "Sold payment processing to mid-market retailers.",
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Business Administration",
+        institution: "University of Illinois",
+        location: "Urbana-Champaign, IL",
+        graduation_date: "2015-05",
+      },
+    ],
+    skills: [
+      { category: "Partnerships", items: ["Channel strategy", "Deal structuring", "Co-selling"] },
+      { category: "Tools", items: ["Salesforce", "HubSpot", "PartnerStack"] },
+    ],
+    certifications: [],
+    projects: [],
+  },
+
+  consulting_brief: {
+    full_name: "Alain Dupont",
+    headline: "Senior Management Consultant, operations and strategy",
+    summary:
+      "Strategy consultant with eleven years advising industrial and retail clients on cost reduction and operating-model redesign. Case teams of up to eight, engagements from $5M to $40M in client impact.",
+    contact: {
+      email: "alain.dupont@example.com",
+      location: "Toronto, ON",
+      linkedin: "https://linkedin.com/in/alaindupont",
+    },
+    experience: [
+      {
+        title: "Senior Manager",
+        company: "Granville Strategy Group",
+        location: "Toronto, ON",
+        start_date: "2021-01",
+        end_date: undefined,
+        description: "",
+        highlights: [
+          "Led a 12-week operating-model redesign for a $1.2B industrial client, identifying $40M in annual savings",
+          "Managed case teams of up to eight consultants across three concurrent engagements",
+          "Promoted to Senior Manager 18 months ahead of the standard track",
+        ],
+      },
+      {
+        title: "Manager",
+        company: "Granville Strategy Group",
+        location: "Toronto, ON",
+        start_date: "2017-07",
+        end_date: "2020-12",
+        description: "",
+        highlights: [
+          "Delivered cost-reduction programs for six retail and industrial clients",
+          "Built the firm's standard cost-to-serve diagnostic, used on 20+ later engagements",
+        ],
+      },
+      {
+        title: "Consultant",
+        company: "Bain & Company",
+        location: "Toronto, ON",
+        start_date: "2014-07",
+        end_date: "2017-06",
+        description: "",
+        highlights: ["Supported due diligence on four private-equity transactions"],
+      },
+    ],
+    education: [
+      {
+        degree: "MBA",
+        institution: "INSEAD",
+        location: "Fontainebleau, France",
+        graduation_date: "2014-05",
+      },
+      {
+        degree: "BCom, Finance",
+        institution: "McGill University",
+        location: "Montréal, QC",
+        graduation_date: "2010-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Strategy",
+        items: ["Operating model design", "Cost reduction", "Due diligence"],
+      },
+      { category: "Tools", items: ["Excel", "PowerPoint", "SQL"] },
+    ],
+    certifications: [],
+    projects: [],
+  },
+
+  quota: {
+    full_name: "Devon Marsh",
+    headline: "Senior Account Executive, enterprise SaaS",
+    summary:
+      "Enterprise AE with seven years selling B2B SaaS into logistics and manufacturing. Consistent quota attainment, long-cycle multi-stakeholder deals, and a pipeline I build myself rather than inherit.",
+    contact: {
+      email: "devon.marsh@example.com",
+      phone: "(617) 555-0199",
+      location: "Boston, MA",
+      linkedin: "https://linkedin.com/in/devonmarsh",
+    },
+    experience: [
+      {
+        title: "Senior Account Executive",
+        company: "Routeline",
+        location: "Boston, MA",
+        start_date: "2022-03",
+        end_date: undefined,
+        description: "Sells fleet-management software into mid-market logistics companies.",
+        highlights: [
+          "Closed 128% of quota in 2024, the top result on a 14-rep team",
+          "Built a self-sourced pipeline worth $2.1M in the last four quarters",
+          "Shortened average sales cycle from 97 to 68 days by restructuring the demo flow",
+        ],
+      },
+      {
+        title: "Account Executive",
+        company: "Palisade Software",
+        location: "Boston, MA",
+        start_date: "2019-01",
+        end_date: "2022-02",
+        description: "Sold warehouse-management software to manufacturing clients.",
+        highlights: ["Hit 110%+ of quota in 9 of 12 quarters"],
+      },
+      {
+        title: "Sales Development Representative",
+        company: "Palisade Software",
+        location: "Boston, MA",
+        start_date: "2017-06",
+        end_date: "2018-12",
+        description: "Booked qualified meetings for the enterprise sales team.",
+        highlights: ["Promoted to AE after exceeding meeting quota for six straight months"],
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Business Management",
+        institution: "Northeastern University",
+        location: "Boston, MA",
+        graduation_date: "2017-05",
+      },
+    ],
+    skills: [
+      { category: "Sales", items: ["Enterprise selling", "MEDDIC", "Pipeline management"] },
+      { category: "Tools", items: ["Salesforce", "Gong", "Outreach"] },
+    ],
+    certifications: [
+      { name: "MEDDIC Sales Certification", issuer: "MEDDIC Academy", date: "2021" },
+    ],
+    projects: [],
+  },
+
+  the_brief: {
+    full_name: "Vivian Okonjo",
+    headline: "Senior Associate, Commercial Litigation",
+    summary:
+      "Litigation associate with eight years representing corporate clients in commercial disputes, from pre-suit negotiation through trial. Second-chaired two jury trials and briefed matters before three circuit courts of appeal.",
+    contact: {
+      email: "vivian.okonjo@example.com",
+      location: "Atlanta, GA",
+      linkedin: "https://linkedin.com/in/vivianokonjo",
+    },
+    experience: [
+      {
+        title: "Senior Associate",
+        company: "Calder & Finch LLP",
+        location: "Atlanta, GA",
+        start_date: "2021-09",
+        end_date: undefined,
+        description: "Litigation associate handling complex commercial disputes.",
+        highlights: [
+          "Second-chaired a six-week jury trial resulting in a defense verdict",
+          "Briefed and argued a successful motion to dismiss before the Eleventh Circuit",
+          "Supervises two first-year associates on discovery strategy",
+        ],
+      },
+      {
+        title: "Associate",
+        company: "Calder & Finch LLP",
+        location: "Atlanta, GA",
+        start_date: "2018-10",
+        end_date: "2021-08",
+        description: "Handled discovery, motion practice and client counseling.",
+        highlights: ["Drafted dispositive motions in over 25 matters"],
+      },
+      {
+        title: "Judicial Clerk",
+        company: "U.S. District Court, Northern District of Georgia",
+        location: "Atlanta, GA",
+        start_date: "2017-08",
+        end_date: "2018-08",
+        description: "Clerked for a U.S. District Judge.",
+      },
+    ],
+    education: [
+      {
+        degree: "J.D.",
+        institution: "Emory University School of Law",
+        location: "Atlanta, GA",
+        graduation_date: "2017-05",
+      },
+      {
+        degree: "B.A. in Political Science",
+        institution: "University of Virginia",
+        location: "Charlottesville, VA",
+        graduation_date: "2014-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Practice",
+        items: ["Commercial litigation", "Motion practice", "Appellate briefing"],
+      },
+      { category: "Admissions", items: ["Georgia State Bar", "U.S. District Court, N.D. Ga."] },
+    ],
+    certifications: [
+      {
+        name: "Licensed to Practice, State of Georgia",
+        issuer: "Georgia State Bar",
+        date: "2017-11",
+      },
+    ],
+    projects: [],
+  },
+
+  open_house: {
+    full_name: "Renata Silva",
+    headline: "Luxury Real Estate Agent, waterfront and new development",
+    summary:
+      "Agent specializing in waterfront and new-development properties. Nine years and over $180M in closed sales, with a repeat and referral book that drives most of my pipeline.",
+    contact: {
+      email: "renata.silva@example.com",
+      phone: "(305) 555-0176",
+      location: "Miami, FL",
+      website: "https://renatasilvahomes.com",
+      linkedin: "https://linkedin.com/in/renatasilva",
+    },
+    experience: [
+      {
+        title: "Senior Agent",
+        company: "Coastline Luxury Realty",
+        location: "Miami, FL",
+        start_date: "2019-06",
+        end_date: undefined,
+        description: "Represents buyers and sellers in the waterfront luxury segment.",
+        highlights: [
+          "Closed $42M in sales volume in 2024 across 18 transactions",
+          "Listed and sold a $14M penthouse in under three weeks",
+          "Built a referral network generating 60% of new client leads",
+        ],
+      },
+      {
+        title: "Real Estate Agent",
+        company: "Bayview Properties Group",
+        location: "Miami, FL",
+        start_date: "2016-02",
+        end_date: "2019-05",
+        description: "Represented buyers and sellers across Miami-Dade County.",
+        highlights: ["Ranked top 5% of agents company-wide for three consecutive years"],
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Communications",
+        institution: "Florida International University",
+        location: "Miami, FL",
+        graduation_date: "2015-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Specialties",
+        items: ["Waterfront properties", "New development", "Relocation"],
+      },
+      { category: "Tools", items: ["MLS", "Matterport", "DocuSign"] },
+    ],
+    certifications: [
+      {
+        name: "Certified Luxury Home Marketing Specialist",
+        issuer: "Institute for Luxury Home Marketing",
+        date: "2021",
+      },
+      {
+        name: "Licensed Real Estate Broker",
+        issuer: "Florida Real Estate Commission",
+        date: "2018",
+      },
+    ],
+    projects: [],
+  },
+
+  the_menu: {
+    full_name: "Julien Marchetti",
+    headline: "Executive Chef, modern Mediterranean",
+    summary:
+      "Chef with fifteen years in fine dining, the last six as executive chef. I build menus around what the market has that morning and run a kitchen where every station knows the why behind the dish.",
+    contact: {
+      email: "chef.marchetti@example.com",
+      location: "New Orleans, LA",
+      website: "https://julienmarchetti.com",
+    },
+    experience: [
+      {
+        title: "Executive Chef",
+        company: "Lumière",
+        location: "New Orleans, LA",
+        start_date: "2019-03",
+        end_date: undefined,
+        description: "Leads a 14-person kitchen for a 70-seat modern Mediterranean restaurant.",
+        highlights: [
+          "Earned the restaurant its first Michelin star within 18 months",
+          "Redesigned the menu around a weekly rotating market board",
+          "Trained three sous chefs who have gone on to run their own kitchens",
+        ],
+      },
+      {
+        title: "Sous Chef",
+        company: "Brasserie Audoin",
+        location: "New Orleans, LA",
+        start_date: "2015-06",
+        end_date: "2019-02",
+        description: "Ran the pass for dinner service in a 120-seat brasserie.",
+        highlights: ["Led the opening kitchen team through its first two years of service"],
+      },
+      {
+        title: "Line Cook",
+        company: "Commander's Palace",
+        location: "New Orleans, LA",
+        start_date: "2011-04",
+        end_date: "2015-05",
+        description: "Worked the sauté and grill stations.",
+      },
+    ],
+    education: [
+      {
+        degree: "Certificate in Culinary Arts",
+        institution: "Culinary Institute of America",
+        location: "Hyde Park, NY",
+        graduation_date: "2011-03",
+      },
+    ],
+    skills: [
+      { category: "Cuisine", items: ["Modern Mediterranean", "Market-driven menus", "Butchery"] },
+      { category: "Kitchen", items: ["Menu development", "Cost control", "Team training"] },
+    ],
+    certifications: [
+      { name: "ServSafe Manager", issuer: "National Restaurant Association", date: "2023" },
+    ],
+    projects: [],
+  },
+
+  personal_best: {
+    full_name: "Deshawn Carter",
+    headline: "Strength & Conditioning Coach, collegiate and pro athletes",
+    summary:
+      "Strength coach with ten years building programs for collegiate and professional athletes. I care about one thing: athletes who are faster, stronger and healthier in December than they were in August.",
+    contact: {
+      email: "coach.carter@example.com",
+      location: "Columbus, OH",
+      linkedin: "https://linkedin.com/in/deshawncarter",
+    },
+    experience: [
+      {
+        title: "Head Strength & Conditioning Coach",
+        company: "Ohio State Athletics",
+        location: "Columbus, OH",
+        start_date: "2021-07",
+        end_date: undefined,
+        description: "Runs strength programming for the men's basketball program.",
+        highlights: [
+          "Cut soft-tissue injuries by 35% over two seasons through a redesigned off-season program",
+          "Improved team average vertical jump by 3.2 inches in one off-season",
+          "Built the return-to-play protocol now used across four athletic programs",
+        ],
+      },
+      {
+        title: "Assistant Strength Coach",
+        company: "University of Michigan Athletics",
+        location: "Ann Arbor, MI",
+        start_date: "2017-08",
+        end_date: "2021-06",
+        description: "Supported programming for football and track & field.",
+        highlights: [
+          "Helped 6 athletes achieve personal-best results at the conference championship",
+        ],
+      },
+      {
+        title: "Performance Coach",
+        company: "Elevate Performance Center",
+        location: "Detroit, MI",
+        start_date: "2015-01",
+        end_date: "2017-07",
+        description: "Trained high-school and semi-pro athletes in a private facility.",
+      },
+    ],
+    education: [
+      {
+        degree: "MS in Exercise Physiology",
+        institution: "University of Michigan",
+        location: "Ann Arbor, MI",
+        graduation_date: "2015-12",
+      },
+      {
+        degree: "BS in Kinesiology",
+        institution: "Michigan State University",
+        location: "East Lansing, MI",
+        graduation_date: "2013-05",
+      },
+    ],
+    skills: [
+      { category: "Programming", items: ["Periodization", "Return-to-play", "Speed development"] },
+      { category: "Tools", items: ["Catapult", "VBT devices", "TeamBuildr"] },
+    ],
+    certifications: [
+      { name: "CSCS", issuer: "NSCA", date: "2015-06" },
+      { name: "USAW Level 2", issuer: "USA Weightlifting", date: "2018-03" },
+    ],
+    projects: [],
+  },
+
+  pitch_deck: {
+    full_name: "Ingrid Solberg",
+    headline: "Founder & CEO, building the inventory layer for small retailers",
+    summary:
+      "Second-time founder. Currently building Fjord, inventory software for small retail chains, after an earlier company sold to a logistics platform in 2021.",
+    contact: {
+      email: "ingrid@example.com",
+      location: "Austin, TX",
+      linkedin: "https://linkedin.com/in/ingridsolberg",
+      website: "https://fjord.example.com",
+    },
+    experience: [
+      {
+        title: "Founder & CEO",
+        company: "Fjord",
+        location: "Austin, TX",
+        start_date: "2023-01",
+        end_date: undefined,
+        description: "Building inventory and ordering software for small retail chains.",
+        highlights: [
+          "Grew to $1.1M ARR across 85 retail chains in 18 months, with no outside sales team",
+          "Raised a $3.2M seed round led by Long Table Ventures",
+          "Built and manages a team of 7 across product and engineering",
+        ],
+      },
+      {
+        title: "Co-founder & COO",
+        company: "Routeboard",
+        location: "Austin, TX",
+        start_date: "2018-03",
+        end_date: "2022-06",
+        description: "Last-mile delivery routing software, acquired by a logistics platform.",
+        highlights: [
+          "Grew revenue to $4M ARR before the company's acquisition in 2021",
+          "Led the integration of Routeboard's product into the acquirer's platform",
+        ],
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Computer Science",
+        institution: "University of Texas at Austin",
+        location: "Austin, TX",
+        graduation_date: "2017-05",
+      },
+    ],
+    skills: [
+      { category: "Leadership", items: ["Fundraising", "Go-to-market", "Team building"] },
+      { category: "Technical", items: ["Product strategy", "SQL", "Figma"] },
+    ],
+    certifications: [],
+    projects: [
+      {
+        title: "Fjord",
+        description: "Inventory and ordering platform for small retail chains",
+        year: "2023",
+        url: "https://fjord.example.com",
+      },
+    ],
+  },
+
+  dashboard: {
+    full_name: "Omar Haddad",
+    headline: "Senior Data Analyst, product and growth analytics",
+    summary:
+      "Analyst with seven years turning product and marketing data into decisions. I build the dashboards leadership actually opens, and the one-off analyses that change the roadmap.",
+    contact: {
+      email: "omar.haddad@example.com",
+      location: "Denver, CO",
+      linkedin: "https://linkedin.com/in/omarhaddad",
+      github: "https://github.com/omarhaddad",
+    },
+    experience: [
+      {
+        title: "Senior Data Analyst",
+        company: "Alpenglow Health",
+        location: "Denver, CO",
+        start_date: "2021-10",
+        end_date: undefined,
+        description: "Owns product and growth analytics for a telehealth platform.",
+        highlights: [
+          "Built the retention dashboard now reviewed weekly by the executive team",
+          "Identified a drop-off step that, once fixed, lifted signup conversion by 14%",
+          "Mentors two junior analysts on SQL and experiment design",
+        ],
+      },
+      {
+        title: "Data Analyst",
+        company: "Lemur Insurance",
+        location: "Denver, CO",
+        start_date: "2018-08",
+        end_date: "2021-09",
+        description: "Supported pricing and claims analytics teams.",
+        highlights: ["Automated a monthly reporting process, saving 15 hours per month"],
+      },
+      {
+        title: "Business Intelligence Intern",
+        company: "Lemur Insurance",
+        location: "Denver, CO",
+        start_date: "2018-01",
+        end_date: "2018-07",
+        description: "Built early dashboards for the claims team.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Statistics",
+        institution: "University of Colorado Boulder",
+        location: "Boulder, CO",
+        graduation_date: "2018-05",
+      },
+    ],
+    skills: [
+      { category: "Analysis", items: ["SQL", "Python", "A/B testing", "dbt"] },
+      { category: "Visualization", items: ["Looker", "Tableau", "Power BI"] },
+    ],
+    certifications: [{ name: "Google Data Analytics Certificate", issuer: "Google", date: "2020" }],
+    projects: [
+      {
+        title: "Cohort Explorer",
+        description: "Internal self-serve retention-cohort tool adopted by three product teams",
+        year: "2023",
+        technologies: ["Python", "Looker"],
+      },
+    ],
+  },
+
+  reel: {
+    full_name: "Carmen Ruiz",
+    headline: "Video Editor & Filmmaker, commercial and documentary",
+    summary:
+      "Editor cutting commercial work by day and documentary by night. Eight years, two festival selections, and a cut rate that clients come back for.",
+    contact: {
+      email: "carmen.ruiz@example.com",
+      location: "Los Angeles, CA",
+      website: "https://carmenruizedits.com",
+      linkedin: "https://linkedin.com/in/carmenruiz",
+    },
+    experience: [
+      {
+        title: "Senior Editor",
+        company: "Lowtide Studio",
+        location: "Los Angeles, CA",
+        start_date: "2021-05",
+        end_date: undefined,
+        description: "Lead editor on commercial and branded-content work.",
+        highlights: [
+          "Cut a national spot that ran during the Super Bowl pre-game broadcast",
+          "Delivered an average of 3 client projects per month across a 2-editor team",
+          "Built the studio's standard color and sound pass used on every delivery",
+        ],
+      },
+      {
+        title: "Freelance Editor",
+        company: "Self-employed",
+        location: "Los Angeles, CA",
+        start_date: "2018-01",
+        end_date: "2021-04",
+        description: "Edited commercial, music video and short documentary work.",
+        highlights: ["Short documentary Low Water selected for two regional film festivals"],
+      },
+      {
+        title: "Assistant Editor",
+        company: "Panhandle Post",
+        location: "Austin, TX",
+        start_date: "2016-06",
+        end_date: "2017-12",
+        description: "Organized footage and assisted lead editors on feature documentaries.",
+      },
+    ],
+    education: [
+      {
+        degree: "BFA in Film Production",
+        institution: "University of Texas at Austin",
+        location: "Austin, TX",
+        graduation_date: "2016-05",
+      },
+    ],
+    skills: [
+      { category: "Post", items: ["Premiere Pro", "DaVinci Resolve", "After Effects"] },
+      { category: "Craft", items: ["Narrative pacing", "Color grading", "Sound design"] },
+    ],
+    certifications: [],
+    projects: [
+      {
+        title: "Low Water",
+        description: "22-minute documentary short on Texas ranchers during the 2022 drought",
+        year: "2022",
+        technologies: ["DaVinci Resolve"],
+        url: "https://carmenruizedits.com/low-water",
+      },
+      {
+        title: "Nightline 30-second spot",
+        description: "National broadcast commercial for a regional bank",
+        year: "2024",
+        technologies: ["Premiere Pro", "After Effects"],
+      },
+    ],
+  },
+
+  link_stack: {
+    full_name: "Zoë Patterson",
+    headline: "Freelance content creator & brand consultant",
+    summary:
+      "I make short-form video for my own channels and consult on content strategy for a handful of consumer brands. Here's everything in one place.",
+    contact: {
+      email: "hello@zoepatterson.co",
+      website: "https://zoepatterson.co",
+      linkedin: "https://linkedin.com/in/zoepatterson",
+    },
+    experience: [
+      {
+        title: "Content Creator & Consultant",
+        company: "Self-employed",
+        location: "Remote",
+        start_date: "2020-06",
+        end_date: undefined,
+        description: "Short-form video content plus brand consulting work.",
+        highlights: [
+          "Grew a personal channel to 310k followers across platforms",
+          "Advised 6 consumer brands on content strategy and creator partnerships",
+          "Produced a branded series that drove 2.4M views for a skincare client",
+        ],
+      },
+      {
+        title: "Social Media Coordinator",
+        company: "Hazel & Co.",
+        location: "Denver, CO",
+        start_date: "2018-08",
+        end_date: "2020-05",
+        description: "Ran organic social for a direct-to-consumer skincare brand.",
+      },
+    ],
+    education: [
+      {
+        degree: "BA in Media Studies",
+        institution: "University of Colorado Denver",
+        location: "Denver, CO",
+        graduation_date: "2018-05",
+      },
+    ],
+    skills: [
+      { category: "Content", items: ["Short-form video", "Editing", "Brand partnerships"] },
+      { category: "Tools", items: ["CapCut", "Final Cut Pro", "Canva"] },
+    ],
+    certifications: [],
+    projects: [
+      {
+        title: "Skin Deep series",
+        description: "6-part branded video series for a skincare client, 2.4M total views",
+        year: "2023",
+        url: "https://zoepatterson.co/skin-deep",
+      },
+    ],
+  },
+
+  noir: {
+    full_name: "Beatrice Lindqvist",
+    headline: "Brand Director, fashion and luxury goods",
+    summary:
+      "Fifteen years shaping brand identity for fashion houses, most recently as the voice behind a heritage leather-goods label's return to relevance with a new generation of buyers.",
+    contact: {
+      email: "b.lindqvist@example.com",
+      location: "Paris, France",
+      linkedin: "https://linkedin.com/in/beatricelindqvist",
+    },
+    experience: [
+      {
+        title: "Brand Director",
+        company: "Maison Verrier",
+        location: "Paris, France",
+        start_date: "2020-01",
+        end_date: undefined,
+        description:
+          "Leads brand strategy and creative direction for a heritage leather-goods house.",
+        highlights: [
+          "Repositioned the brand for a younger audience, lifting under-35 sales share from 12% to 34%",
+          "Directed the house's first runway show in Paris in a decade",
+          "Built the brand's first in-house content studio, a team of nine",
+        ],
+      },
+      {
+        title: "Senior Brand Manager",
+        company: "Aurelle Group",
+        location: "Milan, Italy",
+        start_date: "2015-03",
+        end_date: "2019-12",
+        description: "Managed brand strategy for two ready-to-wear labels.",
+        highlights: ["Led the rebrand of a secondary label that doubled its wholesale accounts"],
+      },
+      {
+        title: "Brand Manager",
+        company: "Aurelle Group",
+        location: "Milan, Italy",
+        start_date: "2011-09",
+        end_date: "2015-02",
+        description: "Supported seasonal campaign direction and press relations.",
+      },
+    ],
+    education: [
+      {
+        degree: "MA in Fashion Communication",
+        institution: "Central Saint Martins",
+        location: "London, UK",
+        graduation_date: "2011-06",
+      },
+    ],
+    skills: [
+      {
+        category: "Brand",
+        items: ["Brand strategy", "Creative direction", "Campaign development"],
+      },
+      { category: "Industry", items: ["Runway production", "Press relations", "Retail buying"] },
+    ],
+    certifications: [],
+    projects: [],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
@@ -2650,4 +3778,19 @@ export const TEMPLATE_BACKGROUNDS = {
   lesson_plan: { bg: "bg-[#3F6E5C]", isDark: true },
   manuscript: { bg: "bg-[#3B4A52]", isDark: true },
   gallery_wall: { bg: "bg-[#F1F0EC]", isDark: false },
+  sidebar_photo: { bg: "bg-white", isDark: false },
+  infographic: { bg: "bg-[#FBFAF6]", isDark: false },
+  timeline: { bg: "bg-[#FBFAF5]", isDark: false },
+  networked: { bg: "bg-white", isDark: false },
+  consulting_brief: { bg: "bg-white", isDark: false },
+  quota: { bg: "bg-[#FBFAF8]", isDark: false },
+  the_brief: { bg: "bg-[#FBF8F0]", isDark: false },
+  open_house: { bg: "bg-[#FCF7EF]", isDark: false },
+  the_menu: { bg: "bg-[#F7F1E6]", isDark: false },
+  personal_best: { bg: "bg-[#0B0B0D]", isDark: true },
+  pitch_deck: { bg: "bg-[#F4F5FB]", isDark: false },
+  dashboard: { bg: "bg-[#F3F5FA]", isDark: false },
+  reel: { bg: "bg-[#0C0C0E]", isDark: true },
+  link_stack: { bg: "bg-[#F3ECFF]", isDark: false },
+  noir: { bg: "bg-black", isDark: true },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;
