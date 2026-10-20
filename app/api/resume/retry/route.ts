@@ -98,10 +98,9 @@ export async function POST(request: Request) {
       const isVirtualTimeout = getStatusView(statusRow).isTimedOut;
 
       if (!eligibility.eligible) {
-        // SAFETY: eligibility.errorCode is validated against ERROR_CODES keys; cast narrows string to known enum key.
         return createErrorResponse(
           eligibility.reason,
-          ERROR_CODES[eligibility.errorCode as keyof typeof ERROR_CODES],
+          ERROR_CODES[eligibility.errorCode],
           eligibility.httpStatus,
           eligibility.details,
         );
