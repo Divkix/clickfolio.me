@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   AiTimedOut,
-  ParseErrorType,
   type ParseErrorJson,
   DbUnavailable,
   SchemaRejected,
@@ -9,8 +8,11 @@ import {
   isParseFailure,
   type ParseFailure,
 } from "./failures";
+import { ParseErrorType } from "./error-types";
 
-export { ParseErrorType, type ParseErrorJson } from "./failures";
+export { ParseErrorType } from "./error-types";
+
+export type { ParseErrorJson } from "./failures";
 
 const storedErrorSchema = z.object({
   name: z.string(),
