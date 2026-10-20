@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
 import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
+import { absoluteSiteUrl } from "@/lib/utils/site-url";
 
 type PublicOgType = "website" | "article";
 
@@ -82,14 +83,6 @@ export function buildProfileTitle(fullName: string, headline?: string | null): s
   return `${cut.slice(0, wordEnd).replace(/[\s,;:&|·•—-]+$/, "")}…`;
 }
 
-function canonicalUrl(path: string): string {
-  if (path === "/" || path === "") {
-    return siteConfig.url;
-  }
-
-  return `${siteConfig.url}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
 export function buildPublicPageMetadata(params: {
   title: string;
   description: string;
@@ -97,7 +90,7 @@ export function buildPublicPageMetadata(params: {
   ogTitle?: string;
   ogType?: PublicOgType;
 }): Metadata {
-  const url = canonicalUrl(params.path);
+  const url = absoluteSiteUrl(params.path);
   const ogTitle = params.ogTitle ?? params.title;
   const { title, description } = params;
   const ogType = params.ogType ?? "website";

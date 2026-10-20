@@ -5,8 +5,15 @@ import { siteConfig } from "@/lib/config/site";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { RATE_LIMITS } from "@/lib/rate-limit/user";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
-import { DEFAULT_THEME, THEME_IDS, THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
+import {
+  DEFAULT_THEME,
+  TEMPLATE_COUNT,
+  THEME_IDS,
+  THEME_METADATA,
+  themeSlug,
+} from "@/lib/templates/theme-ids";
 import { MAX_FILE_SIZE_MB } from "@/lib/utils/validation";
+import { absoluteSiteUrl } from "@/lib/utils/site-url";
 
 /**
  * Generated agent-context files. Prose is hand-written here; every countable or listable fact
@@ -19,14 +26,8 @@ import { MAX_FILE_SIZE_MB } from "@/lib/utils/validation";
 
 const SITE = siteConfig.url;
 
-const TEMPLATE_COUNT = THEME_IDS.length;
-
 /** Default template first, then the rest in registry order. */
 const ORDERED_THEME_IDS = [DEFAULT_THEME, ...THEME_IDS.filter((id) => id !== DEFAULT_THEME)];
-
-function absoluteUrl(path: string): string {
-  return path === "/" ? SITE : `${SITE}${path}`;
-}
 
 function sentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
@@ -51,7 +52,7 @@ function faqSection(): string {
 }
 
 function publicUrlSection(): string {
-  const corePages = STATIC_PAGES.map((page) => `- ${page.label}: ${absoluteUrl(page.path)}`);
+  const corePages = STATIC_PAGES.map((page) => `- ${page.label}: ${absoluteSiteUrl(page.path)}`);
 
   const professionPages = PROFESSIONS.map(
     (profession) => `- ${profession.label}: ${SITE}/for/${profession.slug}`,
@@ -214,7 +215,7 @@ function joinWithAnd(items: readonly string[]): string {
 const FRONT_PAGE_PATHS = new Set(["/", "/explore", "/blog"]);
 
 function keyPages(): string {
-  const link = (label: string, path: string) => `- [${label}](${absoluteUrl(path)})`;
+  const link = (label: string, path: string) => `- [${label}](${absoluteSiteUrl(path)})`;
 
   return [
     ...STATIC_PAGES.filter((page) => FRONT_PAGE_PATHS.has(page.path)).map((page) =>
