@@ -24,6 +24,21 @@ export const SHARE_VARIANT_KEYS = [
   "lesson-plan",
   "manuscript",
   "gallery-wall",
+  "sidebar-photo",
+  "infographic",
+  "timeline",
+  "networked",
+  "consulting-brief",
+  "quota",
+  "the-brief",
+  "open-house",
+  "the-menu",
+  "personal-best",
+  "pitch-deck",
+  "dashboard",
+  "reel",
+  "link-stack",
+  "noir",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -56,6 +71,21 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "lesson-plan": "",
   manuscript: "",
   "gallery-wall": "",
+  "sidebar-photo": "",
+  infographic: "",
+  timeline: "",
+  networked: "",
+  "consulting-brief": "",
+  quota: "",
+  "the-brief": "",
+  "open-house": "",
+  "the-menu": "",
+  "personal-best": "",
+  "pitch-deck": "",
+  dashboard: "",
+  reel: "",
+  "link-stack": "",
+  noir: "",
 };
 
 export const shareButtonStyles = {
@@ -109,6 +139,35 @@ export const shareButtonStyles = {
     "bg-transparent text-[#FBFAF7] hover:bg-[#7A1F2B] border border-[#FBFAF7]/40 hover:border-[#7A1F2B] rounded-none px-3 py-1.5 text-sm",
   "gallery-wall":
     "bg-transparent text-[#2A2A2A] hover:bg-[#2A2A2A] hover:text-[#F1F0EC] border border-[#2A2A2A]/30 hover:border-[#2A2A2A] rounded-none px-3 py-1.5 text-sm",
+  "sidebar-photo":
+    "bg-white text-[#0B4A42] hover:bg-[#0B4A42] hover:text-white border border-[#8FBBAE] rounded-full px-3 py-1.5 text-sm",
+  infographic:
+    "bg-transparent text-[#232019] hover:bg-[#FFE8DD] border border-[#232019]/15 rounded-full px-3 py-1.5 text-sm",
+  timeline:
+    "bg-transparent text-[#3730A3] hover:bg-[#3730A3]/10 border border-[#3730A3]/30 rounded-full px-3 py-1.5 text-sm",
+  networked:
+    "bg-white text-[#0B5FA8] hover:bg-[#0B5FA8] hover:text-white border border-[#E1E8ED] rounded-full px-3 py-1.5 text-sm",
+  "consulting-brief":
+    "bg-white text-black hover:bg-black hover:text-white border border-black px-3 py-1.5 text-sm",
+  quota:
+    "bg-transparent text-[#1F1C19] hover:bg-[#E8491D] hover:text-white border border-[#1F1C19]/30 rounded-sm px-3 py-1.5 text-sm",
+  "the-brief":
+    "bg-transparent text-[#1B2A4A] hover:bg-[#1B2A4A] hover:text-white border border-[#1B2A4A]/40 rounded-sm px-3 py-1.5 text-sm",
+  "open-house":
+    "bg-white text-[#B5562B] hover:bg-[#B5562B] hover:text-white border border-[#B5562B]/40 rounded-full px-3 py-1.5 text-sm",
+  "the-menu":
+    "bg-transparent text-[#2B2620] hover:bg-[#2B2620] hover:text-[#F7F1E6] border border-[#A9842F]/50 rounded-full px-3 py-1.5 text-sm",
+  "personal-best":
+    "bg-transparent text-[#E7FF4D] hover:bg-[#E7FF4D] hover:text-black border border-[#E7FF4D]/50 rounded-sm px-3 py-1.5 text-sm font-semibold",
+  "pitch-deck":
+    "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
+  dashboard:
+    "bg-white text-[#1E3A5F] hover:text-[#2F6FED] border border-[#D7E1EC] rounded-md px-3 py-1.5 text-sm",
+  reel:
+    "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
+  "link-stack":
+    "bg-white/80 text-[#5B3DCB] hover:bg-white border border-black/5 rounded-full px-3 py-1.5 text-sm",
+  noir: "bg-transparent text-[#EDEAE2] hover:text-[#C9A86A] border border-[#C9A86A]/30 hover:border-[#C9A86A] rounded-sm px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -152,6 +211,21 @@ export const shareTriggerStyles = {
     "bg-[#22201C] text-[#FBFAF7] border-[#7A1F2B]/60 rounded-none shadow-lg hover:border-[#7A1F2B]",
   "gallery-wall":
     "bg-[#2A2A2A] text-[#F1F0EC] border-[#B8875A]/60 rounded-none shadow-lg hover:border-[#B8875A]",
+  "sidebar-photo": "bg-[#0B4A42] text-[#EAF5F0] border-[#8FBBAE]/60 rounded-full shadow-md",
+  infographic: "bg-[#232019] text-[#FBFAF6] border-[#232019] rounded-full shadow-lg",
+  timeline: "bg-[#3730A3] text-white border-[#3730A3] rounded-full shadow-lg",
+  networked: "bg-[#0B5FA8] text-white border-[#0B5FA8] rounded-full shadow-lg",
+  "consulting-brief": "bg-black text-white border-black rounded-none shadow-lg",
+  quota: "bg-[#1F1C19] text-white border-[#E8491D]/60 rounded-sm shadow-lg",
+  "the-brief": "bg-[#FBF8F0] text-[#1B2A4A] border-[#1B2A4A]/40 rounded-sm shadow-md",
+  "open-house": "bg-[#B5562B] text-white border-[#B5562B] rounded-xl shadow-lg",
+  "the-menu": "bg-[#2B2620] text-[#F7F1E6] border-[#A9842F]/50 rounded-full shadow-lg",
+  "personal-best": "bg-[#0C0C0E] text-[#E7FF4D] border-[#E7FF4D]/50 rounded-sm shadow-lg",
+  "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
+  dashboard: "bg-white text-[#1E3A5F] border-[#D7E1EC] rounded-md shadow-md",
+  reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
+  "link-stack": "bg-white text-[#5B3DCB] border-black/5 rounded-full shadow-md",
+  noir: "bg-black text-[#C9A86A] border-[#C9A86A]/40 rounded-sm shadow-lg",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -182,6 +256,21 @@ export const sharePanelStyles = {
   "lesson-plan": "bg-[#FCFCF8] text-[#24303A] border-[#B9D0E6] rounded-md",
   manuscript: "bg-[#FBFAF7] text-[#22201C] border-[#7A1F2B]/30 rounded-none",
   "gallery-wall": "bg-white text-[#2A2A2A] border-[#B8875A]/40 rounded-none",
+  "sidebar-photo": "bg-white text-[#0B4A42] border-[#8FBBAE]/60 rounded-xl",
+  infographic: "bg-[#FBFAF6] text-[#232019] border-[#EBE7DC] rounded-xl",
+  timeline: "bg-[#FBFAF5] text-[#1E1B16] border-[#E6E1D4] rounded-xl",
+  networked: "bg-white text-[#15202B] border-[#E1E8ED] rounded-xl",
+  "consulting-brief": "bg-white text-black border-black rounded-none",
+  quota: "bg-[#FBFAF8] text-[#1F1C19] border-[#1F1C19]/30 rounded-sm",
+  "the-brief": "bg-[#FBF8F0] text-[#1C1A16] border-[#1B2A4A]/30 rounded-sm",
+  "open-house": "bg-[#FCF7EF] text-[#2A2117] border-[#2A2117]/10 rounded-xl",
+  "the-menu": "bg-[#F7F1E6] text-[#2B2620] border-[#A9842F]/40 rounded-xl",
+  "personal-best": "bg-[#0C0C0E] text-[#E7FF4D] border-[#E7FF4D]/40 rounded-sm",
+  "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
+  dashboard: "bg-white text-[#1E3A5F] border-[#D7E1EC] rounded-md",
+  reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
+  "link-stack": "bg-white text-[#2A2440] border-black/5 rounded-2xl",
+  noir: "bg-black text-[#EDEAE2] border-[#C9A86A]/30 rounded-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {

@@ -9,22 +9,37 @@ export const THEME_IDS = [
   "broadsheet",
   "case_file",
   "classic_ats",
+  "consulting_brief",
   "contact_sheet",
+  "dashboard",
   "design_folio",
   "dev_terminal",
   "gallery_wall",
   "glass",
+  "infographic",
   "lesson_plan",
   "liner_notes",
+  "link_stack",
   "manuscript",
   "media_kit",
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
+  "networked",
+  "noir",
+  "open_house",
+  "personal_best",
+  "pitch_deck",
+  "quota",
+  "reel",
   "retro_os",
   "rounds",
   "scrapbook",
+  "sidebar_photo",
   "spotlight",
+  "the_brief",
+  "the_menu",
+  "timeline",
   "workspace",
 ] as const;
 
@@ -104,12 +119,25 @@ export const THEME_METADATA = {
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },
+  consulting_brief: {
+    name: "Consulting Brief",
+    description:
+      "A dense black-and-white one-pager in the McKinsey case-resume style, with ruled sections and dash-led results",
+    category: "Professional",
+    preview: "/previews/consulting-brief.webp",
+  },
   contact_sheet: {
     name: "Contact Sheet",
     description:
       "Film-frame tiles on near-black with grease-pencil orange, built for photographers",
     category: "Creative",
     preview: "/previews/contact-sheet.webp",
+  },
+  dashboard: {
+    name: "Dashboard",
+    description: "An analytics-dashboard layout with KPI tiles and skill bars for data roles",
+    category: "Modern",
+    preview: "/previews/dashboard.webp",
   },
   design_folio: {
     name: "DesignFolio",
@@ -135,6 +163,12 @@ export const THEME_METADATA = {
     category: "Modern",
     preview: "/previews/glass.webp",
   },
+  infographic: {
+    name: "Infographic",
+    description: "Icon-led sections, colour-coded skill chips and stat callouts from your resume",
+    category: "Modern",
+    preview: "/previews/infographic.webp",
+  },
   lesson_plan: {
     name: "Lesson Plan",
     description: "A ruled planner page with binder holes, coloured subject tabs and a sticky note",
@@ -147,6 +181,13 @@ export const THEME_METADATA = {
       "An album sleeve with the record sliding out and your jobs listed as Side A tracks",
     category: "Creative",
     preview: "/previews/liner-notes.webp",
+  },
+  link_stack: {
+    name: "Link Stack",
+    description:
+      "A link-in-bio style page: a short bio up top and every job, project and credential as a stacked card",
+    category: "Modern",
+    preview: "/previews/link-stack.webp",
   },
   manuscript: {
     name: "Manuscript",
@@ -179,6 +220,52 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/brutalist.webp",
   },
+  networked: {
+    name: "Networked",
+    description:
+      "A professional-network profile look, with a banner header, stat pills and skills as endorsement chips",
+    category: "Professional",
+    preview: "/previews/networked.webp",
+  },
+  noir: {
+    name: "Noir",
+    description:
+      "A black fashion-magazine masthead with gold hairlines, small-caps headings and generous white space",
+    category: "Creative",
+    preview: "/previews/noir.webp",
+  },
+  open_house: {
+    name: "Open House",
+    description:
+      "A real-estate listing flyer, with a featured-listing band, a stat row and skills as amenity tags",
+    category: "Creative",
+    preview: "/previews/open-house.webp",
+  },
+  personal_best: {
+    name: "Personal Best",
+    description: "A bold athletic-coach resume with PR-style stat cards and a neon accent",
+    category: "Modern",
+    preview: "/previews/personal-best.webp",
+  },
+  pitch_deck: {
+    name: "Pitch Deck",
+    description: "Your resume as a startup slide deck, with a cover slide and numbered sections",
+    category: "Modern",
+    preview: "/previews/pitch-deck.webp",
+  },
+  quota: {
+    name: "Quota",
+    description:
+      "A sales resume built around bold numbers, with a stat row and achievements set as call-out bullets",
+    category: "Professional",
+    preview: "/previews/quota.webp",
+  },
+  reel: {
+    name: "Reel",
+    description: "A film-editing timeline with clip markers, timecode dates and a red playhead",
+    category: "Creative",
+    preview: "/previews/reel.webp",
+  },
   retro_os: {
     name: "Retro OS",
     description: "A late-90s desktop where every section opens in its own bevelled window",
@@ -199,11 +286,37 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/scrapbook.webp",
   },
+  sidebar_photo: {
+    name: "Sidebar Photo",
+    description:
+      "The classic two-column resume: a fixed photo sidebar with skill bars beside a clean career column",
+    category: "Professional",
+    preview: "/previews/sidebar-photo.webp",
+  },
   spotlight: {
     name: "Spotlight",
     description: "Your name under a single pool of stage light, with work set out like a playbill.",
     category: "Creative",
     preview: "/previews/spotlight.webp",
+  },
+  the_brief: {
+    name: "The Brief",
+    description:
+      "A legal brief: a boxed caption header, roman-numeral sections and double-spaced serif paragraphs",
+    category: "Professional",
+    preview: "/previews/the-brief.webp",
+  },
+  the_menu: {
+    name: "The Menu",
+    description: "A tasting-menu card, with roles served as courses under a thin gold rule",
+    category: "Creative",
+    preview: "/previews/the-menu.webp",
+  },
+  timeline: {
+    name: "Timeline",
+    description: "A career roadmap: one connecting line with a marker at every role and degree",
+    category: "Modern",
+    preview: "/previews/timeline.webp",
   },
   workspace: {
     name: "Workspace",
@@ -247,4 +360,19 @@ export const themeToShareVariant = {
   lesson_plan: "lesson-plan",
   manuscript: "manuscript",
   gallery_wall: "gallery-wall",
+  sidebar_photo: "sidebar-photo",
+  infographic: "infographic",
+  timeline: "timeline",
+  networked: "networked",
+  consulting_brief: "consulting-brief",
+  quota: "quota",
+  the_brief: "the-brief",
+  open_house: "open-house",
+  the_menu: "the-menu",
+  personal_best: "personal-best",
+  pitch_deck: "pitch-deck",
+  dashboard: "dashboard",
+  reel: "reel",
+  link_stack: "link-stack",
+  noir: "noir",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;
