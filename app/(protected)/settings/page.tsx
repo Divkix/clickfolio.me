@@ -124,14 +124,10 @@ export default async function SettingsPage() {
 
   const resumeCount = resumeData[0]?.count ?? 0;
 
-  // SAFETY: latestResume.createdAt is string from Drizzle schema; cast handles nullable date for card prop.
-  const latestResumeDate = latestResume?.createdAt as string | undefined;
-  // SAFETY: latestResume.status is string from Drizzle resume status enum; cast for card prop.
-  const latestResumeStatus = latestResume?.status as string | undefined | null;
-  // SAFETY: latestResume.errorMessage is string | null from Drizzle; cast for error display fallback.
-  const latestResumeError = latestResume?.errorMessage as string | undefined | null;
-  // SAFETY: latestResume.id is string from Drizzle schema; cast handles optional id for card.
-  const latestResumeId = latestResume?.id as string;
+  const latestResumeDate = latestResume?.createdAt;
+  const latestResumeStatus = latestResume?.status;
+  const latestResumeError = latestResume?.errorMessage;
+  const latestResumeId = latestResume?.id;
 
   return (
     <div className="min-h-screen bg-background py-8">
