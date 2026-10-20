@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
+import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 import {
   generatePageBreadcrumbJsonLd,
   generateWebPageJsonLd,
@@ -43,7 +44,7 @@ const VALUES = [
   {
     icon: Heart,
     title: "Free, genuinely",
-    desc: "All six base templates are free forever — no trials, no credit card. Premium themes unlock by sharing.",
+    desc: `All ${TEMPLATE_COUNT} templates are free forever — no trials, no credit card, no premium lock.`,
   },
   {
     icon: Globe,
