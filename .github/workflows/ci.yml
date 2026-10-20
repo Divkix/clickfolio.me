@@ -95,7 +95,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [quality, test, build]
-    if: always()
+    # A cancelled run was superseded by concurrency; do not turn it into a red gate.
+    if: always() && !cancelled()
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
