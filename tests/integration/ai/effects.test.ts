@@ -175,6 +175,27 @@ describe("Effect AI boundaries", () => {
     expect(vi.mocked(generateText).mock.calls[1][0].system).toContain("Validation errors found");
   });
 
+  it("keeps a provider failure retryable when the feedback attempt fails", async () => {
+    vi.mocked(generateText)
+      .mockResolvedValueOnce(
+        textResult(
+          JSON.stringify({
+            ...CONTENT,
+            education: Array.from({ length: 11 }, () => ({
+              degree: "BSc",
+              institution: "Example",
+            })),
+          }),
+        ),
+      )
+      .mockRejectedValueOnce(new Error("provider unavailable"));
+
+    const failure = await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)));
+    expect(failure).toBeInstanceOf(AiProviderFailed);
+    expect(failure.retryable).toBe(true);
+    expect(generateText).toHaveBeenCalledTimes(2);
+  });
+
   it("uses vision for scanned PDFs and sends the intact original bytes", async () => {
     mocks.extract.mockResolvedValue({ text: "", totalPages: 1 });
     vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
