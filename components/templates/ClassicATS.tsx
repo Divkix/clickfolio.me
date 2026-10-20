@@ -1,19 +1,13 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatShortDate, formatYear } from "@/lib/templates/helpers";
+import { formatDateSpan, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { PrintButton } from "./shared/PrintButton";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 // A letter-size resume sheet. Plain structure (one column, text headings, no icons or
 // tables) keeps it parseable by applicant tracking systems and clean when printed.
-
-function dateSpan(start?: string, end?: string | null): string | null {
-  if (!start) return end ? formatShortDate(end) : null;
-
-  return `${formatShortDate(start)} – ${end ? formatShortDate(end) : "Present"}`;
-}
 
 function printableUrl(href: string): string {
   return href.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
@@ -159,7 +153,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                           {job.company && <span className="font-normal">, {job.company}</span>}
                         </h3>
                       }
-                      right={dateSpan(job.start_date, job.end_date)}
+                      right={formatDateSpan(job.start_date, job.end_date)}
                     />
                     {job.location && <p className="italic text-[#3F434A]">{job.location}</p>}
                     {job.description && <p className="mt-1">{job.description}</p>}

@@ -2,7 +2,7 @@ import { Award, FileText, Folder, GraduationCap, HardDrive, User, Wrench } from 
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -13,12 +13,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 type Content = TemplateProps["content"];
 
 const FOCUS = "focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-black";
-
-function dateSpan(start?: string, end?: string | null): string | null {
-  if (!start?.trim()) return end?.trim() ? formatShortDate(end) : null;
-
-  return `${formatShortDate(start)} – ${end?.trim() ? formatShortDate(end) : "Present"}`;
-}
 
 function Window({
   id,
@@ -191,7 +185,7 @@ function ExperienceWindow({ experience }: { experience: Content["experience"] })
     >
       <ol className="ros-sunken divide-y divide-dotted divide-[#808080] bg-white">
         {experience.map((job) => {
-          const dates = dateSpan(job.start_date, job.end_date);
+          const dates = formatDateSpan(job.start_date, job.end_date);
 
           return (
             <li key={`${job.title}-${job.company}-${job.start_date}`} className="px-3 py-3">

@@ -1,7 +1,7 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -12,26 +12,6 @@ type Content = TemplateProps["content"];
 const STAGE = "#E9E7F2";
 
 const INK = "#22163A";
-
-function formatMonth(date: string): string {
-  const parsed = new Date(date);
-
-  if (Number.isNaN(parsed.getTime())) return date;
-
-  return parsed.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
-}
-
-function formatYearOnly(date: string): string {
-  const parsed = new Date(date);
-
-  if (Number.isNaN(parsed.getTime())) return date;
-
-  return parsed.toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
-}
-
-function formatRange(start: string, end?: string | null): string {
-  return `${formatMonth(start)} – ${end ? formatMonth(end) : "Present"}`;
-}
 
 const linkClass =
   "underline decoration-[#E8B400] decoration-[3px] underline-offset-[5px] hover:bg-[#FFD95A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22163A] rounded-[2px] transition-colors";
@@ -168,7 +148,7 @@ function Work({ items }: { items: Content["experience"] }) {
             </div>
             <p className="sm:hidden sl-display text-lg font-semibold mt-1">{job.company}</p>
             <p className="mt-1 text-[0.95rem] text-[#5E5575]">
-              {formatRange(job.start_date, job.end_date)}
+              {formatDateSpan(job.start_date, job.end_date)}
               {job.location ? <span className="ml-4">{job.location}</span> : null}
             </p>
 
@@ -272,7 +252,7 @@ function Education({ items }: { items: Content["education"] }) {
             <p className="mt-1 text-[#3A2F52]">
               {edu.institution}
               {edu.graduation_date && (
-                <span className="ml-3 text-[#5E5575]">{formatYearOnly(edu.graduation_date)}</span>
+                <span className="ml-3 text-[#5E5575]">{formatYear(edu.graduation_date)}</span>
               )}
             </p>
             {edu.gpa && <p className="mt-1 text-[0.95rem] text-[#5E5575]">GPA {edu.gpa}</p>}
@@ -310,7 +290,7 @@ function Certifications({ items }: { items: Content["certifications"] }) {
                 {cert.issuer}
                 {cert.date && (
                   <span className={cert.issuer ? "ml-3 text-[#5E5575]" : "text-[#5E5575]"}>
-                    {formatMonth(cert.date)}
+                    {formatShortDate(cert.date)}
                   </span>
                 )}
               </p>

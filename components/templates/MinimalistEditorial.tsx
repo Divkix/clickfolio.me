@@ -1,7 +1,7 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatShortDate, getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -10,12 +10,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const LINK =
   "text-[#1F5C4A] underline decoration-[#1F5C4A]/35 underline-offset-[3px] hover:decoration-[#1F5C4A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F5C4A] rounded-[1px]";
-
-function dateSpan(start?: string, end?: string | null): string | null {
-  if (!start) return end ? formatShortDate(end) : null;
-
-  return `${formatShortDate(start)} – ${end ? formatShortDate(end) : "Present"}`;
-}
 
 function Section({
   title,
@@ -150,7 +144,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
               {experience.map((job) => (
                 <Entry
                   key={`${job.company}-${job.title}-${job.start_date}`}
-                  aside={dateSpan(job.start_date, job.end_date)}
+                  aside={formatDateSpan(job.start_date, job.end_date)}
                 >
                   <h3 className="text-[1.1875rem] md:text-xl font-semibold leading-snug break-words [text-wrap:unset]">
                     {job.title}

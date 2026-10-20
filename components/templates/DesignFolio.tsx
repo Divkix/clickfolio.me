@@ -1,7 +1,7 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -14,22 +14,6 @@ type Project = NonNullable<Content["projects"]>[number];
 const PAPER = "#EDEEF0";
 
 const COBALT = "#2D3BFF";
-
-function formatMonth(date: string): string {
-  const parsed = new Date(date);
-
-  if (Number.isNaN(parsed.getTime())) return date;
-
-  return parsed.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
-}
-
-function formatYearOnly(date: string): string {
-  const parsed = new Date(date);
-
-  if (Number.isNaN(parsed.getTime())) return date;
-
-  return parsed.toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
-}
 
 const inkLink =
   "underline decoration-2 underline-offset-4 hover:text-[#2D3BFF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D3BFF]";
@@ -233,7 +217,7 @@ function Experience({ items }: { items: Content["experience"] }) {
             className="grid gap-3 md:grid-cols-12 md:gap-6"
           >
             <p className="md:col-span-3 text-[#5B5F68] tabular-nums">
-              {formatMonth(job.start_date)} – {job.end_date ? formatMonth(job.end_date) : "Present"}
+              {formatDateSpan(job.start_date, job.end_date)}
             </p>
             <div className="md:col-span-4 min-w-0">
               <h3 className="text-xl font-bold leading-snug break-words">{job.title}</h3>
@@ -317,7 +301,7 @@ function Credentials({
                 <p className="mt-1">{edu.institution}</p>
                 {(edu.graduation_date || edu.gpa) && (
                   <p className="mt-1 text-[#5B5F68]">
-                    {edu.graduation_date && formatYearOnly(edu.graduation_date)}
+                    {edu.graduation_date && formatYear(edu.graduation_date)}
                     {edu.graduation_date && edu.gpa ? ", " : ""}
                     {edu.gpa && `GPA ${edu.gpa}`}
                   </p>
@@ -349,7 +333,7 @@ function Credentials({
                   )}
                 </h3>
                 {cert.issuer && <p className="mt-1">{cert.issuer}</p>}
-                {cert.date && <p className="mt-1 text-[#5B5F68]">{formatMonth(cert.date)}</p>}
+                {cert.date && <p className="mt-1 text-[#5B5F68]">{formatShortDate(cert.date)}</p>}
               </li>
             ))}
           </ul>
