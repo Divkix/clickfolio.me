@@ -6,11 +6,12 @@ import { useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 
 interface ResumeManagementCardProps {
   resumeCount: number;
   latestResumeDate?: string | null;
-  latestResumeStatus?: string | null;
+  latestResumeStatus?: ResumeStatus | null;
   latestResumeError?: string | null;
   latestResumeId?: string | null;
 }
@@ -54,6 +55,8 @@ export function ResumeManagementCard({
       case "completed":
         return "text-success bg-success/10";
       case "processing":
+      case "queued":
+      case "waiting_for_cache":
         return "text-info bg-info/10";
       case "failed":
         return "text-destructive bg-destructive/10";
@@ -67,6 +70,8 @@ export function ResumeManagementCard({
       case "completed":
         return "Published";
       case "processing":
+      case "queued":
+      case "waiting_for_cache":
         return "Processing";
       case "failed":
         return "Failed";

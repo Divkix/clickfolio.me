@@ -4,6 +4,7 @@ import { authorPersona } from "@/lib/config/author";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
+import { absoluteSiteUrl } from "@/lib/utils/site-url";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import type { ResumeContent } from "@/lib/types/database";
@@ -378,10 +379,6 @@ export function generateFAQPageJsonLd(items: Array<{ q: string; a: string }>) {
   };
 }
 
-function absoluteUrl(path: string): string {
-  return path === "/" ? siteConfig.url : `${siteConfig.url}${path}`;
-}
-
 function blogAuthorJsonLd() {
   return {
     "@type": "Person" as const,
@@ -399,7 +396,7 @@ export function generateBreadcrumbListJsonLd(items: readonly { name: string; pat
       "@type": "ListItem",
       position: i + 1,
       name: item.name,
-      item: absoluteUrl(item.path),
+      item: absoluteSiteUrl(item.path),
     })),
   };
 }

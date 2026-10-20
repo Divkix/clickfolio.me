@@ -1,28 +1,18 @@
-import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { getDb } from "@/lib/db";
-import { user as users } from "@/lib/db/schema";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
-import { getServerSession } from "./session";
+import { getServerSession, type AppSessionUser } from "./session";
 
 export interface AdminUser {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
   isAdmin: boolean;
 }
 
-async function loadAdminRow(userId: string): Promise<AdminUser | null> {
-  const db = getDb(env.HYPERDRIVE);
-
-  const dbUser = await db.query.user.findFirst({
-    where: eq(users.id, userId),
-    columns: { id: true, email: true, name: true, isAdmin: true },
-  });
-
-  // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
-  return (dbUser as AdminUser) ?? null;
+// getServerSession already re-reads the user row from Postgres every request, so its
+// isAdmin value is as fresh as a second query and no separate lookup is needed.
+function adminUserFromSession(user: AppSessionUser): AdminUser {
+  return { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin };
 }
 
 export async function requireAdminAuth(): Promise<AdminUser> {
@@ -32,17 +22,13 @@ export async function requireAdminAuth(): Promise<AdminUser> {
     redirect("/");
   }
 
-  const dbUser = await loadAdminRow(session.user.id);
+  const adminUser = adminUserFromSession(session.user);
 
-  if (!dbUser) {
-    redirect("/");
-  }
-
-  if (!dbUser.isAdmin) {
+  if (!adminUser.isAdmin) {
     redirect("/dashboard");
   }
 
-  return dbUser;
+  return adminUser;
 }
 
 export async function requireAdminAuthForApi(): Promise<
@@ -57,21 +43,14 @@ export async function requireAdminAuthForApi(): Promise<
     };
   }
 
-  const dbUser = await loadAdminRow(session.user.id);
+  const adminUser = adminUserFromSession(session.user);
 
-  if (!dbUser) {
-    return {
-      user: null,
-      error: createErrorResponse("User not found", ERROR_CODES.UNAUTHORIZED, 401),
-    };
-  }
-
-  if (!dbUser.isAdmin) {
+  if (!adminUser.isAdmin) {
     return {
       user: null,
       error: createErrorResponse("Admin access required", ERROR_CODES.FORBIDDEN, 403),
     };
   }
 
-  return { user: dbUser, error: null };
+  return { user: adminUser, error: null };
 }

@@ -8,6 +8,8 @@ let cachedToken: string | null = null;
 
 let tokenTimestamp = 0;
 
+let tokenPromise: Promise<string> | null = null;
+
 export interface UmamiStats {
   pageviews: number;
   visitors: number;
@@ -60,13 +62,10 @@ interface MetricsOptions {
 function clearTokenCache() {
   cachedToken = null;
   tokenTimestamp = 0;
+  tokenPromise = null;
 }
 
-export async function getUmamiToken(env: CloudflareEnv): Promise<string> {
-  if (cachedToken && Date.now() - tokenTimestamp < TOKEN_TTL_MS) {
-    return cachedToken;
-  }
-
+async function requestUmamiToken(env: CloudflareEnv): Promise<string> {
   const apiUrl = env.UMAMI_API_URL;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -95,6 +94,19 @@ export async function getUmamiToken(env: CloudflareEnv): Promise<string> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function getUmamiToken(env: CloudflareEnv): Promise<string> {
+  if (cachedToken && Date.now() - tokenTimestamp < TOKEN_TTL_MS) {
+    return cachedToken;
+  }
+
+  // Concurrent cold-isolate callers share one login instead of racing.
+  tokenPromise ??= requestUmamiToken(env).finally(() => {
+    tokenPromise = null;
+  });
+
+  return tokenPromise;
 }
 
 function appendPathFilter(params: URLSearchParams, path?: string) {

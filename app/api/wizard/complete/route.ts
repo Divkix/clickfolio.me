@@ -7,7 +7,7 @@ import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
-import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
+import { countHandleChangesInWindow, RATE_LIMITS } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
           if (isHandleChange) {
             const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
 
-            if (changesIn24h >= 3) return { kind: "rate_limited" };
+            if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
           }
 
           const updated = await tx
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
 
         if (outcome.kind === "rate_limited") {
           return createErrorResponse(
-            "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
+            `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
             ERROR_CODES.RATE_LIMIT_EXCEEDED,
             429,
           );

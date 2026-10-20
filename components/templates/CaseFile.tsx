@@ -2,7 +2,7 @@ import type React from "react";
 import { cn } from "@/lib/utils/cn";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatShortDate, getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -16,12 +16,6 @@ const INK = "#1F1D1A";
 
 const LINK =
   "text-[#1F1D1A] underline decoration-[#B3261E]/50 underline-offset-[3px] hover:decoration-[#B3261E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B3261E]";
-
-function dateSpan(start?: string, end?: string | null): string | null {
-  if (!start?.trim()) return end?.trim() ? formatShortDate(end) : null;
-
-  return `${formatShortDate(start)} – ${end?.trim() ? formatShortDate(end) : "Present"}`;
-}
 
 function Field({
   label,
@@ -135,7 +129,7 @@ function ExperienceExhibit({
       {experience.map((job) => (
         <Record
           key={`${job.company}-${job.title}-${job.start_date}`}
-          dates={dateSpan(job.start_date, job.end_date)}
+          dates={formatDateSpan(job.start_date, job.end_date)}
         >
           <h3 className="text-base font-bold break-words md:text-[17px]">{job.title}</h3>
           {(job.company || job.location) && (

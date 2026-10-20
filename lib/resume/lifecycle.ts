@@ -1,5 +1,6 @@
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
+import type { ERROR_CODES } from "@/lib/utils/security-headers";
 import { z } from "zod";
 import { ParseErrorType } from "@/lib/parse/error-types";
 
@@ -95,8 +96,6 @@ export type ResumeRetryRow = {
   retryCount: number;
   totalAttempts: number;
   lastAttemptError?: string | null;
-  /** @deprecated — pass `lastAttemptError` (raw JSON string) instead */
-  lastAttemptErrorType?: string | null;
 };
 
 export type RetryEligibility =
@@ -104,7 +103,7 @@ export type RetryEligibility =
   | {
       eligible: false;
       reason: string;
-      errorCode: string;
+      errorCode: keyof typeof ERROR_CODES;
       httpStatus: 400 | 429;
       details?: UnknownRecord;
     };
@@ -123,16 +122,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
     };
   }
 
-  // Back-compat: honour explicit `lastAttemptErrorType` if provided.
-  // `undefined` = not provided → fall back to parsing lastAttemptError JSON.
-  // `null` = explicitly no type → honour as null (do not fall back).
-  // SAFETY: lifecycle.parseLastAttemptError validates ParseError JSON shape before cast.
-  const parsed =
-    row.lastAttemptErrorType !== undefined
-      ? row.lastAttemptErrorType
-        ? { type: row.lastAttemptErrorType, message: null as string | null }
-        : null
-      : parseLastAttemptError(row.lastAttemptError ?? null);
+  const parsed = parseLastAttemptError(row.lastAttemptError ?? null);
 
   if (parsed?.type && isPermanentErrorType(parsed.type)) {
     return {

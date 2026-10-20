@@ -1,3 +1,5 @@
+import type { PrivacySettings } from "@/lib/db/schema/auth";
+
 const FULL_ADDRESS_WITH_ZIP = /,\s*([^,]+),\s*([A-Z]{2})\s+\d{5}(-\d{4})?$/;
 
 const STATE_CODE = /^[A-Z]{2}$/;
@@ -63,8 +65,6 @@ export function extractCityState(location: string | undefined): string {
 
   return "";
 }
-
-import type { PrivacySettings } from "@/lib/db/schema/auth";
 
 export type { PrivacySettings };
 

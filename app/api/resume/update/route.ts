@@ -3,6 +3,7 @@ import { withUser } from "@/lib/auth/with-auth";
 
 import { siteData, user } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
+import { shouldSyncDisplayName } from "@/lib/resume/completion";
 import type { ResumeContent } from "@/lib/types/database";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
@@ -115,7 +116,7 @@ export async function PUT(request: Request) {
 
       const updatedName = content.full_name?.trim();
 
-      if (updatedName && updatedName !== "Pending" && updatedName !== "Unnamed") {
+      if (updatedName) {
         const userRow = await db
           .select({ name: user.name })
           .from(user)
@@ -124,7 +125,7 @@ export async function PUT(request: Request) {
 
         const currentName = userRow[0]?.name;
 
-        if (!currentName || currentName === "Unnamed" || currentName.trim() === "") {
+        if (shouldSyncDisplayName(updatedName, currentName)) {
           await db
             .update(user)
             .set({ name: updatedName, updatedAt: now })

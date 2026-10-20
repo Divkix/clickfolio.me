@@ -70,7 +70,7 @@ export default function StudentPage() {
             items={[
               {
                 lead: "100% free, forever",
-                body: "all 6 base templates have no time limits, no trials, and no credit card requirements. Perfect for students building their first online presence.",
+                body: `all ${TEMPLATE_COUNT} templates have no time limits, no trials, and no credit card requirements. Perfect for students building their first online presence.`,
               },
               {
                 lead: "Classic ATS template",

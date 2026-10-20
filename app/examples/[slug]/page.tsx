@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { PersonCard, type DirectoryUser } from "@/components/explore/person-card";
+import { PersonCard } from "@/components/explore/person-card";
 import { Footer } from "@/components/Footer";
 import { RoleSection, type RoleItem } from "@/components/role/RoleSection";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -20,10 +20,12 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
-import { indexableProfileCondition } from "@/lib/data/indexable-profiles";
+import {
+  indexableProfileCondition,
+  toDirectoryUser,
+  type DirectoryUser,
+} from "@/lib/data/indexable-profiles";
 import { THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
-import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
-import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 
 export const revalidate = 3600;
 
@@ -135,24 +137,7 @@ const loadGalleryProfiles = cache(async (gallery: ExampleGallery): Promise<Direc
   return rows
     .filter((u): u is typeof u & { handle: string } => u.handle !== null)
     .sort((a, b) => gallery.handles.indexOf(a.handle) - gallery.handles.indexOf(b.handle))
-    .map((u) => {
-      const previewSkills = normalizePreviewSkills(u.previewSkills);
-      const showAddress = normalizePrivacySettings(u.privacySettings).show_address;
-
-      const previewLocation =
-        u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
-
-      return {
-        handle: u.handle,
-        role: u.role,
-        previewName: u.previewName,
-        previewHeadline: u.previewHeadline,
-        previewLocation,
-        previewExpCount: u.previewExpCount,
-        previewEduCount: u.previewEduCount,
-        previewSkills: previewSkills.length > 0 ? previewSkills : null,
-      };
-    });
+    .map(toDirectoryUser);
 });
 
 export function generateStaticParams() {
