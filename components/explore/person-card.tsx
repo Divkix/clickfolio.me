@@ -1,17 +1,7 @@
 import { Briefcase, ExternalLink, GraduationCap, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-
-export interface DirectoryUser {
-  handle: string;
-  role: string | null;
-  previewName: string | null;
-  previewHeadline: string | null;
-  previewLocation: string | null;
-  previewExpCount: number | null;
-  previewEduCount: number | null;
-  previewSkills: string[] | null;
-}
+import type { DirectoryUser } from "@/lib/data/indexable-profiles";
 
 interface PersonCardProps {
   person: DirectoryUser;

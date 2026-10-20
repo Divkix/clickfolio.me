@@ -1,7 +1,47 @@
 import { and, count, desc, eq, isNotNull, sql, type SQL } from "drizzle-orm";
 import type { UserRole } from "@/lib/config/roles";
 import type { PgQueryable } from "@/lib/db";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { siteData, user } from "@/lib/db/schema";
+import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
+import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
+
+export interface DirectoryUser {
+  handle: string;
+  role: UserRole | null;
+  previewName: string | null;
+  previewHeadline: string | null;
+  previewLocation: string | null;
+  previewExpCount: number | null;
+  previewEduCount: number | null;
+  previewSkills: string[] | null;
+}
+
+/** The preview columns both directory queries select, before privacy/skills normalization. */
+export type DirectoryUserRow = DirectoryUser & {
+  privacySettings: PrivacySettings;
+};
+
+/** Applies the viewer-facing privacy rules to one directory row. */
+export function toDirectoryUser(row: DirectoryUserRow): DirectoryUser {
+  const previewSkills = normalizePreviewSkills(row.previewSkills);
+
+  const previewLocation =
+    row.previewLocation && !normalizePrivacySettings(row.privacySettings).show_address
+      ? extractCityState(row.previewLocation)
+      : row.previewLocation;
+
+  return {
+    handle: row.handle,
+    role: row.role,
+    previewName: row.previewName,
+    previewHeadline: row.previewHeadline,
+    previewLocation,
+    previewExpCount: row.previewExpCount,
+    previewEduCount: row.previewEduCount,
+    previewSkills: previewSkills.length > 0 ? previewSkills : null,
+  };
+}
 
 /**
  * SQL twin of `isIndexableProfile` over `user ⋈ site_data`, so list queries never load `content`.

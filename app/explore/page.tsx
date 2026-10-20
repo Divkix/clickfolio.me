@@ -6,19 +6,21 @@ import { ExploreFilters } from "@/components/explore/explore-filters";
 import { ExploreHeader } from "@/components/explore/explore-header";
 import { ExplorePagination } from "@/components/explore/explore-pagination";
 import { NoResults } from "@/components/explore/no-results";
-import { PersonCard, type DirectoryUser } from "@/components/explore/person-card";
+import { PersonCard } from "@/components/explore/person-card";
 import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
-import { getDirectoryPage, type DirectoryRoleFilter } from "@/lib/data/indexable-profiles";
+import {
+  getDirectoryPage,
+  toDirectoryUser,
+  type DirectoryRoleFilter,
+} from "@/lib/data/indexable-profiles";
 import { isUserRole, ROLE_OPTIONS } from "@/lib/config/roles";
 import { generateExploreJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
-import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
-import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 import { parsePageParam } from "@/lib/utils/pagination";
 
 export const revalidate = 300;
@@ -83,24 +85,7 @@ export default async function ExplorePage({
 
   if (currentPage > 1 && currentPage > totalPages) notFound();
 
-  const directoryUsers: DirectoryUser[] = pageUsers.map((u) => {
-    const previewSkills = normalizePreviewSkills(u.previewSkills);
-    const showAddress = normalizePrivacySettings(u.privacySettings).show_address;
-
-    const previewLocation =
-      u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
-
-    return {
-      handle: u.handle,
-      role: u.role,
-      previewName: u.previewName,
-      previewHeadline: u.previewHeadline,
-      previewLocation,
-      previewExpCount: u.previewExpCount,
-      previewEduCount: u.previewEduCount,
-      previewSkills: previewSkills.length > 0 ? previewSkills : null,
-    };
-  });
+  const directoryUsers = pageUsers.map(toDirectoryUser);
 
   const exploreJsonLd = generateExploreJsonLd(
     directoryUsers.map((u) => ({
