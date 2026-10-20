@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { ResumeContent } from "@/lib/types/database";
+import { extractCityState } from "@/lib/utils/privacy";
 
 interface PrivacyStepProps {
   content: ResumeContent;
@@ -46,17 +47,6 @@ export function PrivacyStep({
       show_in_directory: showInDirectory,
       hide_from_search: hideFromSearch,
     });
-  };
-
-  const getCityState = (location?: string) => {
-    if (!location) return "";
-    const parts = location.split(",").map((p) => p.trim());
-
-    if (parts.length >= 2) {
-      return parts.slice(-2).join(", ");
-    }
-
-    return location;
   };
 
   return (
@@ -149,7 +139,9 @@ export function PrivacyStep({
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-foreground">
                       <EyeOff className="w-4 h-4 text-brand" />
-                      <span className="font-medium">{getCityState(content.contact.location)}</span>
+                      <span className="font-medium">
+                        {extractCityState(content.contact.location)}
+                      </span>
                       <span className="text-xs text-muted-foreground">(City/State only)</span>
                     </div>
                   )}
