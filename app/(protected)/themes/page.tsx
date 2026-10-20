@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import { siteData, user } from "@/lib/db/schema";
+import { siteData } from "@/lib/db/schema";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 
@@ -23,16 +23,10 @@ export default async function ThemesPage() {
 
   const db = getDb(env.HYPERDRIVE);
 
-  const [userSiteData, userProfile] = await Promise.all([
-    db.query.siteData.findFirst({
-      where: eq(siteData.userId, session.user.id),
-      columns: { themeId: true, content: true },
-    }),
-    db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
-      columns: { handle: true, image: true },
-    }),
-  ]);
+  const userSiteData = await db.query.siteData.findFirst({
+    where: eq(siteData.userId, session.user.id),
+    columns: { themeId: true, content: true },
+  });
 
   if (!userSiteData?.content) {
     redirect("/dashboard");
@@ -47,8 +41,8 @@ export default async function ThemesPage() {
   const parsedContent = userSiteData.content as ResumeContent;
 
   const profile = {
-    handle: userProfile?.handle || session.user.name || "user",
-    avatar_url: userProfile?.image || null,
+    handle: session.user.handle || session.user.name || "user",
+    avatar_url: session.user.image || null,
   };
 
   return (
