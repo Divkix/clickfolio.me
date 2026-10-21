@@ -6,7 +6,7 @@ import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
-import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "@/lib/templates/theme-ids";
+import { resolveThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 
 export const metadata: Metadata = {
@@ -32,10 +32,7 @@ export default async function ThemesPage() {
     redirect("/dashboard");
   }
 
-  const rawThemeId = userSiteData.themeId;
-
-  const currentThemeId: ThemeId =
-    rawThemeId && isValidThemeId(rawThemeId) ? rawThemeId : DEFAULT_THEME;
+  const currentThemeId = resolveThemeId(userSiteData.themeId);
 
   // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
   const parsedContent = userSiteData.content as ResumeContent;

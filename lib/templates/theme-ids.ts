@@ -55,6 +55,28 @@ export function isValidThemeId(id: string): id is ThemeId {
   return (THEME_IDS as readonly string[]).includes(id);
 }
 
+/**
+ * Theme ids that were removed from THEME_IDS, mapped to the theme their users moved to. Stored
+ * rows are remapped by a data migration; this keeps reads and old /templates/<slug> links working.
+ */
+export const REMOVED_THEME_REPLACEMENTS = {} as const satisfies Record<string, ThemeId>;
+
+const REMOVED_THEME_LOOKUP = new Map(Object.entries<ThemeId>(REMOVED_THEME_REPLACEMENTS));
+
+/** The theme that replaced a removed theme id, or null when `id` was never removed. */
+export function replacementForRemovedTheme(id: string): ThemeId | null {
+  return REMOVED_THEME_LOOKUP.get(id) ?? null;
+}
+
+/** Any stored theme id → a renderable theme: valid ids pass, removed ids map, the rest default. */
+export function resolveThemeId(raw: string | null | undefined): ThemeId {
+  if (!raw) return DEFAULT_THEME;
+
+  if (isValidThemeId(raw)) return raw;
+
+  return replacementForRemovedTheme(raw) ?? DEFAULT_THEME;
+}
+
 /** URL slug for /templates/<slug>: the theme id in kebab case. */
 export function themeSlug(id: ThemeId): string {
   return id.replaceAll("_", "-");

@@ -1,5 +1,5 @@
 import type { TemplateProps } from "@/lib/types/template";
-import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
+import { resolveThemeId, type ThemeId } from "./theme-ids";
 
 type TemplateLoader = () => Promise<React.FC<TemplateProps>>;
 
@@ -51,8 +51,5 @@ const TEMPLATE_LOADERS = {
 export async function getTemplate(
   themeId: string | null | undefined,
 ): Promise<React.FC<TemplateProps>> {
-  const resolvedId: ThemeId = themeId && isValidThemeId(themeId) ? themeId : DEFAULT_THEME;
-  const loader = TEMPLATE_LOADERS[resolvedId] ?? TEMPLATE_LOADERS[DEFAULT_THEME];
-
-  return loader();
+  return TEMPLATE_LOADERS[resolveThemeId(themeId)]();
 }
