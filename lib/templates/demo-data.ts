@@ -3255,7 +3255,7 @@ export const TEMPLATE_BACKGROUNDS = {
   open_house: { bg: "bg-[#FCF7EF]", isDark: false },
   the_menu: { bg: "bg-[#F7F1E6]", isDark: false },
   personal_best: { bg: "bg-[#0B0B0D]", isDark: true },
-  pitch_deck: { bg: "bg-[#F4F5FB]", isDark: false },
+  pitch_deck: { bg: "bg-[#E3E4E8]", isDark: false },
   reel: { bg: "bg-[#0C0C0E]", isDark: true },
   link_stack: { bg: "bg-[#F3ECFF]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

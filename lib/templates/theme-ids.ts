@@ -239,7 +239,7 @@ export const THEME_METADATA = {
   },
   pitch_deck: {
     name: "Pitch Deck",
-    description: "Your resume as a startup slide deck, with a cover slide and numbered sections",
+    description: "Your resume as a 16:9 founder deck: title slide, one-liner, traction and the ask",
     category: "Modern",
     preview: "/previews/pitch-deck.webp",
   },

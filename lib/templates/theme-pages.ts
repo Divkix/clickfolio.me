@@ -263,10 +263,10 @@ export const THEME_PAGE_COPY: Record<
   pitch_deck: {
     title: "Startup Founder Resume Website Template",
     description:
-      "Build a free founder resume website with Pitch Deck: your career as a slide deck, with a cover slide and numbered sections.",
+      "Build a free founder resume website with Pitch Deck: your career as a 16:9 slide deck, from title slide to the ask.",
     paragraphs: [
-      "Pitch Deck presents a founder's background the way they'd present their own company: a bold blue cover slide with your name and one-line pitch, then every section as its own numbered slide card — summary, traction, side projects, and background.",
-      "Experience highlights sit in their own rounded callouts, the way a traction slide lists its metrics. It suits founders, operators, and early-stage hires who think in decks as naturally as they think in resumes.",
+      "Pitch Deck presents a founder's background the way they'd present their own company. Each section is its own widescreen slide with a page number in the footer: a cobalt title slide with your name, the one-liner, traction from your current role, your track record, what you've built, and your background.",
+      "Every slide carries one idea in big headline type, and the deck closes on a cobalt slide with your email and links. It suits founders, operators, and early-stage hires who think in decks as naturally as they think in resumes.",
     ],
   },
   reel: {
