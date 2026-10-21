@@ -6,7 +6,7 @@ When you change something this file describes, update it in the same commit.
 
 ## Commands
 
-Use the Node version in `.node-version` and pnpm 12.6.0.
+Use the Node version in `.node-version` and pnpm 12.14.0.
 
 | Task                  | Command                                                                                                                                                                                                                                 |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
