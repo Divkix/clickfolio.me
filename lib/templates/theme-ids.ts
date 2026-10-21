@@ -227,7 +227,7 @@ export const THEME_METADATA = {
   open_house: {
     name: "Open House",
     description:
-      "A real-estate listing flyer, with a featured-listing band, a stat row and skills as amenity tags",
+      "A real-estate listing sheet: your name on a hanging yard sign, a property-details table and roles filed as listings",
     category: "Creative",
     preview: "/previews/open-house.webp",
   },

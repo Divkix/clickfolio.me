@@ -182,9 +182,9 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-sm hover:shadow-md",
     },
     open_house: {
-      container: "bg-white/95 border border-[#2A2117]/15 text-[#6B5A47] hover:text-[#2A2117]",
-      accent: "text-[#B5562B]",
-      shimmer: "from-transparent via-[#B5562B]/20 to-transparent",
+      container: "bg-white/95 border border-[#18231D]/20 text-[#56615A] hover:text-[#18231D]",
+      accent: "text-[#1F4D3A]",
+      shimmer: "from-transparent via-[#1F4D3A]/20 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     the_menu: {

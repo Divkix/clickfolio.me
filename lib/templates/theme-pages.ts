@@ -236,10 +236,10 @@ export const THEME_PAGE_COPY: Record<
   open_house: {
     title: "Real Estate Agent Website Template",
     description:
-      "Create a free real estate agent website with Open House: a featured-listing band, a stat row and skills shown as amenity tags.",
+      "Create a free real estate agent website with Open House: your name on a yard sign, a property-details table and roles filed as listings.",
     paragraphs: [
-      'Open House styles a real-estate resume like the MLS listing flyers agents already hand out: a terracotta "Featured Listing" band up top, a stats row reading like a property\'s details, and each role presented as its own listing card.',
-      "Skills appear as rounded amenity tags, and every stat on the page comes from your own resume — roles, credentials, and certifications you listed, never an invented sales figure. Warm cream and terracotta keep it feeling like print collateral rather than a corporate template.",
+      "Open House sets a real-estate resume up like the listing sheets agents already work from. Your name hangs on a green yard sign with your phone number as large as the name and your brokerage on the rider below, the way buyers see it from the curb.",
+      "Underneath, an MLS-style property-details table lists your location, brokerage, specialties, licenses and education as plain facts, and each role is filed in your listing history marked Active or Closed. Every line comes from your own resume, with no invented sales figures or counts.",
     ],
   },
   the_menu: {
