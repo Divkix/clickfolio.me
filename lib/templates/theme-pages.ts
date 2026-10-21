@@ -254,10 +254,10 @@ export const THEME_PAGE_COPY: Record<
   personal_best: {
     title: "Personal Trainer Resume Website Template",
     description:
-      "Make a free personal trainer resume website with Personal Best: bold PR-style stat cards and a neon accent on near-black.",
+      "Make a free personal trainer resume website with Personal Best: your name across a running track and your results on an LED board.",
     paragraphs: [
-      "Personal Best gives a fitness or coaching resume the same energy as a training log. A diagonal colour split sits behind your name, and any number already in your highlights — a percentage, a rep count, a season record — gets pulled out into its own bold stat card.",
-      "Nothing is invented: the stats are read directly out of your own achievement bullets, not estimated. Condensed uppercase headings and a single cyan accent keep the page feeling like a locker-room poster rather than a corporate template.",
+      "Personal Best sets a coaching or fitness resume at a track meet. Your name is painted across the lanes of a red running track, one line per lane, with your headline and contact details running in the lanes below.",
+      "Any figure already in your achievement bullets, like a percentage, an inch gained or a number of athletes, lights up on a black LED scoreboard. Nothing is estimated or counted for you. Your roles, education and certifications follow as a printed results sheet with dates in the marks column. It suits strength coaches, personal trainers and athletes.",
     ],
   },
   pitch_deck: {

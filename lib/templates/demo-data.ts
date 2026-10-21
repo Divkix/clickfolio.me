@@ -3256,7 +3256,7 @@ export const TEMPLATE_BACKGROUNDS = {
   the_brief: { bg: "bg-[#FBF8F0]", isDark: false },
   open_house: { bg: "bg-[#EEF1EE]", isDark: false },
   the_menu: { bg: "bg-[#F1E7D8]", isDark: false },
-  personal_best: { bg: "bg-[#0B0B0D]", isDark: true },
+  personal_best: { bg: "bg-white", isDark: false },
   pitch_deck: { bg: "bg-[#E3E4E8]", isDark: false },
   reel: { bg: "bg-[#0C0C0E]", isDark: true },
   link_stack: { bg: "bg-[#160F3D]", isDark: true },

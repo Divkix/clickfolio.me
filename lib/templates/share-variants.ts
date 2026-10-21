@@ -134,7 +134,7 @@ export const shareButtonStyles = {
   "the-menu":
     "bg-transparent text-[#241A16] hover:bg-[#7A1E22] hover:text-[#FCF8F0] border border-[#7A1E22]/45 rounded-none px-3 py-1.5 text-sm",
   "personal-best":
-    "bg-transparent text-[#37E6E0] hover:bg-[#37E6E0] hover:text-[#0B0B0D] border border-[#37E6E0]/50 rounded-sm px-3 py-1.5 text-sm font-bold",
+    "bg-white text-[#16171A] hover:bg-[#B0372A] hover:text-white border border-[#16171A]/25 rounded-none px-3 py-1.5 text-sm font-semibold",
   "pitch-deck":
     "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
   reel: "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
@@ -187,7 +187,7 @@ export const shareTriggerStyles = {
   "the-brief": "bg-[#FBF8F0] text-[#1B2A4A] border-[#1B2A4A]/40 rounded-sm shadow-md",
   "open-house": "bg-[#1F4D3A] text-white border-[#1F4D3A] rounded-none shadow-lg",
   "the-menu": "bg-[#7A1E22] text-[#FCF8F0] border-[#FCF8F0]/40 rounded-none shadow-lg",
-  "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/50 rounded-sm shadow-lg",
+  "personal-best": "bg-[#B0372A] text-white border-white/40 rounded-none shadow-lg",
   "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
   "link-stack": "bg-[#2A1FC7] text-white border-[#2A1FC7] rounded-none shadow-lg",
@@ -225,7 +225,7 @@ export const sharePanelStyles = {
   "the-brief": "bg-[#FBF8F0] text-[#1C1A16] border-[#1B2A4A]/30 rounded-sm",
   "open-house": "bg-[#EEF1EE] text-[#18231D] border-[#18231D]/20 rounded-none",
   "the-menu": "bg-[#FCF8F0] text-[#241A16] border-[#7A1E22]/40 rounded-none",
-  "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/40 rounded-sm",
+  "personal-best": "bg-white text-[#16171A] border-[#16171A]/15 rounded-none",
   "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
   "link-stack": "bg-[#160F3D] text-white border-white/15 rounded-none",
@@ -281,7 +281,8 @@ export const shareItemStyles = {
     "bg-white text-[#18231D] hover:bg-[#1F4D3A] hover:text-white border border-[#18231D]/20",
   "the-menu":
     "bg-[#FCF8F0] text-[#241A16] hover:bg-[#7A1E22] hover:text-[#FCF8F0] border border-[#7A1E22]/30",
-  "personal-best": "bg-[#17171A] text-[#F2F2F0] hover:text-[#37E6E0] border border-[#2A2A2E]",
+  "personal-best":
+    "bg-[#F0F0EC] text-[#16171A] hover:bg-[#B0372A] hover:text-white border border-[#16171A]/10",
   "pitch-deck": "bg-white text-[#191B2B] hover:text-[#2F5CFF] border border-[#E7E9F5]",
   reel: "bg-[#17171A] text-[#E7E6E2] hover:text-[#E5342B] border border-white/10",
   "link-stack": "bg-[#1F1752] text-white hover:bg-[#2A1FC7] border border-white/10",

@@ -194,11 +194,10 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-sm hover:shadow-md",
     },
     personal_best: {
-      container:
-        "bg-[#0B0B0D]/90 backdrop-blur-md border border-[#37E6E0]/25 text-[#C8C8C6] hover:text-[#F2F2F0]",
-      accent: "text-[#37E6E0]",
-      shimmer: "from-transparent via-[#37E6E0]/20 to-transparent",
-      shadow: "shadow-lg hover:shadow-xl",
+      container: "bg-white/95 border border-[#16171A]/15 text-[#55585F] hover:text-[#16171A]",
+      accent: "text-[#B0372A]",
+      shimmer: "from-transparent via-[#B0372A]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
     },
     pitch_deck: {
       container: "bg-white/95 border border-[#E7E9F5] text-[#6B6F8A] hover:text-[#191B2B]",

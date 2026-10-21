@@ -1,213 +1,341 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateSpan, getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-// Near-black, high-contrast, diagonal color blocks — a motivational-poster read on a coach's
-// career. Stat callouts come only from numbers already present in the resume's own highlights.
+// An athletics meet: the name is painted across the lanes of a red tartan track, real marks from
+// the resume light up an LED infield board, and the career reads as a printed results sheet.
+//
+// The hero never layers text over a shape. Every line of hero text (name, headline, contacts) is
+// exactly one lane tall, so lane lines always fall between lines of text and the track ends on a
+// lane boundary at any width or wrap count.
 
-const CYAN = "#37E6E0";
+const TRACK = "#B0372A";
+const INK = "#16171A";
+const MUTED = "#55585F";
+const LED = "#FFB01F";
 
-function firstNumber(text: string): string | null {
-  return /(\d+(?:\.\d+)?\s?[%xX+]?)/.exec(text)?.[1]?.trim() ?? null;
+interface Mark {
+  value: string;
+  unit: string;
+  text: string;
 }
+
+// Figures with a unit or sign, or bare counts. Bare four-digit years are skipped so "since 2019"
+// never shows up as a mark.
+const FIGURE =
+  /([$£€]?\d+(?:[.,]\d+)*)(\s?(?:%|\+|x\b|inches\b|inch\b|in\b|lbs?\b|kg\b|mph\b|seconds\b|sec\b|cm\b|m\b|k\b))?/g;
+
+function findMark(text: string): Mark | null {
+  for (const match of text.matchAll(FIGURE)) {
+    const value = match[1];
+    const unit = (match[2] ?? "").trim();
+    const isYear = /^(19|20)\d{2}$/.test(value) && unit === "";
+
+    if (!isYear) return { value, unit, text };
+  }
+
+  return null;
+}
+
+/** A results-sheet row: label column, middle column, right-aligned figure column. */
+function SheetRow({
+  primary,
+  secondary,
+  figure,
+  children,
+}: {
+  primary: React.ReactNode;
+  secondary?: React.ReactNode;
+  figure?: string | null;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="pb-row px-3 sm:px-4 py-3.5 min-w-0">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 items-baseline">
+        <h3 className="pb-name text-[1.0625rem] font-bold leading-snug break-words min-w-0">
+          {primary}
+        </h3>
+        <p
+          className="col-start-1 sm:col-start-2 sm:row-start-1 text-[0.9375rem] leading-snug break-words min-w-0"
+          style={{ color: MUTED }}
+        >
+          {secondary}
+        </p>
+        {figure && (
+          <p className="col-start-2 row-start-1 sm:col-start-3 text-[0.9375rem] font-semibold tabular-nums text-right whitespace-nowrap">
+            {figure}
+          </p>
+        )}
+      </div>
+      {children}
+    </li>
+  );
+}
+
+function SheetHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      className="pb-display text-white text-[1.75rem] leading-none px-3 sm:px-4 pt-2 pb-1.5"
+      style={{ backgroundColor: TRACK }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+const LANE_NUMBERS = Array.from({ length: 24 }, (_, i) => i + 1);
 
 export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
   const { full_name, summary, headline, contact, experience, education, skills, certifications } =
     content;
 
+  const projects = content.projects ?? [];
+
   const contactLinks = getContactLinks(contact);
   const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
 
-  const stats = (experience ?? [])
+  const marks = (experience ?? [])
     .flatMap((job) => job.highlights ?? [])
-    .map((h) => ({ num: firstNumber(h), text: h }))
-    .filter((h): h is { num: string; text: string } => h.num !== null)
+    .map(findMark)
+    .filter((mark): mark is Mark => mark !== null)
     .slice(0, 3);
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Saira+Extra+Condensed:wght@600;800&family=Sofia+Sans:wght@400;600;700&family=Doto:wght@800&display=swap" />
       <style>{`
-        .font-pb-head, .font-pb-head :is(h1, h2) { font-family: 'Archivo Black', Arial, sans-serif; }
-        .font-pb-body, .font-pb-body :is(p, li, dt, dd, a, span, h3) { font-family: 'Archivo', ui-sans-serif, sans-serif; }
+        .pb-root { --lane: clamp(3rem, 9vw, 6.5rem); }
+        .pb-root, .pb-root :is(p, li, a, span, h3) { font-family: 'Sofia Sans', ui-sans-serif, system-ui, sans-serif; }
+        .pb-root :is(.pb-display, h1, h2) { font-family: 'Saira Extra Condensed', 'Arial Narrow', sans-serif; font-weight: 800; }
+        .pb-root .pb-led { font-family: 'Doto', ui-monospace, monospace; font-weight: 800; }
+        .pb-track {
+          background-color: ${TRACK};
+          background-image: repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(var(--lane) - 3px),
+            rgba(255, 255, 255, 0.7) calc(var(--lane) - 3px),
+            rgba(255, 255, 255, 0.7) var(--lane)
+          );
+        }
+        .pb-lane-no { height: var(--lane); font-size: calc(var(--lane) * 0.46); }
+        .pb-root h1 { font-size: calc(var(--lane) * 0.9); line-height: var(--lane); }
+        .pb-meta { line-height: var(--lane); }
+        .pb-headline { font-size: min(calc(var(--lane) * 0.36), 1.625rem); }
+        .pb-hero-in { padding-left: max(4.25rem, calc((100% - 60rem) / 2 + 1rem)); padding-right: 1rem; }
+        @media (min-width: 640px) {
+          .pb-hero-in { padding-left: max(7rem, calc((100% - 60rem) / 2 + 2rem)); padding-right: 2rem; }
+        }
+        .pb-sheet .pb-row:nth-child(odd) { background-color: #F0F0EC; }
+        .pb-led-glow { text-shadow: 0 0 14px rgba(255, 176, 31, 0.45); }
       `}</style>
-      <div className="font-pb-body font-pb-head min-h-screen bg-[#0B0B0D] text-[#F2F2F0] overflow-x-hidden">
-        <header
-          className="relative px-5 sm:px-8 pt-16 pb-14 overflow-hidden"
-          style={{
-            backgroundImage: `linear-gradient(135deg, #0B0B0D 55%, ${CYAN} 55.5%)`,
-          }}
-        >
-          <div className="mx-auto max-w-[48rem] flex items-end gap-6">
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt=""
-                width={96}
-                height={96}
-                className="w-24 h-24 rounded-xl object-cover shrink-0 border-2 border-[#0B0B0D]"
-              />
-            ) : (
-              <div
-                aria-hidden="true"
-                className="w-24 h-24 rounded-xl bg-[#1A1A1D] flex items-center justify-center text-2xl font-black shrink-0"
-                style={{ color: CYAN }}
+      <div className="pb-root min-h-screen bg-white overflow-x-hidden" style={{ color: INK }}>
+        <header className="pb-track relative overflow-hidden text-white">
+          <div
+            aria-hidden="true"
+            className="absolute inset-y-0 left-0 w-12 sm:w-20 border-r-[6px] border-white"
+          >
+            {LANE_NUMBERS.map((n) => (
+              <span
+                key={n}
+                className="pb-lane-no pb-display flex items-center justify-center leading-none"
               >
-                {getInitials(full_name)}
+                {n}
+              </span>
+            ))}
+          </div>
+          <div className="pb-hero-in">
+            <div className="max-w-[56rem]">
+              <h1 className="uppercase tracking-[0.01em] break-words">{full_name}</h1>
+              <div className="pb-meta">
+                {headline && <p className="pb-headline font-semibold break-words">{headline}</p>}
+                {contactLinks.length > 0 && (
+                  <ul className="flex flex-wrap gap-x-6 text-[0.9375rem]">
+                    {contactLinks.map((link) => (
+                      <li key={link.type} className="min-w-0 break-all">
+                        {link.href ? (
+                          <a
+                            href={link.href}
+                            target={link.isExternal ? "_blank" : undefined}
+                            rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                            className="text-white underline decoration-white/60 underline-offset-4 hover:decoration-white focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+                          >
+                            {link.label}
+                          </a>
+                        ) : (
+                          <span className="text-white">{link.label}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-            )}
-            <div className="min-w-0">
-              <h1 className="text-[clamp(2rem,6vw,3.25rem)] uppercase leading-[0.95] break-words">
-                {full_name}
-              </h1>
-              {headline && (
-                <p className="font-pb-body mt-2 text-lg text-[#C8C8C6] break-words">{headline}</p>
-              )}
             </div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-[48rem] px-5 sm:px-8 pb-24">
-          {contactLinks.length > 0 && (
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
-              {contactLinks.map((link) => (
-                <li key={link.type} className="min-w-0 break-all">
-                  {link.href ? (
-                    <a
-                      href={link.href}
-                      target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                      className="font-semibold hover:underline"
-                      style={{ color: CYAN }}
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <span className="text-[#9A9A98]">{link.label}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {summary && (
-            <p className="mt-7 text-[1.0625rem] leading-[1.7] text-[#D7D7D5]">{summary}</p>
-          )}
-
-          {stats.length > 0 && (
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {stats.map((s) => (
-                <div
-                  key={s.text}
-                  className="rounded-lg bg-[#17171A] border border-[#2A2A2E] px-5 py-4 min-w-0"
-                >
-                  <p className="text-4xl font-black tabular-nums" style={{ color: CYAN }}>
-                    {s.num}
-                  </p>
-                  <p className="mt-1 text-[0.8125rem] text-[#9A9A98] break-words">{s.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {skillGroups.length > 0 && (
-            <div className="mt-10 flex flex-wrap gap-2">
-              {skillGroups
-                .flatMap((g) => g.items)
-                .map((item) => (
-                  <span
-                    key={item}
-                    className="text-[0.8125rem] font-bold uppercase tracking-wide rounded px-3 py-1.5"
-                    style={{ backgroundColor: `${CYAN}1A`, color: CYAN }}
-                  >
-                    {item}
-                  </span>
+        {marks.length > 0 && (
+          <section aria-labelledby="pb-marks" className="bg-black text-white py-8">
+            <div className="mx-auto max-w-[60rem] px-4 sm:px-8">
+              <h2
+                id="pb-marks"
+                className="text-[1.375rem] leading-none mb-5"
+                style={{ color: "#A3A3A3" }}
+              >
+                Best marks
+              </h2>
+              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#2E2E2E] border border-[#2E2E2E]">
+                {marks.map((mark) => (
+                  <li key={mark.text} className="bg-black px-5 py-5 min-w-0">
+                    <p className="pb-led-glow leading-none break-words" style={{ color: LED }}>
+                      <span className="pb-led text-[clamp(2.75rem,6vw,4rem)] tabular-nums">
+                        {mark.value}
+                      </span>
+                      {mark.unit && (
+                        <span className="pb-led text-[clamp(1.25rem,2.4vw,1.625rem)] ml-1.5">
+                          {mark.unit}
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-3 text-[0.875rem] leading-relaxed text-[#CFCFCF] break-words">
+                      {mark.text}
+                    </p>
+                  </li>
                 ))}
+              </ul>
             </div>
+          </section>
+        )}
+
+        <main className="pb-sheet mx-auto max-w-[60rem] px-4 sm:px-8 pt-10 pb-20">
+          {summary && (
+            <p className="max-w-[40rem] text-[1.1875rem] leading-[1.6] break-words">{summary}</p>
           )}
 
           {experience && experience.length > 0 && (
-            <section className="mt-14">
-              <h2 className="text-2xl uppercase mb-6" style={{ color: CYAN }}>
-                Training Log
-              </h2>
-              <div className="space-y-6">
+            <section className="mt-12">
+              <SheetHeading>Career</SheetHeading>
+              <ul>
                 {experience.map((job) => (
-                  <article
+                  <SheetRow
                     key={`${job.company}-${job.title}-${job.start_date}`}
-                    className="border-l-2 pl-5 min-w-0"
-                    style={{ borderColor: CYAN }}
+                    primary={job.title}
+                    secondary={[job.company, job.location].filter(Boolean).join(", ")}
+                    figure={formatDateSpan(job.start_date, job.end_date)}
                   >
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <h3 className="text-lg font-bold break-words">{job.title}</h3>
-                      <p className="text-sm text-[#9A9A98] tabular-nums shrink-0">
-                        {formatDateSpan(job.start_date, job.end_date)}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold text-[#C8C8C6]">
-                      {job.company}
-                      {job.location && (
-                        <span className="text-[#9A9A98] font-normal">, {job.location}</span>
-                      )}
-                    </p>
                     {job.description && (
-                      <p className="mt-2 text-[0.9375rem] text-[#D7D7D5]">{job.description}</p>
+                      <p className="mt-2 max-w-[44rem] text-[0.9375rem] leading-relaxed break-words">
+                        {job.description}
+                      </p>
                     )}
                     {job.highlights && job.highlights.length > 0 && (
-                      <ul className="mt-2 space-y-1">
+                      <ul className="mt-2 max-w-[44rem] space-y-1 list-disc pl-5 marker:text-[#B0372A]">
                         {job.highlights.map((highlight) => (
                           <li
                             key={`${job.title}-${highlight}`}
-                            className="text-[0.9375rem] text-[#D7D7D5]"
+                            className="text-[0.9375rem] leading-relaxed break-words"
                           >
                             {highlight}
                           </li>
                         ))}
                       </ul>
                     )}
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {education && education.length > 0 && (
-            <section className="mt-12">
-              <h2 className="text-2xl uppercase mb-4" style={{ color: CYAN }}>
-                Credentials
-              </h2>
-              <div className="space-y-2">
-                {education.map((edu) => (
-                  <p key={`${edu.institution}-${edu.degree}`} className="text-[0.9375rem]">
-                    <span className="font-bold">{edu.degree}</span>
-                    <span className="text-[#9A9A98]"> — {edu.institution}</span>
-                  </p>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {certifications && certifications.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-2xl uppercase mb-4" style={{ color: CYAN }}>
-                Certifications
-              </h2>
-              <ul className="space-y-1.5">
-                {certifications.map((cert) => (
-                  <li key={`${cert.name}-${cert.issuer ?? ""}`} className="text-[0.9375rem]">
-                    {cert.name}
-                    {cert.issuer && <span className="text-[#9A9A98]"> — {cert.issuer}</span>}
-                  </li>
+                  </SheetRow>
                 ))}
               </ul>
             </section>
           )}
 
-          <footer className="mt-16 pt-6 border-t border-[#2A2A2E] flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-[#9A9A98]">@{profile.handle}</p>
+          {projects.length > 0 && (
+            <section className="mt-12">
+              <SheetHeading>Projects</SheetHeading>
+              <ul>
+                {projects.map((project) => (
+                  <SheetRow
+                    key={`${project.title}-${project.year ?? ""}`}
+                    primary={
+                      project.url ? (
+                        <a
+                          href={project.url}
+                          target="_blank"
+                          rel="ugc nofollow noopener noreferrer"
+                          className="underline decoration-[#B0372A] underline-offset-4"
+                        >
+                          {project.title}
+                        </a>
+                      ) : (
+                        project.title
+                      )
+                    }
+                    secondary={project.technologies?.join(", ")}
+                    figure={project.year ? formatYear(project.year) : null}
+                  >
+                    <p className="mt-2 max-w-[44rem] text-[0.9375rem] leading-relaxed break-words">
+                      {project.description}
+                    </p>
+                  </SheetRow>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {skillGroups.length > 0 && (
+            <section className="mt-12">
+              <SheetHeading>Disciplines</SheetHeading>
+              <ul>
+                {skillGroups.map((group) => (
+                  <SheetRow
+                    key={`${group.category}-${group.items.join(",")}`}
+                    primary={group.category || "Skills"}
+                    secondary={group.items.join(", ")}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {education && education.length > 0 && (
+            <section className="mt-12">
+              <SheetHeading>Education</SheetHeading>
+              <ul>
+                {education.map((edu) => (
+                  <SheetRow
+                    key={`${edu.institution}-${edu.degree}`}
+                    primary={edu.degree}
+                    secondary={[edu.institution, edu.location].filter(Boolean).join(", ")}
+                    figure={edu.graduation_date ? formatYear(edu.graduation_date) : null}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {certifications && certifications.length > 0 && (
+            <section className="mt-12">
+              <SheetHeading>Certifications</SheetHeading>
+              <ul>
+                {certifications.map((cert) => (
+                  <SheetRow
+                    key={`${cert.name}-${cert.issuer ?? ""}`}
+                    primary={cert.name}
+                    secondary={cert.issuer}
+                    figure={cert.date ? formatYear(cert.date) : null}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <footer
+            className="mt-16 pt-5 border-t-[6px] flex flex-wrap items-center justify-between gap-4"
+            style={{ borderColor: TRACK }}
+          >
+            <p className="min-w-0 break-all text-sm" style={{ color: MUTED }}>
+              @{profile.handle}
+            </p>
             <ShareBar
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}

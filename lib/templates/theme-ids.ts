@@ -234,7 +234,8 @@ export const THEME_METADATA = {
   },
   personal_best: {
     name: "Personal Best",
-    description: "A bold athletic-coach resume with PR-style stat cards and a neon accent",
+    description:
+      "A track meet: your name painted across the lanes, real marks on an LED board and roles as a results sheet",
     category: "Modern",
     preview: "/previews/personal-best.webp",
   },
