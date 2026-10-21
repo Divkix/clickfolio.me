@@ -281,10 +281,10 @@ export const THEME_PAGE_COPY: Record<
   link_stack: {
     title: "Link-in-Bio Resume Website Template",
     description:
-      "Make a free link-in-bio resume website with Link Stack: a short bio up top and every job, project and credential as a stacked card.",
+      "Make a free link-in-bio resume website with Link Stack: your name set big, then every link, job and credential as a full-width colour bar.",
     paragraphs: [
-      "Link Stack is deliberately not a resume layout. It's a creator-style bio page: a centred avatar and short bio at the top, then every item on your resume — jobs, projects, education, certifications — turned into its own full-width rounded card you can tap.",
-      "A soft lavender gradient and a single violet accent keep it feeling like a creator's link page rather than a corporate document. It suits freelancers, consultants, and content creators who want their resume to feel like the rest of their online presence.",
+      "Link Stack is deliberately not a resume layout. It's a creator-style bio page: your name set large in a wide display face, then a stack of edge-to-edge bars. Your email and social links come first, then projects, jobs, education and skills, and every bar is something to tap: a link opens, a job unfolds to show what you did there.",
+      "The bars run as one colour ramp from deep ultramarine down to peach, so the page reads in order at a glance on a phone, and on a desktop screen the bars stretch across the whole window instead of sitting in a narrow strip. It suits freelancers, consultants and content creators who want their resume to work like the link in their bio.",
     ],
   },
 };

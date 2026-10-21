@@ -189,7 +189,7 @@ export const THEME_METADATA = {
   link_stack: {
     name: "Link Stack",
     description:
-      "A link-in-bio style page: a short bio up top and every job, project and credential as a stacked card",
+      "A link-in-bio page of full-width colour bars, ultramarine to peach, each one a link to tap or a role to open",
     category: "Modern",
     preview: "/previews/link-stack.webp",
   },

@@ -214,10 +214,11 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-lg hover:shadow-xl",
     },
     link_stack: {
-      container: "bg-white/90 border border-black/5 text-[#8A8398] hover:text-[#2A2440]",
-      accent: "text-[#8B6DD6]",
-      shimmer: "from-transparent via-[#8B6DD6]/20 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
+      container:
+        "bg-[#160F3D]/90 backdrop-blur-md border border-white/15 text-white/70 hover:text-white",
+      accent: "text-[#FF9A74]",
+      shimmer: "from-transparent via-[#FF9A74]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
     },
   } as const satisfies Record<
     ThemeId,

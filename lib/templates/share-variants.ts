@@ -139,7 +139,7 @@ export const shareButtonStyles = {
     "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
   reel: "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
   "link-stack":
-    "bg-white/80 text-[#5B3DCB] hover:bg-white border border-black/5 rounded-full px-3 py-1.5 text-sm",
+    "bg-transparent text-white hover:bg-[#2A1FC7] border border-white/30 hover:border-[#2A1FC7] rounded-none px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -190,7 +190,7 @@ export const shareTriggerStyles = {
   "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/50 rounded-sm shadow-lg",
   "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
-  "link-stack": "bg-white text-[#5B3DCB] border-black/5 rounded-full shadow-md",
+  "link-stack": "bg-[#2A1FC7] text-white border-[#2A1FC7] rounded-none shadow-lg",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -228,7 +228,7 @@ export const sharePanelStyles = {
   "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/40 rounded-sm",
   "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
-  "link-stack": "bg-white text-[#2A2440] border-black/5 rounded-2xl",
+  "link-stack": "bg-[#160F3D] text-white border-white/15 rounded-none",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -284,5 +284,5 @@ export const shareItemStyles = {
   "personal-best": "bg-[#17171A] text-[#F2F2F0] hover:text-[#37E6E0] border border-[#2A2A2E]",
   "pitch-deck": "bg-white text-[#191B2B] hover:text-[#2F5CFF] border border-[#E7E9F5]",
   reel: "bg-[#17171A] text-[#E7E6E2] hover:text-[#E5342B] border border-white/10",
-  "link-stack": "bg-white text-[#2A2440] hover:bg-[#F3ECFF] border border-black/5",
+  "link-stack": "bg-[#1F1752] text-white hover:bg-[#2A1FC7] border border-white/10",
 } satisfies Record<SharePopoverVariant, string>;

@@ -338,7 +338,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
     name: "Zoë Patterson",
     role: "Freelance Content Creator & Consultant",
     initials: "ZP",
-    avatarGradient: "from-violet-400 to-pink-400",
+    avatarGradient: "from-indigo-700 to-orange-300",
     badgeLabel: "Link Stack",
     badgeBgColor: "bg-violet-50",
     badgeTextColor: "text-violet-700",
@@ -3257,5 +3257,5 @@ export const TEMPLATE_BACKGROUNDS = {
   personal_best: { bg: "bg-[#0B0B0D]", isDark: true },
   pitch_deck: { bg: "bg-[#E3E4E8]", isDark: false },
   reel: { bg: "bg-[#0C0C0E]", isDark: true },
-  link_stack: { bg: "bg-[#F3ECFF]", isDark: false },
+  link_stack: { bg: "bg-[#160F3D]", isDark: true },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

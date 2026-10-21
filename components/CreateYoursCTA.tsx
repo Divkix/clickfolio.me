@@ -51,7 +51,7 @@ const ctaVariants = cva(
         personal_best: "bg-[#0B0B0D] text-[#37E6E0] border border-[#37E6E0]/30",
         pitch_deck: "bg-[#2F5CFF] text-white border border-[#2F5CFF]",
         reel: "bg-[#0C0C0E] text-[#E7E6E2] border border-[#E5342B]/40",
-        link_stack: "bg-[#2A2440] text-white border border-[#2A2440]",
+        link_stack: "bg-[#160F3D] text-white border border-white/15",
       },
     },
     defaultVariants: {
@@ -97,7 +97,7 @@ const buttonVariants = cva(
         personal_best: "bg-[#37E6E0] text-[#0B0B0D] hover:bg-[#5FEDE8]",
         pitch_deck: "bg-white text-[#2F5CFF] hover:bg-[#EEF1FF]",
         reel: "bg-[#E5342B] text-white hover:bg-[#EF5048]",
-        link_stack: "bg-white text-[#2A2440] hover:bg-[#F3ECFF]",
+        link_stack: "bg-[#FF9A74] text-[#160F3D] hover:bg-[#FFBE8F]",
       },
     },
     defaultVariants: {
