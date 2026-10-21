@@ -272,10 +272,10 @@ export const THEME_PAGE_COPY: Record<
   reel: {
     title: "Video Editor Portfolio Website Template",
     description:
-      "Build a free video editor portfolio website with Reel: a film-editing timeline, timecode-styled dates and a red playhead accent.",
+      "Build a free video editor portfolio website with Reel: roles as clips on an editing timeline, timecode-styled dates and a red playhead.",
     paragraphs: [
-      "Reel borrows the look of an editing timeline for a filmmaker's resume: a red playhead rule opens the page, and every role sits on a vertical clip track with its dates styled like a timecode and a small marker tick at each entry.",
-      "Projects sit in a dark grid below, each with its own tools listed in monospace. It suits video editors, filmmakers, and motion designers who want their resume to look like the software they work in every day.",
+      "Reel lays a filmmaker's resume out like an editing suite. Your name opens the page as a broadcast lower third in a program monitor, and below it a timeline panel places each role as a clip on its own video track, with projects on the track above, graduation on an audio track and a red playhead at today.",
+      "Every date reads as a timecode, the full role details sit in a clip list that becomes the whole layout on a phone, and skills are grouped like an effects library. It suits video editors, filmmakers, and motion designers who want their resume to look like the software they work in every day.",
     ],
   },
   link_stack: {
