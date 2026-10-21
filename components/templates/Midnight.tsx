@@ -2,7 +2,7 @@ import { ArrowUpRight, MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateRange, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
@@ -85,9 +85,11 @@ function Header({ content, profile }: TemplateProps) {
   const links = getContactLinks(content.contact).filter((l) => l.type !== "location");
 
   return (
-    <header className="relative flex flex-col items-center text-center pt-20 md:pt-28 pb-20">
-      <div className="w-24 h-24 md:w-28 md:h-28 rounded-full p-[3px] bg-linear-to-b from-[#D4B26A] to-[#D4B26A]/10 mb-8">
-        {profile.avatar_url ? (
+    <header
+      className={`relative flex flex-col items-center text-center pb-20 ${profile.avatar_url ? "pt-20 md:pt-28" : "pt-28 md:pt-40"}`}
+    >
+      {profile.avatar_url && (
+        <div className="w-24 h-24 md:w-28 md:h-28 rounded-full p-[3px] bg-linear-to-b from-[#D4B26A] to-[#D4B26A]/10 mb-8">
           <img
             src={profile.avatar_url}
             alt={`Portrait of ${content.full_name}`}
@@ -97,15 +99,8 @@ function Header({ content, profile }: TemplateProps) {
             decoding="async"
             className="w-full h-full rounded-full object-cover"
           />
-        ) : (
-          <div
-            className="w-full h-full rounded-full bg-[#0B1026] flex items-center justify-center font-display-mn text-4xl text-[#D4B26A]"
-            aria-hidden="true"
-          >
-            {getInitials(content.full_name)}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <h1 className="font-display-mn font-medium text-6xl md:text-8xl leading-[0.95] tracking-[-0.01em] text-[#F5EFE1] break-words max-w-full">
         {content.full_name}
