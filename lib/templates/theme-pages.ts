@@ -70,10 +70,10 @@ export const THEME_PAGE_COPY: Record<
   },
   glass: {
     description:
-      "Make a free Glass Morphic resume website with frosted panels, an indigo aurora background, and floating section navigation.",
+      "Make a free Glass Morphic resume website with frosted glass panes, a single window of light, and a sticky frosted navigation bar.",
     paragraphs: [
-      "Glass Morphic suits software engineers and marketers who want a modern, atmospheric portfolio rather than a paper-like resume. Frosted panels sit over an indigo aurora, with teal and rose accents surrounding the opening introduction.",
-      "A large name and headline establish the page before separate panels organize your work and qualifications. Floating navigation near the bottom links directly to the available sections. The translucent treatment provides visual depth while keeping the resume content in a familiar reading order.",
+      "Glass Morphic suits software engineers and marketers who want a modern, atmospheric portfolio rather than a paper-like resume. Frosted panes sit in a dark room lit by one tall window, and a strip of reeded glass beside your introduction breaks that light into ribs.",
+      "A large name and headline establish the page before separate panels organize your work and qualifications. A frosted bar stays at the top of the screen and links to each section, with the page scrolling underneath it. Every pane catches the light on the same edge, which gives the page depth while keeping your resume in a familiar reading order.",
     ],
   },
   midnight: {

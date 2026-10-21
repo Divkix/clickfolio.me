@@ -169,7 +169,7 @@ export const THEME_METADATA = {
   },
   glass: {
     name: "Glass Morphic",
-    description: "Frosted glass panels over a deep indigo aurora",
+    description: "Frosted glass panes lit by one window of light, with a reeded-glass insert",
     category: "Modern",
     preview: "/previews/glass.webp",
   },
