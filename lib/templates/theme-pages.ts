@@ -6,9 +6,9 @@ export const THEME_PAGE_COPY: Record<
 > = {
   bento: {
     description:
-      "Build a free Bento Grid resume website with flat color tiles, a portrait, and clearly grouped experience, skills, and projects.",
+      "Build a free Bento Grid resume website with flat color tiles for your current role, a standout result, and clearly grouped experience, skills, and projects.",
     paragraphs: [
-      "Bento Grid suits product managers and marketers who want readers to scan several kinds of work at once. Flat color tiles separate your introduction, contact details, experience, and skills, while your portrait anchors the top of the page.",
+      "Bento Grid suits product managers and marketers who want readers to scan several kinds of work at once. Flat color tiles separate your introduction, contact details, experience, and skills. Beside your name sit your current role and location, and your strongest measurable result gets a tile of its own.",
       "The layout adapts to the sections in your resume: neighboring tiles expand when a section is absent instead of leaving an empty space. On smaller screens, the tiles become a single column. Pine-green accents and rounded corners give a structured resume a more approachable presentation.",
     ],
   },

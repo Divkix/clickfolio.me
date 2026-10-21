@@ -99,7 +99,7 @@ export const THEME_METADATA = {
   },
   bento: {
     name: "Bento Grid",
-    description: "Flat colour tiles that fit together around your photo",
+    description: "Flat colour tiles for your current role, a standout result and your full career",
     category: "Modern",
     preview: "/previews/bento.webp",
   },
