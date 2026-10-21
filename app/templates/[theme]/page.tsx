@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   THEME_IDS,
   THEME_METADATA,
   type ThemeId,
+  replacementForRemovedTheme,
   themeIdFromSlug,
   themeSlug,
   TEMPLATE_COUNT,
@@ -31,15 +32,29 @@ function templatePageTitle(id: ThemeId): string {
   return THEME_PAGE_COPY[id].title ?? `${THEME_METADATA[id].name} Resume Website Template`;
 }
 
+/** The theme a slug names; a removed theme's slug 308s to its replacement's page. */
+function themeIdForSlugOrRedirect(slug: string): ThemeId {
+  // Slugs are kebab case only: "case_file" would otherwise resolve too and duplicate the page.
+  if (slug.includes("_")) notFound();
+
+  const id = themeIdFromSlug(slug);
+
+  if (id) return id;
+
+  const replacement = replacementForRemovedTheme(slug.replaceAll("-", "_"));
+
+  if (replacement) permanentRedirect(`/templates/${themeSlug(replacement)}`);
+
+  notFound();
+}
+
 export function generateStaticParams() {
   return THEME_IDS.map((id) => ({ theme: themeSlug(id) }));
 }
 
 export async function generateMetadata({ params }: ThemePageProps): Promise<Metadata> {
   const { theme } = await params;
-  const id = themeIdFromSlug(theme);
-
-  if (!id || theme !== themeSlug(id)) notFound();
+  const id = themeIdForSlugOrRedirect(theme);
 
   return buildPublicPageMetadata({
     title: templatePageTitle(id),
@@ -50,9 +65,7 @@ export async function generateMetadata({ params }: ThemePageProps): Promise<Meta
 
 export default async function ThemePage({ params }: ThemePageProps) {
   const { theme } = await params;
-  const id = themeIdFromSlug(theme);
-
-  if (!id || theme !== themeSlug(id)) notFound();
+  const id = themeIdForSlugOrRedirect(theme);
 
   const details = THEME_METADATA[id];
   const copy = THEME_PAGE_COPY[id];

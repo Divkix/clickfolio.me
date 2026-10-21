@@ -9,7 +9,7 @@ import { siteConfig } from "@/lib/config/site";
 import { getResume } from "@/lib/data/resume";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { buildProfileTitle, fitTitle } from "@/lib/seo/page-metadata";
-import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/templates/theme-ids";
+import { themeToShareVariant } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 
 export const dynamicParams = true;
@@ -147,9 +147,7 @@ export default async function HandlePage({ params }: PageProps) {
 
   const Template = await getTemplate(theme_id);
 
-  const ctaVariant: ThemeId = theme_id ?? DEFAULT_THEME;
-
-  const shareVariant = themeToShareVariant[theme_id ?? DEFAULT_THEME];
+  const shareVariant = themeToShareVariant[theme_id];
   const pageTitle = `${content.full_name}'s Resume`;
 
   return (
@@ -185,7 +183,7 @@ export default async function HandlePage({ params }: PageProps) {
       />
       <OwnerDetector profileId={profile.id} />
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
-        <CreateYoursCTA handle={handle} variant={ctaVariant} />
+        <CreateYoursCTA handle={handle} variant={theme_id} />
       </div>
       <SharePopover
         handle={handle}
@@ -193,7 +191,7 @@ export default async function HandlePage({ params }: PageProps) {
         title={pageTitle}
         variant={shareVariant}
       />
-      <AttributionWidget theme={theme_id ?? DEFAULT_THEME} />
+      <AttributionWidget theme={theme_id} />
     </>
   );
 }

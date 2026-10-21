@@ -28,21 +28,28 @@ export const PROFESSIONS: readonly Profession[] = [
   {
     slug: "product-manager",
     label: "Product Managers",
-    themes: ["boardroom", "bold_corporate", "bento", "workspace", "dashboard", "timeline"],
+    themes: ["boardroom", "bold_corporate", "bento", "workspace", "minimalist_editorial"],
   },
   {
     slug: "marketer",
     label: "Marketers",
-    themes: ["bento", "spotlight", "glass", "media_kit", "manuscript", "infographic", "link_stack"],
+    themes: ["bento", "spotlight", "glass", "media_kit", "manuscript", "link_stack"],
   },
   {
     slug: "consultant",
     label: "Consultants",
-    themes: ["boardroom", "broadsheet", "case_file", "consulting_brief"],
+    themes: ["boardroom", "broadsheet", "case_file", "classic_ats"],
   },
   {
     slug: "student",
     label: "Students",
-    themes: ["classic_ats", "midnight", "retro_os", "academic_cv", "scrapbook", "timeline"],
+    themes: [
+      "classic_ats",
+      "midnight",
+      "retro_os",
+      "academic_cv",
+      "scrapbook",
+      "minimalist_editorial",
+    ],
   },
 ] as const;

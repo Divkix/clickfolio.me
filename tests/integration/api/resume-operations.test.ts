@@ -1337,6 +1337,21 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(400);
     });
 
+    it("rejects a removed theme id even though reads still resolve it", async () => {
+      authedAs("user-123");
+
+      const { POST } = await import("@/app/api/resume/update-theme/route");
+
+      const response = await POST(
+        makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
+          theme_id: "dashboard",
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(mockReturning).not.toHaveBeenCalled();
+    });
+
     it("updates previously-premium theme now that all themes are free", async () => {
       authedAs("user-123");
 

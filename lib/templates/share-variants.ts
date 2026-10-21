@@ -24,21 +24,14 @@ export const SHARE_VARIANT_KEYS = [
   "lesson-plan",
   "manuscript",
   "gallery-wall",
-  "sidebar-photo",
-  "infographic",
-  "timeline",
-  "networked",
-  "consulting-brief",
   "quota",
   "the-brief",
   "open-house",
   "the-menu",
   "personal-best",
   "pitch-deck",
-  "dashboard",
   "reel",
   "link-stack",
-  "noir",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -71,21 +64,14 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "lesson-plan": "",
   manuscript: "",
   "gallery-wall": "",
-  "sidebar-photo": "",
-  infographic: "",
-  timeline: "",
-  networked: "",
-  "consulting-brief": "",
   quota: "",
   "the-brief": "",
   "open-house": "",
   "the-menu": "",
   "personal-best": "",
   "pitch-deck": "",
-  dashboard: "",
   reel: "",
   "link-stack": "",
-  noir: "",
 };
 
 export const shareButtonStyles = {
@@ -98,7 +84,7 @@ export const shareButtonStyles = {
   "bento-grid":
     "bg-[#1A1C20]/10 text-[#1A1C20] hover:bg-[#1A1C20]/20 rounded-full px-3 py-1.5 text-sm font-medium",
   spotlight:
-    "bg-transparent text-[#22163A] hover:bg-[#FFD95A] border-2 border-[#22163A] rounded-full px-3 py-1.5 font-semibold",
+    "bg-transparent text-[#F3E9D8] hover:bg-[#FFF1CF] hover:text-[#170E10] border border-[#E8A93B]/60 hover:border-[#FFF1CF] rounded-full px-3 py-1.5 text-sm font-medium",
   midnight:
     "bg-transparent text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/30 hover:border-[#D4B26A]/70 rounded-full px-3.5 py-1.5",
   "bold-corporate":
@@ -128,7 +114,7 @@ export const shareButtonStyles = {
   scrapbook:
     "bg-white text-[#2B2622] hover:bg-[#FFD84D] border-2 border-[#2B2622] rounded-full px-3 py-1.5 text-sm font-medium shadow-[2px_2px_0_0_#2B2622]",
   "media-kit":
-    "bg-transparent text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/40 hover:border-[#C6FF3D] rounded-full px-3 py-1.5 text-sm",
+    "bg-transparent text-[#FBEAEE] hover:text-[#2A0B22] hover:bg-[#FF9EC1] border border-[#FBEAEE]/40 hover:border-[#FF9EC1] rounded-none px-3 py-1.5 text-sm",
   "liner-notes":
     "bg-transparent text-[#EEF2EF] hover:bg-[#C8412F] border border-[#EEF2EF]/40 hover:border-[#C8412F] rounded-full px-3 py-1.5 text-sm",
   rounds:
@@ -139,34 +125,21 @@ export const shareButtonStyles = {
     "bg-transparent text-[#FBFAF7] hover:bg-[#7A1F2B] border border-[#FBFAF7]/40 hover:border-[#7A1F2B] rounded-none px-3 py-1.5 text-sm",
   "gallery-wall":
     "bg-transparent text-[#2A2A2A] hover:bg-[#2A2A2A] hover:text-[#F1F0EC] border border-[#2A2A2A]/30 hover:border-[#2A2A2A] rounded-none px-3 py-1.5 text-sm",
-  "sidebar-photo":
-    "bg-white text-[#0B4A42] hover:bg-[#0B4A42] hover:text-white border border-[#8FBBAE] rounded-full px-3 py-1.5 text-sm",
-  infographic:
-    "bg-transparent text-[#232019] hover:bg-[#FFE8DD] border border-[#232019]/15 rounded-full px-3 py-1.5 text-sm",
-  timeline:
-    "bg-transparent text-[#3730A3] hover:bg-[#3730A3]/10 border border-[#3730A3]/30 rounded-full px-3 py-1.5 text-sm",
-  networked:
-    "bg-white text-[#0B5FA8] hover:bg-[#0B5FA8] hover:text-white border border-[#E1E8ED] rounded-full px-3 py-1.5 text-sm",
-  "consulting-brief":
-    "bg-white text-black hover:bg-black hover:text-white border border-black px-3 py-1.5 text-sm",
   quota:
     "bg-transparent text-[#1F1C19] hover:bg-[#E8491D] hover:text-white border border-[#1F1C19]/30 rounded-sm px-3 py-1.5 text-sm",
   "the-brief":
     "bg-transparent text-[#1B2A4A] hover:bg-[#1B2A4A] hover:text-white border border-[#1B2A4A]/40 rounded-sm px-3 py-1.5 text-sm",
   "open-house":
-    "bg-white text-[#B5562B] hover:bg-[#B5562B] hover:text-white border border-[#B5562B]/40 rounded-full px-3 py-1.5 text-sm",
+    "bg-white text-[#1F4D3A] hover:bg-[#1F4D3A] hover:text-white border border-[#1F4D3A]/40 rounded-none px-3 py-1.5 text-sm",
   "the-menu":
-    "bg-transparent text-[#2B2620] hover:bg-[#2B2620] hover:text-[#F7F1E6] border border-[#A9842F]/50 rounded-full px-3 py-1.5 text-sm",
+    "bg-transparent text-[#241A16] hover:bg-[#7A1E22] hover:text-[#FCF8F0] border border-[#7A1E22]/45 rounded-none px-3 py-1.5 text-sm",
   "personal-best":
-    "bg-transparent text-[#37E6E0] hover:bg-[#37E6E0] hover:text-[#0B0B0D] border border-[#37E6E0]/50 rounded-sm px-3 py-1.5 text-sm font-bold",
+    "bg-white text-[#16171A] hover:bg-[#B0372A] hover:text-white border border-[#16171A]/25 rounded-none px-3 py-1.5 text-sm font-semibold",
   "pitch-deck":
     "bg-transparent text-[#2F5CFF] hover:bg-[#2F5CFF] hover:text-white border border-[#2F5CFF]/40 rounded-md px-3 py-1.5 text-sm",
-  dashboard:
-    "bg-transparent text-[#E8EBF3] hover:text-[#4C8DFF] border border-[#1F2530] hover:border-[#4C8DFF] rounded-md px-3 py-1.5 text-sm",
   reel: "bg-transparent text-[#E7E6E2] hover:text-[#E5342B] border border-white/20 hover:border-[#E5342B] rounded-sm px-3 py-1.5 text-sm",
   "link-stack":
-    "bg-white/80 text-[#5B3DCB] hover:bg-white border border-black/5 rounded-full px-3 py-1.5 text-sm",
-  noir: "bg-transparent text-[#EDEAE2] hover:text-[#C9A86A] border border-[#C9A86A]/30 hover:border-[#C9A86A] rounded-sm px-3 py-1.5 text-sm",
+    "bg-transparent text-white hover:bg-[#2A1FC7] border border-white/30 hover:border-[#2A1FC7] rounded-none px-3 py-1.5 text-sm",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -177,7 +150,7 @@ export const shareTriggerStyles = {
   "glass-morphic":
     "bg-white/[0.08] text-[#F4F6FB] border-white/20 backdrop-blur-md hover:bg-white/[0.16] rounded-full",
   "bento-grid": "bg-[#1F4E3D] text-[#F4F5F1] border-[#1F4E3D] hover:bg-[#173D30]",
-  spotlight: "bg-[#22163A] text-[#FFD95A] border-[#22163A] shadow-md hover:bg-[#35255A]",
+  spotlight: "bg-[#170E10] text-[#FFF1CF] border-[#E8A93B]/60 shadow-lg hover:border-[#FFF1CF]",
   midnight: "bg-[#131B3D] text-[#EDE6D6] border-[#D4B26A]/40 shadow-lg hover:border-[#D4B26A]",
   "bold-corporate": "bg-[#0E2A47] text-white border-[#0E2A47] hover:bg-[#0A2038]",
   "classic-ats": "bg-white text-[#22385C] border-[#B9BCC2] shadow-sm hover:border-[#22385C]",
@@ -199,7 +172,7 @@ export const shareTriggerStyles = {
   scrapbook:
     "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] rounded-full shadow-[3px_3px_0_0_#2B2622] hover:bg-[#FFE57F]",
   "media-kit":
-    "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/60 rounded-full shadow-lg hover:border-[#C6FF3D]",
+    "bg-[#2A0B22] text-[#FBEAEE] border-[#FF9EC1]/60 rounded-none shadow-lg hover:border-[#FF9EC1]",
   "liner-notes":
     "bg-[#1D2A33] text-[#EEF2EF] border-[#C8412F]/60 rounded-full shadow-lg hover:border-[#C8412F]",
   rounds:
@@ -210,21 +183,14 @@ export const shareTriggerStyles = {
     "bg-[#22201C] text-[#FBFAF7] border-[#7A1F2B]/60 rounded-none shadow-lg hover:border-[#7A1F2B]",
   "gallery-wall":
     "bg-[#2A2A2A] text-[#F1F0EC] border-[#B8875A]/60 rounded-none shadow-lg hover:border-[#B8875A]",
-  "sidebar-photo": "bg-[#0B4A42] text-[#EAF5F0] border-[#8FBBAE]/60 rounded-full shadow-md",
-  infographic: "bg-[#232019] text-[#FBFAF6] border-[#232019] rounded-full shadow-lg",
-  timeline: "bg-[#3730A3] text-white border-[#3730A3] rounded-full shadow-lg",
-  networked: "bg-[#0B5FA8] text-white border-[#0B5FA8] rounded-full shadow-lg",
-  "consulting-brief": "bg-black text-white border-black rounded-none shadow-lg",
   quota: "bg-[#1F1C19] text-white border-[#E8491D]/60 rounded-sm shadow-lg",
   "the-brief": "bg-[#FBF8F0] text-[#1B2A4A] border-[#1B2A4A]/40 rounded-sm shadow-md",
-  "open-house": "bg-[#B5562B] text-white border-[#B5562B] rounded-xl shadow-lg",
-  "the-menu": "bg-[#2B2620] text-[#F7F1E6] border-[#A9842F]/50 rounded-full shadow-lg",
-  "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/50 rounded-sm shadow-lg",
+  "open-house": "bg-[#1F4D3A] text-white border-[#1F4D3A] rounded-none shadow-lg",
+  "the-menu": "bg-[#7A1E22] text-[#FCF8F0] border-[#FCF8F0]/40 rounded-none shadow-lg",
+  "personal-best": "bg-[#B0372A] text-white border-white/40 rounded-none shadow-lg",
   "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
-  dashboard: "bg-[#10141C] text-[#E8EBF3] border-[#1F2530] rounded-md shadow-lg",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
-  "link-stack": "bg-white text-[#5B3DCB] border-black/5 rounded-full shadow-md",
-  noir: "bg-black text-[#C9A86A] border-[#C9A86A]/40 rounded-sm shadow-lg",
+  "link-stack": "bg-[#2A1FC7] text-white border-[#2A1FC7] rounded-none shadow-lg",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -232,7 +198,7 @@ export const sharePanelStyles = {
   "neo-brutalist": "bg-white text-black border-[3px] border-black shadow-[6px_6px_0_0_#000]",
   "glass-morphic": "bg-[#141A2E]/80 text-[#F4F6FB] border-white/15 backdrop-blur-xl",
   "bento-grid": "bg-[#F4D35E] text-[#1A1C20] border-[#1A1C20]/15",
-  spotlight: "bg-[#E9E7F2] text-[#22163A] border-2 border-[#22163A]",
+  spotlight: "bg-[#170E10] text-[#F3E9D8] border-[#E8A93B]/50",
   midnight: "bg-[#0F1633]/95 text-[#EDE6D6] border-[#D4B26A]/30",
   "bold-corporate": "bg-white text-[#1B2430] border-[#0E2A47]/25",
   "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
@@ -249,27 +215,20 @@ export const sharePanelStyles = {
   blueprint: "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none",
   scrapbook:
     "bg-[#FFFDF8] text-[#2B2622] border-2 border-[#2B2622] rounded-lg shadow-[4px_4px_0_0_#2B2622]",
-  "media-kit": "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/50 rounded-xl",
+  "media-kit": "bg-[#2A0B22] text-[#FBEAEE] border-[#FF9EC1]/50 rounded-none",
   "liner-notes": "bg-[#EEF2EF] text-[#1D2A33] border-[#1D2A33]/25 rounded-sm",
   rounds: "bg-white text-[#123B4A] border-[#C9D9E1] rounded-xl",
   "lesson-plan": "bg-[#FCFCF8] text-[#24303A] border-[#B9D0E6] rounded-md",
   manuscript: "bg-[#FBFAF7] text-[#22201C] border-[#7A1F2B]/30 rounded-none",
   "gallery-wall": "bg-white text-[#2A2A2A] border-[#B8875A]/40 rounded-none",
-  "sidebar-photo": "bg-white text-[#0B4A42] border-[#8FBBAE]/60 rounded-xl",
-  infographic: "bg-[#FBFAF6] text-[#232019] border-[#EBE7DC] rounded-xl",
-  timeline: "bg-[#FBFAF5] text-[#1E1B16] border-[#E6E1D4] rounded-xl",
-  networked: "bg-white text-[#15202B] border-[#E1E8ED] rounded-xl",
-  "consulting-brief": "bg-white text-black border-black rounded-none",
   quota: "bg-[#FBFAF8] text-[#1F1C19] border-[#1F1C19]/30 rounded-sm",
   "the-brief": "bg-[#FBF8F0] text-[#1C1A16] border-[#1B2A4A]/30 rounded-sm",
-  "open-house": "bg-[#FCF7EF] text-[#2A2117] border-[#2A2117]/10 rounded-xl",
-  "the-menu": "bg-[#F7F1E6] text-[#2B2620] border-[#A9842F]/40 rounded-xl",
-  "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/40 rounded-sm",
+  "open-house": "bg-[#EEF1EE] text-[#18231D] border-[#18231D]/20 rounded-none",
+  "the-menu": "bg-[#FCF8F0] text-[#241A16] border-[#7A1E22]/40 rounded-none",
+  "personal-best": "bg-white text-[#16171A] border-[#16171A]/15 rounded-none",
   "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
-  dashboard: "bg-[#10141C] text-[#E8EBF3] border-[#1F2530] rounded-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
-  "link-stack": "bg-white text-[#2A2440] border-black/5 rounded-2xl",
-  noir: "bg-black text-[#EDEAE2] border-[#C9A86A]/30 rounded-sm",
+  "link-stack": "bg-[#160F3D] text-white border-white/15 rounded-none",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -280,7 +239,7 @@ export const shareItemStyles = {
     "bg-white/[0.06] text-[#D7DCEC] hover:text-white hover:bg-white/[0.14] border border-white/15",
   "bento-grid": "bg-white/60 text-[#1A1C20] hover:bg-white border border-[#1A1C20]/10",
   spotlight:
-    "bg-transparent text-[#22163A] hover:bg-[#FFD95A] border-2 border-[#22163A] rounded-full",
+    "bg-transparent text-[#F3E9D8] hover:bg-[#FFF1CF] hover:text-[#170E10] border border-[#E8A93B]/50 rounded-full",
   midnight:
     "bg-[#131B3D] text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/25 hover:border-[#D4B26A]/60",
   "bold-corporate": "bg-white text-[#0E2A47] hover:bg-[#EEF2F6] border-[#0E2A47]/25",
@@ -306,7 +265,7 @@ export const shareItemStyles = {
     "bg-[#0B3158] text-[#DCEBFB] hover:text-[#FFD966] border border-[#EAF3FF]/40 hover:border-[#FFD966]",
   scrapbook: "bg-white text-[#2B2622] hover:bg-[#BFE3D0] border-2 border-[#2B2622] rounded-full",
   "media-kit":
-    "bg-[#1F1C3D] text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/20 rounded-full",
+    "bg-[#3A1530] text-[#FBEAEE] hover:text-[#2A0B22] hover:bg-[#FF9EC1] border border-[#FBEAEE]/20 rounded-none",
   "liner-notes":
     "bg-white text-[#1D2A33] hover:bg-[#C8412F] hover:text-[#EEF2EF] border border-[#1D2A33]/20 rounded-full",
   rounds:
@@ -316,22 +275,15 @@ export const shareItemStyles = {
     "bg-white text-[#22201C] hover:bg-[#7A1F2B] hover:text-[#FBFAF7] border border-[#22201C]/20 rounded-none",
   "gallery-wall":
     "bg-[#F1F0EC] text-[#2A2A2A] hover:bg-[#B8875A] hover:text-white border border-[#2A2A2A]/15 rounded-none",
-  "sidebar-photo":
-    "bg-white text-[#0B4A42] hover:bg-[#0B4A42] hover:text-white border border-[#8FBBAE]/50",
-  infographic: "bg-white text-[#232019] hover:bg-[#FFE8DD] border border-[#EBE7DC]",
-  timeline: "bg-white text-[#1E1B16] hover:bg-[#3730A3] hover:text-white border border-[#E6E1D4]",
-  networked: "bg-white text-[#15202B] hover:text-[#0B5FA8] border border-[#E1E8ED]",
-  "consulting-brief": "bg-white text-black hover:bg-black hover:text-white border border-black",
   quota: "bg-white text-[#1F1C19] hover:bg-[#E8491D] hover:text-white border border-[#1F1C19]/20",
   "the-brief": "bg-[#FBF8F0] text-[#1C1A16] hover:text-[#1B2A4A] border border-[#1B2A4A]/25",
   "open-house":
-    "bg-white text-[#2A2117] hover:bg-[#B5562B] hover:text-white border border-[#2A2117]/15",
+    "bg-white text-[#18231D] hover:bg-[#1F4D3A] hover:text-white border border-[#18231D]/20",
   "the-menu":
-    "bg-[#F7F1E6] text-[#2B2620] hover:bg-[#A9842F] hover:text-white border border-[#A9842F]/30",
-  "personal-best": "bg-[#17171A] text-[#F2F2F0] hover:text-[#37E6E0] border border-[#2A2A2E]",
+    "bg-[#FCF8F0] text-[#241A16] hover:bg-[#7A1E22] hover:text-[#FCF8F0] border border-[#7A1E22]/30",
+  "personal-best":
+    "bg-[#F0F0EC] text-[#16171A] hover:bg-[#B0372A] hover:text-white border border-[#16171A]/10",
   "pitch-deck": "bg-white text-[#191B2B] hover:text-[#2F5CFF] border border-[#E7E9F5]",
-  dashboard: "bg-[#161B24] text-[#9099AD] hover:text-[#4C8DFF] border border-[#1F2530]",
   reel: "bg-[#17171A] text-[#E7E6E2] hover:text-[#E5342B] border border-white/10",
-  "link-stack": "bg-white text-[#2A2440] hover:bg-[#F3ECFF] border border-black/5",
-  noir: "bg-black text-[#A8A196] hover:text-[#C9A86A] border border-[#C9A86A]/20",
+  "link-stack": "bg-[#1F1752] text-white hover:bg-[#2A1FC7] border border-white/10",
 } satisfies Record<SharePopoverVariant, string>;

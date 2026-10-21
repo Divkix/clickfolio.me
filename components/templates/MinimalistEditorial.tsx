@@ -1,7 +1,7 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateSpan, formatShortDate, getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -73,26 +73,28 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
       <div className="font-serif-me min-h-screen bg-white text-[#1B1B1F] text-[1.0625rem] md:text-lg leading-[1.7] selection:bg-[#1F5C4A] selection:text-white overflow-x-hidden">
         <main className="mx-auto max-w-[40rem] lg:max-w-[54rem] px-5 sm:px-8 pt-16 md:pt-28 pb-24">
           <header className="grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,40rem)] lg:gap-x-12">
-            <div className="mb-8 lg:mb-0">
-              {profile.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt=""
-                  width={88}
-                  height={88}
-                  className="w-[4.5rem] h-[4.5rem] lg:w-[5.5rem] lg:h-[5.5rem] rounded-full object-cover grayscale-[15%]"
-                />
-              ) : (
-                <div
-                  aria-hidden="true"
-                  className="w-[4.5rem] h-[4.5rem] lg:w-[5.5rem] lg:h-[5.5rem] rounded-full bg-[#F1F1F2] text-[#6B6B73] flex items-center justify-center text-xl italic"
-                >
-                  {getInitials(full_name)}
-                </div>
-              )}
-            </div>
+            {(profile.avatar_url || contact.location) && (
+              <div>
+                {profile.avatar_url && (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    width={88}
+                    height={88}
+                    className="mb-8 lg:mb-5 w-[4.5rem] h-[4.5rem] lg:w-[5.5rem] lg:h-[5.5rem] rounded-full object-cover grayscale-[15%]"
+                  />
+                )}
+                {contact.location && (
+                  <p
+                    className={`hidden lg:block text-[0.9375rem] italic leading-snug text-[#6B6B73] break-words ${profile.avatar_url ? "" : "lg:pt-[1.15rem]"}`}
+                  >
+                    {contact.location}
+                  </p>
+                )}
+              </div>
+            )}
 
-            <div className="min-w-0">
+            <div className="min-w-0 lg:col-start-2 lg:row-start-1">
               <h1 className="text-[clamp(2.5rem,7vw,4.25rem)] font-normal leading-[1.02] tracking-[-0.02em] break-words [text-wrap:balance]">
                 {full_name}
               </h1>
@@ -102,7 +104,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                 </p>
               )}
               {contact.location && (
-                <p className="mt-2 text-[0.9375rem] text-[#6B6B73]">{contact.location}</p>
+                <p className="mt-2 text-[0.9375rem] text-[#6B6B73] lg:hidden">{contact.location}</p>
               )}
 
               {summary && (

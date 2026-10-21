@@ -36,10 +36,9 @@ export function getLinkedInIconVariant(
     case "liner-notes":
     case "lesson-plan":
     case "manuscript":
-    case "personal-best":
     case "reel":
-    case "noir":
-    case "dashboard":
+    case "spotlight":
+    case "link-stack":
       return "white";
     default:
       return "black";

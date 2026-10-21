@@ -55,19 +55,20 @@ export default function TemplatesShowcasePage() {
 
         <h3>{THEME_METADATA.glass.name}</h3>
         <p>
-          {THEME_METADATA.glass.description}. Set against a dark background, content cards appear to
-          float with translucent, blurred edges — like frosted glass. The effect is sophisticated
-          and modern, giving your resume a premium, almost app-like feel. Best for UI/UX designers,
-          product managers, and anyone in tech who appreciates contemporary design language.
+          {THEME_METADATA.glass.description}. Set against a dark backdrop crossed by the shadow of a
+          window frame, your sections sit on frosted panes with soft blurred edges, and the header
+          pairs your name with a strip of reeded glass. A frosted bar stays pinned at the top for
+          navigation, so the page feels like a polished app. Best for UI/UX designers, product
+          managers, and anyone in tech who appreciates contemporary design language.
         </p>
 
         <h3>{THEME_METADATA.bento.name}</h3>
         <p>
-          {THEME_METADATA.bento.description}. Inspired by Apple's design language, this template
-          organizes your resume into a mosaic of colorful, rounded cards. Each section — experience,
-          skills, education — gets its own visually distinct card. The result is scannable,
-          engaging, and feels less like a document and more like a dashboard. Best for product
-          designers, developers, and creative technologists.
+          {THEME_METADATA.bento.description}. Your name fills one large tile, and the rest of your
+          resume is laid out as flat colour tiles around it: your current role, one standout result
+          pulled from your highlights, your summary, skills, education and every job you've held.
+          Each tile carries real content, so a reader can take in your career at a glance. Best for
+          product designers, developers, and creative technologists.
         </p>
 
         <h3>{THEME_METADATA.classic_ats.name}</h3>
@@ -101,18 +102,19 @@ export default function TemplatesShowcasePage() {
         <h3>{THEME_METADATA.design_folio.name}</h3>
         <p>
           {THEME_METADATA.design_folio.description}. This is the template for designers, by
-          designers. Dark background, neon green accents, oversized typography, and asymmetric
-          layouts create a digital-brutalist aesthetic that feels like a design agency portfolio.
-          It's bold, experimental, and unforgettable. Best for graphic designers, art directors, and
-          creative professionals who want their portfolio to demonstrate taste — not just list it.
+          designers. A strict Swiss grid, a cobalt block for your name and large project images up
+          front make it read like a studio's portfolio, with your work leading and your career
+          history following. Best for graphic designers, art directors, and creative professionals
+          who want their portfolio to demonstrate taste — not just list it.
         </p>
 
         <h3>{THEME_METADATA.spotlight.name}</h3>
         <p>
-          {THEME_METADATA.spotlight.description}. Warm color palette, smooth scroll animations, and
-          a layout that feels like a narrative — not a document. Each section fades or slides into
-          view as the reader scrolls, creating an engaging storytelling experience. Best for
-          marketers, content creators, and anyone whose work is about narrative and engagement.
+          {THEME_METADATA.spotlight.description}. Your name stands in a hard-edged pool of light on
+          a dark stage, and everything after it reads like a theatre programme: roles listed as
+          credits, skills as a featuring list, projects as productions, and education as training.
+          Best for marketers, content creators, and anyone whose work is about narrative and
+          engagement.
         </p>
 
         <h3>{THEME_METADATA.midnight.name}</h3>
@@ -209,9 +211,10 @@ export default function TemplatesShowcasePage() {
 
         <h3>{THEME_METADATA.media_kit.name}</h3>
         <p>
-          {THEME_METADATA.media_kit.description}. A colour-block hero, a by-the-numbers strip
-          counted from your resume, and a Results wall that lifts figures like 212% or $2.1M out of
-          your own highlights. Best for marketers, growth leads, and anyone who sells with numbers.
+          {THEME_METADATA.media_kit.description}. A fuchsia cover with your name and booking
+          contact, a wordmark wall of the companies you've worked with, and a Results section that
+          lifts figures like 212% or $2.1M out of your own highlights, followed by case studies and
+          services. Best for marketers, growth leads, and anyone who sells with numbers.
         </p>
 
         <h3>{THEME_METADATA.liner_notes.name}</h3>

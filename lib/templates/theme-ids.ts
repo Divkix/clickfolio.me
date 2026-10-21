@@ -9,14 +9,11 @@ export const THEME_IDS = [
   "broadsheet",
   "case_file",
   "classic_ats",
-  "consulting_brief",
   "contact_sheet",
-  "dashboard",
   "design_folio",
   "dev_terminal",
   "gallery_wall",
   "glass",
-  "infographic",
   "lesson_plan",
   "liner_notes",
   "link_stack",
@@ -25,8 +22,6 @@ export const THEME_IDS = [
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
-  "networked",
-  "noir",
   "open_house",
   "personal_best",
   "pitch_deck",
@@ -35,11 +30,9 @@ export const THEME_IDS = [
   "retro_os",
   "rounds",
   "scrapbook",
-  "sidebar_photo",
   "spotlight",
   "the_brief",
   "the_menu",
-  "timeline",
   "workspace",
 ] as const;
 
@@ -53,6 +46,36 @@ export const DEFAULT_THEME: ThemeId = "minimalist_editorial";
 export function isValidThemeId(id: string): id is ThemeId {
   // SAFETY: ThemeId is a string union; widening THEME_IDS to readonly string[] is safe for includes check — runtime validation via isValidThemeId guarantees id is ThemeId when true.
   return (THEME_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * Theme ids that were removed from THEME_IDS, mapped to the theme their users moved to. Stored
+ * rows are remapped by a data migration; this keeps reads and old /templates/<slug> links working.
+ */
+export const REMOVED_THEME_REPLACEMENTS = {
+  consulting_brief: "classic_ats",
+  dashboard: "workspace",
+  infographic: "bento",
+  networked: "bold_corporate",
+  noir: "midnight",
+  sidebar_photo: "bold_corporate",
+  timeline: "minimalist_editorial",
+} as const satisfies Record<string, ThemeId>;
+
+const REMOVED_THEME_LOOKUP = new Map(Object.entries<ThemeId>(REMOVED_THEME_REPLACEMENTS));
+
+/** The theme that replaced a removed theme id, or null when `id` was never removed. */
+export function replacementForRemovedTheme(id: string): ThemeId | null {
+  return REMOVED_THEME_LOOKUP.get(id) ?? null;
+}
+
+/** Any stored theme id → a renderable theme: valid ids pass, removed ids map, the rest default. */
+export function resolveThemeId(raw: string | null | undefined): ThemeId {
+  if (!raw) return DEFAULT_THEME;
+
+  if (isValidThemeId(raw)) return raw;
+
+  return replacementForRemovedTheme(raw) ?? DEFAULT_THEME;
 }
 
 /** URL slug for /templates/<slug>: the theme id in kebab case. */
@@ -76,7 +99,7 @@ export const THEME_METADATA = {
   },
   bento: {
     name: "Bento Grid",
-    description: "Flat colour tiles that fit together around your photo",
+    description: "Flat colour tiles for your current role, a standout result and your full career",
     category: "Modern",
     preview: "/previews/bento.webp",
   },
@@ -119,25 +142,12 @@ export const THEME_METADATA = {
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },
-  consulting_brief: {
-    name: "Consulting Brief",
-    description:
-      "A dense black-and-white one-pager in the McKinsey case-resume style, with ruled sections and dash-led results",
-    category: "Professional",
-    preview: "/previews/consulting-brief.webp",
-  },
   contact_sheet: {
     name: "Contact Sheet",
     description:
       "Film-frame tiles on near-black with grease-pencil orange, built for photographers",
     category: "Creative",
     preview: "/previews/contact-sheet.webp",
-  },
-  dashboard: {
-    name: "Dashboard",
-    description: "An analytics-dashboard layout with KPI tiles and skill bars for data roles",
-    category: "Modern",
-    preview: "/previews/dashboard.webp",
   },
   design_folio: {
     name: "DesignFolio",
@@ -159,15 +169,9 @@ export const THEME_METADATA = {
   },
   glass: {
     name: "Glass Morphic",
-    description: "Frosted glass panels over a deep indigo aurora",
+    description: "Frosted glass panes lit by one window of light, with a reeded-glass insert",
     category: "Modern",
     preview: "/previews/glass.webp",
-  },
-  infographic: {
-    name: "Infographic",
-    description: "Icon-led sections, colour-coded skill chips and stat callouts from your resume",
-    category: "Modern",
-    preview: "/previews/infographic.webp",
   },
   lesson_plan: {
     name: "Lesson Plan",
@@ -185,7 +189,7 @@ export const THEME_METADATA = {
   link_stack: {
     name: "Link Stack",
     description:
-      "A link-in-bio style page: a short bio up top and every job, project and credential as a stacked card",
+      "A link-in-bio page of full-width colour bars, ultramarine to peach, each one a link to tap or a role to open",
     category: "Modern",
     preview: "/previews/link-stack.webp",
   },
@@ -198,7 +202,8 @@ export const THEME_METADATA = {
   },
   media_kit: {
     name: "Media Kit",
-    description: "Bold colour blocks, a results wall and a by-the-numbers strip for marketers",
+    description:
+      "A creator's brand one-sheet: a fuchsia cover, a wordmark wall of who you've worked with and your real results",
     category: "Modern",
     preview: "/previews/media-kit.webp",
   },
@@ -220,43 +225,30 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/brutalist.webp",
   },
-  networked: {
-    name: "Networked",
-    description:
-      "A professional-network profile look, with a banner header, stat pills and skills as endorsement chips",
-    category: "Professional",
-    preview: "/previews/networked.webp",
-  },
-  noir: {
-    name: "Noir",
-    description:
-      "A black fashion-magazine masthead with gold hairlines, small-caps headings and generous white space",
-    category: "Creative",
-    preview: "/previews/noir.webp",
-  },
   open_house: {
     name: "Open House",
     description:
-      "A real-estate listing flyer, with a featured-listing band, a stat row and skills as amenity tags",
+      "A real-estate listing sheet: your name on a hanging yard sign, a property-details table and roles filed as listings",
     category: "Creative",
     preview: "/previews/open-house.webp",
   },
   personal_best: {
     name: "Personal Best",
-    description: "A bold athletic-coach resume with PR-style stat cards and a neon accent",
+    description:
+      "A track meet: your name painted across the lanes, real marks on an LED board and roles as a results sheet",
     category: "Modern",
     preview: "/previews/personal-best.webp",
   },
   pitch_deck: {
     name: "Pitch Deck",
-    description: "Your resume as a startup slide deck, with a cover slide and numbered sections",
+    description: "Your resume as a 16:9 founder deck: title slide, one-liner, traction and the ask",
     category: "Modern",
     preview: "/previews/pitch-deck.webp",
   },
   quota: {
     name: "Quota",
     description:
-      "A sales resume built around bold numbers, with a stat row and achievements set as call-out bullets",
+      "A sales resume with a closed-won board of the real figures from your highlights and a dated track record",
     category: "Professional",
     preview: "/previews/quota.webp",
   },
@@ -286,16 +278,10 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/scrapbook.webp",
   },
-  sidebar_photo: {
-    name: "Sidebar Photo",
-    description:
-      "The classic two-column resume: a fixed photo sidebar with skill bars beside a clean career column",
-    category: "Professional",
-    preview: "/previews/sidebar-photo.webp",
-  },
   spotlight: {
     name: "Spotlight",
-    description: "Your name under a single pool of stage light, with work set out like a playbill.",
+    description:
+      "A dark stage with a hard-edged followspot on your name and a theatre programme of credits",
     category: "Creative",
     preview: "/previews/spotlight.webp",
   },
@@ -308,15 +294,10 @@ export const THEME_METADATA = {
   },
   the_menu: {
     name: "The Menu",
-    description: "A tasting-menu card, with roles served as courses under a thin gold rule",
+    description:
+      "A bistro prix-fixe card on a gingham tablecloth, with roles priced in years along dotted leaders",
     category: "Creative",
     preview: "/previews/the-menu.webp",
-  },
-  timeline: {
-    name: "Timeline",
-    description: "A career roadmap: one connecting line with a marker at every role and degree",
-    category: "Modern",
-    preview: "/previews/timeline.webp",
   },
   workspace: {
     name: "Workspace",
@@ -360,19 +341,12 @@ export const themeToShareVariant = {
   lesson_plan: "lesson-plan",
   manuscript: "manuscript",
   gallery_wall: "gallery-wall",
-  sidebar_photo: "sidebar-photo",
-  infographic: "infographic",
-  timeline: "timeline",
-  networked: "networked",
-  consulting_brief: "consulting-brief",
   quota: "quota",
   the_brief: "the-brief",
   open_house: "open-house",
   the_menu: "the-menu",
   personal_best: "personal-best",
   pitch_deck: "pitch-deck",
-  dashboard: "dashboard",
   reel: "reel",
   link_stack: "link-stack",
-  noir: "noir",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

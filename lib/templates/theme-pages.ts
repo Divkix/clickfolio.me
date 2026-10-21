@@ -6,9 +6,9 @@ export const THEME_PAGE_COPY: Record<
 > = {
   bento: {
     description:
-      "Build a free Bento Grid resume website with flat color tiles, a portrait, and clearly grouped experience, skills, and projects.",
+      "Build a free Bento Grid resume website with flat color tiles for your current role, a standout result, and clearly grouped experience, skills, and projects.",
     paragraphs: [
-      "Bento Grid suits product managers and marketers who want readers to scan several kinds of work at once. Flat color tiles separate your introduction, contact details, experience, and skills, while your portrait anchors the top of the page.",
+      "Bento Grid suits product managers and marketers who want readers to scan several kinds of work at once. Flat color tiles separate your introduction, contact details, experience, and skills. Beside your name sit your current role and location, and your strongest measurable result gets a tile of its own.",
       "The layout adapts to the sections in your resume: neighboring tiles expand when a section is absent instead of leaving an empty space. On smaller screens, the tiles become a single column. Pine-green accents and rounded corners give a structured resume a more approachable presentation.",
     ],
   },
@@ -70,10 +70,10 @@ export const THEME_PAGE_COPY: Record<
   },
   glass: {
     description:
-      "Make a free Glass Morphic resume website with frosted panels, an indigo aurora background, and floating section navigation.",
+      "Make a free Glass Morphic resume website with frosted glass panes, a single window of light, and a sticky frosted navigation bar.",
     paragraphs: [
-      "Glass Morphic suits software engineers and marketers who want a modern, atmospheric portfolio rather than a paper-like resume. Frosted panels sit over an indigo aurora, with teal and rose accents surrounding the opening introduction.",
-      "A large name and headline establish the page before separate panels organize your work and qualifications. Floating navigation near the bottom links directly to the available sections. The translucent treatment provides visual depth while keeping the resume content in a familiar reading order.",
+      "Glass Morphic suits software engineers and marketers who want a modern, atmospheric portfolio rather than a paper-like resume. Frosted panes sit in a dark room lit by one tall window, and a strip of reeded glass beside your introduction breaks that light into ribs.",
+      "A large name and headline establish the page before separate panels organize your work and qualifications. A frosted bar stays at the top of the screen and links to each section, with the page scrolling underneath it. Every pane catches the light on the same edge, which gives the page depth while keeping your resume in a familiar reading order.",
     ],
   },
   midnight: {
@@ -110,10 +110,10 @@ export const THEME_PAGE_COPY: Record<
   },
   spotlight: {
     description:
-      "Put your name center stage with Spotlight, a free resume website template with a lilac backdrop, warm stage light, and playbill-style sections.",
+      "Put your name center stage with Spotlight, a free resume website template with a dark stage, a followspot on your name, and theatre-programme sections.",
     paragraphs: [
-      "Spotlight works for designers and marketers who want their name and professional introduction to take center stage. A pale lilac background, aubergine typography, and a warm pool of stage light frame the oversized opening name.",
-      "The rest of the page reads like a playbill: section titles sit beside the supporting work on wider screens, then stack above it on mobile. Yellow-underlined links echo the opening light. It offers a more expressive personal introduction while preserving a straightforward account of your experience.",
+      "Spotlight is for creative directors, performers, and leaders who want a big-name page. A red curtain hangs over a dark stage, and a single followspot lands on your name, set huge in a fat-face serif under the word Starring.",
+      "The rest of the page reads like a theatre programme. Your summary is the Who's who bio, jobs are listed as Credits with role and company joined by a dotted leader like a cast list, skills appear under Featuring, and education is listed as Training. The contact section at the end is the Stage door.",
     ],
   },
   academic_cv: {
@@ -164,10 +164,10 @@ export const THEME_PAGE_COPY: Record<
   media_kit: {
     title: "Marketing Portfolio Website Template",
     description:
-      "Build a free marketing portfolio website with Media Kit: a bold colour-block hero, a results wall pulled from your resume metrics, and a by-the-numbers strip.",
+      "Build a free marketing portfolio website with Media Kit: a creator one-sheet with a wordmark wall of brands, your real results and campaign case studies.",
     paragraphs: [
-      "Media Kit is built for marketers who sell results. A violet hero carries your name and headline, and a by-the-numbers strip counts the roles, brands, and campaigns on your resume. Any achievement that includes a figure, such as 212%, $2.1M, or 3.4x, is lifted into a Results wall with the original sentence beside it.",
-      "Nothing is rewritten: figures are shown exactly as you wrote them, and a resume with no metrics simply skips the wall. Experience, campaigns with their channels, a brands and teams list, and skills follow, ending in a dark contact band with your email as the call to action.",
+      "Media Kit is built for creators, marketers and influencers pitching brands. Your name sits on a fuchsia cover like a magazine masthead, with your partnership email right beside it, and every company you have worked for is set as its own wordmark on a worked-with wall.",
+      "Any achievement that includes a figure, such as 212%, $2.1M or 3.4x, is shown large with your original sentence beside it, so nothing is rewritten or made up. Projects become case studies with their channels, skills are set out as a services sheet, and the page ends with a call to work with you.",
     ],
   },
   liner_notes: {
@@ -215,58 +215,13 @@ export const THEME_PAGE_COPY: Record<
       "Below the floor line, experience and awards are printed the way galleries set an artist's CV, with dates in their own column and media and tools listed beside them. The hang and the CV collapse into one column on phones.",
     ],
   },
-  sidebar_photo: {
-    title: "Two-Column Resume Website Template",
-    description:
-      "Build a free two-column resume website with Sidebar Photo: a fixed photo sidebar with skill bars beside a clean career column.",
-    paragraphs: [
-      "Sidebar Photo is the resume shape most people picture first: a dark sidebar carrying your photo, contact links, and skills as simple progress bars, with your summary, experience, and education running down a white column beside it. It suits operations, project, and general business roles well.",
-      "On a desktop the sidebar stays in view as you scroll; on a phone it moves above the career column instead of squeezing beside it. Skill bars are a visual read of each item, not a literal score — your resume doesn't carry proficiency percentages, and this template doesn't invent any.",
-    ],
-  },
-  infographic: {
-    title: "Infographic Resume Website Template",
-    description:
-      "Create a free infographic resume website: icon-led sections, colour-coded skill chips and stat callouts pulled straight from your resume.",
-    paragraphs: [
-      "Infographic suits marketers, coordinators, and generalists who want a resume that reads at a glance. Small icons mark each section, a row of stat tiles counts your roles, projects, and certifications, and skills appear as colourful rounded chips instead of a plain list.",
-      "Every number on the page comes from your own resume data — roles, projects, and credentials you actually listed — rather than a fabricated metric. A rotating four-colour palette keeps the page lively without needing you to pick colours yourself.",
-    ],
-  },
-  timeline: {
-    title: "Resume Timeline Website Template",
-    description:
-      "Make a free resume timeline website: one connecting line down the page with a marker at every role and degree.",
-    paragraphs: [
-      "Timeline turns your career into a literal roadmap. A single indigo line runs down a cream page, with a circular marker and a dated label at each stop — your roles, then your projects, then your education, each in their own rail.",
-      "It's a calm, uncluttered layout for program managers, coordinators, and anyone whose story reads well as a straightforward progression. The page stays airy on purpose: one accent colour, generous spacing, and nothing competing with the line itself.",
-    ],
-  },
-  networked: {
-    title: "LinkedIn-Style Resume Website Template",
-    description:
-      "Build a free LinkedIn-style resume website with Networked: a banner header, an overlapping photo, and skills shown as endorsement chips.",
-    paragraphs: [
-      "Networked deliberately echoes the professional-network profile pages recruiters already know how to read: a blue banner, your photo overlapping its bottom edge, and a row of stat pills counting your roles, skills, and degrees.",
-      "Skills appear as rounded chips with a small check mark, the way an endorsement reads on a network profile, and your experience and education run underneath in a clean white body. It suits business development, partnerships, and account management careers particularly well.",
-    ],
-  },
-  consulting_brief: {
-    title: "McKinsey-Style One-Page Resume Template",
-    description:
-      "Create a free one-page consulting resume website in the McKinsey case-resume style: black-and-white, ruled sections and dash-led results.",
-    paragraphs: [
-      "Consulting Brief strips away every decoration a management-consulting or MBA resume doesn't need: black text on white, thin rules between sections, and achievements written as tight dash-led bullets with tabular numerals.",
-      "It's built to be read, screenshotted, and printed as a single page, the way a case-team resume gets passed around. Company names lead each entry, job titles sit in italics beside them, and skills and education sit side by side so nothing competes for space.",
-    ],
-  },
   quota: {
     title: "Sales Resume Website Template",
     description:
-      "Build a free sales resume website with Quota: a bold stat row and achievements set as confident call-out bullets.",
+      "Build a free sales resume website with Quota: a closed-won board of your real numbers and a track record set in big condensed type.",
     paragraphs: [
-      "Quota is built for account executives and sales professionals who want their numbers to lead. A stat row up top counts your roles and the achievements you've logged, in large condensed numerals, before your experience runs underneath with each highlight set as its own bold line.",
-      "An orange-red accent and heavy left-border rules give every role weight without needing a photo or a dense paragraph. Skills appear as a short row of solid chips, keeping the whole page scannable the way a hiring manager skims a sales resume.",
+      "Quota is built for account executives and sales professionals who want their numbers to lead. Any figure already written in your highlights, like a quota percentage, a pipeline dollar amount or a 3x multiple, is lifted onto a dark closed-won board at the top of the page, next to the line it came from and the company where you earned it.",
+      "Nothing is counted or estimated: a resume without those figures simply skips the board. Below it, each role runs as a dated row in your track record with the figures marked in orange-red, and your skills read as a short playbook grouped the way you listed them.",
     ],
   },
   the_brief: {
@@ -281,73 +236,55 @@ export const THEME_PAGE_COPY: Record<
   open_house: {
     title: "Real Estate Agent Website Template",
     description:
-      "Create a free real estate agent website with Open House: a featured-listing band, a stat row and skills shown as amenity tags.",
+      "Create a free real estate agent website with Open House: your name on a yard sign, a property-details table and roles filed as listings.",
     paragraphs: [
-      'Open House styles a real-estate resume like the MLS listing flyers agents already hand out: a terracotta "Featured Listing" band up top, a stats row reading like a property\'s details, and each role presented as its own listing card.',
-      "Skills appear as rounded amenity tags, and every stat on the page comes from your own resume — roles, credentials, and certifications you listed, never an invented sales figure. Warm cream and terracotta keep it feeling like print collateral rather than a corporate template.",
+      "Open House sets a real-estate resume up like the listing sheets agents already work from. Your name hangs on a green yard sign with your phone number as large as the name and your brokerage on the rider below, the way buyers see it from the curb.",
+      "Underneath, an MLS-style property-details table lists your location, brokerage, specialties, licenses and education as plain facts, and each role is filed in your listing history marked Active or Closed. Every line comes from your own resume, with no invented sales figures or counts.",
     ],
   },
   the_menu: {
     title: "Chef Resume Website Template",
     description:
-      "Build a free chef resume website with The Menu: roles served as courses on a tasting-menu card under a thin gold rule.",
+      "Build a free chef resume website with The Menu: a bistro prix-fixe card on a red gingham tablecloth, with your roles listed like dishes.",
     paragraphs: [
-      "The Menu reads your career the way a tasting menu reads a dinner: each role becomes a course, labelled First Course through Entrée, centred under an elegant serif heading with the dates set in small type below.",
-      "A single thin gold rule separates each course, and the whole page sits on warm cream paper. It suits chefs, restaurateurs, and hospitality professionals who want a page with the same care as the menus they've written.",
+      "The Menu sets your resume as a prix-fixe card in a double-ruled frame. Training is the first course, your roles are the main course, and certifications come out for dessert. Each role runs along a dotted leader to its years, the way a dish runs to its price.",
+      "Your skills go in the pantry, an oxblood insert printed like a wine list, and your contact details sit under Reservations at the foot of the card. It suits chefs, restaurateurs and hospitality professionals who want a page that looks like the menus they write.",
     ],
   },
   personal_best: {
     title: "Personal Trainer Resume Website Template",
     description:
-      "Make a free personal trainer resume website with Personal Best: bold PR-style stat cards and a neon accent on near-black.",
+      "Make a free personal trainer resume website with Personal Best: your name across a running track and your results on an LED board.",
     paragraphs: [
-      "Personal Best gives a fitness or coaching resume the same energy as a training log. A diagonal colour split sits behind your name, and any number already in your highlights — a percentage, a rep count, a season record — gets pulled out into its own bold stat card.",
-      "Nothing is invented: the stats are read directly out of your own achievement bullets, not estimated. Condensed uppercase headings and a single cyan accent keep the page feeling like a locker-room poster rather than a corporate template.",
+      "Personal Best sets a coaching or fitness resume at a track meet. Your name is painted across the lanes of a red running track, one line per lane, with your headline and contact details running in the lanes below.",
+      "Any figure already in your achievement bullets, like a percentage, an inch gained or a number of athletes, lights up on a black LED scoreboard. Nothing is estimated or counted for you. Your roles, education and certifications follow as a printed results sheet with dates in the marks column. It suits strength coaches, personal trainers and athletes.",
     ],
   },
   pitch_deck: {
     title: "Startup Founder Resume Website Template",
     description:
-      "Build a free founder resume website with Pitch Deck: your career as a slide deck, with a cover slide and numbered sections.",
+      "Build a free founder resume website with Pitch Deck: your career as a 16:9 slide deck, from title slide to the ask.",
     paragraphs: [
-      "Pitch Deck presents a founder's background the way they'd present their own company: a bold blue cover slide with your name and one-line pitch, then every section as its own numbered slide card — summary, traction, side projects, and background.",
-      "Experience highlights sit in their own rounded callouts, the way a traction slide lists its metrics. It suits founders, operators, and early-stage hires who think in decks as naturally as they think in resumes.",
-    ],
-  },
-  dashboard: {
-    title: "Data Analyst Resume Website Template",
-    description:
-      "Create a free data analyst resume website with Dashboard: KPI tiles, skill bars and metric-tagged experience cards.",
-    paragraphs: [
-      "Dashboard reads like the analytics tools a data professional builds every day. A row of KPI tiles counts your roles, years of experience, and certifications, skills appear as short horizontal bars, and each job sits in its own card with its highlights tagged like metric labels.",
-      "A light slate-and-blue palette with a rotating four-colour accent keeps the page feeling like a BI tool rather than a dark, moody dashboard. It's a natural fit for data analysts, BI specialists, and analytics engineers.",
+      "Pitch Deck presents a founder's background the way they'd present their own company. Each section is its own widescreen slide with a page number in the footer: a cobalt title slide with your name, the one-liner, traction from your current role, your track record, what you've built, and your background.",
+      "Every slide carries one idea in big headline type, and the deck closes on a cobalt slide with your email and links. It suits founders, operators, and early-stage hires who think in decks as naturally as they think in resumes.",
     ],
   },
   reel: {
     title: "Video Editor Portfolio Website Template",
     description:
-      "Build a free video editor portfolio website with Reel: a film-editing timeline, timecode-styled dates and a red playhead accent.",
+      "Build a free video editor portfolio website with Reel: roles as clips on an editing timeline, timecode-styled dates and a red playhead.",
     paragraphs: [
-      "Reel borrows the look of an editing timeline for a filmmaker's resume: a red playhead rule opens the page, and every role sits on a vertical clip track with its dates styled like a timecode and a small marker tick at each entry.",
-      "Projects sit in a dark grid below, each with its own tools listed in monospace. It suits video editors, filmmakers, and motion designers who want their resume to look like the software they work in every day.",
+      "Reel lays a filmmaker's resume out like an editing suite. Your name opens the page as a broadcast lower third in a program monitor, and below it a timeline panel places each role as a clip on its own video track, with projects on the track above, graduation on an audio track and a red playhead at today.",
+      "Every date reads as a timecode, the full role details sit in a clip list that becomes the whole layout on a phone, and skills are grouped like an effects library. It suits video editors, filmmakers, and motion designers who want their resume to look like the software they work in every day.",
     ],
   },
   link_stack: {
     title: "Link-in-Bio Resume Website Template",
     description:
-      "Make a free link-in-bio resume website with Link Stack: a short bio up top and every job, project and credential as a stacked card.",
+      "Make a free link-in-bio resume website with Link Stack: your name set big, then every link, job and credential as a full-width colour bar.",
     paragraphs: [
-      "Link Stack is deliberately not a resume layout. It's a creator-style bio page: a centred avatar and short bio at the top, then every item on your resume — jobs, projects, education, certifications — turned into its own full-width rounded card you can tap.",
-      "A soft lavender gradient and a single violet accent keep it feeling like a creator's link page rather than a corporate document. It suits freelancers, consultants, and content creators who want their resume to feel like the rest of their online presence.",
-    ],
-  },
-  noir: {
-    title: "Fashion Portfolio Website Template",
-    description:
-      "Create a free fashion portfolio website with Noir: a black magazine masthead, gold hairlines and small-caps headings.",
-    paragraphs: [
-      "Noir treats your name like a magazine cover line: a large serif masthead on pure black, thin gold hairline rules, and small-caps letterspaced section headings with generous white space around every block of text.",
-      "It suits fashion, luxury, and brand professionals who want a page with editorial weight rather than a ledger or a spreadsheet feel. Experience and education are centred and quiet, letting the typography carry the page.",
+      "Link Stack is deliberately not a resume layout. It's a creator-style bio page: your name set large in a wide display face, then a stack of edge-to-edge bars. Your email and social links come first, then projects, jobs, education and skills, and every bar is something to tap: a link opens, a job unfolds to show what you did there.",
+      "The bars run as one colour ramp from deep ultramarine down to peach, so the page reads in order at a glance on a phone, and on a desktop screen the bars stretch across the whole window instead of sitting in a narrow strip. It suits freelancers, consultants and content creators who want their resume to work like the link in their bio.",
     ],
   },
 };

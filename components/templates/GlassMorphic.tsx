@@ -12,14 +12,13 @@ import {
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateRange, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const FONT_URL =
-  "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap";
+const FONT_URL = "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap";
 
 const NAV_SECTIONS = [
   { id: "about", label: "About", icon: User },
@@ -31,50 +30,72 @@ const NAV_SECTIONS = [
 
 type NavSection = (typeof NAV_SECTIONS)[number];
 
-function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
+const FOCUS_RING =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7FE3D4]";
+
+/** Section heading set like lettering sandblasted into a pane: light, slightly recessed. */
+function EtchedTitle({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <h2
       id={`${id}-title`}
-      className="text-2xl md:text-3xl font-semibold tracking-tight text-[#F4F6FB] mb-6"
+      className="gl-etched mb-5 text-[1.75rem] font-light leading-tight tracking-[-0.02em] md:mb-6 md:text-[2.25rem]"
     >
       {children}
     </h2>
   );
 }
 
-function GlassNav({ sections, email }: { sections: NavSection[]; email?: string }) {
+/** Sticky frosted bar: sits in document flow, so content scrolls under it instead of being covered. */
+function GlassBar({
+  name,
+  sections,
+  email,
+}: {
+  name: string;
+  sections: NavSection[];
+  email?: string;
+}) {
   return (
-    <nav
-      aria-label="Sections"
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100%-1.5rem)] pb-[env(safe-area-inset-bottom)]"
-    >
-      <div className="gl-pane flex items-center gap-1 p-1.5 rounded-full overflow-x-auto no-scrollbar">
-        {sections.map((section) => {
-          const Icon = section.icon;
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6">
+      <nav
+        aria-label="Sections"
+        className="gl-pane gl-bar mx-auto flex max-w-5xl items-center gap-2 rounded-2xl py-1.5 pr-1.5 pl-4"
+      >
+        <a
+          href="#about"
+          className={`min-w-0 flex-1 truncate text-sm font-medium text-[#F4F6FB] ${FOCUS_RING}`}
+        >
+          {name}
+        </a>
+        <ul className="no-scrollbar flex min-w-0 items-center overflow-x-auto">
+          {sections.map((section) => {
+            const Icon = section.icon;
 
-          return (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              aria-label={section.label}
-              className="flex items-center gap-2 h-10 px-3 rounded-full text-sm text-[#B8C0D9] hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
-            >
-              <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
-              <span className="hidden sm:inline">{section.label}</span>
-            </a>
-          );
-        })}
+            return (
+              <li key={section.id}>
+                <a
+                  href={`#${section.id}`}
+                  aria-label={section.label}
+                  className={`flex h-9 items-center gap-2 rounded-xl px-2.5 text-sm text-[#C4CBE0] transition-colors hover:bg-white/10 hover:text-white ${FOCUS_RING}`}
+                >
+                  <Icon size={17} strokeWidth={1.75} aria-hidden="true" className="md:hidden" />
+                  <span className="hidden md:inline">{section.label}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
         {email && (
           <a
             href={`mailto:${email}`}
             aria-label={`Email ${email}`}
-            className="flex items-center justify-center w-10 h-10 ml-1 rounded-full bg-[#F4F6FB] text-[#0B0F1A] hover:bg-white transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EAF6F4] text-[#0B0F1A] transition-colors hover:bg-white ${FOCUS_RING}`}
           >
-            <Mail size={17} strokeWidth={2} aria-hidden="true" />
+            <Mail size={16} strokeWidth={2} aria-hidden="true" />
           </a>
         )}
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 }
 
@@ -88,76 +109,69 @@ function GlassHero({
   const contactLinks = getContactLinks(content.contact).filter((l) => l.type !== "location");
 
   return (
-    <div className="relative">
-      <div className="gl-orb gl-orb-teal" aria-hidden="true" />
-      <div className="gl-orb gl-orb-rose" aria-hidden="true" />
-      <section
-        id="about"
-        aria-labelledby="about-title"
-        className="relative gl-pane gl-hero rounded-[32px] p-7 sm:p-10 md:p-14"
+    <section
+      id="about"
+      aria-labelledby="about-title"
+      className="gl-pane gl-hero relative grid scroll-mt-24 overflow-hidden rounded-[28px] md:grid-cols-[minmax(0,1fr)_minmax(13rem,30%)]"
+    >
+      {/* Reeded insert: the backdrop's light shaft broken into flutes, as through ribbed glass. */}
+      <div
+        className="gl-reeded relative order-first flex min-h-16 items-center justify-center border-b border-white/10 p-6 md:order-none md:min-h-full md:border-b-0 md:border-l"
+        aria-hidden={profile.avatar_url ? undefined : true}
       >
-        <div className="flex flex-col-reverse gap-8 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1
-              id="about-title"
-              className="text-[2.75rem] leading-[1.02] sm:text-6xl md:text-7xl font-semibold tracking-[-0.035em] text-white break-words"
-            >
-              {content.full_name}
-            </h1>
-            {content.headline && (
-              <p className="mt-4 text-lg md:text-2xl font-light text-[#D7DCEC] max-w-2xl">
-                {content.headline}
-              </p>
-            )}
-            {content.contact.location && (
-              <p className="mt-4 flex items-center gap-2 text-sm text-[#8C95B3]">
-                <MapPin size={15} aria-hidden="true" />
-                {content.contact.location}
-              </p>
-            )}
+        {profile.avatar_url && (
+          <div className="gl-bezel relative h-24 w-24 rounded-full p-1 md:h-40 md:w-40">
+            <img
+              src={profile.avatar_url}
+              alt={`Portrait of ${content.full_name}`}
+              width={160}
+              height={160}
+              fetchPriority="high"
+              decoding="async"
+              className="h-full w-full rounded-full object-cover"
+            />
           </div>
+        )}
+      </div>
 
-          <div className="gl-lens shrink-0 w-24 h-24 md:w-36 md:h-36 rounded-full p-1.5">
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={`Portrait of ${content.full_name}`}
-                width={144}
-                height={144}
-                fetchPriority="high"
-                decoding="async"
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              <div
-                className="w-full h-full rounded-full bg-[#0B0F1A]/60 flex items-center justify-center text-2xl md:text-4xl font-semibold text-[#F4F6FB]"
-                aria-hidden="true"
-              >
-                {getInitials(content.full_name)}
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="min-w-0 p-7 sm:p-10 md:order-first md:p-14">
+        <h1
+          id="about-title"
+          className="text-[2.75rem] leading-[1.02] font-light tracking-[-0.045em] break-words text-[#F7FAFF] sm:text-6xl md:text-[5.25rem]"
+        >
+          {content.full_name}
+        </h1>
+        {content.headline && (
+          <p className="mt-5 max-w-2xl text-lg leading-snug font-normal text-[#DCE3F2] md:text-[1.4rem]">
+            {content.headline}
+          </p>
+        )}
+        {content.contact.location && (
+          <p className="mt-4 flex items-center gap-2 text-sm text-[#AEB7CF]">
+            <MapPin size={15} aria-hidden="true" />
+            {content.contact.location}
+          </p>
+        )}
 
         {content.summary && (
-          <p className="mt-10 text-base md:text-lg leading-relaxed text-[#B8C0D9] max-w-[62ch]">
+          <p className="mt-9 max-w-[60ch] border-t border-white/10 pt-7 text-base leading-relaxed font-light text-[#CBD2E4] md:text-[1.075rem]">
             {content.summary}
           </p>
         )}
 
         {contactLinks.length > 0 && (
-          <ul className="mt-8 flex flex-wrap gap-2.5">
+          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3">
             {contactLinks.map((link) => (
-              <li key={link.type}>
+              <li key={link.type} className="min-w-0">
                 <a
                   href={link.href}
                   target={link.isExternal ? "_blank" : undefined}
                   rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm text-[#D7DCEC] hover:bg-white/[0.12] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+                  className={`inline-flex items-center gap-2 border-b border-white/20 pb-0.5 text-sm text-[#E6EAF4] transition-colors hover:border-[#7FE3D4] hover:text-white ${FOCUS_RING}`}
                 >
                   {getContactIcon(link.type, {
                     size: 15,
-                    className: "w-[15px] h-[15px]",
+                    className: "w-[15px] h-[15px] shrink-0 opacity-80",
                     variant: "white",
                     "aria-hidden": true,
                   })}
@@ -167,8 +181,8 @@ function GlassHero({
             ))}
           </ul>
         )}
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -176,40 +190,48 @@ function GlassExperience({ experience }: { experience: ResumeContent["experience
   if (!experience?.length) return null;
 
   return (
-    <section id="experience" aria-labelledby="experience-title">
-      <SectionTitle id="experience">Experience</SectionTitle>
-      <ol className="gl-pane rounded-3xl divide-y divide-white/10">
+    <section id="experience" aria-labelledby="experience-title" className="scroll-mt-24">
+      <EtchedTitle id="experience">Experience</EtchedTitle>
+      <ol className="gl-pane rounded-3xl">
         {experience.map((job) => (
-          <li key={`${job.title}-${job.company}-${job.start_date}`} className="p-6 md:p-8">
-            <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between md:gap-6">
-              <h3 className="text-lg md:text-xl font-semibold text-white">{job.title}</h3>
-              <p className="text-sm text-[#8C95B3] shrink-0 tabular-nums">
-                {formatDateRange(job.start_date, job.end_date)}
-              </p>
+          <li
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="grid gap-x-8 gap-y-2 border-t border-white/[0.08] p-6 first:border-t-0 md:grid-cols-[10.5rem_minmax(0,1fr)] md:p-8"
+          >
+            <div className="text-sm text-[#A3ADC8] md:pt-1">
+              <p className="tabular-nums">{formatDateRange(job.start_date, job.end_date)}</p>
+              {job.location && <p className="mt-0.5 hidden md:block">{job.location}</p>}
             </div>
-            <p className="mt-1 flex flex-wrap gap-x-3 text-[#D7DCEC]">
-              <span className="font-medium">{job.company}</span>
-              {job.location && <span className="text-[#8C95B3]">{job.location}</span>}
-            </p>
-            {job.description && (
-              <p className="mt-4 leading-relaxed text-[#B8C0D9] max-w-[68ch]">{job.description}</p>
-            )}
-            {job.highlights && job.highlights.length > 0 && (
-              <ul className="mt-4 space-y-2 max-w-[68ch]">
-                {job.highlights.map((item, i) => (
-                  <li
-                    key={`${job.title}-${item}-${i}`}
-                    className="relative pl-5 text-[15px] leading-relaxed text-[#B8C0D9]"
-                  >
-                    <span
-                      className="absolute left-0 top-[0.6em] w-2 h-2 rounded-full bg-linear-to-br from-[#3DD6C4] to-[#8B7CF6]"
-                      aria-hidden="true"
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="min-w-0">
+              <h3 className="text-lg leading-snug font-medium break-words text-white md:text-xl">
+                {job.title}
+              </h3>
+              <p className="mt-0.5 flex flex-wrap gap-x-3 break-words text-[#D7DCEC]">
+                <span>{job.company}</span>
+                {job.location && <span className="text-[#A3ADC8] md:hidden">{job.location}</span>}
+              </p>
+              {job.description && (
+                <p className="mt-4 max-w-[66ch] leading-relaxed font-light text-[#C4CBE0]">
+                  {job.description}
+                </p>
+              )}
+              {job.highlights && job.highlights.length > 0 && (
+                <ul className="mt-4 max-w-[66ch] space-y-2">
+                  {job.highlights.map((item, i) => (
+                    <li
+                      key={`${job.title}-${item}-${i}`}
+                      className="relative pl-5 text-[15px] leading-relaxed font-light break-words text-[#C4CBE0]"
+                    >
+                      <span
+                        className="absolute top-[0.72em] left-0 h-px w-2.5 bg-[#7FE3D4]"
+                        aria-hidden="true"
+                      />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </li>
         ))}
       </ol>
@@ -222,51 +244,48 @@ function GlassProjects({ projects }: { projects: ResumeContent["projects"] }) {
   const isOdd = projects.length % 2 === 1;
 
   return (
-    <section id="projects" aria-labelledby="projects-title">
-      <SectionTitle id="projects">Projects</SectionTitle>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <section id="projects" aria-labelledby="projects-title" className="scroll-mt-24">
+      <EtchedTitle id="projects">Projects</EtchedTitle>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {projects.map((project, i) => (
           <article
             key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-            className={`gl-pane gl-pane-soft rounded-[20px] p-6 flex flex-col ${
+            className={`gl-pane gl-pane-thin flex min-w-0 flex-col rounded-[20px] p-6 ${
               isOdd && i === projects.length - 1 ? "md:col-span-2" : ""
             }`}
           >
             <div className="flex items-baseline justify-between gap-4">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="min-w-0 text-lg font-medium break-words text-white">
                 {project.url ? (
                   <a
                     href={project.url}
                     target="_blank"
                     rel="ugc nofollow noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 hover:text-[#3DD6C4] transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+                    className={`inline-flex items-center gap-1.5 transition-colors hover:text-[#7FE3D4] ${FOCUS_RING}`}
                   >
                     {project.title}
-                    <ArrowUpRight size={17} aria-hidden="true" />
+                    <ArrowUpRight size={17} aria-hidden="true" className="shrink-0" />
                   </a>
                 ) : (
                   project.title
                 )}
               </h3>
               {project.year && (
-                <span className="text-sm text-[#8C95B3] shrink-0">{project.year}</span>
+                <span className="shrink-0 text-sm text-[#A3ADC8] tabular-nums">{project.year}</span>
               )}
             </div>
             {project.description && (
-              <p className="mt-3 text-[15px] leading-relaxed text-[#B8C0D9]">
+              <p className="mt-3 text-[15px] leading-relaxed font-light break-words text-[#C4CBE0]">
                 {project.description}
               </p>
             )}
             {project.technologies && project.technologies.length > 0 && (
               <ul
-                className="mt-5 pt-4 border-t border-white/10 flex flex-wrap gap-1.5"
+                className="mt-auto flex flex-wrap gap-x-4 gap-y-1 pt-5 text-[13px] text-[#A9DCD5]"
                 aria-label="Technologies"
               >
                 {project.technologies.map((tech) => (
-                  <li
-                    key={tech}
-                    className="rounded-full bg-white/[0.07] px-2.5 py-1 text-xs text-[#D7DCEC]"
-                  >
+                  <li key={tech} className="break-words">
                     {tech}
                   </li>
                 ))}
@@ -283,19 +302,19 @@ function GlassSkills({ skills }: { skills: ResumeContent["skills"] }) {
   if (!skills?.length) return null;
 
   return (
-    <section id="skills" aria-labelledby="skills-title">
-      <SectionTitle id="skills">Skills</SectionTitle>
-      <dl className="gl-pane rounded-3xl p-6 md:p-8 space-y-5">
+    <section id="skills" aria-labelledby="skills-title" className="scroll-mt-24">
+      <EtchedTitle id="skills">Skills</EtchedTitle>
+      <dl className="gl-pane rounded-3xl">
         {skills.map((group) => (
-          <div key={group.category} className="grid gap-2 md:grid-cols-[12rem_1fr] md:gap-6">
-            <dt className="text-sm font-medium text-[#8C95B3] md:pt-1.5">{group.category}</dt>
-            <dd>
-              <ul className="flex flex-wrap gap-2">
+          <div
+            key={group.category}
+            className="grid gap-x-8 gap-y-2 border-t border-white/[0.08] px-6 py-5 first:border-t-0 md:grid-cols-[10.5rem_minmax(0,1fr)] md:px-8"
+          >
+            <dt className="text-sm break-words text-[#A3ADC8] md:pt-px">{group.category}</dt>
+            <dd className="min-w-0">
+              <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-[15px] text-[#E6E9F4]">
                 {group.items.map((item) => (
-                  <li
-                    key={item}
-                    className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-sm text-[#E6E9F4]"
-                  >
+                  <li key={item} className="break-words">
                     {item}
                   </li>
                 ))}
@@ -321,10 +340,10 @@ function GlassEducation({
   if (!hasEducation && !hasCerts) return null;
 
   return (
-    <section id="education" aria-labelledby="education-title">
-      <SectionTitle id="education">{hasEducation ? "Education" : "Certifications"}</SectionTitle>
+    <section id="education" aria-labelledby="education-title" className="scroll-mt-24">
+      <EtchedTitle id="education">{hasEducation ? "Education" : "Certifications"}</EtchedTitle>
       <div
-        className={`gl-pane rounded-3xl p-6 md:p-8 grid gap-8 ${
+        className={`gl-pane grid gap-8 rounded-3xl p-6 md:p-8 ${
           hasEducation && hasCerts ? "md:grid-cols-2 md:gap-12" : ""
         }`}
       >
@@ -333,16 +352,16 @@ function GlassEducation({
             {education?.map((edu) => (
               <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
                 <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="font-semibold text-white">{edu.degree}</h3>
+                  <h3 className="min-w-0 font-medium break-words text-white">{edu.degree}</h3>
                   {edu.graduation_date && (
-                    <span className="text-sm text-[#8C95B3] shrink-0">
+                    <span className="shrink-0 text-sm text-[#A3ADC8] tabular-nums">
                       {formatYear(edu.graduation_date)}
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-[#B8C0D9]">{edu.institution}</p>
+                <p className="mt-0.5 break-words text-[#C4CBE0]">{edu.institution}</p>
                 {(edu.location || edu.gpa) && (
-                  <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-[#8C95B3]">
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-[#A3ADC8]">
                     {edu.location && <span>{edu.location}</span>}
                     {edu.gpa && <span>GPA {edu.gpa}</span>}
                   </p>
@@ -353,30 +372,28 @@ function GlassEducation({
         )}
 
         {hasCerts && (
-          <div>
-            {hasEducation && (
-              <h3 className="text-sm font-medium text-[#8C95B3] mb-4">Certifications</h3>
-            )}
+          <div className={hasEducation ? "md:border-l md:border-white/[0.08] md:pl-12" : ""}>
+            {hasEducation && <h3 className="gl-etched mb-4 text-lg font-light">Certifications</h3>}
             <ul className="space-y-5">
               {certifications?.map((cert) => (
                 <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
-                  <p className="font-semibold text-white">
+                  <p className="font-medium break-words text-white">
                     {cert.url ? (
                       <a
                         href={cert.url}
                         target="_blank"
                         rel="ugc nofollow noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 hover:text-[#3DD6C4] transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+                        className={`inline-flex items-center gap-1.5 transition-colors hover:text-[#7FE3D4] ${FOCUS_RING}`}
                       >
                         {cert.name}
-                        <ArrowUpRight size={15} aria-hidden="true" />
+                        <ArrowUpRight size={15} aria-hidden="true" className="shrink-0" />
                       </a>
                     ) : (
                       cert.name
                     )}
                   </p>
                   {(cert.issuer || cert.date) && (
-                    <p className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-[#8C95B3]">
+                    <p className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-[#A3ADC8]">
                       {cert.issuer && <span>{cert.issuer}</span>}
                       {cert.date && <span>{formatShortDate(cert.date)}</span>}
                     </p>
@@ -407,60 +424,111 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
       <TemplateFontLinks href={FONT_URL} />
 
       <style>{`
-        .glass-root { font-family: 'Sora', ui-sans-serif, system-ui, sans-serif; }
-        .glass-aurora {
+        .glass-root, .glass-root h1, .glass-root h2, .glass-root h3 {
+          font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        }
+        /* One key light, high and to the left, falling across a deep ink room. */
+        .glass-backdrop {
           background:
-            radial-gradient(60vmax 45vmax at 12% -8%, rgba(61, 214, 196, 0.42), transparent 62%),
-            radial-gradient(55vmax 50vmax at 96% 28%, rgba(139, 124, 246, 0.45), transparent 60%),
-            radial-gradient(50vmax 40vmax at 18% 108%, rgba(242, 140, 184, 0.30), transparent 62%),
-            #0B0F1A;
+            radial-gradient(70vmax 48vmax at 6% -14%, rgba(196, 240, 236, 0.34), transparent 62%),
+            linear-gradient(118deg, transparent 22%, rgba(127, 227, 212, 0.10) 34%, rgba(127, 227, 212, 0.035) 48%, transparent 60%),
+            linear-gradient(172deg, #16203D 0%, #0D1326 46%, #090C18 100%);
         }
+        /* Every pane is lit from the same corner: bright top-left edge, shade bottom-right, shadow cast down-right. */
         .gl-pane {
-          background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035) 60%);
-          border: 1px solid rgba(255,255,255,0.12);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 24px 48px -28px rgba(3,5,12,0.7);
-          -webkit-backdrop-filter: blur(22px) saturate(150%);
-          backdrop-filter: blur(22px) saturate(150%);
-        }
-        .gl-pane-soft {
-          background: rgba(255,255,255,0.05);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+          position: relative;
+          background: linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.04) 42%, rgba(255,255,255,0.025));
+          border: 1px solid rgba(255,255,255,0.09);
+          box-shadow:
+            inset 1px 1px 0 rgba(255,255,255,0.20),
+            inset -1px -1px 0 rgba(0,0,0,0.28),
+            14px 26px 50px -30px rgba(2,4,10,0.85);
+          -webkit-backdrop-filter: blur(24px) saturate(140%);
+          backdrop-filter: blur(24px) saturate(140%);
         }
         .gl-hero {
-          background: linear-gradient(150deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 55%, rgba(139,124,246,0.10));
-          border-color: rgba(255,255,255,0.2);
+          background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.03));
+          border-color: rgba(255,255,255,0.13);
+          box-shadow:
+            inset 1px 1px 0 rgba(255,255,255,0.32),
+            inset -1px -1px 0 rgba(0,0,0,0.32),
+            24px 44px 80px -40px rgba(2,4,10,0.95);
+          -webkit-backdrop-filter: blur(32px) saturate(150%);
+          backdrop-filter: blur(32px) saturate(150%);
         }
-        .gl-orb { position: absolute; border-radius: 9999px; pointer-events: none; }
-        .gl-orb-teal {
-          width: clamp(180px, 30vw, 300px); aspect-ratio: 1;
-          top: -60px; right: clamp(-40px, 4vw, 90px);
-          background: radial-gradient(circle at 35% 30%, #7FF0E2, #3DD6C4 45%, #1E7F95);
+        .gl-pane-thin {
+          background: linear-gradient(135deg, rgba(255,255,255,0.075), rgba(255,255,255,0.02) 50%);
+          box-shadow:
+            inset 1px 1px 0 rgba(255,255,255,0.14),
+            inset -1px -1px 0 rgba(0,0,0,0.22),
+            8px 16px 32px -24px rgba(2,4,10,0.8);
         }
-        .gl-orb-rose {
-          width: clamp(120px, 18vw, 190px); aspect-ratio: 1;
-          bottom: -70px; right: clamp(24px, 14vw, 220px);
-          opacity: 0.6;
-          background: radial-gradient(circle at 35% 30%, #FFC2DA, #F28CB8 50%, #8B7CF6);
+        .gl-bar {
+          background: rgba(16, 22, 40, 0.62);
+          box-shadow:
+            inset 1px 1px 0 rgba(255,255,255,0.16),
+            inset -1px -1px 0 rgba(0,0,0,0.3),
+            0 14px 30px -20px rgba(2,4,10,0.9);
         }
-        .gl-lens {
-          background: conic-gradient(from 200deg, #3DD6C4, #8B7CF6, #F28CB8, #3DD6C4);
+        /* The light source itself: a tall window whose light falls across the room, mullions and all. */
+        .glass-window {
+          position: absolute;
+          top: -12vh; left: 4vw;
+          width: min(58vw, 760px); height: 92vh;
+          transform: skewX(-22deg);
+          transform-origin: top left;
+          background:
+            linear-gradient(90deg,
+              transparent 0 calc(33.33% - 5px), rgba(9,12,24,0.85) calc(33.33% - 5px) calc(33.33% + 5px),
+              transparent calc(33.33% + 5px) calc(66.66% - 5px), rgba(9,12,24,0.85) calc(66.66% - 5px) calc(66.66% + 5px),
+              transparent calc(66.66% + 5px)),
+            linear-gradient(180deg, transparent 0 calc(48% - 5px), rgba(9,12,24,0.85) calc(48% - 5px) calc(48% + 5px), transparent calc(48% + 5px)),
+            linear-gradient(172deg, rgba(214,246,242,0.26), rgba(127,227,212,0.10) 55%, rgba(127,227,212,0) 100%);
+          -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+          filter: blur(3px);
         }
-        .glass-root ::selection { background: rgba(61, 214, 196, 0.35); color: #fff; }
+        .gl-reeded {
+          background:
+            repeating-linear-gradient(90deg,
+              rgba(255,255,255,0) 0px,
+              rgba(255,255,255,0.10) 5px,
+              rgba(255,255,255,0.02) 9px,
+              rgba(0,0,0,0.16) 12px,
+              rgba(255,255,255,0) 13px),
+            linear-gradient(118deg, rgba(255,255,255,0.04) 18%, rgba(214, 248, 243, 0.34) 34%, rgba(127, 227, 212, 0.16) 46%, rgba(60, 90, 140, 0.08) 66%, rgba(255,255,255,0.03));
+        }
+        .gl-bezel {
+          background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.08) 45%, rgba(0,0,0,0.35));
+          box-shadow: 10px 18px 36px -18px rgba(2,4,10,0.9);
+        }
+        .gl-etched {
+          color: rgba(232, 240, 252, 0.88);
+          text-shadow: 0 -1px 0 rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.10);
+        }
+        .glass-root ::selection { background: rgba(127, 227, 212, 0.35); color: #fff; }
       `}</style>
 
-      <div className="glass-root relative min-h-screen bg-[#0B0F1A] text-[#B8C0D9] overflow-x-hidden">
-        <div className="glass-aurora fixed inset-0 z-0 pointer-events-none" aria-hidden="true" />
+      <div className="glass-root relative min-h-screen overflow-x-clip bg-[#0B0F1A] text-[#C4CBE0]">
+        <div
+          className="glass-backdrop fixed inset-0 z-0 overflow-hidden pointer-events-none"
+          aria-hidden="true"
+        >
+          <div className="glass-window" />
+        </div>
 
-        {!isPreview && <GlassNav sections={navSections} email={content.contact.email} />}
+        {!isPreview && (
+          <GlassBar name={content.full_name} sections={navSections} email={content.contact.email} />
+        )}
 
-        <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-10 md:pt-20 pb-32 space-y-16 md:space-y-20">
+        <main className="relative z-10 mx-auto max-w-5xl space-y-16 px-4 pt-8 pb-16 sm:px-6 md:space-y-20 md:pt-14">
           <GlassHero content={content} profile={profile} />
           <GlassExperience experience={content.experience} />
           <GlassProjects projects={content.projects} />
           <GlassSkills skills={content.skills} />
           <GlassEducation education={content.education} certifications={content.certifications} />
 
-          <footer className="flex flex-col items-center gap-5 pt-6 text-sm text-[#8C95B3]">
+          <footer className="flex flex-col items-center gap-5 pt-6 text-sm text-[#A3ADC8]">
             <ShareBar
               handle={profile.handle}
               title={`${content.full_name}'s portfolio`}

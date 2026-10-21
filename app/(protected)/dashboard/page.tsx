@@ -24,7 +24,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { type Resume, resumes, type siteData, user } from "@/lib/db/schema";
-import { DEFAULT_THEME, isValidThemeId, THEME_METADATA } from "@/lib/templates/theme-ids";
+import { resolveThemeId, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
@@ -143,12 +143,12 @@ function ResumeStatusAlerts({ resumeId, status, error }: ResumeStatusAlertsProps
 
 interface SiteHeroProps {
   handle: string;
-  themeId: string | null;
+  themeId: ThemeId;
   updatedAt: string | null;
 }
 
 function SiteHero({ handle, themeId, updatedAt }: SiteHeroProps) {
-  const theme = THEME_METADATA[themeId && isValidThemeId(themeId) ? themeId : DEFAULT_THEME];
+  const theme = THEME_METADATA[themeId];
 
   return (
     <section
@@ -397,7 +397,7 @@ export default async function DashboardPage() {
               {profile?.handle && (
                 <SiteHero
                   handle={profile.handle}
-                  themeId={siteDataResult?.themeId ?? null}
+                  themeId={resolveThemeId(siteDataResult?.themeId)}
                   updatedAt={siteDataResult?.lastPublishedAt ?? siteDataResult?.updatedAt ?? null}
                 />
               )}

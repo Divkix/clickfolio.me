@@ -9,7 +9,7 @@ import { user } from "@/lib/db/schema";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { generateBreadcrumbJsonLd, generateResumeJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
-import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "@/lib/templates/theme-ids";
+import { resolveThemeId, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
@@ -22,7 +22,7 @@ interface ResumeData {
     headline: string | null;
   };
   content: ResumeContent;
-  theme_id: ThemeId | null;
+  theme_id: ThemeId;
   privacy_settings: PrivacySettings;
   created_at: string;
   updated_at: string;
@@ -103,12 +103,7 @@ type ResumeSiteData = NonNullable<ProfileRow["siteData"]>;
 function buildResumeData(row: ProfileRow, siteData: ResumeSiteData): ResumeData {
   const privacySettings = normalizePrivacySettings(row.privacySettings);
 
-  // SAFETY: DB themeId is string|null validated immediately after via isValidThemeId; cast narrows to ThemeId for metadata lookup with fallback to DEFAULT_THEME
-  let themeId: ThemeId | null = siteData.themeId as ThemeId | null;
-
-  if (!themeId || !isValidThemeId(themeId)) {
-    themeId = DEFAULT_THEME;
-  }
+  const themeId = resolveThemeId(siteData.themeId);
 
   let content = siteData.content;
 
