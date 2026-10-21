@@ -42,10 +42,10 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-sm hover:shadow-md",
     },
     media_kit: {
-      container: "bg-white/95 border-2 border-[#14122B] text-[#5A5775] hover:text-[#14122B]",
-      accent: "text-[#4B2BFF]",
-      shimmer: "from-transparent via-[#C6FF3D]/50 to-transparent",
-      shadow: "shadow-[3px_3px_0_0_#14122B] hover:shadow-[4px_4px_0_0_#14122B]",
+      container: "bg-[#FBEAEE]/95 border border-[#2A0B22]/30 text-[#6E4A60] hover:text-[#2A0B22]",
+      accent: "text-[#C0175A]",
+      shimmer: "from-transparent via-[#FF9EC1]/40 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
     },
     scrapbook: {
       container: "bg-[#FFFDF8]/95 border-2 border-[#2B2622] text-[#5B524A] hover:text-[#2B2622]",

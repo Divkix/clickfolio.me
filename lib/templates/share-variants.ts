@@ -114,7 +114,7 @@ export const shareButtonStyles = {
   scrapbook:
     "bg-white text-[#2B2622] hover:bg-[#FFD84D] border-2 border-[#2B2622] rounded-full px-3 py-1.5 text-sm font-medium shadow-[2px_2px_0_0_#2B2622]",
   "media-kit":
-    "bg-transparent text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/40 hover:border-[#C6FF3D] rounded-full px-3 py-1.5 text-sm",
+    "bg-transparent text-[#FBEAEE] hover:text-[#2A0B22] hover:bg-[#FF9EC1] border border-[#FBEAEE]/40 hover:border-[#FF9EC1] rounded-none px-3 py-1.5 text-sm",
   "liner-notes":
     "bg-transparent text-[#EEF2EF] hover:bg-[#C8412F] border border-[#EEF2EF]/40 hover:border-[#C8412F] rounded-full px-3 py-1.5 text-sm",
   rounds:
@@ -172,7 +172,7 @@ export const shareTriggerStyles = {
   scrapbook:
     "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] rounded-full shadow-[3px_3px_0_0_#2B2622] hover:bg-[#FFE57F]",
   "media-kit":
-    "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/60 rounded-full shadow-lg hover:border-[#C6FF3D]",
+    "bg-[#2A0B22] text-[#FBEAEE] border-[#FF9EC1]/60 rounded-none shadow-lg hover:border-[#FF9EC1]",
   "liner-notes":
     "bg-[#1D2A33] text-[#EEF2EF] border-[#C8412F]/60 rounded-full shadow-lg hover:border-[#C8412F]",
   rounds:
@@ -215,7 +215,7 @@ export const sharePanelStyles = {
   blueprint: "bg-[#0E3A66] text-[#EAF3FF] border-[#EAF3FF]/60 rounded-none",
   scrapbook:
     "bg-[#FFFDF8] text-[#2B2622] border-2 border-[#2B2622] rounded-lg shadow-[4px_4px_0_0_#2B2622]",
-  "media-kit": "bg-[#14122B] text-[#F7F5FF] border-[#C6FF3D]/50 rounded-xl",
+  "media-kit": "bg-[#2A0B22] text-[#FBEAEE] border-[#FF9EC1]/50 rounded-none",
   "liner-notes": "bg-[#EEF2EF] text-[#1D2A33] border-[#1D2A33]/25 rounded-sm",
   rounds: "bg-white text-[#123B4A] border-[#C9D9E1] rounded-xl",
   "lesson-plan": "bg-[#FCFCF8] text-[#24303A] border-[#B9D0E6] rounded-md",
@@ -265,7 +265,7 @@ export const shareItemStyles = {
     "bg-[#0B3158] text-[#DCEBFB] hover:text-[#FFD966] border border-[#EAF3FF]/40 hover:border-[#FFD966]",
   scrapbook: "bg-white text-[#2B2622] hover:bg-[#BFE3D0] border-2 border-[#2B2622] rounded-full",
   "media-kit":
-    "bg-[#1F1C3D] text-[#F7F5FF] hover:text-[#14122B] hover:bg-[#C6FF3D] border border-[#F7F5FF]/20 rounded-full",
+    "bg-[#3A1530] text-[#FBEAEE] hover:text-[#2A0B22] hover:bg-[#FF9EC1] border border-[#FBEAEE]/20 rounded-none",
   "liner-notes":
     "bg-white text-[#1D2A33] hover:bg-[#C8412F] hover:text-[#EEF2EF] border border-[#1D2A33]/20 rounded-full",
   rounds:

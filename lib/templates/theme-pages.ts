@@ -164,10 +164,10 @@ export const THEME_PAGE_COPY: Record<
   media_kit: {
     title: "Marketing Portfolio Website Template",
     description:
-      "Build a free marketing portfolio website with Media Kit: a bold colour-block hero, a results wall pulled from your resume metrics, and a by-the-numbers strip.",
+      "Build a free marketing portfolio website with Media Kit: a creator one-sheet with a wordmark wall of brands, your real results and campaign case studies.",
     paragraphs: [
-      "Media Kit is built for marketers who sell results. A violet hero carries your name and headline, and a by-the-numbers strip counts the roles, brands, and campaigns on your resume. Any achievement that includes a figure, such as 212%, $2.1M, or 3.4x, is lifted into a Results wall with the original sentence beside it.",
-      "Nothing is rewritten: figures are shown exactly as you wrote them, and a resume with no metrics simply skips the wall. Experience, campaigns with their channels, a brands and teams list, and skills follow, ending in a dark contact band with your email as the call to action.",
+      "Media Kit is built for creators, marketers and influencers pitching brands. Your name sits on a fuchsia cover like a magazine masthead, with your partnership email right beside it, and every company you have worked for is set as its own wordmark on a worked-with wall.",
+      "Any achievement that includes a figure, such as 212%, $2.1M or 3.4x, is shown large with your original sentence beside it, so nothing is rewritten or made up. Projects become case studies with their channels, skills are set out as a services sheet, and the page ends with a call to work with you.",
     ],
   },
   liner_notes: {

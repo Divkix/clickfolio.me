@@ -208,10 +208,10 @@ export const DEMO_PROFILES: DemoProfile[] = [
     name: "Camille Ortiz",
     role: "Growth Marketing Lead",
     initials: "CO",
-    avatarGradient: "from-indigo-600 to-lime-300",
+    avatarGradient: "from-[#C0175A] to-[#FF9EC1]",
     badgeLabel: "Media Kit",
-    badgeBgColor: "bg-indigo-50",
-    badgeTextColor: "text-indigo-700",
+    badgeBgColor: "bg-[#FBEAEE]",
+    badgeTextColor: "text-[#C0175A]",
   },
   {
     id: "liner_notes",
@@ -2179,14 +2179,16 @@ export const DEMO_RESUME_CONTENT = {
     projects: [
       {
         title: "The Plant Parent Guide",
-        description: "A 60-article content hub that now brings in the majority of organic signups.",
+        description:
+          "A 60-article content hub that now brings in 58% of organic signups and ranks for 1,900 search terms.",
         year: "2023",
         technologies: ["SEO", "Content", "Email"],
         url: "https://camilleortiz.example.com/plant-parent-guide",
       },
       {
         title: "Win-back journey rebuild",
-        description: "Rebuilt a five-step lapsed-member flow with new segments and creative.",
+        description:
+          "Rebuilt a five-step lapsed-member flow with new segments and creative, lifting reactivations 2.6x.",
         year: "2021",
         technologies: ["Lifecycle", "Segmentation"],
       },
@@ -3244,7 +3246,7 @@ export const TEMPLATE_BACKGROUNDS = {
   workspace: { bg: "bg-white", isDark: false },
   blueprint: { bg: "bg-[#0E3A66]", isDark: true },
   scrapbook: { bg: "bg-[#F1E6D3]", isDark: false },
-  media_kit: { bg: "bg-[#F7F5FF]", isDark: false },
+  media_kit: { bg: "bg-[#FBEAEE]", isDark: false },
   liner_notes: { bg: "bg-[#C9D6CF]", isDark: false },
   rounds: { bg: "bg-[#E7EFF3]", isDark: false },
   lesson_plan: { bg: "bg-[#3F6E5C]", isDark: true },

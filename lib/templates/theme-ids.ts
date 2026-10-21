@@ -202,7 +202,8 @@ export const THEME_METADATA = {
   },
   media_kit: {
     name: "Media Kit",
-    description: "Bold colour blocks, a results wall and a by-the-numbers strip for marketers",
+    description:
+      "A creator's brand one-sheet: a fuchsia cover, a wordmark wall of who you've worked with and your real results",
     category: "Modern",
     preview: "/previews/media-kit.webp",
   },
