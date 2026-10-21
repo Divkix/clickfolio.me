@@ -187,9 +187,9 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-sm hover:shadow-md",
     },
     the_menu: {
-      container: "bg-[#F7F1E6]/95 border border-[#A9842F]/25 text-[#5E5648] hover:text-[#2B2620]",
-      accent: "text-[#A9842F]",
-      shimmer: "from-transparent via-[#A9842F]/20 to-transparent",
+      container: "bg-[#FCF8F0]/95 border border-[#7A1E22]/30 text-[#5C4E45] hover:text-[#241A16]",
+      accent: "text-[#7A1E22]",
+      shimmer: "from-transparent via-[#7A1E22]/20 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     personal_best: {

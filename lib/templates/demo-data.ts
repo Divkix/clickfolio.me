@@ -3253,7 +3253,7 @@ export const TEMPLATE_BACKGROUNDS = {
   quota: { bg: "bg-[#FBFAF8]", isDark: false },
   the_brief: { bg: "bg-[#FBF8F0]", isDark: false },
   open_house: { bg: "bg-[#FCF7EF]", isDark: false },
-  the_menu: { bg: "bg-[#F7F1E6]", isDark: false },
+  the_menu: { bg: "bg-[#F1E7D8]", isDark: false },
   personal_best: { bg: "bg-[#0B0B0D]", isDark: true },
   pitch_deck: { bg: "bg-[#E3E4E8]", isDark: false },
   reel: { bg: "bg-[#0C0C0E]", isDark: true },

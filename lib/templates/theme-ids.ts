@@ -291,7 +291,8 @@ export const THEME_METADATA = {
   },
   the_menu: {
     name: "The Menu",
-    description: "A tasting-menu card, with roles served as courses under a thin gold rule",
+    description:
+      "A bistro prix-fixe card on a gingham tablecloth, with roles priced in years along dotted leaders",
     category: "Creative",
     preview: "/previews/the-menu.webp",
   },

@@ -132,7 +132,7 @@ export const shareButtonStyles = {
   "open-house":
     "bg-white text-[#B5562B] hover:bg-[#B5562B] hover:text-white border border-[#B5562B]/40 rounded-full px-3 py-1.5 text-sm",
   "the-menu":
-    "bg-transparent text-[#2B2620] hover:bg-[#2B2620] hover:text-[#F7F1E6] border border-[#A9842F]/50 rounded-full px-3 py-1.5 text-sm",
+    "bg-transparent text-[#241A16] hover:bg-[#7A1E22] hover:text-[#FCF8F0] border border-[#7A1E22]/45 rounded-none px-3 py-1.5 text-sm",
   "personal-best":
     "bg-transparent text-[#37E6E0] hover:bg-[#37E6E0] hover:text-[#0B0B0D] border border-[#37E6E0]/50 rounded-sm px-3 py-1.5 text-sm font-bold",
   "pitch-deck":
@@ -186,7 +186,7 @@ export const shareTriggerStyles = {
   quota: "bg-[#1F1C19] text-white border-[#E8491D]/60 rounded-sm shadow-lg",
   "the-brief": "bg-[#FBF8F0] text-[#1B2A4A] border-[#1B2A4A]/40 rounded-sm shadow-md",
   "open-house": "bg-[#B5562B] text-white border-[#B5562B] rounded-xl shadow-lg",
-  "the-menu": "bg-[#2B2620] text-[#F7F1E6] border-[#A9842F]/50 rounded-full shadow-lg",
+  "the-menu": "bg-[#7A1E22] text-[#FCF8F0] border-[#FCF8F0]/40 rounded-none shadow-lg",
   "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/50 rounded-sm shadow-lg",
   "pitch-deck": "bg-[#2F5CFF] text-white border-[#2F5CFF] rounded-md shadow-lg",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/50 rounded-sm shadow-lg",
@@ -224,7 +224,7 @@ export const sharePanelStyles = {
   quota: "bg-[#FBFAF8] text-[#1F1C19] border-[#1F1C19]/30 rounded-sm",
   "the-brief": "bg-[#FBF8F0] text-[#1C1A16] border-[#1B2A4A]/30 rounded-sm",
   "open-house": "bg-[#FCF7EF] text-[#2A2117] border-[#2A2117]/10 rounded-xl",
-  "the-menu": "bg-[#F7F1E6] text-[#2B2620] border-[#A9842F]/40 rounded-xl",
+  "the-menu": "bg-[#FCF8F0] text-[#241A16] border-[#7A1E22]/40 rounded-none",
   "personal-best": "bg-[#0B0B0D] text-[#37E6E0] border-[#37E6E0]/40 rounded-sm",
   "pitch-deck": "bg-white text-[#2F5CFF] border-[#2F5CFF]/30 rounded-md",
   reel: "bg-[#0C0C0E] text-[#E7E6E2] border-[#E5342B]/40 rounded-sm",
@@ -280,7 +280,7 @@ export const shareItemStyles = {
   "open-house":
     "bg-white text-[#2A2117] hover:bg-[#B5562B] hover:text-white border border-[#2A2117]/15",
   "the-menu":
-    "bg-[#F7F1E6] text-[#2B2620] hover:bg-[#A9842F] hover:text-white border border-[#A9842F]/30",
+    "bg-[#FCF8F0] text-[#241A16] hover:bg-[#7A1E22] hover:text-[#FCF8F0] border border-[#7A1E22]/30",
   "personal-best": "bg-[#17171A] text-[#F2F2F0] hover:text-[#37E6E0] border border-[#2A2A2E]",
   "pitch-deck": "bg-white text-[#191B2B] hover:text-[#2F5CFF] border border-[#E7E9F5]",
   reel: "bg-[#17171A] text-[#E7E6E2] hover:text-[#E5342B] border border-white/10",

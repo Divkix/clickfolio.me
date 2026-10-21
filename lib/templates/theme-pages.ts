@@ -245,10 +245,10 @@ export const THEME_PAGE_COPY: Record<
   the_menu: {
     title: "Chef Resume Website Template",
     description:
-      "Build a free chef resume website with The Menu: roles served as courses on a tasting-menu card under a thin gold rule.",
+      "Build a free chef resume website with The Menu: a bistro prix-fixe card on a red gingham tablecloth, with your roles listed like dishes.",
     paragraphs: [
-      "The Menu reads your career the way a tasting menu reads a dinner: each role becomes a course, labelled First Course through Entrée, centred under an elegant serif heading with the dates set in small type below.",
-      "A single thin gold rule separates each course, and the whole page sits on warm cream paper. It suits chefs, restaurateurs, and hospitality professionals who want a page with the same care as the menus they've written.",
+      "The Menu sets your resume as a prix-fixe card in a double-ruled frame. Training is the first course, your roles are the main course, and certifications come out for dessert. Each role runs along a dotted leader to its years, the way a dish runs to its price.",
+      "Your skills go in the pantry, an oxblood insert printed like a wine list, and your contact details sit under Reservations at the foot of the card. It suits chefs, restaurateurs and hospitality professionals who want a page that looks like the menus they write.",
     ],
   },
   personal_best: {
