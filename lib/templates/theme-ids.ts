@@ -246,7 +246,7 @@ export const THEME_METADATA = {
   quota: {
     name: "Quota",
     description:
-      "A sales resume built around bold numbers, with a stat row and achievements set as call-out bullets",
+      "A sales resume with a closed-won board of the real figures from your highlights and a dated track record",
     category: "Professional",
     preview: "/previews/quota.webp",
   },

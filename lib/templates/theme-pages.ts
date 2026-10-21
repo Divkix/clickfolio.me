@@ -218,10 +218,10 @@ export const THEME_PAGE_COPY: Record<
   quota: {
     title: "Sales Resume Website Template",
     description:
-      "Build a free sales resume website with Quota: a bold stat row and achievements set as confident call-out bullets.",
+      "Build a free sales resume website with Quota: a closed-won board of your real numbers and a track record set in big condensed type.",
     paragraphs: [
-      "Quota is built for account executives and sales professionals who want their numbers to lead. A stat row up top counts your roles and the achievements you've logged, in large condensed numerals, before your experience runs underneath with each highlight set as its own bold line.",
-      "An orange-red accent and heavy left-border rules give every role weight without needing a photo or a dense paragraph. Skills appear as a short row of solid chips, keeping the whole page scannable the way a hiring manager skims a sales resume.",
+      "Quota is built for account executives and sales professionals who want their numbers to lead. Any figure already written in your highlights, like a quota percentage, a pipeline dollar amount or a 3x multiple, is lifted onto a dark closed-won board at the top of the page, next to the line it came from and the company where you earned it.",
+      "Nothing is counted or estimated: a resume without those figures simply skips the board. Below it, each role runs as a dated row in your track record with the figures marked in orange-red, and your skills read as a short playbook grouped the way you listed them.",
     ],
   },
   the_brief: {
