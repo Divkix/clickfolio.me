@@ -1,7 +1,7 @@
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateSpan, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import { formatDateSpan, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -30,7 +30,8 @@ function SectionHeading({ id, children }: { id: string; children: React.ReactNod
 }
 
 function Hero({ content, profile }: { content: Content; profile: TemplateProps["profile"] }) {
-  const links = getContactLinks(content.contact);
+  const links = getContactLinks(content.contact).filter((link) => link.type !== "location");
+  const location = content.contact.location;
 
   return (
     <header className="grid gap-8 md:grid-cols-12 md:gap-6 pt-5 md:pt-6 pb-20 md:pb-28">
@@ -38,27 +39,27 @@ function Hero({ content, profile }: { content: Content; profile: TemplateProps["
         className="md:col-span-7 md:order-2 flex flex-col justify-between gap-16 min-h-[22rem] md:min-h-[34rem] p-6 md:p-10 text-white"
         style={{ backgroundColor: COBALT }}
       >
-        <div className="flex justify-end">
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={`Portrait of ${content.full_name}`}
-              width={112}
-              height={112}
-              fetchPriority="high"
-              decoding="async"
-              className="w-20 h-20 md:w-28 md:h-28 object-cover grayscale contrast-125"
-            />
-          ) : (
-            <div
-              aria-hidden="true"
-              className="w-20 h-20 md:w-28 md:h-28 border-2 border-white flex items-center justify-center text-2xl md:text-4xl font-bold"
-            >
-              {getInitials(content.full_name)}
-            </div>
-          )}
-        </div>
-        <h1 className="text-[clamp(3rem,9vw,7.5rem)] font-extrabold leading-[0.9] tracking-[-0.04em] break-words [text-wrap:balance]">
+        {(location || profile.avatar_url) && (
+          <div className="flex items-start justify-between gap-6">
+            {location && (
+              <p className="text-[0.95rem] font-semibold leading-snug break-words min-w-0">
+                {location}
+              </p>
+            )}
+            {profile.avatar_url && (
+              <img
+                src={profile.avatar_url}
+                alt={`Portrait of ${content.full_name}`}
+                width={112}
+                height={112}
+                fetchPriority="high"
+                decoding="async"
+                className="ml-auto w-20 h-20 md:w-28 md:h-28 shrink-0 object-cover grayscale contrast-125"
+              />
+            )}
+          </div>
+        )}
+        <h1 className="mt-auto text-[clamp(3rem,9vw,7.5rem)] font-extrabold leading-[0.9] tracking-[-0.04em] break-words [text-wrap:balance]">
           {content.full_name}
         </h1>
       </div>
