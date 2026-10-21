@@ -110,10 +110,10 @@ export const THEME_PAGE_COPY: Record<
   },
   spotlight: {
     description:
-      "Put your name center stage with Spotlight, a free resume website template with a lilac backdrop, warm stage light, and playbill-style sections.",
+      "Put your name center stage with Spotlight, a free resume website template with a dark stage, a followspot on your name, and theatre-programme sections.",
     paragraphs: [
-      "Spotlight works for designers and marketers who want their name and professional introduction to take center stage. A pale lilac background, aubergine typography, and a warm pool of stage light frame the oversized opening name.",
-      "The rest of the page reads like a playbill: section titles sit beside the supporting work on wider screens, then stack above it on mobile. Yellow-underlined links echo the opening light. It offers a more expressive personal introduction while preserving a straightforward account of your experience.",
+      "Spotlight is for creative directors, performers, and leaders who want a big-name page. A red curtain hangs over a dark stage, and a single followspot lands on your name, set huge in a fat-face serif under the word Starring.",
+      "The rest of the page reads like a theatre programme. Your summary is the Who's who bio, jobs are listed as Credits with role and company joined by a dotted leader like a cast list, skills appear under Featuring, and education is listed as Training. The contact section at the end is the Stage door.",
     ],
   },
   academic_cv: {

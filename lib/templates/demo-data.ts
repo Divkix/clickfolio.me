@@ -3238,7 +3238,7 @@ export const TEMPLATE_BACKGROUNDS = {
   minimalist_editorial: { bg: "bg-white", isDark: false },
   neo_brutalist: { bg: "bg-[#FFD400]", isDark: false },
   retro_os: { bg: "bg-[#008080]", isDark: true },
-  spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
+  spotlight: { bg: "bg-[#170E10]", isDark: true },
   academic_cv: { bg: "bg-[#FAFAF7]", isDark: false },
   contact_sheet: { bg: "bg-[#0F0F10]", isDark: true },
   workspace: { bg: "bg-white", isDark: false },

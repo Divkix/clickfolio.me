@@ -278,7 +278,8 @@ export const THEME_METADATA = {
   },
   spotlight: {
     name: "Spotlight",
-    description: "Your name under a single pool of stage light, with work set out like a playbill.",
+    description:
+      "A dark stage with a hard-edged followspot on your name and a theatre programme of credits",
     category: "Creative",
     preview: "/previews/spotlight.webp",
   },

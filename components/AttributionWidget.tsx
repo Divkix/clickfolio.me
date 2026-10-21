@@ -105,10 +105,11 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shadow: "shadow-sm hover:shadow-md",
     },
     spotlight: {
-      container: "bg-[#E9E7F2]/95 border-2 border-[#22163A] text-[#22163A]/80 hover:text-[#22163A]",
-      accent: "text-[#22163A]",
-      shimmer: "from-transparent via-[#FFD95A]/50 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
+      container:
+        "bg-[#170E10]/95 border border-[#E8A93B]/50 text-[#F3E9D8]/80 hover:text-[#FFF1CF]",
+      accent: "text-[#E8A93B]",
+      shimmer: "from-transparent via-[#FFF1CF]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
     },
     midnight: {
       container:
