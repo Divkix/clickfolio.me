@@ -2,7 +2,7 @@ import { MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import { formatDateRange, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -46,29 +46,23 @@ function Sidebar({ content, avatarUrl }: { content: Content; avatarUrl: string |
 
   return (
     <aside
-      className="px-6 pb-10 pt-10 text-white sm:px-10 lg:px-10 lg:pb-16 lg:pt-14"
+      className="px-6 pb-10 pt-10 text-white sm:px-10 lg:px-10 lg:pb-16 lg:pt-16"
       style={{ backgroundColor: NAVY }}
     >
-      <div className="flex h-24 w-24 items-center justify-center overflow-hidden bg-white/10 lg:h-28 lg:w-28">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={`Portrait of ${content.full_name}`}
-            width={112}
-            height={112}
-            fetchPriority="high"
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="bc-display text-4xl font-extrabold" aria-hidden="true">
-            {getInitials(content.full_name)}
-          </span>
-        )}
-      </div>
+      {avatarUrl && (
+        <img
+          src={avatarUrl}
+          alt={`Portrait of ${content.full_name}`}
+          width={112}
+          height={112}
+          fetchPriority="high"
+          decoding="async"
+          className="mb-8 h-24 w-24 object-cover lg:h-28 lg:w-28"
+        />
+      )}
 
       <h1
-        className="bc-display mt-8 text-[clamp(3.25rem,6.5vw,5.25rem)] font-extrabold leading-[0.88] tracking-[-0.015em] break-words hyphens-auto"
+        className="bc-display text-[clamp(3.25rem,6.5vw,5.25rem)] font-extrabold leading-[0.88] tracking-[-0.015em] break-words hyphens-auto"
         style={{ fontStretch: "75%" }}
       >
         {content.full_name}
