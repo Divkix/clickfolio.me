@@ -536,41 +536,49 @@ Runs via `worker/index.ts` without self-fetch (avoids double billing).
 
 ### Referral Program
 
-Removed — all 14 templates are now free for every user. No referral gating.
+Removed — every template is free for every user. No referral gating.
 
 ---
 
 ## Resume Templates
 
-Built-in templates in `components/templates/`:
+Built-in templates in `components/templates/` (metadata in `THEME_METADATA`, `lib/templates/theme-ids.ts`):
 
-| Template                 | Category     | Description                                                                               | Unlock Requirement |
-| ------------------------ | ------------ | ----------------------------------------------------------------------------------------- | ------------------ |
-| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography                                         | Free (default)     |
-| **Neo Brutalist**        | Creative     | Bold design with thick borders and loud colors                                            | Free               |
-| **Glass Morphic**        | Modern       | Dark theme with frosted glass effects                                                     | Free               |
-| **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                                                  | Free               |
-| **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout                                | Free               |
-| **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers                                    | Free               |
-| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents                           | Free               |
-| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                                            | Free               |
-| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents                                         | Free               |
-| **Boardroom**            | Professional | Dark executive ledger with a pinned identity column, brass accents                        | Free               |
-| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                                          | Free               |
-| **Broadsheet**           | Professional | Newspaper front page: masthead name, ruled columns, roles as stories                      | Free               |
-| **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits                              | Free               |
-| **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window                                | Free               |
-| **Academic CV**          | Professional | Scholarly CV: education first, dated appointments, numbered research                      | Free               |
-| **Contact Sheet**        | Creative     | Film-frame tiles on near-black with grease-pencil orange for photographers                | Free               |
-| **Workspace**            | Modern       | Clean document page: cover band, properties table, collapsible sections, tag labels       | Free               |
-| **Blueprint**            | Creative     | Cyanotype drawing sheet: grid paper, lettered sections, dimension-line dates, title block | Free               |
-| **Scrapbook**            | Creative     | Craft-paper desk: taped index cards, sticky-note skills, polaroid portrait                | Free               |
-| **Media Kit**            | Modern       | Bold colour blocks, a results wall pulled from your metrics, a by-the-numbers strip       | Free               |
-| **Liner Notes**          | Creative     | Album sleeve with the record sliding out, jobs as Side A tracks, recordings as Side B     | Free               |
-| **Rounds**               | Professional | Nurse ID badge on a lanyard, licenses first, career set as a shift log                    | Free               |
-| **Lesson Plan**          | Creative     | Ruled planner page with binder holes, coloured subject tabs, sticky note                  | Free               |
-| **Manuscript**           | Professional | Book spread: title page, table of contents, bylines as a bibliography                     | Free               |
-| **Gallery Wall**         | Creative     | Exhibition wall: hung works with wall labels and a printed artist CV                      | Free               |
+| Template                           | Category     | Description                                                                                                         |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Academic CV**                    | Professional | A scholarly CV with education first, dated appointments and numbered research outputs                               |
+| **Bento Grid**                     | Modern       | Flat colour tiles for your current role, a standout result and your full career                                     |
+| **Blueprint**                      | Creative     | A cyanotype drawing sheet with grid paper, section callouts and a title block                                       |
+| **Boardroom**                      | Professional | A dark executive ledger with a pinned identity column and brass accents                                             |
+| **Bold Corporate**                 | Professional | Annual-report layout with a navy sidebar and condensed headings                                                     |
+| **Broadsheet**                     | Professional | A newspaper front page: ruled columns, a masthead name and each role set as a story                                 |
+| **Case File**                      | Professional | A typed dossier in a manila folder, with each section filed as a lettered exhibit                                   |
+| **Classic ATS**                    | Professional | A printable one-column resume sheet that applicant tracking systems parse cleanly                                   |
+| **Contact Sheet**                  | Creative     | Film-frame tiles on near-black with grease-pencil orange, built for photographers                                   |
+| **DesignFolio**                    | Creative     | Swiss grid on cool grey with a cobalt name block. Project images lead the page.                                     |
+| **DevTerminal**                    | Developer    | GitHub-style profile with pinned projects and a commit timeline                                                     |
+| **Gallery Wall**                   | Creative     | An exhibition wall with hung works on labels and a printed artist CV below                                          |
+| **Glass Morphic**                  | Modern       | Frosted glass panes lit by one window of light, with a reeded-glass insert                                          |
+| **Lesson Plan**                    | Creative     | A ruled planner page with binder holes, coloured subject tabs and a sticky note                                     |
+| **Liner Notes**                    | Creative     | An album sleeve with the record sliding out and your jobs listed as Side A tracks                                   |
+| **Link Stack**                     | Modern       | A link-in-bio page of full-width colour bars, ultramarine to peach, each one a link to tap or a role to open        |
+| **Manuscript**                     | Professional | A book spread with a title page, a table of contents and bylines as a bibliography                                  |
+| **Media Kit**                      | Modern       | A creator's brand one-sheet: a fuchsia cover, a wordmark wall of who you've worked with and your real results       |
+| **Midnight**                       | Modern       | Midnight blue night sky, Garamond headings and a gold star timeline                                                 |
+| **Minimalist Editorial** (default) | Professional | Quiet single serif column with dates set in the margin                                                              |
+| **Neo Brutalist**                  | Creative     | Loud yellow poster with a giant name, hard shadows and a skills ticker                                              |
+| **Open House**                     | Creative     | A real-estate listing sheet: your name on a hanging yard sign, a property-details table and roles filed as listings |
+| **Personal Best**                  | Modern       | A track meet: your name painted across the lanes, real marks on an LED board and roles as a results sheet           |
+| **Pitch Deck**                     | Modern       | Your resume as a 16:9 founder deck: title slide, one-liner, traction and the ask                                    |
+| **Quota**                          | Professional | A sales resume with a closed-won board of the real figures from your highlights and a dated track record            |
+| **Reel**                           | Creative     | A film-editing timeline with clip markers, timecode dates and a red playhead                                        |
+| **Retro OS**                       | Creative     | A late-90s desktop where every section opens in its own bevelled window                                             |
+| **Rounds**                         | Professional | A nurse's ID badge on a lanyard, with licenses first and experience as a shift log                                  |
+| **Scrapbook**                      | Creative     | Craft-paper desk with taped index cards, sticky-note skills and a polaroid portrait                                 |
+| **Spotlight**                      | Creative     | A dark stage with a hard-edged followspot on your name and a theatre programme of credits                           |
+| **The Brief**                      | Professional | A legal brief: a boxed caption header, roman-numeral sections and double-spaced serif paragraphs                    |
+| **The Menu**                       | Creative     | A bistro prix-fixe card on a gingham tablecloth, with roles priced in years along dotted leaders                    |
+| **Workspace**                      | Modern       | A clean document page with a cover, a properties table and collapsible sections                                     |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 
