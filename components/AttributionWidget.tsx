@@ -168,36 +168,6 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-white/40 to-transparent",
       shadow: "shadow-none",
     },
-    sidebar_photo: {
-      container: "bg-white/95 border border-[#8FBBAE]/40 text-[#4C6B63] hover:text-[#0B4A42]",
-      accent: "text-[#0B4A42]",
-      shimmer: "from-transparent via-[#8FBBAE]/30 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
-    },
-    infographic: {
-      container: "bg-white/95 border border-[#EBE7DC] text-[#8A8578] hover:text-[#232019]",
-      accent: "text-[#C24E1F]",
-      shimmer: "from-transparent via-[#FFE8DD]/60 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
-    },
-    timeline: {
-      container: "bg-white/95 border border-[#E6E1D4] text-[#8A8071] hover:text-[#1E1B16]",
-      accent: "text-[#3730A3]",
-      shimmer: "from-transparent via-[#3730A3]/15 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
-    },
-    networked: {
-      container: "bg-white/95 border border-[#E1E8ED] text-[#536471] hover:text-[#15202B]",
-      accent: "text-[#0B5FA8]",
-      shimmer: "from-transparent via-[#0B5FA8]/15 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
-    },
-    consulting_brief: {
-      container: "bg-white border-2 border-black text-black/70 hover:text-black",
-      accent: "text-black",
-      shimmer: "from-transparent via-black/10 to-transparent",
-      shadow: "shadow-sm hover:shadow-md",
-    },
     quota: {
       container: "bg-white/95 border border-[#1F1C19]/20 text-[#5A5450] hover:text-[#1F1C19]",
       accent: "text-[#E8491D]",
@@ -235,13 +205,6 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-[#2F5CFF]/15 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
-    dashboard: {
-      container:
-        "bg-[#10141C]/95 backdrop-blur-md border border-[#1F2530] text-[#9099AD] hover:text-[#E8EBF3]",
-      accent: "text-[#4C8DFF]",
-      shimmer: "from-transparent via-[#4C8DFF]/20 to-transparent",
-      shadow: "shadow-lg hover:shadow-xl",
-    },
     reel: {
       container:
         "bg-[#0C0C0E]/90 backdrop-blur-md border border-white/10 text-[#A8A6A0] hover:text-[#E7E6E2]",
@@ -254,13 +217,6 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       accent: "text-[#8B6DD6]",
       shimmer: "from-transparent via-[#8B6DD6]/20 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
-    },
-    noir: {
-      container:
-        "bg-black/90 backdrop-blur-md border border-[#C9A86A]/25 text-[#A8A196] hover:text-[#EDEAE2]",
-      accent: "text-[#C9A86A]",
-      shimmer: "from-transparent via-[#C9A86A]/20 to-transparent",
-      shadow: "shadow-lg hover:shadow-xl",
     },
   } as const satisfies Record<
     ThemeId,

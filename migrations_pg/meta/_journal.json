@@ -78,6 +78,13 @@
       "when": 1792250814470,
       "tag": "0010_site_data_content_indexable",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792598047485,
+      "tag": "0011_remap_removed_themes",
+      "breakpoints": true
     }
   ]
 }

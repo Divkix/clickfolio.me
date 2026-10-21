@@ -23,6 +23,18 @@ describe("resolveThemeId", () => {
     }
   });
 
+  it("keeps the agreed replacement for every removed theme", () => {
+    expect(REMOVED_THEME_REPLACEMENTS).toEqual({
+      consulting_brief: "classic_ats",
+      dashboard: "workspace",
+      infographic: "bento",
+      networked: "bold_corporate",
+      noir: "midnight",
+      sidebar_photo: "bold_corporate",
+      timeline: "minimalist_editorial",
+    });
+  });
+
   it("falls back to the default theme for missing or unknown ids", () => {
     expect(resolveThemeId(null)).toBe(DEFAULT_THEME);
     expect(resolveThemeId(undefined)).toBe(DEFAULT_THEME);

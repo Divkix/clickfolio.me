@@ -30,22 +30,14 @@ const TEMPLATE_LOADERS = {
   lesson_plan: () => import("@/components/templates/LessonPlan").then((m) => m.LessonPlan),
   manuscript: () => import("@/components/templates/Manuscript").then((m) => m.Manuscript),
   gallery_wall: () => import("@/components/templates/GalleryWall").then((m) => m.GalleryWall),
-  sidebar_photo: () => import("@/components/templates/SidebarPhoto").then((m) => m.SidebarPhoto),
-  infographic: () => import("@/components/templates/Infographic").then((m) => m.Infographic),
-  timeline: () => import("@/components/templates/Timeline").then((m) => m.Timeline),
-  networked: () => import("@/components/templates/Networked").then((m) => m.Networked),
-  consulting_brief: () =>
-    import("@/components/templates/ConsultingBrief").then((m) => m.ConsultingBrief),
   quota: () => import("@/components/templates/Quota").then((m) => m.Quota),
   the_brief: () => import("@/components/templates/TheBrief").then((m) => m.TheBrief),
   open_house: () => import("@/components/templates/OpenHouse").then((m) => m.OpenHouse),
   the_menu: () => import("@/components/templates/TheMenu").then((m) => m.TheMenu),
   personal_best: () => import("@/components/templates/PersonalBest").then((m) => m.PersonalBest),
   pitch_deck: () => import("@/components/templates/PitchDeck").then((m) => m.PitchDeck),
-  dashboard: () => import("@/components/templates/Dashboard").then((m) => m.Dashboard),
   reel: () => import("@/components/templates/Reel").then((m) => m.Reel),
   link_stack: () => import("@/components/templates/LinkStack").then((m) => m.LinkStack),
-  noir: () => import("@/components/templates/Noir").then((m) => m.Noir),
 } satisfies Record<ThemeId, TemplateLoader>;
 
 export async function getTemplate(

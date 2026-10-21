@@ -215,51 +215,6 @@ export const THEME_PAGE_COPY: Record<
       "Below the floor line, experience and awards are printed the way galleries set an artist's CV, with dates in their own column and media and tools listed beside them. The hang and the CV collapse into one column on phones.",
     ],
   },
-  sidebar_photo: {
-    title: "Two-Column Resume Website Template",
-    description:
-      "Build a free two-column resume website with Sidebar Photo: a fixed photo sidebar with skill bars beside a clean career column.",
-    paragraphs: [
-      "Sidebar Photo is the resume shape most people picture first: a dark sidebar carrying your photo, contact links, and skills as simple progress bars, with your summary, experience, and education running down a white column beside it. It suits operations, project, and general business roles well.",
-      "On a desktop the sidebar stays in view as you scroll; on a phone it moves above the career column instead of squeezing beside it. Skill bars are a visual read of each item, not a literal score — your resume doesn't carry proficiency percentages, and this template doesn't invent any.",
-    ],
-  },
-  infographic: {
-    title: "Infographic Resume Website Template",
-    description:
-      "Create a free infographic resume website: icon-led sections, colour-coded skill chips and stat callouts pulled straight from your resume.",
-    paragraphs: [
-      "Infographic suits marketers, coordinators, and generalists who want a resume that reads at a glance. Small icons mark each section, a row of stat tiles counts your roles, projects, and certifications, and skills appear as colourful rounded chips instead of a plain list.",
-      "Every number on the page comes from your own resume data — roles, projects, and credentials you actually listed — rather than a fabricated metric. A rotating four-colour palette keeps the page lively without needing you to pick colours yourself.",
-    ],
-  },
-  timeline: {
-    title: "Resume Timeline Website Template",
-    description:
-      "Make a free resume timeline website: one connecting line down the page with a marker at every role and degree.",
-    paragraphs: [
-      "Timeline turns your career into a literal roadmap. A single indigo line runs down a cream page, with a circular marker and a dated label at each stop — your roles, then your projects, then your education, each in their own rail.",
-      "It's a calm, uncluttered layout for program managers, coordinators, and anyone whose story reads well as a straightforward progression. The page stays airy on purpose: one accent colour, generous spacing, and nothing competing with the line itself.",
-    ],
-  },
-  networked: {
-    title: "LinkedIn-Style Resume Website Template",
-    description:
-      "Build a free LinkedIn-style resume website with Networked: a banner header, an overlapping photo, and skills shown as endorsement chips.",
-    paragraphs: [
-      "Networked deliberately echoes the professional-network profile pages recruiters already know how to read: a blue banner, your photo overlapping its bottom edge, and a row of stat pills counting your roles, skills, and degrees.",
-      "Skills appear as rounded chips with a small check mark, the way an endorsement reads on a network profile, and your experience and education run underneath in a clean white body. It suits business development, partnerships, and account management careers particularly well.",
-    ],
-  },
-  consulting_brief: {
-    title: "McKinsey-Style One-Page Resume Template",
-    description:
-      "Create a free one-page consulting resume website in the McKinsey case-resume style: black-and-white, ruled sections and dash-led results.",
-    paragraphs: [
-      "Consulting Brief strips away every decoration a management-consulting or MBA resume doesn't need: black text on white, thin rules between sections, and achievements written as tight dash-led bullets with tabular numerals.",
-      "It's built to be read, screenshotted, and printed as a single page, the way a case-team resume gets passed around. Company names lead each entry, job titles sit in italics beside them, and skills and education sit side by side so nothing competes for space.",
-    ],
-  },
   quota: {
     title: "Sales Resume Website Template",
     description:
@@ -314,15 +269,6 @@ export const THEME_PAGE_COPY: Record<
       "Experience highlights sit in their own rounded callouts, the way a traction slide lists its metrics. It suits founders, operators, and early-stage hires who think in decks as naturally as they think in resumes.",
     ],
   },
-  dashboard: {
-    title: "Data Analyst Resume Website Template",
-    description:
-      "Create a free data analyst resume website with Dashboard: KPI tiles, skill bars and metric-tagged experience cards.",
-    paragraphs: [
-      "Dashboard reads like the analytics tools a data professional builds every day. A row of KPI tiles counts your roles, years of experience, and certifications, skills appear as short horizontal bars, and each job sits in its own card with its highlights tagged like metric labels.",
-      "A light slate-and-blue palette with a rotating four-colour accent keeps the page feeling like a BI tool rather than a dark, moody dashboard. It's a natural fit for data analysts, BI specialists, and analytics engineers.",
-    ],
-  },
   reel: {
     title: "Video Editor Portfolio Website Template",
     description:
@@ -339,15 +285,6 @@ export const THEME_PAGE_COPY: Record<
     paragraphs: [
       "Link Stack is deliberately not a resume layout. It's a creator-style bio page: a centred avatar and short bio at the top, then every item on your resume — jobs, projects, education, certifications — turned into its own full-width rounded card you can tap.",
       "A soft lavender gradient and a single violet accent keep it feeling like a creator's link page rather than a corporate document. It suits freelancers, consultants, and content creators who want their resume to feel like the rest of their online presence.",
-    ],
-  },
-  noir: {
-    title: "Fashion Portfolio Website Template",
-    description:
-      "Create a free fashion portfolio website with Noir: a black magazine masthead, gold hairlines and small-caps headings.",
-    paragraphs: [
-      "Noir treats your name like a magazine cover line: a large serif masthead on pure black, thin gold hairline rules, and small-caps letterspaced section headings with generous white space around every block of text.",
-      "It suits fashion, luxury, and brand professionals who want a page with editorial weight rather than a ledger or a spreadsheet feel. Experience and education are centred and quiet, letting the typography carry the page.",
     ],
   },
 };

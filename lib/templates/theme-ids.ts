@@ -9,14 +9,11 @@ export const THEME_IDS = [
   "broadsheet",
   "case_file",
   "classic_ats",
-  "consulting_brief",
   "contact_sheet",
-  "dashboard",
   "design_folio",
   "dev_terminal",
   "gallery_wall",
   "glass",
-  "infographic",
   "lesson_plan",
   "liner_notes",
   "link_stack",
@@ -25,8 +22,6 @@ export const THEME_IDS = [
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
-  "networked",
-  "noir",
   "open_house",
   "personal_best",
   "pitch_deck",
@@ -35,11 +30,9 @@ export const THEME_IDS = [
   "retro_os",
   "rounds",
   "scrapbook",
-  "sidebar_photo",
   "spotlight",
   "the_brief",
   "the_menu",
-  "timeline",
   "workspace",
 ] as const;
 
@@ -59,7 +52,15 @@ export function isValidThemeId(id: string): id is ThemeId {
  * Theme ids that were removed from THEME_IDS, mapped to the theme their users moved to. Stored
  * rows are remapped by a data migration; this keeps reads and old /templates/<slug> links working.
  */
-export const REMOVED_THEME_REPLACEMENTS = {} as const satisfies Record<string, ThemeId>;
+export const REMOVED_THEME_REPLACEMENTS = {
+  consulting_brief: "classic_ats",
+  dashboard: "workspace",
+  infographic: "bento",
+  networked: "bold_corporate",
+  noir: "midnight",
+  sidebar_photo: "bold_corporate",
+  timeline: "minimalist_editorial",
+} as const satisfies Record<string, ThemeId>;
 
 const REMOVED_THEME_LOOKUP = new Map(Object.entries<ThemeId>(REMOVED_THEME_REPLACEMENTS));
 
@@ -141,25 +142,12 @@ export const THEME_METADATA = {
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },
-  consulting_brief: {
-    name: "Consulting Brief",
-    description:
-      "A dense black-and-white one-pager in the McKinsey case-resume style, with ruled sections and dash-led results",
-    category: "Professional",
-    preview: "/previews/consulting-brief.webp",
-  },
   contact_sheet: {
     name: "Contact Sheet",
     description:
       "Film-frame tiles on near-black with grease-pencil orange, built for photographers",
     category: "Creative",
     preview: "/previews/contact-sheet.webp",
-  },
-  dashboard: {
-    name: "Dashboard",
-    description: "An analytics-dashboard layout with KPI tiles and skill bars for data roles",
-    category: "Modern",
-    preview: "/previews/dashboard.webp",
   },
   design_folio: {
     name: "DesignFolio",
@@ -184,12 +172,6 @@ export const THEME_METADATA = {
     description: "Frosted glass panels over a deep indigo aurora",
     category: "Modern",
     preview: "/previews/glass.webp",
-  },
-  infographic: {
-    name: "Infographic",
-    description: "Icon-led sections, colour-coded skill chips and stat callouts from your resume",
-    category: "Modern",
-    preview: "/previews/infographic.webp",
   },
   lesson_plan: {
     name: "Lesson Plan",
@@ -241,20 +223,6 @@ export const THEME_METADATA = {
     description: "Loud yellow poster with a giant name, hard shadows and a skills ticker",
     category: "Creative",
     preview: "/previews/brutalist.webp",
-  },
-  networked: {
-    name: "Networked",
-    description:
-      "A professional-network profile look, with a banner header, stat pills and skills as endorsement chips",
-    category: "Professional",
-    preview: "/previews/networked.webp",
-  },
-  noir: {
-    name: "Noir",
-    description:
-      "A black fashion-magazine masthead with gold hairlines, small-caps headings and generous white space",
-    category: "Creative",
-    preview: "/previews/noir.webp",
   },
   open_house: {
     name: "Open House",
@@ -308,13 +276,6 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/scrapbook.webp",
   },
-  sidebar_photo: {
-    name: "Sidebar Photo",
-    description:
-      "The classic two-column resume: a fixed photo sidebar with skill bars beside a clean career column",
-    category: "Professional",
-    preview: "/previews/sidebar-photo.webp",
-  },
   spotlight: {
     name: "Spotlight",
     description: "Your name under a single pool of stage light, with work set out like a playbill.",
@@ -333,12 +294,6 @@ export const THEME_METADATA = {
     description: "A tasting-menu card, with roles served as courses under a thin gold rule",
     category: "Creative",
     preview: "/previews/the-menu.webp",
-  },
-  timeline: {
-    name: "Timeline",
-    description: "A career roadmap: one connecting line with a marker at every role and degree",
-    category: "Modern",
-    preview: "/previews/timeline.webp",
   },
   workspace: {
     name: "Workspace",
@@ -382,19 +337,12 @@ export const themeToShareVariant = {
   lesson_plan: "lesson-plan",
   manuscript: "manuscript",
   gallery_wall: "gallery-wall",
-  sidebar_photo: "sidebar-photo",
-  infographic: "infographic",
-  timeline: "timeline",
-  networked: "networked",
-  consulting_brief: "consulting-brief",
   quota: "quota",
   the_brief: "the-brief",
   open_house: "open-house",
   the_menu: "the-menu",
   personal_best: "personal-best",
   pitch_deck: "pitch-deck",
-  dashboard: "dashboard",
   reel: "reel",
   link_stack: "link-stack",
-  noir: "noir",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

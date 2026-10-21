@@ -167,39 +167,6 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
-  sidebar_photo: dynamic(
-    () => import("@/components/templates/SidebarPhoto").then((m) => ({ default: m.SidebarPhoto })),
-    {
-      loading: TemplateLoadingFallback,
-    },
-  ),
-  infographic: dynamic(
-    () => import("@/components/templates/Infographic").then((m) => ({ default: m.Infographic })),
-    {
-      loading: TemplateLoadingFallback,
-    },
-  ),
-  timeline: dynamic(
-    () => import("@/components/templates/Timeline").then((m) => ({ default: m.Timeline })),
-    {
-      loading: TemplateLoadingFallback,
-    },
-  ),
-  networked: dynamic(
-    () => import("@/components/templates/Networked").then((m) => ({ default: m.Networked })),
-    {
-      loading: TemplateLoadingFallback,
-    },
-  ),
-  consulting_brief: dynamic(
-    () =>
-      import("@/components/templates/ConsultingBrief").then((m) => ({
-        default: m.ConsultingBrief,
-      })),
-    {
-      loading: TemplateLoadingFallback,
-    },
-  ),
   quota: dynamic(() => import("@/components/templates/Quota").then((m) => ({ default: m.Quota })), {
     loading: TemplateLoadingFallback,
   }),
@@ -233,12 +200,6 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
-  dashboard: dynamic(
-    () => import("@/components/templates/Dashboard").then((m) => ({ default: m.Dashboard })),
-    {
-      loading: TemplateLoadingFallback,
-    },
-  ),
   reel: dynamic(() => import("@/components/templates/Reel").then((m) => ({ default: m.Reel })), {
     loading: TemplateLoadingFallback,
   }),
@@ -248,7 +209,4 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
-  noir: dynamic(() => import("@/components/templates/Noir").then((m) => ({ default: m.Noir })), {
-    loading: TemplateLoadingFallback,
-  }),
 } as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;
