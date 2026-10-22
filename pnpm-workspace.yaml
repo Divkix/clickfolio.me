@@ -55,6 +55,16 @@ peerDependencyRules:
 # Supply-chain hardening: refuse any version whose trust signals (provenance,
 # signatures) regressed versus what we already resolved.
 #
-# Fresh releases are held back by pnpm's default `minimumReleaseAge` (1440
-# minutes) — no repo-level override.
+# Temporary: the 2026-10-22 one-shot security upgrade pulled in releases that
+# are still inside pnpm's default 24h release-age window. Remove this list
+# after 2026-10-22T18:15Z UTC; the default gate then covers them again.
+minimumReleaseAgeExclude:
+  - "@clerk/backend"
+  - "@electric-sql/pglite"
+  - "@posthog/cli"
+  - "@posthog/core"
+  - "@posthog/rollup-plugin"
+  - "caniuse-lite"
+  - "lucide-react"
+  - "posthog-node"
 trustPolicy: no-downgrade
