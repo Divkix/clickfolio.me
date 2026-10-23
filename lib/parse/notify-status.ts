@@ -1,6 +1,7 @@
 import type { ResumeStatus } from "../db/schema/resume";
 import { log } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
+import { withSpan } from "../telemetry/spans";
 
 type NotifyBody = { status: ResumeStatus; error?: string; version?: number };
 
@@ -29,11 +30,16 @@ export async function notifyStatusChange({
       body.error = error;
     }
 
-    const response = await stub.fetch("https://do-internal/notify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const response = await withSpan(
+      "status.notify",
+      { "resume.id": resumeId, "resume.status": status },
+      () =>
+        stub.fetch("https://do-internal/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+    );
 
     if (!response.ok) {
       throw new Error(`status DO rejected notify: ${response.status}`);

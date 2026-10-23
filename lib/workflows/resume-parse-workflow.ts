@@ -1,6 +1,11 @@
 import { Cause, Effect } from "effect";
 import type { ParseErrorJson } from "../parse/errors";
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
+import {
+  WorkflowEntrypoint,
+  type WorkflowEvent,
+  type WorkflowStep,
+  type WorkflowStepConfig,
+} from "cloudflare:workers";
 import { classifyParseError, decodeParseError } from "../parse/errors";
 import { toParseErrorJson } from "../parse/failures";
 import { runStep } from "./run-step";
@@ -14,9 +19,10 @@ import {
   readLastParseFailure,
 } from "../parse/pipeline";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
-import type { ResumeParseParams } from "./resume-parse";
+import { parseRunAttributes, type ResumeParseParams } from "./resume-parse";
 import { log } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
+import { withSpan } from "../telemetry/spans";
 
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
@@ -30,16 +36,40 @@ const PARSE_STEP = {
   timeout: "10 minutes",
 } as const;
 
+type TracedStep = <T extends Rpc.Serializable<T>>(
+  name: string,
+  config: WorkflowStepConfig,
+  run: () => Promise<T>,
+) => Promise<T>;
+
+/**
+ * `step.do` with its body in a span. A replayed step returns from the journal
+ * without a span. The instance and resume ids link the run to the request that
+ * started it (`workflow.create` in `startResumeParse`).
+ */
+function tracedSteps(step: WorkflowStep, event: WorkflowEvent<ResumeParseParams>): TracedStep {
+  const attributes = parseRunAttributes(event.instanceId, event.payload.resumeId);
+
+  return (name, config, run) =>
+    step.do(name, config, (context) =>
+      withSpan(
+        `workflow.step ${name}`,
+        { ...attributes, "workflow.step.name": name, "workflow.step.attempt": context.attempt },
+        run,
+      ),
+    );
+}
+
 /**
  * Resume parse pipeline: claim → parse → complete, with `mark failed` once
  * retries are spent. Replaces the parse queue, its DLQ, and the orphan-recovery cron.
  */
 export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, ResumeParseParams> {
-  private async emailFailure(resumeId: string, step: WorkflowStep): Promise<void> {
+  private async emailFailure(resumeId: string, tracedStep: TracedStep): Promise<void> {
     try {
       // Journal email separately from retryable database work. The provider has no
       // idempotency key, so do not retry an ambiguous send or a timed-out step.
-      await step.do(
+      await tracedStep(
         "email parse failure",
         { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
         () => sendResumeFailureEmail(resumeId, this.env),
@@ -52,15 +82,16 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
   async run(event: WorkflowEvent<ResumeParseParams>, step: WorkflowStep): Promise<string> {
     const params = event.payload;
+    const tracedStep = tracedSteps(step, event);
 
     if (params.kind === "await-cache") {
       await step.sleep("wait for cached parse", WAITING_FOR_CACHE_TIMEOUT_MS);
 
-      const expired = await step.do("expire waiting row", DB_STEP, () =>
+      const expired = await tracedStep("expire waiting row", DB_STEP, () =>
         expireWaitingForCache(params.resumeId, this.env),
       );
 
-      if (expired) await this.emailFailure(params.resumeId, step);
+      if (expired) await this.emailFailure(params.resumeId, tracedStep);
 
       return expired ? "expired" : "resolved";
     }
@@ -72,7 +103,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
       fileHash: params.fileHash,
     };
 
-    const claim = await step.do("claim", DB_STEP, () => claimResumeForParse(job, this.env));
+    const claim = await tracedStep("claim", DB_STEP, () => claimResumeForParse(job, this.env));
 
     if (claim !== "parse") return claim;
 
@@ -80,7 +111,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
     let currentFailure: ParseErrorJson | null = null;
 
     try {
-      const parsed = await step.do("parse", PARSE_STEP, () =>
+      const parsed = await tracedStep("parse", PARSE_STEP, () =>
         runStep(
           parseResumePdf(job, this.env).pipe(
             Effect.tapCause((cause) =>
@@ -108,11 +139,11 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
       if (!parsed) return "skipped";
 
-      await step.do("complete", DB_STEP, () => completeParsedResume(job, parsed, this.env));
+      await tracedStep("complete", DB_STEP, () => completeParsedResume(job, parsed, this.env));
 
       return "completed";
     } catch (error) {
-      await step.do("mark failed", DB_STEP, async () => {
+      await tracedStep("mark failed", DB_STEP, async () => {
         // The Workflow engine may serialize thrown Errors. The row retains the
         // original failure metadata even when Error.cause is lost on replay.
         const fallback = toParseErrorJson(classifyParseError(error));
@@ -142,7 +173,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
         });
       });
 
-      await this.emailFailure(job.resumeId, step);
+      await this.emailFailure(job.resumeId, tracedStep);
 
       throw error;
     }
