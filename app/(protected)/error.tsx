@@ -4,7 +4,6 @@ import { log } from "@/lib/utils/log";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { captureAnalyticsError } from "@/lib/analytics/client";
 import { siteConfig } from "@/lib/config/site";
 
 export default function ProtectedError({
@@ -16,7 +15,6 @@ export default function ProtectedError({
 }) {
   useEffect(() => {
     log("error", "Protected route error:", { error: String(error) });
-    captureAnalyticsError(error);
   }, [error]);
 
   return (

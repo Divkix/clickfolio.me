@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { env } from "cloudflare:workers";
 import { ClerkProvider } from "@/lib/auth/client";
-import { PostHogIdentifier } from "@/components/PostHogIdentifier";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/config/site";
@@ -78,7 +77,6 @@ export default function RootLayout({
             >
               Skip to main content
             </a>
-            <PostHogIdentifier />
             {children}
             <Toaster />
           </ClerkProvider>

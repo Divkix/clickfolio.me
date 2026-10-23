@@ -5,7 +5,6 @@ import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { captureAnalyticsError } from "@/lib/analytics/client";
 
 interface ErrorPageProps {
   error: globalThis.Error & { digest?: string };
@@ -15,7 +14,6 @@ interface ErrorPageProps {
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     log("error", "Error boundary caught:", { error: String(error) });
-    captureAnalyticsError(error);
   }, [error]);
 
   return (
