@@ -41,7 +41,11 @@ interface RateLimitResult {
   remaining: number;
   resetAt: Date;
   message?: string;
+  /** The backend could not be read; callers should fail closed with a retryable 503. */
+  unavailable?: boolean;
 }
+
+const UNAVAILABLE_RETRY_SECONDS = 60;
 
 export async function checkRateLimit(
   userId: string,
@@ -119,12 +123,23 @@ export async function checkRateLimit(
         : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
     };
   } catch (error) {
-    log("error", `Rate limit check failed for ${action}`, { error: String(error) });
+    const cause = error instanceof Error ? error.cause : undefined;
+
+    log("error", `Rate limit check failed for ${action}`, {
+      error: String(error),
+      cause:
+        cause instanceof Error
+          ? cause.message
+          : cause === undefined
+            ? undefined
+            : JSON.stringify(cause),
+    });
 
     return {
       allowed: false,
       remaining: 0,
-      resetAt,
+      resetAt: new Date(Date.now() + UNAVAILABLE_RETRY_SECONDS * 1000),
+      unavailable: true,
       message: "Rate limiting service temporarily unavailable. Please try again in a few moments.",
     };
   }
@@ -148,6 +163,30 @@ export async function enforceRateLimit(
   }
 
   const result = await checkRateLimit(userId, action, env);
+
+  if (result.unavailable) {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((result.resetAt.getTime() - Date.now()) / 1000),
+    );
+
+    return new Response(
+      JSON.stringify({
+        error: "Rate Limiting Unavailable",
+        code: "RATE_LIMIT_UNAVAILABLE",
+        message: result.message,
+        details: { retryAfterSeconds },
+      }),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+          ...SECURITY_HEADERS,
+          "Retry-After": String(retryAfterSeconds),
+        },
+      },
+    );
+  }
 
   if (!result.allowed) {
     return new Response(
