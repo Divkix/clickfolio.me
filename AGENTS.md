@@ -36,6 +36,7 @@ worker/index.ts        real Worker entry: drops cookies/Authorization on GET /@�
 lib/cache/             Workers Cache ISR: queued-cdn-adapter (vinext CDN adapter, revalidateTag → queue),
                        edge-purge (enqueue + batching/retrying consumer)
 lib/worker/otel-proxy  POST /otel/v1/{traces,logs} → OTEL_COLLECTOR_URL with the OTEL_BROWSER_INGEST_KEY secret
+                       (plain JSON bodies get a geo.country.iso_code resource attribute from request.cf)
 lib/telemetry/browser  lazy @hyperdx/browser (masked replay, console, traces) via /otel; trackEvent funnel events
 lib/telemetry/spans    withSpan/startSpan: custom spans on Cloudflare Workers traces (no-op where tracing is absent)
 proxy.ts               edge gate (replaces middleware.ts): __session presence check

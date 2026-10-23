@@ -30,6 +30,37 @@ function post(path: string, init: RequestInit = {}) {
   });
 }
 
+function withCountry(request: Request, country: string | undefined): Request {
+  Object.defineProperty(request, "cf", { value: { country } });
+
+  return request;
+}
+
+function otlpTraces(attributes: unknown[] = []) {
+  return {
+    resourceSpans: [
+      { resource: { attributes }, scopeSpans: [] },
+      { resource: { attributes: [] }, scopeSpans: [] },
+    ],
+  };
+}
+
+async function forwardedBody(request: Request): Promise<Uint8Array> {
+  const { ctx, settle } = makeCtx();
+  expect((await handleOtelProxy(request, ENV, ctx)).status).toBe(202);
+  await settle();
+  const [, init] = fetchMock.mock.calls[0];
+
+  // SAFETY: handleOtelProxy always forwards the body as a Uint8Array.
+  return init.body as Uint8Array;
+}
+
+async function forwardedText(request: Request): Promise<string> {
+  return new TextDecoder().decode(await forwardedBody(request));
+}
+
+const COUNTRY = { key: "geo.country.iso_code", value: { stringValue: "DE" } };
+
 beforeEach(() => {
   fetchMock.mockClear();
   mocks.log.mockClear();
@@ -188,5 +219,113 @@ describe("handleOtelProxy", () => {
       "otel.signal": "traces",
     });
     expect(JSON.stringify(mocks.log.mock.calls)).not.toContain(ENV.OTEL_BROWSER_INGEST_KEY);
+  });
+
+  describe("visitor country", () => {
+    it("adds the country to every resource of a JSON trace export", async () => {
+      const service = { key: "service.name", value: { stringValue: "web" } };
+
+      const body = await forwardedText(
+        withCountry(post("/otel/v1/traces", { body: JSON.stringify(otlpTraces([service])) }), "DE"),
+      );
+
+      expect(JSON.parse(body)).toEqual({
+        resourceSpans: [
+          { resource: { attributes: [service, COUNTRY] }, scopeSpans: [] },
+          { resource: { attributes: [COUNTRY] }, scopeSpans: [] },
+        ],
+      });
+    });
+
+    it("adds the country to log resources, creating missing attribute lists", async () => {
+      const body = await forwardedText(
+        withCountry(
+          post("/otel/v1/logs", {
+            body: JSON.stringify({ resourceLogs: [{ scopeLogs: [] }, { resource: {} }] }),
+          }),
+          "DE",
+        ),
+      );
+
+      expect(JSON.parse(body)).toEqual({
+        resourceLogs: [
+          { resource: { attributes: [COUNTRY] }, scopeLogs: [] },
+          { resource: { attributes: [COUNTRY] } },
+        ],
+      });
+    });
+
+    it("replaces a client-sent country", async () => {
+      const spoofed = { key: "geo.country.iso_code", value: { stringValue: "US" } };
+
+      const body = await forwardedText(
+        withCountry(post("/otel/v1/traces", { body: JSON.stringify(otlpTraces([spoofed])) }), "DE"),
+      );
+
+      expect(JSON.parse(body)).toEqual({
+        resourceSpans: [
+          { resource: { attributes: [COUNTRY] }, scopeSpans: [] },
+          { resource: { attributes: [COUNTRY] }, scopeSpans: [] },
+        ],
+      });
+    });
+
+    it.each([undefined, "T1", "XX", "not-a-code"])(
+      "leaves the body untouched when the country is %s",
+      async (country) => {
+        const raw = JSON.stringify(otlpTraces());
+
+        const body = await forwardedText(
+          withCountry(post("/otel/v1/traces", { body: raw }), country),
+        );
+
+        expect(body).toBe(raw);
+      },
+    );
+
+    it("tags JSON sent with a charset parameter", async () => {
+      const body = await forwardedText(
+        withCountry(
+          post("/otel/v1/traces", {
+            headers: { "content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify(otlpTraces()),
+          }),
+          "DE",
+        ),
+      );
+
+      expect(JSON.parse(body).resourceSpans[0].resource.attributes).toEqual([COUNTRY]);
+    });
+
+    it("leaves the body untouched when the request has no cf object", async () => {
+      const raw = JSON.stringify(otlpTraces());
+
+      expect(await forwardedText(post("/otel/v1/traces", { body: raw }))).toBe(raw);
+    });
+
+    it.each([
+      ["protobuf", { "content-type": "application/x-protobuf" }, JSON.stringify(otlpTraces())],
+      [
+        "compressed JSON",
+        { "content-type": "application/json", "content-encoding": "gzip" },
+        JSON.stringify(otlpTraces()),
+      ],
+      ["unparseable JSON", { "content-type": "application/json" }, "{not json"],
+      ["JSON without resources", { "content-type": "application/json" }, '{"resourceSpans":[]}'],
+      ["a JSON array", { "content-type": "application/json" }, "[]"],
+      [
+        "an export with a malformed attribute",
+        { "content-type": "application/json" },
+        JSON.stringify(otlpTraces([{ value: { stringValue: "no key" } }])),
+      ],
+    ])("passes %s through byte for byte", async (_label, headers, raw) => {
+      const sent = new TextEncoder().encode(raw);
+
+      const body = await forwardedBody(
+        withCountry(post("/otel/v1/traces", { headers, body: sent }), "DE"),
+      );
+
+      expect(body).toEqual(sent);
+    });
   });
 });
