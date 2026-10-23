@@ -338,7 +338,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
     body: (
       <>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          We use only essential cookies necessary for the operation of our Service:
+          Cookies necessary for the operation of our Service include:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>
