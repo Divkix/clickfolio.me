@@ -82,6 +82,31 @@
       ],
     },
   ],
+  // Workers Cache purges for edge-cached pages (lib/cache/edge-purge.ts). Purges
+  // run at Free-tier limits (5/min per account, 100 tags each), so one consumer
+  // (max_concurrency 1, held open 12s per batch) sends one deduplicated purge per
+  // batch. max_retries must match EDGE_PURGE_MAX_RETRIES.
+  // https://developers.cloudflare.com/workers/cache/purge/
+  // https://developers.cloudflare.com/queues/configuration/batching-retries/
+  "queues": {
+    "producers": [
+      {
+        "binding": "EDGE_PURGE_QUEUE",
+        "queue": "clickfolio-cache-purge",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "clickfolio-cache-purge",
+        "max_batch_size": 30,
+        "max_batch_timeout": 10,
+        "max_concurrency": 1,
+        "max_retries": 8,
+        "retry_delay": 30,
+        "dead_letter_queue": "clickfolio-cache-purge-dlq",
+      },
+    ],
+  },
   "logpush": false,
   // Version id/tag of the running deployment on every log line (lib/utils/log.ts):
   // https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/

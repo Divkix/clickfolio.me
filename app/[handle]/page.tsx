@@ -14,7 +14,15 @@ import { getTemplate } from "@/lib/templates/theme-registry";
 
 export const dynamicParams = true;
 
-export const revalidate = 3600;
+// Edge-cached on Workers Cache for 5 minutes. Edits purge it sooner through the
+// purge queue (lib/utils/revalidate.ts); the TTL bounds staleness if a purge fails.
+export const revalidate = 300;
+
+// Empty on purpose: profiles render on first request, but vinext only treats a
+// dynamic route as ISR (edge-cacheable) when it declares generateStaticParams.
+export function generateStaticParams(): Array<{ handle: string }> {
+  return [];
+}
 
 interface PageProps {
   params: Promise<{

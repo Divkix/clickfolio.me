@@ -4,6 +4,7 @@
 import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
 import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/clerk";
+import { processEdgePurgeBatch, purgeResultSchema } from "../lib/cache/edge-purge";
 import { performCleanup } from "../lib/cron/cleanup";
 import { getDb } from "../lib/db";
 import { resumes, user as userTable } from "../lib/db/schema";
@@ -31,6 +32,13 @@ export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 export { R2DeleteWorkflow } from "../lib/workflows/r2-delete-workflow";
 
 export { ResumeParseWorkflow } from "../lib/workflows/resume-parse-workflow";
+
+// vinext's Workers Cache entrypoints. The build adds these exports itself; naming
+// them here types `ctx.exports.VinextCachedResponse` for the purge consumer.
+export {
+  VinextCachedResponse,
+  VinextUncachedResponse,
+} from "@vinext/cloudflare/cache/cdn-adapter.worker";
 
 const BLOCKED_PATHS =
   /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i;
@@ -189,6 +197,26 @@ export default {
       status: response.status,
       statusText: response.statusText,
       headers: newHeaders,
+    });
+  },
+
+  // Edge purge consumer (lib/cache/edge-purge.ts). A purge only reaches the
+  // entrypoint that sends it, so it goes through the cached response entrypoint.
+  // https://developers.cloudflare.com/workers/cache/purge/
+  async queue(batch: MessageBatch, _env: CloudflareEnv, ctx: ExecutionContext): Promise<void> {
+    await processEdgePurgeBatch(batch, async (tags) => {
+      const cached = ctx.exports.VinextCachedResponse({ props: {} });
+      // RPC types turn purge's `Promise<unknown>` into `never`, but the call still
+      // returns a promise of ctx.cache.purge()'s result (undefined without a cache).
+      const raw = await Promise.resolve(cached.purge({ tags }));
+
+      if (raw === undefined) return undefined;
+
+      const result = purgeResultSchema.safeParse(raw);
+
+      return result.success
+        ? result.data
+        : { success: false, errors: [{ message: "unrecognized purge result" }] };
     });
   },
 
