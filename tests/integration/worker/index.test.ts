@@ -185,6 +185,27 @@ describe("Worker fetch handler", () => {
     expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(request, env, ctx);
   });
 
+  it.each([
+    ["/otel", 404],
+    ["/otel/v1/traces", 405],
+    ["/otel/anything", 404],
+  ])("answers %s from the ingest proxy (%i), never vinext", async (path, code) => {
+    const response = await worker.fetch(
+      new Request(`https://clickfolio.me${path}`),
+      makeEnv(),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(code);
+    expect(vi.mocked(handler.fetch)).not.toHaveBeenCalled();
+  });
+
+  it("leaves look-alike paths such as /otelfoo to vinext", async () => {
+    await worker.fetch(new Request("https://clickfolio.me/otelfoo"), makeEnv(), makeCtx());
+
+    expect(vi.mocked(handler.fetch)).toHaveBeenCalled();
+  });
+
   it("returns 400 for WebSocket upgrade missing resume_id", async () => {
     const env = makeEnv();
 

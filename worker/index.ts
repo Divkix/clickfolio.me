@@ -20,6 +20,7 @@ import {
   pageLinkHeader,
   prefersMarkdown,
 } from "../lib/worker/markdown-negotiation";
+import { handleOtelProxy, isOtelProxyPath } from "../lib/worker/otel-proxy";
 
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
@@ -63,6 +64,10 @@ export default {
 
     if (BLOCKED_PATHS.test(url.pathname)) {
       return new Response("Not Found", { status: 404, headers: SECURITY_HEADERS });
+    }
+
+    if (isOtelProxyPath(url.pathname)) {
+      return handleOtelProxy(request, env, ctx);
     }
 
     // Manually intercept WebSocket upgrade requests for resume status.
