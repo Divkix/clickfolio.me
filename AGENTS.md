@@ -30,8 +30,11 @@ Use the Node version in `.node-version` and pnpm 12.14.0.
 ## Repo map (non-obvious parts only)
 
 ```
-worker/index.ts        real Worker entry: scanner-probe 404s → /otel ingest proxy → WS /ws/resume-status → vinext;
-                       also scheduled() cron + re-exports Workflow classes
+worker/index.ts        real Worker entry: drops cookies/Authorization on GET /@… → scanner-probe 404s → /otel ingest
+                       proxy → WS /ws/resume-status → vinext; also scheduled() cron, queue() edge-purge consumer,
+                       re-exports Workflow classes and vinext's VinextCachedResponse entrypoint
+lib/cache/             Workers Cache ISR: queued-cdn-adapter (vinext CDN adapter, revalidateTag → queue),
+                       edge-purge (enqueue + batching/retrying consumer)
 lib/worker/otel-proxy  POST /otel/v1/{traces,logs} → OTEL_COLLECTOR_URL with the OTEL_BROWSER_INGEST_KEY secret
 lib/telemetry/browser  lazy @hyperdx/browser (masked replay, console, traces) via /otel; trackEvent funnel events
 lib/telemetry/spans    withSpan/startSpan: custom spans on Cloudflare Workers traces (no-op where tracing is absent)
@@ -94,6 +97,7 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Dependency PRs merge themselves** when green: `.github/workflows/dependabot-automerge.yml` squash-merges grouped/daily minor+patch Dependabot PRs only when `Code Quality`, `Tests`, `Build`, `CI Success`, `GitGuardian Security Checks` and `Workers Builds: clickfolio-me` exist as successful check runs **and** every other observed check/commit status is exactly `success` (literal green — `neutral`/`skipped` refuse). Its own check runs are excluded by workflow-run identity (`actions: read`), not by name; author, base branch, same-repo head and head SHA are re-verified on every poll and right before the merge; branch deletion comes from `delete_branch_on_merge`. Renaming one of those jobs or packages requires updating `EXPECTED_CHECKS`/the patterns in the same commit; majors stay manual (review requested). The workflow is metadata-only (no PR checkout) and only runs from `main`, so it stays inert until it lands. Repo Actions rule 7006 allows `pull_request_target` for that file + `dependabot[bot]` only.
 - **`ERR_PNPM_OUTDATED_LOCKFILE`** on a clean checkout after touching `catalog:` deps: run `pnpm install --no-frozen-lockfile` once and commit the lockfile.
 - **Browser telemetry ingest** (`/otel/v1/*`) answers 204 and drops data until the `OTEL_BROWSER_INGEST_KEY` secret is put (`wrangler secret put`); the key never ships to the client.
+- **Edge cache (Workers Cache):** every ISR/static page whose render reads no cookies/headers/searchParams is served from the shared cache on `VinextCachedResponse` (`/@handle` 300s, `/examples/*` 3600s, …); `/explore` reads searchParams so it is not edge-cached. A shared render must never depend on the visitor: read the session client-side (like `OwnerDetector`). After a data change call `revalidatePublicProfilePages` (`lib/utils/revalidate.ts`) or `revalidatePath`; it enqueues Cache-Tag digests on `EDGE_PURGE_QUEUE`, and the consumer purges ≤100 tags per batch at ≤5 purges/min (Free-tier limit, per account). Purges only reach the entrypoint that sends them, so purge through `ctx.exports.VinextCachedResponse`, never `ctx.cache` in the default export. Each deploy starts with a cold cache (cache is partitioned by Worker version). Failed purges land in `clickfolio-cache-purge-dlq` after 8 retries; logs say `edge purge failed` / `edge purge dead-lettered`. Responses show HIT/MISS in `x-vinext-cache`; browsers always get `private, max-age=0, must-revalidate`.
 - **R2 lifecycle:** `deploy.ts` runs `wrangler r2 bucket lifecycle set`, which replaces all rules — keep every rule in `r2-lifecycle.json`.
 - **Build warning** `manualChunks option is ignored because the codeSplitting option is specified` means `clientVendorSplit()` in `vite.config.ts` is currently a no-op.
 
