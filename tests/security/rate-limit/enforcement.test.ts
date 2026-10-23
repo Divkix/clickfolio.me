@@ -394,6 +394,22 @@ describe("Rate Limit Security Enforcement", () => {
         expect(response.headers.get("X-RateLimit-Remaining")).toBeTruthy();
       }
     });
+
+    it("returns a retryable 503 when the rate-limit backend is unavailable", async () => {
+      mockSelect.mockImplementationOnce(() => {
+        throw new Error("Failed query", { cause: new Error("DB connection failed") });
+      });
+
+      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
+      const response = await enforceRateLimit("user-123", "resume_upload");
+
+      expect(response?.status).toBe(503);
+      expect(response?.headers.get("Retry-After")).toBe("60");
+      await expect(response?.json()).resolves.toMatchObject({
+        code: "RATE_LIMIT_UNAVAILABLE",
+        message: expect.stringContaining("temporarily unavailable"),
+      });
+    });
   });
 
   describe("Rate Limit Window Accuracy", () => {

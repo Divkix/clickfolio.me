@@ -15,29 +15,47 @@ function debounceKey(url: string): string {
   return `${siteConfig.url}/__indexnow-debounce/${encodeURIComponent(url)}`;
 }
 
+async function openDebounceCache(): Promise<Cache | null> {
+  if (typeof caches === "undefined") return null;
+
+  return caches.open("indexnow-debounce");
+}
+
 /**
- * Drops URLs pinged within DEBOUNCE_SECONDS and marks the rest. Uses the Workers Cache API, so
- * the debounce is per-colo and best-effort; without a cache (tests, Node) nothing is skipped.
+ * Drops URLs pinged within DEBOUNCE_SECONDS. Marking happens after a successful submission, so
+ * a rejected ping is retried on the next change instead of being suppressed. Uses the Workers
+ * Cache API, so the debounce is per-colo and best-effort; without a cache (tests, Node) nothing
+ * is skipped.
  */
 async function takeUndebounced(urls: string[]): Promise<string[]> {
-  if (typeof caches === "undefined") return urls;
+  const cache = await openDebounceCache();
 
-  const cache = await caches.open("indexnow-debounce");
+  if (!cache) return urls;
+
   const fresh: string[] = [];
 
-  for (const url of urls) {
-    const key = debounceKey(url);
-
-    if (await cache.match(key)) continue;
+  for (const url of new Set(urls)) {
+    if (await cache.match(debounceKey(url))) continue;
 
     fresh.push(url);
-    await cache.put(
-      key,
-      new Response("1", { headers: { "Cache-Control": `max-age=${DEBOUNCE_SECONDS}` } }),
-    );
   }
 
   return fresh;
+}
+
+async function markDebounced(urls: string[]): Promise<void> {
+  const cache = await openDebounceCache();
+
+  if (!cache) return;
+
+  await Promise.all(
+    urls.map((url) =>
+      cache.put(
+        debounceKey(url),
+        new Response("1", { headers: { "Cache-Control": `max-age=${DEBOUNCE_SECONDS}` } }),
+      ),
+    ),
+  );
 }
 
 async function submitProfiles(urls: string[]): Promise<void> {
@@ -47,8 +65,11 @@ async function submitProfiles(urls: string[]): Promise<void> {
     if (fresh.length === 0) return;
 
     const result = await submitToIndexNow(fresh);
+    const accepted = result.submitted === fresh.length;
 
-    log(result.submitted === fresh.length ? "info" : "warn", "indexnow submitted", {
+    if (accepted) await markDebounced(fresh);
+
+    log(accepted ? "info" : "warn", "indexnow submitted", {
       urls: fresh,
       statuses: result.statuses,
     });
