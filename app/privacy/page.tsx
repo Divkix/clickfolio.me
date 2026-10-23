@@ -70,6 +70,15 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           <li>Device information (operating system, device type)</li>
           <li>Timestamps of your interactions</li>
         </ul>
+
+        <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">Diagnostics</h3>
+        <p className="text-muted-foreground leading-relaxed">
+          To find and fix bugs, our site records errors, console messages, page and network load
+          times, the steps you take in the app, the country you visit from (never your city or IP
+          address), and session recordings with all text and form input masked. Signed-in records
+          are linked to an internal account ID, never your email or name. See{" "}
+          <strong>Cookies &amp; Analytics</strong> for how long we keep them.
+        </p>
       </>
     ),
   },
@@ -90,6 +99,9 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           </li>
           <li>
             <strong>Improvement:</strong> To analyze usage patterns and improve the Service
+          </li>
+          <li>
+            <strong>Diagnostics:</strong> To find and fix errors and slow pages
           </li>
           <li>
             <strong>Communication:</strong> To send you important updates about your account or the
@@ -206,8 +218,9 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           We retain your personal data for as long as your account is active or as needed to provide
           you with the Service. Upon account deletion, all your data&mdash;including uploaded files,
           extracted content, and profile information&mdash;is permanently removed from our systems
-          within 30 days. Some anonymized, aggregated data may be retained for analytical purposes
-          but cannot be used to identify you.
+          within 30 days. Diagnostics are not removed early by account deletion; they are deleted
+          automatically 90 days after they are recorded. Some anonymized, aggregated data may be
+          retained for analytical purposes but cannot be used to identify you.
         </p>
       </>
     ),
@@ -349,6 +362,12 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             <strong>Temporary upload tracking:</strong> Used to associate anonymous uploads with
             your account after login
           </li>
+          <li>
+            <strong>Diagnostics cookie:</strong>{" "}
+            <span className="font-mono text-sm">__rum_sid</span> groups one visit&apos;s diagnostics
+            into a session. It holds a random ID, is first-party, and expires after 15 minutes of
+            inactivity
+          </li>
         </ul>
 
         <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">First-Party Analytics</h3>
@@ -374,6 +393,14 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             </li>
           </ul>
         </div>
+
+        <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">Diagnostics</h3>
+        <p className="text-muted-foreground leading-relaxed">
+          The diagnostics described under <strong>Information We Collect</strong> are stored on
+          servers we operate ourselves, not by a third-party analytics company, and are deleted
+          automatically after 90 days. Session recordings mask all text and form input, so they show
+          the page layout and your clicks, not what you read or type.
+        </p>
       </>
     ),
   },
@@ -445,13 +472,13 @@ export default function PrivacyPolicyPage() {
     "Privacy Policy",
     "/privacy",
     privacyDescription,
-    "2026-02-01",
+    "2026-10-23",
   );
 
   return (
     <LegalPage
       title="Privacy Policy"
-      lastUpdated="Last updated: February 2026"
+      lastUpdated="Last updated: October 2026"
       breadcrumbLabel="Privacy Policy"
       breadcrumbHref="/privacy"
       jsonLd={
