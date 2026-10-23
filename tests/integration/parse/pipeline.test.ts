@@ -288,7 +288,7 @@ describe("markResumeParseFailed", () => {
 
     await markResumeParseFailed(
       JOB,
-      toParseErrorJson(new R2ObjectMissing({ message: "Failed to fetch PDF from R2: key" })),
+      toParseErrorJson(new R2ObjectMissing({ message: "Failed to fetch PDF from R2" })),
       ENV,
     );
 

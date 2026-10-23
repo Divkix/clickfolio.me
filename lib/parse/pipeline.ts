@@ -221,7 +221,8 @@ export function parseResumePdf(
       });
 
       if (!pdfBuffer)
-        return yield* new R2ObjectMissing({ message: `Failed to fetch PDF from R2: ${job.r2Key}` });
+        // No key in the message: it ends in the uploader's file name, and the message is logged.
+        return yield* new R2ObjectMissing({ message: "Failed to fetch PDF from R2" });
       const { parseResumeWithAi } = yield* Effect.promise(() => import("../ai"));
       const parsedContent = yield* parseResumeWithAi(pdfBuffer, env);
       const { classifyCareerEffect } = yield* Effect.promise(() => import("../ai/career"));

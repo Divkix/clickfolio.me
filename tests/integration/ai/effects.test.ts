@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { generateText, type GenerateTextResult, type ToolSet } from "ai";
+import { generateText, type GenerateTextResult, JSONParseError, type ToolSet } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { textResult } from "@/tests/helpers/ai-result";
 import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
@@ -264,12 +264,44 @@ describe("Effect input and cancellation regressions", () => {
   });
 
   it("does not log response excerpts when JSON parsing fails", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.mocked(generateText).mockResolvedValue(textResult("PRIVATE_RESUME_MARKER not json"));
     await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", ENV)));
-    expect(warn).toHaveBeenCalled();
-    expect(JSON.stringify(warn.mock.calls)).not.toContain("PRIVATE_RESUME_MARKER");
-    warn.mockRestore();
+    expect(mocks.log).toHaveBeenCalledWith(
+      "warn",
+      "ai parse attempt failed",
+      expect.objectContaining({ path: "text-fallback", errorType: "AiOutputInvalid" }),
+    );
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("PRIVATE_RESUME_MARKER");
+  });
+
+  it("keeps response text out of the invalid-output error the Workflow logs", async () => {
+    vi.mocked(generateText).mockResolvedValue(textResult("PRIVATE_RESUME_MARKER not json"));
+    const failure = await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", ENV)));
+    expect(failure).toBeInstanceOf(AiOutputInvalid);
+    expect(`${failure.message} ${failure.stack}`).not.toContain("PRIVATE_RESUME_MARKER");
+  });
+
+  it("drops the response body an SDK parse error quotes", async () => {
+    vi.mocked(generateText).mockRejectedValue(
+      new JSONParseError({ text: "PRIVATE_RESUME_MARKER", cause: new SyntaxError("bad") }),
+    );
+    const failure = await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", ENV)));
+    expect(failure).toBeInstanceOf(AiProviderFailed);
+    expect(failure.message).toBe("AI_JSONParseError");
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("PRIVATE_RESUME_MARKER");
+  });
+
+  it("logs a provider failure through the scrubbed error fields", async () => {
+    vi.mocked(generateText).mockRejectedValue(new Error("quota exceeded for jane@example.com"));
+    await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", ENV)));
+    expect(mocks.log).toHaveBeenCalledWith(
+      "warn",
+      "ai parse attempt failed",
+      expect.objectContaining({
+        errorType: "AiProviderFailed",
+        "error.message": "quota exceeded for [email]",
+      }),
+    );
   });
 
   it("aborts a career response whose body stalls after headers arrive", async () => {

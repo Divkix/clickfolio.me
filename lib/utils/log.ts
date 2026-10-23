@@ -1,9 +1,41 @@
+import * as workers from "cloudflare:workers";
 import type { UnknownRecord } from "@/lib/types/json";
 
 type LogLevel = "info" | "warn" | "error";
 
+type Deployment = {
+  "service.version": string;
+  "deployment.environment": string;
+  "cloudflare.script_version.id"?: string;
+  "faas.version"?: string;
+};
+
+let deployment: Deployment | undefined;
+
+/**
+ * Which build wrote the line. `service.version` and `deployment.environment`
+ * match the browser SDK's resource attributes (lib/telemetry/browser.ts; the
+ * SDK writes the pre-`deployment.environment.name` key). The version id is what
+ * `wrangler rollback` takes, named as on Cloudflare's exported spans
+ * (https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/).
+ * Client bundles get an empty stub `env`; test mocks may omit `env` entirely.
+ */
+function deploymentFields(): Deployment {
+  if (deployment) return deployment;
+  const metadata = "env" in workers ? workers.env.CF_VERSION_METADATA : undefined;
+
+  deployment = {
+    "service.version": __APP_VERSION__,
+    "deployment.environment": __DEPLOY_ENV__,
+    "cloudflare.script_version.id": metadata?.id,
+    "faas.version": metadata?.tag || undefined,
+  };
+
+  return deployment;
+}
+
 export function log(level: LogLevel, msg: string, fields: UnknownRecord = {}): void {
-  const entry = { level, msg, ts: new Date().toISOString(), ...fields };
+  const entry = { level, msg, ts: new Date().toISOString(), ...deploymentFields(), ...fields };
   const line = JSON.stringify(entry);
 
   if (level === "error") console.error(line);

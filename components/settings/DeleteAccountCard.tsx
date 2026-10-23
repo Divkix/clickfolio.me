@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { useClerk } from "@/lib/auth/client";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 interface DeleteAccountCardProps {
   userEmail: string;
@@ -69,7 +70,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
       router.push("/");
       router.refresh();
     } catch (err) {
-      log("error", "Account deletion error", { error: String(err) });
+      log("error", "Account deletion error", { ...errorFields(err) });
       const errorMessage = "An unexpected error occurred. Please try again.";
       setError(errorMessage);
       toast.error(errorMessage);

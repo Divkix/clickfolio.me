@@ -83,6 +83,11 @@
     },
   ],
   "logpush": false,
+  // Version id/tag of the running deployment on every log line (lib/utils/log.ts):
+  // https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA",
+  },
   "observability": {
     "enabled": true,
     "logs": {

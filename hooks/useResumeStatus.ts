@@ -10,6 +10,7 @@ import {
 import { statusPresentation, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { useResumeWebSocket } from "./useResumeWebSocket";
 
 interface ResumeStatusResponse {
@@ -159,7 +160,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
       const category = classifyError(httpStatus);
 
-      log("error", "Error fetching resume status", { error: String(err) });
+      log("error", "Error fetching resume status", { ...errorFields(err) });
 
       if (category === "fatal" || category === "auth") {
         if (intervalRef.current) {

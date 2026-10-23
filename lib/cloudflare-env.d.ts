@@ -5,6 +5,7 @@ interface __BaseEnv_CloudflareEnv {
 	CLICKFOLIO_R2_BUCKET: R2Bucket;
 	HYPERDRIVE: Hyperdrive;
 	EMAIL: SendEmail;
+	CF_VERSION_METADATA: WorkerVersionMetadata;
 	ASSETS: Fetcher;
 	EMAIL_FROM: "notifications@clickfolio.me";
 	OTEL_COLLECTOR_URL: "https://otel.divkix.me";

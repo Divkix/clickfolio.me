@@ -8,7 +8,8 @@ export function parseJsonWithRepairEffect(
 ): Effect.Effect<{ data: UnknownRecord; repaired: boolean }, AiOutputInvalid> {
   const invalid = (cause?: unknown) =>
     new AiOutputInvalid({
-      message: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
+      // Length only: the response is resume content, and this message is logged.
+      message: `Failed to parse AI response as JSON (${jsonStr.length} chars)`,
       cause,
     });
 
