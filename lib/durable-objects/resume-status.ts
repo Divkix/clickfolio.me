@@ -122,7 +122,10 @@ export class ClickfolioStatusDO extends DurableObject {
     for (const ws of sockets) {
       try {
         ws.send(payload);
-      } catch {}
+      } catch (error) {
+        // A socket closing mid-broadcast throws; the client re-reads status on reconnect.
+        log("warn", "ClickfolioStatusDO WebSocket send failed", errorFields(error));
+      }
     }
 
     if (status === "completed" || status === "failed") {

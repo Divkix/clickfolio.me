@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { resumes, user } from "../db/schema";
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 
 type ResumeEmailEnv = Pick<CloudflareEnv, "HYPERDRIVE" | "APP_URL" | "EMAIL_FROM"> & {
   EMAIL?: CloudflareEnv["EMAIL"];
@@ -40,10 +41,7 @@ export async function sendResumeFailureEmail(resumeId: string, env: ResumeEmailE
 
     log("info", "resume failure email accepted", { resumeId, messageId: result.messageId });
   } catch (error) {
-    // Avoid logging email addresses or provider messages that may contain them.
-    log("error", "resume failure email failed", {
-      resumeId,
-      error: error instanceof Error ? error.name : "EmailError",
-    });
+    // errorFields redacts addresses the provider echoes back in its message.
+    log("error", "resume failure email failed", { resumeId, ...errorFields(error) });
   }
 }

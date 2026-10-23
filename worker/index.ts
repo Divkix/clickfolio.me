@@ -198,6 +198,9 @@ export default {
       }
     } catch (error) {
       log("error", "cron error", { cron: controller.cron, ...errorFields(error) });
+      // Rethrow so the run is recorded as failed, not `ok`. Cleanup only deletes
+      // expired rows, so a platform retry (if any) is harmless.
+      throw error;
     }
   },
 } satisfies ExportedHandler<CloudflareEnv>;

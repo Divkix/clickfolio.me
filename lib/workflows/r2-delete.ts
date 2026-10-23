@@ -35,11 +35,19 @@ export async function deleteR2Objects(
   keys: string[],
 ): Promise<string[]> {
   const results = await Promise.allSettled(keys.map((key) => R2.delete(bucket, key)));
-  const failedKeys = keys.filter((_, index) => results[index].status === "rejected");
 
-  if (failedKeys.length === 0) return failedKeys;
+  const failures = results.flatMap((result, index) =>
+    result.status === "rejected" ? [{ key: keys[index], reason: result.reason }] : [],
+  );
 
-  log("warn", "R2 delete failed; retrying in R2DeleteWorkflow", { keys: failedKeys });
+  const failedKeys = failures.map((failure) => failure.key);
+
+  if (failures.length === 0) return failedKeys;
+
+  log("warn", "R2 delete failed; retrying in R2DeleteWorkflow", {
+    keys: failedKeys,
+    ...errorFields(failures[0].reason),
+  });
 
   try {
     await scheduleR2Deletion(workflow, { keys: failedKeys });

@@ -108,10 +108,15 @@ describe("sendResumeFailureEmail", () => {
       else mocks.send.mockRejectedValue(error);
 
       await expect(sendResumeFailureEmail("resume-1", ENV)).resolves.toBeUndefined();
-      expect(mocks.log).toHaveBeenCalledWith("error", "resume failure email failed", {
-        resumeId: "resume-1",
-        error: "Error",
-      });
+      expect(mocks.log).toHaveBeenCalledWith(
+        "error",
+        "resume failure email failed",
+        expect.objectContaining({
+          resumeId: "resume-1",
+          "error.name": "Error",
+          "error.message": "Provider details: [email]",
+        }),
+      );
       expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("account@example.com");
     },
   );
