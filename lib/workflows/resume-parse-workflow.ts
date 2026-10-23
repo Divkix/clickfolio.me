@@ -16,6 +16,7 @@ import {
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import type { ResumeParseParams } from "./resume-parse";
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
@@ -43,8 +44,9 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
         { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
         () => sendResumeFailureEmail(resumeId, this.env),
       );
-    } catch {
-      log("error", "resume failure email step failed", { resumeId });
+    } catch (error) {
+      // Not rethrown: a failed email must not fail the run after the row is final.
+      log("error", "resume failure email step failed", { resumeId, ...errorFields(error) });
     }
   }
 
@@ -84,9 +86,17 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
             Effect.tapCause((cause) =>
               Effect.sync(() => {
                 const defect = cause.reasons.find(Cause.isDieReason);
-                currentFailure = toParseErrorJson(
-                  classifyParseError(defect ? defect.defect : Cause.squash(cause)),
-                );
+                const raw = defect ? defect.defect : Cause.squash(cause);
+                currentFailure = toParseErrorJson(classifyParseError(raw));
+
+                // Logged per attempt inside the step body; the step's retries
+                // and its terminal throw are left to the Workflow engine.
+                log("warn", "resume parse attempt failed", {
+                  resumeId: job.resumeId,
+                  errorType: currentFailure.type,
+                  retryable: currentFailure.isRetryable,
+                  ...errorFields(raw),
+                });
               }),
             ),
           ),
@@ -122,6 +132,14 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
         const failure = carried ?? currentDatabaseFailure ?? stored ?? fallback;
         await markResumeParseFailed(job, failure, this.env);
+
+        // After the write, inside the step body: once per run, not once per
+        // step retry or per replay of `run`.
+        log("error", "resume parse failed", {
+          resumeId: job.resumeId,
+          errorType: failure.type,
+          ...errorFields(error),
+        });
       });
 
       await this.emailFailure(job.resumeId, step);

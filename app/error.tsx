@@ -1,6 +1,7 @@
 "use client";
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -13,7 +14,7 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    log("error", "Error boundary caught:", { error: String(error) });
+    log("error", "Error boundary caught:", { ...errorFields(error) });
   }, [error]);
 
   return (

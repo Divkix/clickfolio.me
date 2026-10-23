@@ -363,6 +363,14 @@ describe("Worker scheduled handler", () => {
     expect(mockPerformCleanup).not.toHaveBeenCalled();
   });
 
+  it("rethrows a cleanup failure so the run is recorded as failed", async () => {
+    mockPerformCleanup.mockRejectedValueOnce(new Error("db down"));
+
+    await expect(worker.scheduled(makeController("0 3 * * *"), makeEnv())).rejects.toThrow(
+      "db down",
+    );
+  });
+
   it("does not throw on unknown cron expression", async () => {
     const env = makeEnv();
 

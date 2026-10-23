@@ -5,6 +5,7 @@
  */
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
@@ -35,12 +36,11 @@ function pathnameOf(request: Request | undefined): string {
 
 // A caught error never reaches onRequestError, so log it here (with its stack)
 // to keep the 500 diagnosable in HyperDX.
-function reportUnhandledError(request: Request | undefined, error: Error): void {
+function reportUnhandledError(request: Request | undefined, cause: unknown): void {
   const path = pathnameOf(request);
 
   log("error", "Unhandled API route error", {
-    error: error.message,
-    stack: error.stack,
+    ...errorFields(cause),
     path,
     method: request?.method ?? "unknown",
   });
@@ -60,7 +60,7 @@ export async function withUser(
 
     return await handler({ user, db, dbUser, env });
   } catch (error) {
-    reportUnhandledError(request, error instanceof Error ? error : new Error(String(error)));
+    reportUnhandledError(request, error);
 
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }
@@ -79,7 +79,7 @@ export async function withAdmin(
 
     return await handler({ user });
   } catch (error) {
-    reportUnhandledError(request, error instanceof Error ? error : new Error(String(error)));
+    reportUnhandledError(request, error);
 
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }

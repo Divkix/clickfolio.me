@@ -1,6 +1,7 @@
 "use client";
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { useCallback, useMemo } from "react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { siteConfig } from "@/lib/config/site";
@@ -91,7 +92,7 @@ export function useShareActions(options: {
       onSuccess?.();
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
-        log("error", "Share failed", { error: String(err) });
+        log("error", "Share failed", { ...errorFields(err) });
       }
     }
   }, [title, shareText, shareUrl, onSuccess]);

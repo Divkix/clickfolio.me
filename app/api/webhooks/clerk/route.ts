@@ -4,6 +4,7 @@
  */
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { Webhook } from "svix";
 import { eq } from "drizzle-orm";
@@ -198,7 +199,7 @@ export async function POST(request: Request): Promise<Response> {
 
     event = parsedEvent.data;
   } catch (error) {
-    log("warn", "[clerk-webhook] signature verification failed:", { error: String(error) });
+    log("warn", "[clerk-webhook] signature verification failed:", { ...errorFields(error) });
 
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -252,7 +253,7 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json(outcome);
   } catch (error) {
-    log("error", `[clerk-webhook] ${event.type} handling failed:`, { error: String(error) });
+    log("error", `[clerk-webhook] ${event.type} handling failed:`, { ...errorFields(error) });
 
     return Response.json({ error: "Internal error" }, { status: 500 });
   }

@@ -8,6 +8,7 @@ import { performCleanup } from "../lib/cron/cleanup";
 import { getDb } from "../lib/db";
 import { resumes, user as userTable } from "../lib/db/schema";
 import { log } from "../lib/utils/log";
+import { errorFields } from "../lib/utils/error-fields";
 // See issue #172.
 import { SECURITY_HEADERS } from "../lib/utils/security-headers";
 import {
@@ -196,7 +197,10 @@ export default {
           log("error", "unknown cron trigger", { cron: controller.cron });
       }
     } catch (error) {
-      log("error", "cron error", { cron: controller.cron, error: String(error) });
+      log("error", "cron error", { cron: controller.cron, ...errorFields(error) });
+      // Rethrow so the run is recorded as failed, not `ok`. Cleanup only deletes
+      // expired rows, so a platform retry (if any) is harmless.
+      throw error;
     }
   },
 } satisfies ExportedHandler<CloudflareEnv>;

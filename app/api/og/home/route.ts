@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { Resvg } from "@cf-wasm/resvg/workerd";
 
 /**
@@ -133,7 +134,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    log("error", "[og/home] Error generating OG image:", { error: String(error) });
+    log("error", "[og/home] Error generating OG image:", { ...errorFields(error) });
 
     return new Response("Internal Server Error", { status: 500 });
   }

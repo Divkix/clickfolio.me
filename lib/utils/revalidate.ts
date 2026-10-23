@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -19,6 +20,6 @@ export function revalidatePublicProfilePages(handles: Array<string | null>): voi
 
     revalidatePath("/sitemap.xml");
   } catch (error) {
-    log("error", "Failed to revalidate public profile pages", { error: String(error) });
+    log("error", "Failed to revalidate public profile pages", { ...errorFields(error) });
   }
 }

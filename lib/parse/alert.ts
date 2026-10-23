@@ -1,4 +1,5 @@
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 import type { UnknownRecord } from "../types/json";
 
 export type AlertChannel = "logpush" | "webhook";
@@ -38,7 +39,7 @@ export async function sendAlert(
 
       if (webhookUrl) {
         try {
-          await fetch(webhookUrl, {
+          const response = await fetch(webhookUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -46,8 +47,20 @@ export async function sendAlert(
               ...payload,
             }),
           });
+
+          // The URL carries the webhook's secret, so only the status is logged.
+          if (!response.ok) {
+            log("error", "webhook alert rejected", { status: response.status });
+          }
         } catch (error) {
-          log("error", "webhook alert failed", { error: String(error) });
+          const fields = errorFields(error);
+
+          // Fetch errors can quote the URL, which carries the webhook's secret.
+          log("error", "webhook alert failed", {
+            ...fields,
+            "error.message": fields["error.message"].replaceAll(webhookUrl, "[webhook]"),
+            stack: fields.stack?.replaceAll(webhookUrl, "[webhook]"),
+          });
         }
       }
 

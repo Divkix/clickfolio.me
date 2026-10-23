@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { withAdmin } from "@/lib/auth/with-auth";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
@@ -144,7 +145,7 @@ export async function GET(request: Request) {
 
       return response;
     } catch (err) {
-      log("error", "[admin/analytics] Umami API error:", { error: String(err) });
+      log("error", "[admin/analytics] Umami API error:", { ...errorFields(err) });
 
       return createErrorResponse(
         "Analytics temporarily unavailable",

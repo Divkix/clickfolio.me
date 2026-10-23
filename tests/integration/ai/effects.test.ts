@@ -233,7 +233,7 @@ describe("Effect AI boundaries", () => {
     expect(mocks.log).toHaveBeenCalledWith(
       "warn",
       "career classification failed",
-      expect.objectContaining({ error: "offline" }),
+      expect.objectContaining({ "error.message": "offline", "error.name": "AiProviderFailed" }),
     );
   });
 });

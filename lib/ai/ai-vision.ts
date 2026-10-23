@@ -12,6 +12,7 @@ import {
   RESUME_SCHEMA_PROMPT,
 } from "./prompt-config";
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 
 const VISION_TIMEOUT_MS = 90_000;
 
@@ -71,7 +72,7 @@ export function parsePdfWithVisionEffect(
           log("warn", "[ai-vision] generateText failed", {
             modelId,
             durationMs: Date.now() - startTime,
-            error: error.message,
+            ...errorFields(error),
           }),
         ),
       ),

@@ -3,6 +3,7 @@
 export const revalidate = 86400;
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -86,7 +87,7 @@ function AdminResumesContent() {
         }
       })
       .catch((err) => {
-        log("error", "Failed to fetch resumes:", { error: String(err) });
+        log("error", "Failed to fetch resumes:", { ...errorFields(err) });
 
         if (activeKeyRef.current === key) {
           setLoadedKey(key);
@@ -133,7 +134,7 @@ function AdminResumesContent() {
       });
       toast.success("Failed resume dismissed");
     } catch (error) {
-      log("error", "Failed to dismiss resume:", { error: String(error) });
+      log("error", "Failed to dismiss resume:", { ...errorFields(error) });
       toast.error("Failed to dismiss resume. Please try again.");
     } finally {
       setDismissingId(null);

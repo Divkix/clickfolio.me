@@ -1,4 +1,5 @@
 import { log, logEvent } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { eq } from "drizzle-orm";
 import { createClerkClient } from "@clerk/backend";
 import { z } from "zod";
@@ -118,7 +119,7 @@ export async function POST(request: Request) {
         const parsedError = clerkErrorSchema.safeParse(clerkError);
 
         if (!parsedError.success || parsedError.data.status !== 404) {
-          log("error", "Clerk user deletion error:", { error: String(clerkError) });
+          log("error", "Clerk user deletion error:", { ...errorFields(clerkError) });
 
           return createErrorResponse(
             "Failed to delete account. Please try again.",
@@ -138,7 +139,7 @@ export async function POST(request: Request) {
         await db.delete(user).where(eq(user.id, userId));
         deletedLocally = true;
       } catch (dbError) {
-        log("error", "Account deletion error:", { error: String(dbError) });
+        log("error", "Account deletion error:", { ...errorFields(dbError) });
         // The sign-in is already gone, so a retry cannot reach this route; report the
         // pending cleanup instead of a failure the client cannot act on.
         warnings.push({
@@ -167,14 +168,14 @@ export async function POST(request: Request) {
             cursor = page.truncated ? (page as R2Objects & { truncated: true }).cursor : undefined;
           } while (cursor);
         } catch (listError) {
-          log("error", `Failed to list R2 objects for ${userId}:`, { error: String(listError) });
+          log("error", `Failed to list R2 objects for ${userId}:`, { ...errorFields(listError) });
           // The workflow re-lists the prefix with retries, so unlisted objects still go.
           await scheduleR2Deletion(env.CLICKFOLIO_R2_DELETE_WORKFLOW, {
             keys: [],
             prefix: `users/${userId}/`,
           }).catch((scheduleError) =>
             log("error", `Failed to schedule R2 sweep for ${userId}:`, {
-              error: String(scheduleError),
+              ...errorFields(scheduleError),
             }),
           );
         }

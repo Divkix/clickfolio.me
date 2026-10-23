@@ -148,6 +148,29 @@ describe("resume failure email workflow step", () => {
     expect(mocks.email).toHaveBeenCalledTimes(1);
   });
 
+  it("logs each failed attempt and the terminal failure with its type and stack", async () => {
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toThrow("Original parse failure");
+
+    const messages = mocks.log.mock.calls.map((call) => call[1]);
+    expect(messages.filter((msg) => msg === "resume parse failed")).toHaveLength(1);
+    expect(mocks.log).toHaveBeenCalledWith(
+      "warn",
+      "resume parse attempt failed",
+      expect.objectContaining({ resumeId: "resume-1", errorType: "unknown", retryable: false }),
+    );
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "resume parse failed",
+      expect.objectContaining({
+        resumeId: "resume-1",
+        errorType: "unknown",
+        "error.message": expect.stringContaining("Original parse failure"),
+        stack: expect.stringContaining("at "),
+      }),
+    );
+  });
+
   it("waits for failed-status work to succeed before emailing", async () => {
     mocks.fail.mockRejectedValueOnce(new Error("Waiting-row update failed"));
     const workflow = await runWorkflow();

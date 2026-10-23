@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ROLES, USER_ROLES, type UserRole } from "@/lib/config/roles";
 import type { ResumeContent } from "@/lib/types/database";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import type { AiEnvVars } from "./ai-parser";
 
 // Jev (TypeSafe System One model) via OpenRouter's System One API, proxied by the same
@@ -116,7 +117,7 @@ export function classifyCareerEffect(
       orElse: () => Effect.fail(new AiTimedOut({ message: "Career classification timed out" })),
     }),
     Effect.tapError((error) =>
-      Effect.sync(() => log("warn", "career classification failed", { error: error.message })),
+      Effect.sync(() => log("warn", "career classification failed", errorFields(error))),
     ),
     Effect.catch(() => Effect.succeed(null)),
   );

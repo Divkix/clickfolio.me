@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 
@@ -185,7 +186,7 @@ function buildResumeMetadata(
         }
       }
     } catch (error) {
-      log("error", "Failed to generate JSON-LD for handle", { handle, error: String(error) });
+      log("error", "Failed to generate JSON-LD for handle", { handle, ...errorFields(error) });
     }
   }
 

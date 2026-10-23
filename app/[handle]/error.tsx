@@ -1,6 +1,7 @@
 "use client";
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -15,7 +16,7 @@ export default function ProfileError({
   reset: () => void;
 }) {
   useEffect(() => {
-    log("error", "Public profile error:", { error: String(error) });
+    log("error", "Public profile error:", { ...errorFields(error) });
   }, [error]);
 
   return (

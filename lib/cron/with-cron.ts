@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { requireCronAuth } from "@/lib/auth/middleware";
 import type { UnknownRecord } from "@/lib/types/json";
@@ -23,7 +24,7 @@ export function withCron(handler: (env: CloudflareEnv) => Promise<Response | Unk
 
       return createSuccessResponse(result);
     } catch (error) {
-      log("error", "cron failed", { error: String(error) });
+      log("error", "cron failed", { ...errorFields(error) });
 
       return createErrorResponse("Cron failed", ERROR_CODES.INTERNAL_ERROR, 500);
     }

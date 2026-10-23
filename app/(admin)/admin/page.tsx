@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { count, eq, sql } from "drizzle-orm";
 import { AlertTriangle, Eye, FileText, Loader2, Users } from "lucide-react";
@@ -57,7 +58,7 @@ async function getAdminStats() {
       }),
     ]);
   } catch (err) {
-    log("error", "[admin] Umami API unavailable:", { error: String(err) });
+    log("error", "[admin] Umami API unavailable:", { ...errorFields(err) });
   }
 
   // SAFETY: status is a validated string column; cast initializes typed map for counting.
