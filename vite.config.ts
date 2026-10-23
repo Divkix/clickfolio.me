@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
 import { visualizer } from "rollup-plugin-visualizer";
 import vinext from "vinext";
 import { defineConfig, type Plugin } from "vite-plus";
@@ -240,7 +241,16 @@ export default defineConfig(() => {
       ? []
       : [
           ensureClientDir(),
-          vinext(),
+          vinext({
+            // Edge-cached ISR on Workers Cache; purges go through a queue
+            // (lib/cache/queued-cdn-adapter.ts, worker/index.ts `queue`).
+            cache: {
+              cdn: {
+                ...workersCacheCdnAdapter(),
+                adapter: resolve("lib/cache/queued-cdn-adapter.ts"),
+              },
+            },
+          }),
           cloudflare({
             viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
           }),

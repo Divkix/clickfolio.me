@@ -9,6 +9,7 @@ import { user } from "@/lib/db/schema";
 import { collectR2KeysForUser, getR2Binding } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -150,6 +151,7 @@ export async function POST(request: Request) {
 
       if (deletedLocally) {
         notifyIndexNowForProfiles([dbUser.handle]);
+        revalidatePublicProfilePages([dbUser.handle]);
 
         // Prefix sweep catches every layout (users/{userId}/{timestamp}/… and
         // users/{userId}/{resumeId}/…) plus objects whose DB row is already gone.

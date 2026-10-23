@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { encodeCloudflareCacheTag } from "@vinext/cloudflare/cache/cdn-adapter.runtime";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
@@ -171,6 +173,19 @@ describe("processEdgePurgeBatch", () => {
     expect(waited).toBeGreaterThan(MIN_PURGE_INTERVAL_MS - 1000);
     expect(waited).toBeLessThanOrEqual(MIN_PURGE_INTERVAL_MS);
     expect(Math.floor(60_000 / MIN_PURGE_INTERVAL_MS)).toBeLessThanOrEqual(5);
+  });
+});
+
+describe("edge purge consumer config", () => {
+  const config = readFileSync(resolve(import.meta.dirname, "../../../wrangler.jsonc"), "utf8");
+  const setting = (key: string) => Number(new RegExp(`"${key}":\\s*(\\d+)`).exec(config)?.[1]);
+
+  it("matches the limits the consumer code assumes", () => {
+    expect(setting("max_retries")).toBe(EDGE_PURGE_MAX_RETRIES);
+    expect(setting("max_concurrency")).toBe(1);
+    // Two handle tags per edit plus the shared tags stay under one purge.
+    expect(setting("max_batch_size") * 2 + 3).toBeLessThanOrEqual(MAX_TAGS_PER_PURGE);
+    expect(config).toContain('"dead_letter_queue": "clickfolio-cache-purge-dlq"');
   });
 });
 

@@ -13,6 +13,7 @@ import { getDb, type Database } from "@/lib/db";
 import { user as users } from "@/lib/db/schema";
 import { collectR2KeysForUser } from "@/lib/r2";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { scheduleR2Deletion } from "@/lib/workflows/r2-delete";
 
 export const dynamic = "force-dynamic";
@@ -243,6 +244,7 @@ export async function POST(request: Request): Promise<Response> {
 
       await db.delete(users).where(eq(users.clerkId, payload.id));
       notifyIndexNowForProfiles([mapped?.handle]);
+      revalidatePublicProfilePages([mapped?.handle]);
       const outcome: WebhookOutcome = { received: true, action: "deleted" };
 
       return Response.json(outcome);

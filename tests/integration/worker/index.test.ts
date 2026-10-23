@@ -3,6 +3,7 @@ import worker from "@/worker/index";
 import { verifyClerkToken } from "@/lib/auth/clerk";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
+import { fakeBatch, fakeMessage } from "@/tests/helpers/queue";
 
 vi.mock("cloudflare:workers", () => ({
   env: {},
@@ -28,6 +29,13 @@ vi.mock("@/lib/workflows/resume-parse-workflow", () => ({
 
 vi.mock("@/lib/workflows/r2-delete-workflow", () => ({
   R2DeleteWorkflow: class R2DeleteWorkflow {},
+}));
+
+// The Workers Cache entrypoints extend `cloudflare:workers` WorkerEntrypoint; the
+// worker only re-exports them.
+vi.mock("@vinext/cloudflare/cache/cdn-adapter.worker", () => ({
+  VinextCachedResponse: class VinextCachedResponse {},
+  VinextUncachedResponse: class VinextUncachedResponse {},
 }));
 
 vi.mock("vinext/server/app-router-entry", () => ({
@@ -403,6 +411,37 @@ describe("Worker shared-cache privacy", () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+});
+
+describe("Worker edge purge consumer", () => {
+  beforeEach(resetAll);
+
+  it("purges the batch's tags through the cached entrypoint", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const purge = vi.fn<(options: { tags: string[] }) => Promise<{ success: boolean }>>(
+      async () => ({ success: true }),
+    );
+
+    const entrypoint = vi.fn(() => ({ purge }));
+
+    // The consumer reads only ctx.exports.VinextCachedResponse.
+    const ctx = Object.assign(makeCtx(), { exports: { VinextCachedResponse: entrypoint } });
+
+    const tags = ["vinext-0123456789abcdef0123456789abcdef"];
+    const message = fakeMessage("m1", { tags });
+
+    const done = worker.queue(fakeBatch([message]), makeEnv(), ctx);
+
+    await vi.runAllTimersAsync();
+    await done;
+    vi.useRealTimers();
+
+    expect(entrypoint).toHaveBeenCalledWith({ props: {} });
+    expect(purge).toHaveBeenCalledWith({ tags });
+    expect(message.ack).toHaveBeenCalledTimes(1);
   });
 });
 
