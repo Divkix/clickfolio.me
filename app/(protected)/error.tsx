@@ -2,6 +2,7 @@
 
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
+import { reportBoundaryError } from "@/lib/telemetry/browser";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,9 @@ export default function ProtectedError({
   reset: () => void;
 }) {
   useEffect(() => {
-    log("error", "Protected route error:", { ...errorFields(error) });
+    const fields = errorFields(error);
+    log("error", "Protected route error:", fields);
+    reportBoundaryError(fields);
   }, [error]);
 
   return (

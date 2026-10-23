@@ -37,6 +37,8 @@ allowBuilds:
   better-sqlite3: false
   core-js: true
   esbuild: true
+  # Its postinstall only warns about dependents' version ranges; nothing needs it.
+  protobufjs: false
   sharp: true
   workerd: true
 catalog:

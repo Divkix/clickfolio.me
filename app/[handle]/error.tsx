@@ -2,6 +2,7 @@
 
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
+import { reportBoundaryError } from "@/lib/telemetry/browser";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -16,7 +17,9 @@ export default function ProfileError({
   reset: () => void;
 }) {
   useEffect(() => {
-    log("error", "Public profile error:", { ...errorFields(error) });
+    const fields = errorFields(error);
+    log("error", "Public profile error:", fields);
+    reportBoundaryError(fields);
   }, [error]);
 
   return (
