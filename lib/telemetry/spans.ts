@@ -6,7 +6,9 @@
  *
  * Attributes: enums, counts and opaque DB ids only, never PII, SQL values or
  * message text. The runtime doesn't expose trace or span ids yet
- * (`spanContext()` is "planned"), so nothing can be propagated by hand.
+ * (`spanContext()` is "planned"), so nothing can be propagated by hand:
+ * Workflow runs are linked to the request that started them by `resume.id`
+ * and `workflow.instance_id` attributes instead.
  */
 import * as workers from "cloudflare:workers";
 import { errorFields } from "../utils/error-fields";
@@ -67,4 +69,9 @@ export function startSpan(name: string, attributes: SpanAttributes): ManualSpan 
       span.end();
     },
   };
+}
+
+/** Attributes on the span already active, such as a Durable Object's request span. */
+export function annotateActiveSpan(attributes: SpanAttributes): void {
+  tracing?.getActiveSpan()?.setAttributes(attributes);
 }

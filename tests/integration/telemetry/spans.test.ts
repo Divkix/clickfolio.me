@@ -1,6 +1,7 @@
 import type { PoolClient, QueryResult } from "pg";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { SpanAttributes } from "@/lib/telemetry/spans";
+import type { ResumeParseWorkflowBinding } from "@/lib/workflows/resume-parse";
 
 type SpanException = Parameters<Span["recordException"]>[0];
 
@@ -50,12 +51,14 @@ vi.mock("cloudflare:workers", () => {
         }
       },
       startSpan: span,
-      getActiveSpan: () => undefined,
+      getActiveSpan: () => span("root"),
     },
   };
 });
 
-const { withSpan } = await import("@/lib/telemetry/spans");
+const { annotateActiveSpan, withSpan } = await import("@/lib/telemetry/spans");
+
+const { startResumeParse } = await import("@/lib/workflows/resume-parse");
 
 const { describeStatement, traceQueries } = await import("@/lib/db/query-spans");
 
@@ -92,6 +95,42 @@ describe("withSpan", () => {
 
     expect(recorded[0].exceptions).toEqual([
       expect.objectContaining({ name: "TypeError", message: "no profile for [email]" }),
+    ]);
+  });
+});
+
+describe("trace linking", () => {
+  it("tags the workflow.create span with the ids the run's step spans repeat", async () => {
+    const create = vi.fn<ResumeParseWorkflowBinding["create"]>();
+
+    const workflow: Pick<ResumeParseWorkflowBinding, "create" | "get"> = {
+      create,
+      get: vi.fn(),
+    };
+
+    await startResumeParse(workflow, "resume-1", { kind: "await-cache", resumeId: "resume-1" });
+
+    expect(create).toHaveBeenCalledOnce();
+    expect(recorded).toEqual([
+      {
+        name: "workflow.create clickfolio-resume-parse",
+        attributes: {
+          "workflow.name": "clickfolio-resume-parse",
+          "workflow.instance_id": "resume-1",
+          "workflow.params.kind": "await-cache",
+          "resume.id": "resume-1",
+        },
+        exceptions: [],
+        ended: true,
+      },
+    ]);
+  });
+
+  it("annotates the span already active", () => {
+    annotateActiveSpan({ "status_do.operation": "notify" });
+
+    expect(recorded).toMatchObject([
+      { name: "root", attributes: { "status_do.operation": "notify" } },
     ]);
   });
 });

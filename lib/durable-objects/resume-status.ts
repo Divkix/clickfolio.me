@@ -4,6 +4,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { isValidResumeStatus } from "@/lib/realtime/constants";
 import type { JsonValue } from "@/lib/types/json";
+import { annotateActiveSpan } from "@/lib/telemetry/spans";
 
 interface StatusMessage {
   type: "status";
@@ -17,12 +18,16 @@ export class ClickfolioStatusDO extends DurableObject {
     const url = new URL(request.url);
 
     if (request.method === "POST" && url.pathname === "/notify") {
+      annotateActiveSpan({ "status_do.operation": "notify" });
+
       return this.handleNotify(request);
     }
 
     const upgradeHeader = request.headers.get("Upgrade");
 
     if (upgradeHeader?.toLowerCase() === "websocket") {
+      annotateActiveSpan({ "status_do.operation": "websocket_upgrade" });
+
       return this.handleWebSocketUpgrade(request);
     }
 
@@ -88,7 +93,10 @@ export class ClickfolioStatusDO extends DurableObject {
     // SAFETY: stored watermark is written only above as a finite number; Number.isFinite re-narrows unknown storage output.
     const storedRank = Number.isFinite(storedVersion) ? (storedVersion as number) : undefined;
 
-    if (version !== undefined && storedRank !== undefined && version <= storedRank) {
+    const stale = version !== undefined && storedRank !== undefined && version <= storedRank;
+    annotateActiveSpan({ "resume.status": status, "status_do.stale": stale });
+
+    if (stale) {
       // Out-of-order notify: a newer status is already stored (and its alarm
       // state already set), so the late one must not overwrite or cancel it.
       return new Response("OK", { status: 200 });
@@ -118,6 +126,7 @@ export class ClickfolioStatusDO extends DurableObject {
 
     const payload = JSON.stringify(msg);
     const sockets = this.ctx.getWebSockets();
+    annotateActiveSpan({ "status_do.sockets": sockets.length });
 
     for (const ws of sockets) {
       try {
@@ -184,6 +193,7 @@ export class ClickfolioStatusDO extends DurableObject {
 
   async alarm(): Promise<void> {
     const sockets = this.ctx.getWebSockets();
+    annotateActiveSpan({ "status_do.sockets": sockets.length });
 
     for (const ws of sockets) {
       try {

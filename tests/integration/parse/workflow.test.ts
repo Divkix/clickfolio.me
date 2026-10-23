@@ -12,6 +12,7 @@ import type {
   WorkflowEvent,
   WorkflowStep,
   WorkflowStepConfig,
+  WorkflowStepContext,
   WorkflowStepRollbackOptions,
 } from "cloudflare:workers";
 
@@ -78,8 +79,8 @@ async function runWorkflow(
 
   async function journal<T extends Rpc.Serializable<T>>(
     name: string,
-    configOrCallback: WorkflowStepConfig | ((...args: never[]) => Promise<T>),
-    callback?: ((...args: never[]) => Promise<T>) | WorkflowStepRollbackOptions<T>,
+    configOrCallback: WorkflowStepConfig | ((context: WorkflowStepContext) => Promise<T>),
+    callback?: ((context: WorkflowStepContext) => Promise<T>) | WorkflowStepRollbackOptions<T>,
   ): Promise<T> {
     doStep(name, configOrCallback, callback);
 
@@ -95,8 +96,14 @@ async function runWorkflow(
 
     if (!(execute instanceof Function)) throw new Error("Missing workflow callback");
 
-    const result = await Promise.resolve(execute()).catch((error: Error) => {
-      if (name === "parse" && retryParseOnce && error.name === "Error") return execute();
+    const context = (attempt: number): WorkflowStepContext => ({
+      step: { name, count: 1 },
+      attempt,
+      config: {},
+    });
+
+    const result = await Promise.resolve(execute(context(1))).catch((error: Error) => {
+      if (name === "parse" && retryParseOnce && error.name === "Error") return execute(context(2));
 
       throw error;
     });

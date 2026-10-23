@@ -1,7 +1,20 @@
 import type { ResumeParseJob } from "../parse/pipeline";
+import { withSpan } from "../telemetry/spans";
 
 // Trigger side of ResumeParseWorkflow. Kept apart from the class so routes can
-// start runs without importing `cloudflare:workers`.
+// start runs without importing `WorkflowEntrypoint` and the parse pipeline.
+
+// `workflows[].name` in wrangler.jsonc.
+const WORKFLOW_NAME = "clickfolio-resume-parse";
+
+/** Links a run's step spans to the `workflow.create` span of the request that started it. */
+export function parseRunAttributes(instanceId: string, resumeId: string) {
+  return {
+    "workflow.name": WORKFLOW_NAME,
+    "workflow.instance_id": instanceId,
+    "resume.id": resumeId,
+  };
+}
 
 export type ResumeParseParams =
   | ({ kind: "parse" } & ResumeParseJob)
@@ -20,15 +33,24 @@ export function parseInstanceId(resumeId: string, retryCount = 0): string {
  * key: a create that errored after the instance was persisted is not an error.
  */
 export async function startResumeParse(
-  workflow: ResumeParseWorkflowBinding,
+  workflow: Pick<ResumeParseWorkflowBinding, "create" | "get">,
   id: string,
   params: ResumeParseParams,
 ): Promise<void> {
-  try {
-    await workflow.create({ id, params });
-  } catch (error) {
-    const existing = await workflow.get(id).catch(() => null);
+  // The runtime exposes no trace context to pass on, so the run's step spans
+  // repeat these ids instead.
+  const attributes = {
+    ...parseRunAttributes(id, params.resumeId),
+    "workflow.params.kind": params.kind,
+  };
 
-    if (!existing) throw error;
-  }
+  await withSpan(`workflow.create ${WORKFLOW_NAME}`, attributes, async () => {
+    try {
+      await workflow.create({ id, params });
+    } catch (error) {
+      const existing = await workflow.get(id).catch(() => null);
+
+      if (!existing) throw error;
+    }
+  });
 }
