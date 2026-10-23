@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { type Database, getDb } from "@/lib/db";
@@ -123,17 +124,7 @@ export async function checkRateLimit(
         : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
     };
   } catch (error) {
-    const cause = error instanceof Error ? error.cause : undefined;
-
-    log("error", `Rate limit check failed for ${action}`, {
-      error: String(error),
-      cause:
-        cause instanceof Error
-          ? cause.message
-          : cause === undefined
-            ? undefined
-            : JSON.stringify(cause),
-    });
+    log("error", `Rate limit check failed for ${action}`, errorFields(error));
 
     return {
       allowed: false,

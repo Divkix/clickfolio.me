@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import {
   buildSitemapIndexXml,
   getSitemapShardCount,
@@ -19,7 +20,7 @@ export async function GET(): Promise<Response> {
       },
     });
   } catch (error) {
-    log("error", "[sitemap-index] Error generating sitemap index:", { error: String(error) });
+    log("error", "[sitemap-index] Error generating sitemap index:", { ...errorFields(error) });
 
     return new Response("Internal Server Error", { status: 500 });
   }

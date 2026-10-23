@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { getR2Binding } from "@/lib/r2";
 import { getDb } from "@/lib/db";
@@ -123,7 +124,7 @@ export async function GET() {
 
     return createSuccessResponse(response, httpStatus);
   } catch (error) {
-    log("error", "Health check error:", { error: String(error) });
+    log("error", "Health check error:", { ...errorFields(error) });
 
     return createErrorResponse(
       error instanceof Error ? error.message : "Unknown error",

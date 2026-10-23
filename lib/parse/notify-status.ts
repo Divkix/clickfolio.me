@@ -1,5 +1,6 @@
 import type { ResumeStatus } from "../db/schema/resume";
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 
 type NotifyBody = { status: ResumeStatus; error?: string; version?: number };
 
@@ -38,7 +39,10 @@ export async function notifyStatusChange({
       throw new Error(`status DO rejected notify: ${response.status}`);
     }
   } catch (err) {
-    log("error", "notify-status: failed to notify DO for resume", { resumeId, error: String(err) });
+    log("error", "notify-status: failed to notify DO for resume", {
+      resumeId,
+      ...errorFields(err),
+    });
   }
 }
 

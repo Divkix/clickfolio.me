@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { getR2Binding, R2 } from "@/lib/r2";
@@ -180,7 +181,7 @@ export async function POST(request: Request) {
         },
       });
     } catch (r2Error) {
-      log("error", "R2 upload error:", { error: String(r2Error) });
+      log("error", "R2 upload error:", { ...errorFields(r2Error) });
 
       return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
@@ -211,7 +212,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    log("error", "Error uploading file:", { error: String(error) });
+    log("error", "Error uploading file:", { ...errorFields(error) });
 
     return createErrorResponse("Failed to upload file", ERROR_CODES.INTERNAL_ERROR, 500);
   }

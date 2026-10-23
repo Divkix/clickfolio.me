@@ -9,6 +9,7 @@ import type { ResumeContent } from "@/lib/types/database";
 import { sha256Hex } from "@/lib/utils/hash";
 import { ERROR_CODES } from "@/lib/utils/security-headers";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 import { deleteR2Objects, type R2DeleteWorkflowBinding } from "@/lib/workflows/r2-delete";
 import {
@@ -70,7 +71,7 @@ async function deleteTempObject(r2: R2Bucket, key: string): Promise<void> {
   await R2.delete(r2, key).catch((error) => {
     log("warn", "temp R2 delete failed; lifecycle rule will expire it", {
       key,
-      error: String(error),
+      ...errorFields(error),
     });
   });
 }
@@ -135,7 +136,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       return claimError("Invalid PDF format", "VALIDATION_ERROR", 400);
     }
   } catch (error) {
-    log("error", "Error fetching file from R2", { error: String(error) });
+    log("error", "Error fetching file from R2", { ...errorFields(error) });
 
     if (isLikelyMissingObjectError(error)) {
       try {
@@ -144,7 +145,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
         if (existing) return alreadyClaimed(existing);
       } catch (recentResumeError) {
         log("error", "Error checking recent resumes after R2 fetch failure", {
-          error: String(recentResumeError),
+          ...errorFields(recentResumeError),
         });
       }
     }
@@ -337,7 +338,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
       return completed;
     } catch (updateError) {
-      log("error", "Failed to update resume with cached content", { error: String(updateError) });
+      log("error", "Failed to update resume with cached content", { ...errorFields(updateError) });
 
       return false;
     }
@@ -349,7 +350,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     try {
       await moveTempFile(r2, tempKey, newKey, fileBuffer);
     } catch (r2Error) {
-      log("error", "R2 operations failed for cached resume", { error: String(r2Error) });
+      log("error", "R2 operations failed for cached resume", { ...errorFields(r2Error) });
 
       return failClaim("Failed to store file for processing", "EXTERNAL_SERVICE_ERROR");
     }
@@ -378,7 +379,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     try {
       await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
     } catch (error) {
-      log("error", "R2 operations failed for waiting resume", { error: String(error) });
+      log("error", "R2 operations failed for waiting resume", { ...errorFields(error) });
 
       return failClaim("Failed to store file for processing", "EXTERNAL_SERVICE_ERROR");
     }
@@ -398,7 +399,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
       await deleteTempObject(r2, tempKey);
     } catch (waitError) {
-      log("error", "Failed to set waiting_for_cache status", { error: String(waitError) });
+      log("error", "Failed to set waiting_for_cache status", { ...errorFields(waitError) });
       await deleteR2Objects(r2, r2DeleteWorkflow, [newKey]);
 
       return failClaim("Failed to prepare resume for processing", "DATABASE_ERROR");
@@ -425,7 +426,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       }).catch((error) => {
         log("error", "failed to start waiting_for_cache timer", {
           resumeId,
-          error: String(error),
+          ...errorFields(error),
         });
       });
     }
@@ -436,7 +437,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   try {
     await moveTempFile(r2, tempKey, newKey, fileBuffer);
   } catch (error) {
-    log("error", "R2 put error", { error: String(error) });
+    log("error", "R2 put error", { ...errorFields(error) });
 
     return failClaim("Failed to store file for processing", "EXTERNAL_SERVICE_ERROR");
   }
@@ -456,7 +457,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       return failClaim("Failed to update resume status", "DATABASE_ERROR");
     }
   } catch (updateError) {
-    log("error", "Failed to update resume with queued status", { error: String(updateError) });
+    log("error", "Failed to update resume with queued status", { ...errorFields(updateError) });
 
     return failClaim("Failed to update resume status", "DATABASE_ERROR");
   }
@@ -483,7 +484,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       fileHash: computedFileHash,
     });
   } catch (workflowError) {
-    log("error", "Failed to start resume parse workflow", { error: String(workflowError) });
+    log("error", "Failed to start resume parse workflow", { ...errorFields(workflowError) });
 
     return failUnstarted();
   }

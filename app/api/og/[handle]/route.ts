@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { Resvg } from "@cf-wasm/resvg/workerd";
 import { eq } from "drizzle-orm";
@@ -167,7 +168,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
       },
     });
   } catch (error) {
-    log("error", "OG image generation error:", { error: String(error) });
+    log("error", "OG image generation error:", { ...errorFields(error) });
 
     return renderLastResort();
   }

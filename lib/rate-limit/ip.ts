@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb, type Database } from "@/lib/db";
@@ -161,7 +162,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     } catch (insertError) {
       // Fail closed: dropping the increment would let every request in a
       // DB-error window through unmetered.
-      log("error", "Failed to record rate limit", { error: String(insertError) });
+      log("error", "Failed to record rate limit", { ...errorFields(insertError) });
 
       return {
         allowed: false,
@@ -178,7 +179,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       },
     };
   } catch (error) {
-    log("error", "Rate limit check failed", { error: String(error) });
+    log("error", "Rate limit check failed", { ...errorFields(error) });
 
     return {
       allowed: false,
@@ -273,7 +274,7 @@ async function checkHourlyActionLimit(
         };
       }
     } catch (insertError) {
-      log("error", `Failed to record rate limit: ${actionType}`, { error: String(insertError) });
+      log("error", `Failed to record rate limit: ${actionType}`, { ...errorFields(insertError) });
     }
 
     return {
@@ -284,7 +285,7 @@ async function checkHourlyActionLimit(
       },
     };
   } catch (error) {
-    log("error", checkErrorLabel, { error: String(error) });
+    log("error", checkErrorLabel, { ...errorFields(error) });
 
     return {
       allowed: true,

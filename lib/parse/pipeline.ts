@@ -19,6 +19,7 @@ import {
 } from "./failures";
 import { notifyStatusChange } from "./notify-status";
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 
 // Step bodies of ResumeParseWorkflow (lib/workflows/resume-parse-workflow.ts).
 // Each one is safe to re-run: the workflow retries a step until it returns, and
@@ -44,7 +45,7 @@ async function ignoreAndLog(task: () => Promise<void>, message: string): Promise
   try {
     await task();
   } catch (cause) {
-    log("error", message, { error: String(cause) });
+    log("error", message, errorFields(cause));
   }
 }
 
@@ -184,7 +185,7 @@ export function parseResumePdf(
           Effect.sync(() =>
             log("error", "failed to record parse attempt", {
               resumeId: job.resumeId,
-              error: error.message,
+              ...errorFields(error),
             }),
           ),
         ),

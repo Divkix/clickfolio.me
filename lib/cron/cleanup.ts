@@ -4,6 +4,7 @@ import { handleChanges, resumes, uploadRateLimits } from "@/lib/db/schema";
 import { deleteR2Objects, type R2DeleteWorkflowBinding } from "../workflows/r2-delete";
 import type { UnknownRecord } from "../types/json";
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 
 const FAILED_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -91,7 +92,7 @@ export async function performCleanup(
       }
     }
   } catch (error) {
-    log("error", "failed-resume auto-purge failed", { error: String(error) });
+    log("error", "failed-resume auto-purge failed", { ...errorFields(error) });
   }
 
   return {

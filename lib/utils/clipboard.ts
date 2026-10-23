@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -6,7 +7,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    log("error", "Failed to copy to clipboard", { error: String(error) });
+    log("error", "Failed to copy to clipboard", { ...errorFields(error) });
 
     return false;
   }

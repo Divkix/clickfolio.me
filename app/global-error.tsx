@@ -1,6 +1,7 @@
 "use client";
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -11,7 +12,7 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    log("error", "Global error boundary caught:", { error: String(error) });
+    log("error", "Global error boundary caught:", { ...errorFields(error) });
   }, [error]);
 
   return (

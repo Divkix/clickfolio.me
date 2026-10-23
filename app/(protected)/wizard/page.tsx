@@ -3,6 +3,7 @@
 export const revalidate = 86400;
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -200,7 +201,7 @@ function useWizardInit() {
           }
         } catch (cookieError) {
           if (!active) return;
-          log("warn", "Failed to read pending upload cookie:", { error: String(cookieError) });
+          log("warn", "Failed to read pending upload cookie:", { ...errorFields(cookieError) });
         }
 
         if (tempKey && !hasClaimedRef.current) {
@@ -238,7 +239,7 @@ function useWizardInit() {
             }
           } catch (claimError) {
             if (!active) return;
-            log("error", "Claim error:", { error: String(claimError) });
+            log("error", "Claim error:", { ...errorFields(claimError) });
             setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
 
             await clearPendingUploadCookie();
@@ -298,7 +299,7 @@ function useWizardInit() {
         setState((prev) => ({ ...prev, currentStepId: "upload" }));
       } catch (err) {
         if (!active) return;
-        log("error", "Error initializing wizard:", { error: String(err) });
+        log("error", "Error initializing wizard:", { ...errorFields(err) });
         setError("Failed to load resume data. Please try again.");
       } finally {
         if (active) {
@@ -423,7 +424,7 @@ export default function WizardPage() {
 
       setShowLiveModal(true);
     } catch (err) {
-      log("error", "Error completing wizard:", { error: String(err) });
+      log("error", "Error completing wizard:", { ...errorFields(err) });
       const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
       toast.error(errorMessage);

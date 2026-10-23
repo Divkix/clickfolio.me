@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { z } from "zod";
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
 
     return createSuccessResponse({ success: true });
   } catch (error) {
-    log("error", "Error setting pending upload cookie:", { error: String(error) });
+    log("error", "Error setting pending upload cookie:", { ...errorFields(error) });
 
     return createErrorResponse("Failed to save upload", ERROR_CODES.INTERNAL_ERROR, 500);
   }
@@ -98,7 +99,7 @@ export async function GET() {
 
     return createSuccessResponse({ key: parsed.tempKey });
   } catch (error) {
-    log("error", "Error reading pending upload cookie:", { error: String(error) });
+    log("error", "Error reading pending upload cookie:", { ...errorFields(error) });
 
     return createSuccessResponse({ key: null });
   }
@@ -111,7 +112,7 @@ export async function DELETE() {
 
     return createSuccessResponse({ success: true });
   } catch (error) {
-    log("error", "Error clearing pending upload cookie:", { error: String(error) });
+    log("error", "Error clearing pending upload cookie:", { ...errorFields(error) });
 
     return createSuccessResponse({ success: true });
   }

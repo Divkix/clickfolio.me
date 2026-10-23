@@ -1,4 +1,5 @@
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import type { MetadataRoute } from "next";
 import { z } from "zod";
@@ -173,7 +174,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
       });
     }
   } catch (error) {
-    log("error", `Failed to generate sitemap ${id}`, { error: String(error) });
+    log("error", `Failed to generate sitemap ${id}`, { ...errorFields(error) });
   }
 
   if (id !== 0) return userEntries;

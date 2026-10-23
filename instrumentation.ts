@@ -6,6 +6,7 @@
  * and bodies are never logged.
  */
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 interface OnRequestErrorContext {
   routerKind: "Pages Router" | "App Router";
@@ -20,8 +21,7 @@ export function onRequestError(
   context: OnRequestErrorContext,
 ): void {
   log("error", "Unhandled request error", {
-    error: error.message,
-    stack: error.stack,
+    ...errorFields(error),
     path: request.path,
     method: request.method,
     routePath: context.routePath,

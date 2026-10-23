@@ -2,6 +2,7 @@ import { waitUntil } from "cloudflare:workers";
 import { siteConfig } from "@/lib/config/site";
 import { profileUrls, submitToIndexNow } from "@/lib/seo/indexnow";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 /** A URL submitted within this window is skipped: search engines coalesce pings anyway. */
 const DEBOUNCE_SECONDS = 10 * 60;
@@ -74,7 +75,7 @@ async function submitProfiles(urls: string[]): Promise<void> {
       statuses: result.statuses,
     });
   } catch (error) {
-    log("warn", "indexnow submission failed", { error: String(error) });
+    log("warn", "indexnow submission failed", { ...errorFields(error) });
   }
 }
 
@@ -92,6 +93,6 @@ export function notifyIndexNowForProfiles(handles: ReadonlyArray<string | null |
   try {
     waitUntil(submitProfiles(urls));
   } catch (error) {
-    log("warn", "indexnow waitUntil registration failed", { error: String(error) });
+    log("warn", "indexnow waitUntil registration failed", { ...errorFields(error) });
   }
 }

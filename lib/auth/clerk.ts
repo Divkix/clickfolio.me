@@ -6,6 +6,7 @@
  */
 
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { verifyToken } from "@clerk/backend";
 import { cookies } from "next/headers";
@@ -57,7 +58,7 @@ export async function verifyClerkToken(token: string): Promise<ClerkClaims | nul
       iat: payload.iat,
     };
   } catch (error) {
-    log("warn", "[clerk] session token verification failed", { error: String(error) });
+    log("warn", "[clerk] session token verification failed", { ...errorFields(error) });
 
     return null;
   }
@@ -125,7 +126,7 @@ export async function getAuthClerk(request?: Request): Promise<ClerkAuthContext 
   try {
     return await resolveClaims(request);
   } catch (error) {
-    log("error", "[clerk] failed to resolve session", { error: String(error) });
+    log("error", "[clerk] failed to resolve session", { ...errorFields(error) });
 
     return null;
   }

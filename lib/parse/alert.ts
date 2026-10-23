@@ -1,4 +1,5 @@
 import { log } from "../utils/log";
+import { errorFields } from "../utils/error-fields";
 import type { UnknownRecord } from "../types/json";
 
 export type AlertChannel = "logpush" | "webhook";
@@ -47,7 +48,7 @@ export async function sendAlert(
             }),
           });
         } catch (error) {
-          log("error", "webhook alert failed", { error: String(error) });
+          log("error", "webhook alert failed", errorFields(error));
         }
       }
 
