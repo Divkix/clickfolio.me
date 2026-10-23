@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { PdfInvalid } from "@/lib/parse/failures";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
-import type { GenerateTextResult, ToolSet } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { textResult } from "@/tests/helpers/ai-result";
 import { parseJsonWithRepairEffect, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
 import { parseWithAiEffect } from "@/lib/ai/ai-parser";
@@ -165,11 +165,6 @@ const VALID_AI_RESPONSE = {
   certifications: [],
   projects: [],
 };
-
-function textResult(text: string): GenerateTextResult<ToolSet, never, never> {
-  // SAFETY: parseWithAiEffect destructures only `text` from the generateText result (lib/ai/ai-parser.ts:297) and parseResumeWithAi delegates to it, so every other result member (output, usage, finishReason, response, providerMetadata, ...) is never read by the code under test.
-  return { text } as GenerateTextResult<ToolSet, never, never>;
-}
 
 function parseWithAi(text: string, env: Parameters<typeof parseWithAiEffect>[1]) {
   return Effect.runPromise(

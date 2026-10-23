@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { generateText, type GenerateTextResult, type ToolSet } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { textResult } from "@/tests/helpers/ai-result";
 import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai";
 import { extractPdfTextEffect } from "@/lib/ai/pdf-extract";
@@ -62,11 +63,6 @@ const CONTENT = {
 
 function pdfBuffer() {
   return new TextEncoder().encode("%PDF-1.4 original bytes").buffer;
-}
-
-function textResult(text: string): GenerateTextResult<ToolSet, never, never> {
-  // SAFETY: the production adapter only reads text from the SDK result.
-  return { text } as GenerateTextResult<ToolSet, never, never>;
 }
 
 beforeEach(() => {

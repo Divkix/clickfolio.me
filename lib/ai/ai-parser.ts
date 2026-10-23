@@ -3,6 +3,7 @@ import { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failu
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 import type { UnknownRecord } from "@/lib/types/json";
+import { withSpan } from "@/lib/telemetry/spans";
 import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import {
@@ -16,6 +17,9 @@ import { LINKEDIN_PROMPT_RULES, type ResumeSource } from "./linkedin";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
 
 const TIMEOUT_MS = 60_000;
+
+// AI Gateway route, and `gen_ai.provider.name` on AI spans.
+const AI_PROVIDER = "openrouter";
 
 interface ParseEvent {
   modelId: string;
@@ -75,8 +79,8 @@ export function createAiProvider(env: Partial<AiEnvVars>): AiProvider {
   }
 
   return createOpenAICompatible({
-    name: "openrouter",
-    baseURL: `https://gateway.ai.cloudflare.com/v1/${gatewayAccountId}/${gatewayId}/openrouter`,
+    name: AI_PROVIDER,
+    baseURL: `https://gateway.ai.cloudflare.com/v1/${gatewayAccountId}/${gatewayId}/${AI_PROVIDER}`,
     headers: {
       "cf-aig-authorization": `Bearer ${gatewayAuthToken}`,
     },
@@ -197,8 +201,31 @@ export function generateAiText(
   options: Parameters<typeof generateText>[0],
   timeoutMs: number = TIMEOUT_MS,
 ): Effect.Effect<string, AiProviderFailed | AiTimedOut> {
+  const model = options.model instanceof Object ? options.model.modelId : options.model;
+
   return Effect.tryPromise({
-    try: (signal) => generateText({ ...options, abortSignal: signal }),
+    // OTel GenAI client inference span: "{operation} {model}", token usage, finish reason.
+    try: (signal) =>
+      withSpan(
+        `chat ${model}`,
+        {
+          "gen_ai.operation.name": "chat",
+          "gen_ai.provider.name": AI_PROVIDER,
+          "gen_ai.request.model": model,
+        },
+        async (annotate) => {
+          const result = await generateText({ ...options, abortSignal: signal });
+
+          annotate({
+            "gen_ai.response.model": result.response.modelId,
+            "gen_ai.response.finish_reasons": result.finishReason,
+            "gen_ai.usage.input_tokens": result.usage.inputTokens,
+            "gen_ai.usage.output_tokens": result.usage.outputTokens,
+          });
+
+          return result;
+        },
+      ),
     catch: aiProviderFailure,
   }).pipe(
     Effect.map((result) => result.text),
