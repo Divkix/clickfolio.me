@@ -89,7 +89,7 @@ export default function RootLayout({
         />
         <script
           defer
-          src="https://analytics.divkix.me/script.js"
+          src="https://analytics.divkix.me/s.js"
           data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
           data-performance="true"
           data-before-send="umamiBeforeSend"
