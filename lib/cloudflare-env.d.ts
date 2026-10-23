@@ -7,6 +7,7 @@ interface __BaseEnv_CloudflareEnv {
 	EMAIL: SendEmail;
 	ASSETS: Fetcher;
 	EMAIL_FROM: "notifications@clickfolio.me";
+	OTEL_COLLECTOR_URL: "https://otel.divkix.me";
 	NODE_ENV: string;
 	DISABLE_RATE_LIMITS: string;
 	APP_URL: string;
@@ -33,6 +34,7 @@ interface __BaseEnv_CloudflareEnv {
 	CLERK_SECRET_KEY: string;
 	CLERK_WEBHOOK_SECRET: string;
 	CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: string;
+	OTEL_BROWSER_INGEST_KEY: string;
 	CLICKFOLIO_STATUS_DO: DurableObjectNamespace<import("../worker/index").ClickfolioStatusDO>;
 	CLICKFOLIO_PARSE_WORKFLOW: Workflow<Parameters<import("../worker/index").ResumeParseWorkflow['run']>[0]['payload']>;
 	CLICKFOLIO_R2_DELETE_WORKFLOW: Workflow<Parameters<import("../worker/index").R2DeleteWorkflow['run']>[0]['payload']>;
@@ -49,7 +51,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "EMAIL_FROM" | "NODE_ENV" | "DISABLE_RATE_LIMITS" | "APP_URL" | "PENDING_UPLOAD_SECRET" | "UNOSEND_API_KEY" | "NEXT_PUBLIC_SITE_NAME" | "NEXT_PUBLIC_SITE_TLD" | "NEXT_PUBLIC_SITE_DOMAIN" | "NEXT_PUBLIC_SITE_TAGLINE" | "NEXT_PUBLIC_SUPPORT_EMAIL" | "CF_CACHE_PURGE_API_TOKEN" | "AI_MODEL" | "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN" | "AI_REASONING_EFFORT" | "NEXT_PUBLIC_UMAMI_WEBSITE_ID" | "UMAMI_API_URL" | "UMAMI_USERNAME" | "UMAMI_PASSWORD" | "GOOGLE_SITE_VERIFICATION" | "BING_SITE_VERIFICATION" | "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" | "CLERK_SECRET_KEY" | "CLERK_WEBHOOK_SECRET" | "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "EMAIL_FROM" | "OTEL_COLLECTOR_URL" | "NODE_ENV" | "DISABLE_RATE_LIMITS" | "APP_URL" | "PENDING_UPLOAD_SECRET" | "UNOSEND_API_KEY" | "NEXT_PUBLIC_SITE_NAME" | "NEXT_PUBLIC_SITE_TLD" | "NEXT_PUBLIC_SITE_DOMAIN" | "NEXT_PUBLIC_SITE_TAGLINE" | "NEXT_PUBLIC_SUPPORT_EMAIL" | "CF_CACHE_PURGE_API_TOKEN" | "AI_MODEL" | "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN" | "AI_REASONING_EFFORT" | "NEXT_PUBLIC_UMAMI_WEBSITE_ID" | "UMAMI_API_URL" | "UMAMI_USERNAME" | "UMAMI_PASSWORD" | "GOOGLE_SITE_VERIFICATION" | "BING_SITE_VERIFICATION" | "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" | "CLERK_SECRET_KEY" | "CLERK_WEBHOOK_SECRET" | "CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE" | "OTEL_BROWSER_INGEST_KEY">> {}
 }
 declare module "*.txt" {
 	const value: string;

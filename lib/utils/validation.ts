@@ -91,6 +91,41 @@ export function validateRequestSize(
   return { valid: true };
 }
 
+/** The body's bytes, or null once it passes `maxSizeBytes` (chunked bodies have no Content-Length). */
+export async function readBodyWithLimit(
+  body: ReadableStream<Uint8Array>,
+  maxSizeBytes: number,
+): Promise<Uint8Array<ArrayBuffer> | null> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) break;
+    total += value.byteLength;
+
+    if (total > maxSizeBytes) {
+      await reader.cancel();
+
+      return null;
+    }
+
+    chunks.push(value);
+  }
+
+  const buf = new Uint8Array(total);
+  let offset = 0;
+
+  for (const c of chunks) {
+    buf.set(c, offset);
+    offset += c.byteLength;
+  }
+
+  return buf;
+}
+
 export async function readJsonWithLimit(
   request: Request,
   maxSizeBytes: number = 5_000_000,
@@ -101,38 +136,14 @@ export async function readJsonWithLimit(
     return { ok: true, data: undefined };
   }
 
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
+  const buf = await readBodyWithLimit(request.body, maxSizeBytes);
 
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) break;
-
-    if (value) {
-      total += value.byteLength;
-
-      if (total > maxSizeBytes) {
-        await reader.cancel();
-
-        return {
-          ok: false,
-          reason: "too_large",
-          error: `Request body too large. Maximum size is ${(maxSizeBytes / 1_000_000).toFixed(1)}MB.`,
-        };
-      }
-
-      chunks.push(value);
-    }
-  }
-
-  const buf = new Uint8Array(total);
-  let offset = 0;
-
-  for (const c of chunks) {
-    buf.set(c, offset);
-    offset += c.byteLength;
+  if (!buf) {
+    return {
+      ok: false,
+      reason: "too_large",
+      error: `Request body too large. Maximum size is ${(maxSizeBytes / 1_000_000).toFixed(1)}MB.`,
+    };
   }
 
   try {

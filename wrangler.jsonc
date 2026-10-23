@@ -137,5 +137,7 @@
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
     "AI_MODEL": "openai/gpt-6-luna:nitro",
     "AI_REASONING_EFFORT": "medium",
+    // Browser telemetry ingest (/otel proxy). The key is the secret OTEL_BROWSER_INGEST_KEY.
+    "OTEL_COLLECTOR_URL": "https://otel.divkix.me",
   },
 }

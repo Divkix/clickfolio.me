@@ -30,8 +30,9 @@ Use the Node version in `.node-version` and pnpm 12.14.0.
 ## Repo map (non-obvious parts only)
 
 ```
-worker/index.ts        real Worker entry: scanner-probe 404s → WS /ws/resume-status → vinext;
+worker/index.ts        real Worker entry: scanner-probe 404s → /otel ingest proxy → WS /ws/resume-status → vinext;
                        also scheduled() cron + re-exports Workflow classes
+lib/worker/otel-proxy  POST /otel/v1/{traces,logs} → OTEL_COLLECTOR_URL with the OTEL_BROWSER_INGEST_KEY secret
 proxy.ts               edge gate (replaces middleware.ts): __session presence check
 lib/resume/            single owners: lifecycle.ts (status/retry rules), claim-intake.ts, completion.ts
 lib/parse/pipeline.ts  Workflow step bodies (must be replay-safe)
@@ -87,6 +88,7 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Dependency freshness:** pnpm's default `minimumReleaseAge` (1440 minutes) applies. `pnpm-workspace.yaml` pins exact-version `minimumReleaseAgeExclude` entries for the versions admitted by the 2026-10-22 one-shot security upgrade, so future releases of those packages stay gated; delete the entries once those versions age in. Dependabot keeps its 1-day `cooldown`.
 - **Dependency PRs merge themselves** when green: `.github/workflows/dependabot-automerge.yml` squash-merges grouped/daily minor+patch Dependabot PRs only when `Code Quality`, `Tests`, `Build`, `CI Success`, `GitGuardian Security Checks` and `Workers Builds: clickfolio-me` exist as successful check runs **and** every other observed check/commit status is exactly `success` (literal green — `neutral`/`skipped` refuse). Its own check runs are excluded by workflow-run identity (`actions: read`), not by name; author, base branch, same-repo head and head SHA are re-verified on every poll and right before the merge; branch deletion comes from `delete_branch_on_merge`. Renaming one of those jobs or packages requires updating `EXPECTED_CHECKS`/the patterns in the same commit; majors stay manual (review requested). The workflow is metadata-only (no PR checkout) and only runs from `main`, so it stays inert until it lands. Repo Actions rule 7006 allows `pull_request_target` for that file + `dependabot[bot]` only.
 - **`ERR_PNPM_OUTDATED_LOCKFILE`** on a clean checkout after touching `catalog:` deps: run `pnpm install --no-frozen-lockfile` once and commit the lockfile.
+- **Browser telemetry ingest** (`/otel/v1/*`) answers 204 and drops data until the `OTEL_BROWSER_INGEST_KEY` secret is put (`wrangler secret put`); the key never ships to the client.
 - **R2 lifecycle:** `deploy.ts` runs `wrangler r2 bucket lifecycle set`, which replaces all rules — keep every rule in `r2-lifecycle.json`.
 - **Build warning** `manualChunks option is ignored because the codeSplitting option is specified` means `clientVendorSplit()` in `vite.config.ts` is currently a no-op.
 
