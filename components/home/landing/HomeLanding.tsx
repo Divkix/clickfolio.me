@@ -12,6 +12,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { saveDesiredHandle } from "@/lib/utils/desired-handle";
+import { trackEvent, type CheckedHandleStatus } from "@/lib/telemetry/browser";
 import { handleSchema } from "@/lib/schemas/profile";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
@@ -38,7 +39,7 @@ const facts = [
   { title: "Yours to delete", body: "Remove your account and every file from Settings." },
 ];
 
-type HandleStatus = "idle" | "invalid" | "checking" | "available" | "taken" | "unknown";
+type HandleStatus = "idle" | "invalid" | "checking" | CheckedHandleStatus;
 
 function useHandleStatus(handle: string): HandleStatus {
   const [checked, setChecked] = useState<{ handle: string; status: HandleStatus } | null>(null);
@@ -50,7 +51,7 @@ function useHandleStatus(handle: string): HandleStatus {
     const controller = new AbortController();
 
     const timer = window.setTimeout(async () => {
-      let status: HandleStatus = "unknown";
+      let status: CheckedHandleStatus = "unknown";
 
       try {
         const response = await fetch(`/api/handle/check?handle=${encodeURIComponent(handle)}`, {
@@ -69,6 +70,7 @@ function useHandleStatus(handle: string): HandleStatus {
       if (controller.signal.aborted) return;
 
       setChecked({ handle, status });
+      trackEvent("landing_handle_checked", { status });
     }, 350);
 
     return () => {
@@ -119,7 +121,10 @@ export function HomeLanding() {
               </h1>
               <div id="upload-card" className="relative mt-10 inline-flex rounded-full p-[2px]">
                 <div aria-hidden="true" className="landing-glow absolute inset-0 rounded-full" />
-                <UploadCTA className="relative inline-flex h-14 items-center rounded-full bg-brand px-8 text-lg font-semibold text-brand-foreground transition hover:bg-brand-hover">
+                <UploadCTA
+                  location="hero"
+                  className="relative inline-flex h-14 items-center rounded-full bg-brand px-8 text-lg font-semibold text-brand-foreground transition hover:bg-brand-hover"
+                >
                   Upload your résumé
                 </UploadCTA>
               </div>
@@ -178,6 +183,7 @@ export function HomeLanding() {
                     <span className="font-medium text-success">
                       @{handle} is free.{" "}
                       <UploadCTA
+                        location="hero_claim"
                         onBeforeOpen={() => saveDesiredHandle(handle)}
                         className="font-semibold text-brand underline underline-offset-4"
                       >
@@ -304,7 +310,10 @@ export function HomeLanding() {
             <p className="relative mx-auto mt-4 max-w-md text-brand-foreground/80">
               One PDF. Thirty seconds. A link you will use for years.
             </p>
-            <UploadCTA className="relative mt-8 inline-flex h-13 items-center rounded-full bg-white px-8 text-lg font-semibold text-[#15171a] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100">
+            <UploadCTA
+              location="footer_cta"
+              className="relative mt-8 inline-flex h-13 items-center rounded-full bg-white px-8 text-lg font-semibold text-[#15171a] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100"
+            >
               Upload my résumé
             </UploadCTA>
             <div className="relative mt-4 flex justify-center gap-2 text-sm">

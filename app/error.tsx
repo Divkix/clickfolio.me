@@ -2,6 +2,7 @@
 
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
+import { reportBoundaryError } from "@/lib/telemetry/browser";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -14,7 +15,9 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    log("error", "Error boundary caught:", { ...errorFields(error) });
+    const fields = errorFields(error);
+    log("error", "Error boundary caught:", fields);
+    reportBoundaryError(fields);
   }, [error]);
 
   return (

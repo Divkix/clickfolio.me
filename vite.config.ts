@@ -106,10 +106,22 @@ const IGNORE_PATTERNS = [
   "tools/oxlint/anti-slop/**",
 ];
 
+// Workers Builds sets these at build time:
+// https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
+function deployEnv(): "production" | "preview" | "development" {
+  if (!process.env.WORKERS_CI) return "development";
+
+  return process.env.WORKERS_CI_BRANCH === "main" ? "production" : "preview";
+}
+
 export default defineConfig(() => {
   const isTest = Boolean(process.env.VITEST);
 
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(process.env.WORKERS_CI_COMMIT_SHA?.slice(0, 12) ?? "dev"),
+      __DEPLOY_ENV__: JSON.stringify(deployEnv()),
+    },
     fmt: {
       ignorePatterns: IGNORE_PATTERNS,
     },

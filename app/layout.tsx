@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { env } from "cloudflare:workers";
 import { ClerkProvider } from "@/lib/auth/client";
+import { TelemetryIdentity } from "@/components/analytics/TelemetryIdentity";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/config/site";
@@ -79,6 +80,7 @@ export default function RootLayout({
             </a>
             {children}
             <Toaster />
+            <TelemetryIdentity />
           </ClerkProvider>
         </ThemeProvider>
         <script

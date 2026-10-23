@@ -2,6 +2,7 @@
 
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
+import { reportBoundaryError } from "@/lib/telemetry/browser";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -12,7 +13,9 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    log("error", "Global error boundary caught:", { ...errorFields(error) });
+    const fields = errorFields(error);
+    log("error", "Global error boundary caught:", fields);
+    reportBoundaryError(fields);
   }, [error]);
 
   return (

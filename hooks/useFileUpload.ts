@@ -3,6 +3,7 @@
 import type { ChangeEvent, DragEvent } from "react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { trackEvent, type UploadStage } from "@/lib/telemetry/browser";
 import {
   clearPendingUploadCookie,
   setPendingUploadCookie,
@@ -98,6 +99,9 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
       setUploadState("uploading");
       setUploadProgress(0);
       setError(null);
+      // Where it failed, for the funnel event: never the message, which can echo server text.
+      let stage: UploadStage = "read";
+      let httpStatus = 0;
 
       try {
         setUploadProgress(10);
@@ -105,6 +109,8 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         // Send a snapshot of the bytes: a File that changes on disk after the
         // user picks it (for example a cloud-synced file) makes fetch fail.
         const fileBytes = await fileToUpload.arrayBuffer();
+
+        stage = "upload";
 
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
@@ -118,6 +124,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         });
 
         if (!uploadResponse.ok) {
+          httpStatus = uploadResponse.status;
           // SAFETY: fetch JSON is bounded and validated to expected shape
           const data = (await uploadResponse.json().catch(() => ({}))) as UploadResponse;
 
@@ -149,6 +156,8 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         setUploadState("claiming");
 
         if (onClaim) {
+          stage = "claim";
+
           const claimResponse = await fetch("/api/resume/claim", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -158,6 +167,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
           });
 
           if (!claimResponse.ok) {
+            httpStatus = claimResponse.status;
             // SAFETY: fetch JSON is bounded and validated to expected shape
             const data = (await claimResponse.json().catch(() => ({}))) as ClaimResponse;
 
@@ -182,21 +192,25 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
           setUploadProgress(100);
           setUploadedKey(key);
           toast.success("File uploaded successfully!");
+          trackEvent("resume_uploaded", { file_size_bytes: fileToUpload.size });
 
           return;
         }
 
         setUploadProgress(70);
+        stage = "save";
         await setPendingUploadCookie(key);
         setUploadProgress(90);
         setUploadProgress(100);
         setUploadedKey(key);
         toast.success("File uploaded successfully!");
+        trackEvent("resume_uploaded", { file_size_bytes: fileToUpload.size });
       } catch (err) {
         const errorMessage = getFriendlyError(err);
         setError(errorMessage);
         setUploadState("error");
         toast.error(errorMessage);
+        trackEvent("resume_upload_failed", { stage, http_status: httpStatus });
         await clearPendingUploadCookie();
 
         if (!onClaim) {
