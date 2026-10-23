@@ -13,7 +13,9 @@ import { revalidatePath } from "next/cache";
  * it, and `revalidatePath` throws when no Next request store is active (unit
  * tests, scripts).
  */
-export function revalidatePublicProfilePages(handles: Array<string | null>): void {
+export function revalidatePublicProfilePages(
+  handles: ReadonlyArray<string | null | undefined>,
+): void {
   try {
     revalidatePath("/explore");
 
