@@ -10,7 +10,7 @@ import { sha256Hex } from "@/lib/utils/hash";
 import { ERROR_CODES } from "@/lib/utils/security-headers";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
-import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
+import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, tempUploadId } from "@/lib/utils/validation";
 import { deleteR2Objects, type R2DeleteWorkflowBinding } from "@/lib/workflows/r2-delete";
 import {
   parseInstanceId,
@@ -70,7 +70,7 @@ function isLikelyMissingObjectError(cause: unknown): boolean {
 async function deleteTempObject(r2: R2Bucket, key: string): Promise<void> {
   await R2.delete(r2, key).catch((error) => {
     log("warn", "temp R2 delete failed; lifecycle rule will expire it", {
-      key,
+      tempId: tempUploadId(key),
       ...errorFields(error),
     });
   });

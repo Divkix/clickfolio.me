@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { useClerk, useSession } from "@/lib/auth/client";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -65,7 +66,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           lastFetchedRef.current = Date.now();
         }
       } catch (error) {
-        log("error", "Error loading profile", { error: String(error) });
+        log("error", "Error loading profile", { ...errorFields(error) });
       } finally {
         if (!cancelled) setProfileLoading(false);
       }

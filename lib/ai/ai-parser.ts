@@ -1,11 +1,12 @@
 import { Effect } from "effect";
 import { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, type LanguageModelUsage } from "ai";
+import { generateText, JSONParseError, type LanguageModelUsage, TypeValidationError } from "ai";
 import { z } from "zod";
 import type { UnknownRecord } from "@/lib/types/json";
 import { withSpan } from "@/lib/telemetry/spans";
-import { logEvent } from "@/lib/utils/log";
+import { log, logEvent } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import {
@@ -23,18 +24,34 @@ const TIMEOUT_MS = 60_000;
 // AI Gateway route, and `gen_ai.provider.name` on AI spans.
 const AI_PROVIDER = "openrouter";
 
-interface ParseEvent {
+interface ParseAttempt {
   modelId: string;
   path: "text-fallback" | "text-fallback-retry" | "error-feedback-retry";
   durationMs: number;
-  success: boolean;
-  error?: string;
   repaired?: boolean;
 }
 
-function logParseEvent(event: ParseEvent): void {
-  const level = event.success ? "info" : "warn";
-  console[level](`[ai-parse:${event.path}]`, JSON.stringify(event));
+/**
+ * One line per prompt attempt. Invalid output logs only its type: its cause
+ * can quote the model's response, which is resume content.
+ */
+function logParseAttempt(
+  attempt: ParseAttempt,
+  error?: AiProviderFailed | AiTimedOut | AiOutputInvalid,
+): void {
+  if (!error) {
+    log("info", "ai parse attempt", { ...attempt, success: true });
+
+    return;
+  }
+
+  const fields = { ...attempt, success: false, errorType: error._tag };
+
+  log(
+    "warn",
+    "ai parse attempt failed",
+    error instanceof AiOutputInvalid ? fields : { ...fields, ...errorFields(error) },
+  );
 }
 
 const SYSTEM_PROMPT = `You are an expert resume parser. Extract information from resumes into structured JSON.
@@ -187,8 +204,15 @@ function buildRetryPrompt(text: string, previousOutput: string): string {
   )}\n"""\n\n${buildPrompt(truncateResumeText(text))}`;
 }
 
+function failureMessage(cause: unknown): string {
+  // These quote the provider's response body (resume content) in their message.
+  if (JSONParseError.isInstance(cause) || TypeValidationError.isInstance(cause)) return cause.name;
+
+  return cause instanceof Error ? cause.message : String(cause);
+}
+
 export function aiProviderFailure(cause: unknown): AiProviderFailed | AiTimedOut {
-  const message = cause instanceof Error ? cause.message : String(cause);
+  const message = failureMessage(cause);
 
   if (cause instanceof Error && /timeout|timed?\s*out|deadline/i.test(`${cause.name} ${message}`)) {
     return new AiTimedOut({ message, cause });
@@ -286,7 +310,7 @@ export function parseWithAiEffect(
     const provider = yield* Effect.try({ try: () => getAiProvider(env), catch: aiProviderFailure });
     const providerOptions = withReasoning(PROVIDER_ROUTING, getReasoningEffort(env));
 
-    function attempt(path: ParseEvent["path"], system: string, prompt: string) {
+    function attempt(path: ParseAttempt["path"], system: string, prompt: string) {
       return Effect.suspend(() => {
         const startTime = Date.now();
 
@@ -300,11 +324,10 @@ export function parseWithAiEffect(
           Effect.flatMap((responseText) => parseJsonWithRepairEffect(extractJson(responseText))),
           Effect.tap(({ repaired }) =>
             Effect.sync(() =>
-              logParseEvent({
+              logParseAttempt({
                 modelId,
                 path,
                 durationMs: Date.now() - startTime,
-                success: true,
                 repaired: path === "error-feedback-retry" ? undefined : repaired || undefined,
               }),
             ),
@@ -317,18 +340,7 @@ export function parseWithAiEffect(
           ),
           Effect.tapError((error) =>
             Effect.sync(() =>
-              logParseEvent({
-                modelId,
-                path,
-                durationMs: Date.now() - startTime,
-                success: false,
-                error:
-                  error instanceof AiOutputInvalid
-                    ? path === "text-fallback"
-                      ? "Failed to parse response as JSON"
-                      : "Failed to parse retry response as JSON"
-                    : error.message,
-              }),
+              logParseAttempt({ modelId, path, durationMs: Date.now() - startTime }, error),
             ),
           ),
         );

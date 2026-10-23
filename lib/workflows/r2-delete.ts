@@ -44,15 +44,19 @@ export async function deleteR2Objects(
 
   if (failures.length === 0) return failedKeys;
 
+  // Counts, not keys: every key ends in the uploaded file name.
   log("warn", "R2 delete failed; retrying in R2DeleteWorkflow", {
-    keys: failedKeys,
+    keyCount: failedKeys.length,
     ...errorFields(failures[0].reason),
   });
 
   try {
     await scheduleR2Deletion(workflow, { keys: failedKeys });
   } catch (error) {
-    log("error", "failed to schedule R2 deletion", { keys: failedKeys, ...errorFields(error) });
+    log("error", "failed to schedule R2 deletion", {
+      keyCount: failedKeys.length,
+      ...errorFields(error),
+    });
   }
 
   return failedKeys;

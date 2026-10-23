@@ -186,7 +186,7 @@ function buildResumeMetadata(
         }
       }
     } catch (error) {
-      log("error", "Failed to generate JSON-LD for handle", { handle, ...errorFields(error) });
+      log("error", "Failed to generate JSON-LD", { userId: row.id, ...errorFields(error) });
     }
   }
 

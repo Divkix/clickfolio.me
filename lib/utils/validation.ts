@@ -46,6 +46,11 @@ export function generateTempKey(filename: string): string {
   return `temp/${uuid}/${safeFilename}`;
 }
 
+/** The uuid of a `generateTempKey` key: safe to log, unlike the file name after it. */
+export function tempUploadId(key: string): string | undefined {
+  return key.split("/")[1];
+}
+
 export function validatePDFBuffer(buffer: ArrayBuffer): ValidationResult {
   const bytes = new Uint8Array(buffer);
 

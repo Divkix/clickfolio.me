@@ -11,6 +11,7 @@ import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import type { ApiErrorBody } from "@/lib/types/api";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 interface PrivacySettingsFormProps {
   initialSettings: PrivacySettings;
@@ -191,7 +192,7 @@ export function PrivacySettingsForm({
 
       return true;
     } catch (err) {
-      log("error", "Privacy update error", { error: String(err) });
+      log("error", "Privacy update error", { ...errorFields(err) });
       toast.error(err instanceof Error ? err.message : "Failed to update privacy settings");
 
       return false;

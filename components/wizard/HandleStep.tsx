@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { siteConfig } from "@/lib/config/site";
 import { log } from "@/lib/utils/log";
+import { errorFields } from "@/lib/utils/error-fields";
 
 interface HandleStepProps {
   initialHandle?: string;
@@ -79,7 +80,7 @@ function useHandleAvailability(handle: string) {
       setIsCurrentHandle(data.isCurrentHandle === true);
     } catch (err) {
       if (controller.signal.aborted) return;
-      log("error", "Error checking handle availability", { error: String(err) });
+      log("error", "Error checking handle availability", { ...errorFields(err) });
       setError("Failed to check availability");
       setIsAvailable(null);
     } finally {
