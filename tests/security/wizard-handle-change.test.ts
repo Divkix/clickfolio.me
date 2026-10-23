@@ -226,10 +226,6 @@ vi.mock("@/lib/templates/theme-ids", () => ({
   THEME_IDS: ["minimalist_editorial", "neo_brutalist", "design_folio", "dev_terminal"],
 }));
 
-vi.mock("@/lib/analytics/server", () => ({
-  captureServerEvent: vi.fn(),
-}));
-
 vi.mock("@/lib/utils/revalidate", () => ({
   revalidatePublicProfilePages: vi.fn(),
 }));

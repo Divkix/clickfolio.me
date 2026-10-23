@@ -255,9 +255,6 @@ importers:
       posthog-js:
         specifier: ^1.438.13
         version: 1.438.13(@types/react@19.3.0)(react@19.3.1)
-      posthog-node:
-        specifier: ^5.56.4
-        version: 5.56.4
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -3709,18 +3706,6 @@ packages:
       react:
         optional: true
 
-  posthog-node@5.56.4:
-    resolution: {integrity: sha512-oVn/HxJZK/xen+u51nwyEpWnN4UEQox4GOSwBOp5OGli3x7Soz7Jler+CatGQsAehQuVPas2432hAarXNyxoWA==}
-    engines: {node: ^20.20.0 || >=22.22.0}
-    peerDependencies:
-      '@opentelemetry/api': ^1.2.0
-      rxjs: ^7.0.0
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
-      rxjs:
-        optional: true
-
   powershell-utils@0.2.1:
     resolution: {integrity: sha512-C+y9x90UElAddDZmV4qOx9W53B61PO7cIqWz2dQsWlwswuq4mr8NEwytdGKboYbQlGZ3awrkTeNvcZiZNHnQ8A==}
     engines: {node: '>=20'}
@@ -6653,10 +6638,6 @@ snapshots:
       react: 19.3.1
     transitivePeerDependencies:
       - preact-render-to-string
-
-  posthog-node@5.56.4:
-    dependencies:
-      '@posthog/core': 1.59.3
 
   powershell-utils@0.2.1: {}
 

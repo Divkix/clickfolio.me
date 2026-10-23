@@ -1,14 +1,11 @@
 /**
  * Root server instrumentation (vinext / Next.js contract).
  *
- * `onRequestError` forwards unhandled request errors to PostHog Error
- * Tracking. Only routing metadata is attached — request headers and bodies
- * never leave the Worker; the PostHog cookie is read solely to recover the
- * browser's distinct id so the exception joins that person. vinext retains the returned promise with the
- * request execution context, so returning it keeps the send alive after the
- * response completes without a second waitUntil registration.
+ * `onRequestError` logs unhandled request errors with their stack and routing
+ * metadata; Workers observability exports the line to HyperDX. Request headers
+ * and bodies are never logged.
  */
-import { captureServerException, distinctIdFromCookieHeader } from "@/lib/analytics/server";
+import { log } from "@/lib/utils/log";
 
 interface OnRequestErrorContext {
   routerKind: "Pages Router" | "App Router";
@@ -17,24 +14,18 @@ interface OnRequestErrorContext {
   revalidateReason?: "on-demand" | "stale" | undefined;
 }
 
-export async function onRequestError(
+export function onRequestError(
   error: Error,
-  request: {
-    path: string;
-    method: string;
-    headers?: Record<string, string | string[] | undefined>;
-  },
+  request: { path: string; method: string },
   context: OnRequestErrorContext,
-): Promise<void> {
-  return captureServerException(
-    error,
-    {
-      request_path: request.path,
-      request_method: request.method,
-      route_path: context.routePath,
-      route_type: context.routeType,
-      router_kind: context.routerKind,
-    },
-    distinctIdFromCookieHeader(request.headers?.cookie),
-  );
+): void {
+  log("error", "Unhandled request error", {
+    error: error.message,
+    stack: error.stack,
+    path: request.path,
+    method: request.method,
+    routePath: context.routePath,
+    routeType: context.routeType,
+    routerKind: context.routerKind,
+  });
 }

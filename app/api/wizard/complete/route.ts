@@ -1,7 +1,7 @@
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/analytics/server";
+import { logEvent } from "@/lib/utils/log";
 
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { isUniqueViolation } from "@/lib/db/pg-errors";
@@ -234,23 +234,11 @@ export async function POST(request: Request) {
         revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
         notifyIndexNowForProfiles([outcome.oldHandle, body.handle]);
 
-        const sessionId = request.headers.get("x-posthog-session-id");
-
-        const validSessionId =
-          sessionId && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sessionId)
-            ? sessionId
-            : undefined;
-
-        captureServerEvent(
-          authUser.id,
-          "onboarding_completed",
-          {
-            handle: body.handle,
-            theme_id: body.theme_id,
-            show_in_directory: body.privacy_settings.show_in_directory,
-          },
-          validSessionId,
-        );
+        logEvent("onboarding_completed", {
+          userId: authUser.id,
+          themeId: body.theme_id,
+          showInDirectory: body.privacy_settings.show_in_directory,
+        });
 
         return createSuccessResponse({
           success: true,

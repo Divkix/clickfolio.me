@@ -1,9 +1,8 @@
-import { log } from "@/lib/utils/log";
+import { log, logEvent } from "@/lib/utils/log";
 import { eq } from "drizzle-orm";
 import { createClerkClient } from "@clerk/backend";
 import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/analytics/server";
 
 import { user } from "@/lib/db/schema";
 import { collectR2KeysForUser, getR2Binding } from "@/lib/r2";
@@ -190,9 +189,7 @@ export async function POST(request: Request) {
         }
       }
 
-      captureServerEvent(userId, "account_deleted", {
-        had_r2_warnings: warnings.length > 0,
-      });
+      logEvent("account_deleted", { userId, hadR2Warnings: warnings.length > 0 });
 
       return createSuccessResponse({
         success: true,

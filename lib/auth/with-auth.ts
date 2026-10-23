@@ -5,7 +5,6 @@
  */
 
 import { log } from "@/lib/utils/log";
-import { captureServerException, distinctIdFromCookieHeader } from "@/lib/analytics/server";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
@@ -34,17 +33,17 @@ function pathnameOf(request: Request | undefined): string {
   }
 }
 
-// A caught error never reaches onRequestError, so report it here to keep the
-// 500 diagnosable in PostHog Error Tracking.
-async function reportUnhandledError(request: Request | undefined, error: Error): Promise<void> {
+// A caught error never reaches onRequestError, so log it here (with its stack)
+// to keep the 500 diagnosable in HyperDX.
+function reportUnhandledError(request: Request | undefined, error: Error): void {
   const path = pathnameOf(request);
-  log("error", `Unhandled error in ${path}`, { error: String(error) });
 
-  await captureServerException(
-    error,
-    { request_path: path, request_method: request?.method ?? "unknown" },
-    distinctIdFromCookieHeader(request?.headers.get("cookie") ?? undefined),
-  );
+  log("error", "Unhandled API route error", {
+    error: error.message,
+    stack: error.stack,
+    path,
+    method: request?.method ?? "unknown",
+  });
 }
 
 export async function withUser(
@@ -61,7 +60,7 @@ export async function withUser(
 
     return await handler({ user, db, dbUser, env });
   } catch (error) {
-    await reportUnhandledError(request, error instanceof Error ? error : new Error(String(error)));
+    reportUnhandledError(request, error instanceof Error ? error : new Error(String(error)));
 
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }
@@ -80,7 +79,7 @@ export async function withAdmin(
 
     return await handler({ user });
   } catch (error) {
-    await reportUnhandledError(request, error instanceof Error ? error : new Error(String(error)));
+    reportUnhandledError(request, error instanceof Error ? error : new Error(String(error)));
 
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }

@@ -152,8 +152,8 @@ export default {
     }
 
     // env + ctx let vinext run the request inside its execution context, so
-    // onRequestError reports (PostHog server exceptions) and cache writes are
-    // registered with ctx.waitUntil instead of being cut off with the response.
+    // cache writes are registered with ctx.waitUntil instead of being cut off
+    // with the response.
     const response = await handler.fetch(request, env, ctx);
     const newHeaders = new Headers(response.headers);
 
