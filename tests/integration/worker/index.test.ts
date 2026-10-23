@@ -356,6 +356,56 @@ describe("Worker fetch handler", () => {
   });
 });
 
+describe("Worker shared-cache privacy", () => {
+  beforeEach(resetAll);
+
+  it.each(["/@alice", "/@alice.md"])(
+    "renders %s for a signed-in visitor without their session",
+    async (path) => {
+      const env = makeEnv({
+        ASSETS: { fetch: vi.fn(async () => new Response(null, { status: 404 })), connect: vi.fn() },
+      });
+
+      const request = new Request(`https://clickfolio.me${path}`, {
+        headers: { cookie: "__session=jwt.for.clerk-user-1", authorization: "Bearer jwt" },
+      });
+
+      await worker.fetch(request, env, makeCtx());
+
+      const [forwarded] = vi.mocked(handler.fetch).mock.calls[0] ?? [];
+      expect(forwarded?.headers.get("cookie")).toBeNull();
+      expect(forwarded?.headers.get("authorization")).toBeNull();
+      expect(new URL(forwarded?.url ?? "").pathname).toBe("/@alice");
+    },
+  );
+
+  it("redirects /%40handle to /@handle so every cached copy shares one purgeable URL", async () => {
+    const response = await worker.fetch(
+      new Request("https://clickfolio.me/%40alice"),
+      makeEnv(),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://clickfolio.me/@alice");
+    expect(vi.mocked(handler.fetch)).not.toHaveBeenCalled();
+  });
+
+  it("keeps the session for the dashboard", async () => {
+    const request = new Request("https://clickfolio.me/dashboard", {
+      headers: { cookie: "__session=jwt.for.clerk-user-1" },
+    });
+
+    await worker.fetch(request, makeEnv(), makeCtx());
+
+    expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(
+      request,
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+});
+
 describe("Worker scheduled handler", () => {
   beforeEach(resetAll);
 
