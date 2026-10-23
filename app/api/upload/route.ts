@@ -1,4 +1,4 @@
-import { log } from "@/lib/utils/log";
+import { log, logEvent } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
@@ -171,6 +171,7 @@ export async function POST(request: Request) {
     }
 
     const key = generateTempKey(filename);
+    const startedAt = Date.now();
 
     try {
       await R2.put(r2Binding, key, buffer, {
@@ -181,10 +182,16 @@ export async function POST(request: Request) {
         },
       });
     } catch (r2Error) {
-      log("error", "R2 upload error:", { ...errorFields(r2Error) });
+      logEvent(
+        "resume_upload_failed",
+        { size_bytes: totalBytes, duration_ms: Date.now() - startedAt, ...errorFields(r2Error) },
+        "error",
+      );
 
       return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
+
+    logEvent("resume_uploaded", { size_bytes: totalBytes, duration_ms: Date.now() - startedAt });
 
     // Signed cookie for claim verification (Issue #89); /api/upload/pending refreshes it
     // for the wizard flow, so both writers must use the same attributes and max-age.

@@ -6,6 +6,7 @@ import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai";
 import { extractPdfTextEffect } from "@/lib/ai/pdf-extract";
 import { classifyCareerEffect } from "@/lib/ai/career";
+import { DEFAULT_AI_MODEL } from "@/lib/ai/prompt-config";
 import {
   AiOutputInvalid,
   AiProviderFailed,
@@ -25,6 +26,7 @@ const mocks = vi.hoisted(() => {
       totalPages: 1,
     })),
     log: vi.fn(),
+    logEvent: vi.fn(),
   };
 });
 
@@ -39,7 +41,7 @@ vi.mock("ai", async (importOriginal) => ({
   generateText: vi.fn(),
 }));
 
-vi.mock("@/lib/utils/log", () => ({ log: mocks.log }));
+vi.mock("@/lib/utils/log", () => ({ log: mocks.log, logEvent: mocks.logEvent }));
 
 const ENV = {
   CF_AI_GATEWAY_ACCOUNT_ID: "test",
@@ -133,6 +135,11 @@ describe("Effect AI boundaries", () => {
     expect(failure.retryable).toBe(true);
     expect(signal?.aborted).toBe(true);
     expect(generateText).toHaveBeenCalledTimes(1);
+    expect(mocks.logEvent).toHaveBeenCalledWith(
+      "ai_generation_failed",
+      { model: "test", errorType: "AiTimedOut", duration_ms: expect.any(Number) },
+      "warn",
+    );
   });
 
   it.each(["AI_APICallError", "NoObjectGeneratedError"])(
@@ -152,6 +159,18 @@ describe("Effect AI boundaries", () => {
     vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
     expect(await Effect.runPromise(parseResumeWithAi(pdfBuffer(), ENV))).toMatchObject({
       full_name: "Test User",
+    });
+    expect(mocks.logEvent).toHaveBeenCalledWith("ai_generation_completed", {
+      model: DEFAULT_AI_MODEL,
+      response_model: "test-model",
+      finish_reason: "stop",
+      duration_ms: expect.any(Number),
+      input_tokens: 1200,
+      cached_input_tokens: 200,
+      output_tokens: 800,
+      reasoning_tokens: 200,
+      total_tokens: 2000,
+      cost_credits: 0.0042,
     });
   });
 

@@ -3,7 +3,7 @@ import type { Database } from "@/lib/db";
 import { handleChanges, resumes, uploadRateLimits } from "@/lib/db/schema";
 import { deleteR2Objects, type R2DeleteWorkflowBinding } from "../workflows/r2-delete";
 import type { UnknownRecord } from "../types/json";
-import { log } from "../utils/log";
+import { log, logEvent } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
 
 const FAILED_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -20,7 +20,39 @@ export interface CleanupResult extends UnknownRecord {
   timestamp: string;
 }
 
+/**
+ * Daily cleanup for both the scheduled handler and the cron route, with one
+ * `cleanup_completed` or `cleanup_failed` event per run. Callers log the error itself.
+ */
 export async function performCleanup(
+  db: Database,
+  r2Binding?: R2Bucket | null,
+  r2DeleteWorkflow?: R2DeleteWorkflowBinding,
+): Promise<CleanupResult> {
+  const startedAt = Date.now();
+
+  try {
+    const result = await cleanup(db, r2Binding, r2DeleteWorkflow);
+
+    logEvent("cleanup_completed", {
+      duration_ms: Date.now() - startedAt,
+      rate_limits_deleted: result.deleted.rateLimits,
+      handle_changes_deleted: result.deleted.handleChanges,
+      failed_resumes_deleted: result.deleted.failedResumes,
+    });
+
+    return result;
+  } catch (cause) {
+    logEvent(
+      "cleanup_failed",
+      { duration_ms: Date.now() - startedAt, errorType: errorFields(cause)["error.name"] },
+      "warn",
+    );
+    throw cause;
+  }
+}
+
+async function cleanup(
   db: Database,
   r2Binding?: R2Bucket | null,
   r2DeleteWorkflow?: R2DeleteWorkflowBinding,

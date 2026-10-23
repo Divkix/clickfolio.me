@@ -192,15 +192,21 @@ describe("Cron Scheduled Tasks", () => {
   });
 
   describe("cron execution logging", () => {
-    it("logs cleanup execution without errors", async () => {
+    it("logs one cleanup_completed event with the deleted counts", async () => {
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       await performCleanup(asDb(mockDb));
 
-      expect(consoleSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining("error"),
-        expect.anything(),
-      );
+      const events = consoleSpy.mock.calls.map(([line]) => JSON.parse(String(line)));
+      expect(events).toEqual([
+        expect.objectContaining({
+          event: "cleanup_completed",
+          duration_ms: expect.any(Number),
+          rate_limits_deleted: 0,
+          handle_changes_deleted: 0,
+          failed_resumes_deleted: 0,
+        }),
+      ]);
 
       consoleSpy.mockRestore();
     });
@@ -208,9 +214,15 @@ describe("Cron Scheduled Tasks", () => {
 
   describe("error handling", () => {
     it("propagates database errors during cleanup", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       mockDb.transaction.mockRejectedValueOnce(new Error("Database connection failed"));
 
       await expect(performCleanup(asDb(mockDb))).rejects.toThrow("Database connection failed");
+      expect(JSON.parse(String(warn.mock.calls[0][0]))).toMatchObject({
+        event: "cleanup_failed",
+        errorType: "Error",
+      });
+      warn.mockRestore();
     });
 
     it("handles concurrent cron jobs without conflicts", async () => {

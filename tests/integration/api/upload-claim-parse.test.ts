@@ -350,6 +350,7 @@ describe("POST /api/upload", () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
     const request = makeUploadRequest(buffer);
+    const info = vi.spyOn(console, "log").mockImplementation(() => {});
 
     const response = await POST(request);
 
@@ -357,6 +358,16 @@ describe("POST /api/upload", () => {
       key: string;
       remaining: { hourly: number; daily: number };
     } = await response.json();
+
+    const events = info.mock.calls.map(([line]) => JSON.parse(String(line)));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: "resume_uploaded",
+        size_bytes: buffer.byteLength,
+        duration_ms: expect.any(Number),
+      }),
+    );
+    info.mockRestore();
 
     expect(response.status).toBe(200);
     expect(body.key).toMatch(/^temp\/.*\.pdf$/);

@@ -1,5 +1,10 @@
 export const DEFAULT_AI_MODEL = "openai/gpt-6-luna:nitro";
 
+/** The model a parse uses: an explicit override, else `AI_MODEL`, else the default. */
+export function resolveAiModel(env: { AI_MODEL?: string }, override?: string): string {
+  return override || env.AI_MODEL || DEFAULT_AI_MODEL;
+}
+
 export const MAX_OUTPUT_TOKENS = 32_768;
 
 export const PROVIDER_ROUTING = {

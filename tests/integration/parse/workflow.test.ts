@@ -6,6 +6,7 @@ import {
   toParseErrorJson,
 } from "@/lib/parse/failures";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { DEFAULT_AI_MODEL } from "@/lib/ai/prompt-config";
 import type { JsonValue } from "@/lib/types/json";
 import type { ResumeParseParams } from "@/lib/workflows/resume-parse";
 import type {
@@ -25,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   expire: vi.fn(async () => true),
   email: vi.fn(),
   log: vi.fn(),
+  logEvent: vi.fn(),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -56,7 +58,7 @@ vi.mock("@/lib/parse/pipeline", () => ({
 
 vi.mock("@/lib/parse/email", () => ({ sendResumeFailureEmail: mocks.email }));
 
-vi.mock("@/lib/utils/log", () => ({ log: mocks.log }));
+vi.mock("@/lib/utils/log", () => ({ log: mocks.log, logEvent: mocks.logEvent }));
 
 const JOB: ResumeParseParams = {
   kind: "parse",
@@ -116,8 +118,8 @@ async function runWorkflow(
 
   // SAFETY: mocks supply all workflow steps and bindings exercised by this test.
   const workflow = new ResumeParseWorkflow({} as ExecutionContext, {} as CloudflareEnv);
-  // SAFETY: run only reads payload; do/sleep are the only step methods used.
-  const event = { payload: params } as WorkflowEvent<ResumeParseParams>;
+  // SAFETY: run only reads payload and timestamp; do/sleep are the only step methods used.
+  const event = { payload: params, timestamp: new Date() } as WorkflowEvent<ResumeParseParams>;
 
   const step: WorkflowStep = {
     do: journal,
@@ -159,22 +161,23 @@ describe("resume failure email workflow step", () => {
     const workflow = await runWorkflow();
     await expect(workflow.run()).rejects.toThrow("Original parse failure");
 
-    const messages = mocks.log.mock.calls.map((call) => call[1]);
-    expect(messages.filter((msg) => msg === "resume parse failed")).toHaveLength(1);
+    expect(mocks.logEvent).toHaveBeenCalledOnce();
     expect(mocks.log).toHaveBeenCalledWith(
       "warn",
       "resume parse attempt failed",
       expect.objectContaining({ resumeId: "resume-1", errorType: "unknown", retryable: false }),
     );
-    expect(mocks.log).toHaveBeenCalledWith(
-      "error",
-      "resume parse failed",
+    expect(mocks.logEvent).toHaveBeenCalledWith(
+      "resume_parse_failed",
       expect.objectContaining({
         resumeId: "resume-1",
+        attempts: 1,
+        duration_ms: expect.any(Number),
         errorType: "unknown",
         "error.message": expect.stringContaining("Original parse failure"),
         stack: expect.stringContaining("at "),
       }),
+      "error",
     );
   });
 
@@ -253,6 +256,36 @@ describe("Workflow failure metadata and successful replay", () => {
       "parse",
       { retries: { limit: 3, delay: "30 seconds", backoff: "exponential" }, timeout: "10 minutes" },
       expect.any(Function),
+    );
+  });
+});
+
+describe("parse outcome events", () => {
+  it("counts the parse step's attempts in the run's one completion event", async () => {
+    mocks.parse
+      .mockReturnValueOnce(Effect.fail(new AiProviderFailed({ message: "provider down" })))
+      .mockReturnValueOnce(Effect.succeed({ parsedContent: { full_name: "User" }, career: null }));
+    const workflow = await runWorkflow(JOB, false, undefined, true);
+    await expect(workflow.run()).resolves.toBe("completed");
+    expect(mocks.logEvent).toHaveBeenCalledOnce();
+    expect(mocks.logEvent).toHaveBeenCalledWith("resume_parse_completed", {
+      resumeId: "resume-1",
+      model: DEFAULT_AI_MODEL,
+      attempts: 2,
+      duration_ms: expect.any(Number),
+    });
+  });
+
+  it("leaves attempts unknown when the parse result is replayed from the journal", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed({ parsedContent: { full_name: "User" } }));
+    mocks.complete.mockRejectedValueOnce(new Error("ECONNRESET"));
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toThrow("ECONNRESET");
+    mocks.logEvent.mockClear();
+    await expect(workflow.run()).resolves.toBe("completed");
+    expect(mocks.logEvent).toHaveBeenCalledWith(
+      "resume_parse_completed",
+      expect.objectContaining({ attempts: undefined }),
     );
   });
 });

@@ -18,13 +18,27 @@ type BusinessEvent =
   | "theme_changed"
   | "handle_changed"
   | "account_deleted"
-  | "onboarding_completed";
+  | "onboarding_completed"
+  | "resume_uploaded"
+  | "resume_upload_failed"
+  | "resume_parse_completed"
+  | "resume_parse_failed"
+  | "ai_generation_completed"
+  | "ai_generation_failed"
+  | "cleanup_completed"
+  | "cleanup_failed";
 
 /**
- * One info line per business event. The name doubles as `msg` and a stable
- * `event` field so it can be filtered in HyperDX. Pass opaque ids and enums
- * only — never emails, names, handles or resume content.
+ * One line per business event outcome. The name doubles as `msg` and a stable
+ * `event` field so it can be filtered in HyperDX. Pass opaque ids, enums and
+ * numbers (`duration_ms`, `size_bytes`, token counts) only — never emails,
+ * names, handles or resume content. Failures keep their error level so
+ * existing alerts still see them.
  */
-export function logEvent(event: BusinessEvent, fields: UnknownRecord = {}): void {
-  log("info", event, { event, ...fields });
+export function logEvent(
+  event: BusinessEvent,
+  fields: UnknownRecord = {},
+  level: LogLevel = "info",
+): void {
+  log(level, event, { event, ...fields });
 }
