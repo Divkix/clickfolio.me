@@ -1,7 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   // scripts/ is the entry point because app/ is imported by vinext at build time.
-  "entry": ["scripts/**/*.ts"],
+  // lib/cache/queued-cdn-adapter.ts is loaded by path from vite.config.ts (vinext cache.cdn.adapter).
+  "entry": ["scripts/**/*.ts", "lib/cache/queued-cdn-adapter.ts"],
   "project": [
     "app/**/*.{ts,tsx}",
     "app/**/*.css",
