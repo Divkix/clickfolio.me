@@ -21,6 +21,10 @@ import {
   prefersMarkdown,
 } from "../lib/worker/markdown-negotiation";
 import { handleOtelProxy, isOtelProxyPath } from "../lib/worker/otel-proxy";
+import {
+  encodedProfileRedirect,
+  withoutProfileCredentials,
+} from "../lib/worker/shared-cache-request";
 
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
@@ -59,12 +63,18 @@ async function markdownPageResponse(response: Response, url: string): Promise<Re
 }
 
 export default {
-  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
+  async fetch(incoming: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(incoming.url);
+    // Profile pages are shared-cached: render them without the visitor's session.
+    const request = withoutProfileCredentials(incoming, url.pathname);
 
     if (BLOCKED_PATHS.test(url.pathname)) {
       return new Response("Not Found", { status: 404, headers: SECURITY_HEADERS });
     }
+
+    const canonical = encodedProfileRedirect(url);
+
+    if (canonical) return canonical;
 
     if (isOtelProxyPath(url.pathname)) {
       return handleOtelProxy(request, env, ctx);
