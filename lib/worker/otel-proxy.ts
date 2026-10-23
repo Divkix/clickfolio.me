@@ -31,7 +31,9 @@ function status(code: number, extra?: Record<string, string>): Response {
   return new Response(null, { status: code, headers: { ...SECURITY_HEADERS, ...extra } });
 }
 
-async function forward(url: string, init: RequestInit): Promise<void> {
+// Error level: the client always sees 202, so a bad key or a down collector
+// shows up only here. The key itself is never logged.
+async function forward(url: string, otelSignal: string, init: RequestInit): Promise<void> {
   try {
     const response = await fetch(url, {
       ...init,
@@ -41,9 +43,17 @@ async function forward(url: string, init: RequestInit): Promise<void> {
     // Unread bodies hold the subrequest open until GC.
     await response.body?.cancel();
 
-    if (!response.ok) log("warn", "otel proxy upstream rejected", { status: response.status });
+    if (!response.ok) {
+      log("error", "otel proxy upstream rejected", {
+        status: response.status,
+        "otel.signal": otelSignal,
+      });
+    }
   } catch (error) {
-    log("warn", "otel proxy upstream failed", errorFields(error));
+    log("error", "otel proxy upstream failed", {
+      "otel.signal": otelSignal,
+      ...errorFields(error),
+    });
   }
 }
 
@@ -88,7 +98,7 @@ export async function handleOtelProxy(
   if (encoding) headers.set("content-encoding", encoding);
 
   ctx.waitUntil(
-    forward(`${env.OTEL_COLLECTOR_URL.replace(/\/+$/, "")}/v1/${signal}`, {
+    forward(`${env.OTEL_COLLECTOR_URL.replace(/\/+$/, "")}/v1/${signal}`, signal, {
       method: "POST",
       headers,
       body,

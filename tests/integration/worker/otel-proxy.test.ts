@@ -170,10 +170,11 @@ describe("handleOtelProxy", () => {
     await settle();
 
     expect(mocks.log).toHaveBeenCalledWith(
-      "warn",
+      "error",
       "otel proxy upstream failed",
-      expect.objectContaining({ "error.message": "collector down" }),
+      expect.objectContaining({ "otel.signal": "traces", "error.message": "collector down" }),
     );
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toContain(ENV.OTEL_BROWSER_INGEST_KEY);
   });
 
   it("logs a collector rejection by status", async () => {
@@ -182,6 +183,10 @@ describe("handleOtelProxy", () => {
     await handleOtelProxy(post("/otel/v1/traces"), ENV, ctx);
     await settle();
 
-    expect(mocks.log).toHaveBeenCalledWith("warn", "otel proxy upstream rejected", { status: 401 });
+    expect(mocks.log).toHaveBeenCalledWith("error", "otel proxy upstream rejected", {
+      status: 401,
+      "otel.signal": "traces",
+    });
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toContain(ENV.OTEL_BROWSER_INGEST_KEY);
   });
 });
