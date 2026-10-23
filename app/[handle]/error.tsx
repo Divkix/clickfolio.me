@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
-import { captureAnalyticsError } from "@/lib/analytics/client";
 
 export default function ProfileError({
   error,
@@ -17,7 +16,6 @@ export default function ProfileError({
 }) {
   useEffect(() => {
     log("error", "Public profile error:", { error: String(error) });
-    captureAnalyticsError(error);
   }, [error]);
 
   return (

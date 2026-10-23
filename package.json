@@ -60,8 +60,6 @@
     "next": "^16.4.2",
     "next-themes": "^0.4.6",
     "pg": "^8.23.1",
-    "posthog-js": "^1.438.13",
-    "posthog-node": "^5.56.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-hook-form": "^7.90.0",
@@ -75,7 +73,6 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.64.0",
     "@electric-sql/pglite": "^0.5.11",
-    "@posthog/rollup-plugin": "^1.6.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^26.6.5",

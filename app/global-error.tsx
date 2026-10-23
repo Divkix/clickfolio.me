@@ -3,7 +3,6 @@
 import { log } from "@/lib/utils/log";
 import Link from "next/link";
 import { useEffect } from "react";
-import { captureAnalyticsError } from "@/lib/analytics/client";
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -13,7 +12,6 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     log("error", "Global error boundary caught:", { error: String(error) });
-    captureAnalyticsError(error);
   }, [error]);
 
   return (

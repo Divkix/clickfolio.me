@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { captureServerEvent } from "@/lib/analytics/server";
 import { withUser } from "@/lib/auth/with-auth";
+import { logEvent } from "@/lib/utils/log";
 import { runClaimIntake } from "@/lib/resume/claim-intake";
 import { getR2Binding } from "@/lib/r2";
 import { claimRequestSchema } from "@/lib/schemas/resume";
@@ -134,9 +134,7 @@ export async function POST(request: Request) {
             already_claimed: true,
           });
         case "cached":
-          captureServerEvent(userId, "resume_claim_cached", {
-            resume_id: outcome.resumeId,
-          });
+          logEvent("resume_claim_cached", { userId, resumeId: outcome.resumeId });
 
           return createSuccessResponse({
             resume_id: outcome.resumeId,
@@ -150,9 +148,7 @@ export async function POST(request: Request) {
             waiting_for_cache: true,
           });
         case "queued":
-          captureServerEvent(userId, "resume_claimed", {
-            resume_id: outcome.resumeId,
-          });
+          logEvent("resume_claimed", { userId, resumeId: outcome.resumeId });
 
           return createSuccessResponse({
             resume_id: outcome.resumeId,

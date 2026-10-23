@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/analytics/server";
+import { logEvent } from "@/lib/utils/log";
 
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, user } from "@/lib/db/schema";
@@ -145,9 +145,7 @@ export async function PUT(request: Request) {
         revalidatePublicProfilePages([outcome.oldHandle, newHandle]);
         notifyIndexNowForProfiles([outcome.oldHandle, newHandle]);
 
-        captureServerEvent(authUser.id, "handle_changed", {
-          new_handle: newHandle,
-        });
+        logEvent("handle_changed", { userId: authUser.id });
 
         return createSuccessResponse({
           success: true,

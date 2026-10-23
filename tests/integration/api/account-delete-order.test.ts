@@ -80,10 +80,6 @@ vi.mock("@/lib/seo/indexnow-runtime", () => ({
   notifyIndexNowForProfiles: vi.fn(),
 }));
 
-vi.mock("@/lib/analytics/server", () => ({
-  captureServerEvent: vi.fn(),
-}));
-
 function deletionRequest(): Request {
   return new Request("https://clickfolio.me/api/account/delete", {
     method: "POST",

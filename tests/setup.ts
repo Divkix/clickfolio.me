@@ -1,4 +1,4 @@
-import { beforeEach, vi } from "vite-plus/test";
+import { beforeEach } from "vite-plus/test";
 import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
 import {
   mockDigest,
@@ -7,15 +7,6 @@ import {
   mockRandomUUID,
   mockSign,
 } from "./mocks/crypto";
-
-vi.mock("posthog-node", () => ({
-  PostHog: vi.fn(function MockPostHog() {
-    return {
-      capture: vi.fn(),
-      shutdown: vi.fn(async () => undefined),
-    };
-  }),
-}));
 
 const subtleMock = {
   digest: mockDigest,

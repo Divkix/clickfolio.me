@@ -28,13 +28,7 @@ export async function main(): Promise<void> {
   const dryRun = args.includes("--dry-run");
   const backfillSince = new Date(Date.now() - CLOCK_SKEW_MARGIN_MS).toISOString();
 
-  const build = spawnSync("pnpm", ["run", "build"], {
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      POSTHOG_UPLOAD_SOURCEMAPS: dryRun ? "false" : "true",
-    },
-  });
+  const build = spawnSync("pnpm", ["run", "build"], { stdio: "inherit" });
 
   if (build.status !== 0) {
     process.exit(build.status ?? 1);

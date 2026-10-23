@@ -124,11 +124,6 @@
     //   wrangler secret put UMAMI_USERNAME
     //   wrangler secret put UMAMI_PASSWORD
     //
-    // ===== ANALYTICS (PostHog) =====
-    // No Worker env vars: the public project token + managed proxy host
-    // (https://s.clickfolio.me) live in lib/analytics/config.ts, and source-
-    // map upload credentials stay in gitignored local deploy env only.
-    //
     // ===== AI PROVIDER (resume parsing) =====
     // Cloudflare AI Gateway (proxies to OpenRouter)
     //   wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID

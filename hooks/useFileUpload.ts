@@ -3,7 +3,6 @@
 import type { ChangeEvent, DragEvent } from "react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { trackAnalyticsEvent } from "@/lib/analytics/client";
 import {
   clearPendingUploadCookie,
   setPendingUploadCookie,
@@ -183,10 +182,6 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
           setUploadProgress(100);
           setUploadedKey(key);
           toast.success("File uploaded successfully!");
-          trackAnalyticsEvent("resume_uploaded", {
-            file_size_bytes: fileToUpload.size,
-            file_name_length: fileToUpload.name.length,
-          });
 
           return;
         }
@@ -197,17 +192,12 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         setUploadProgress(100);
         setUploadedKey(key);
         toast.success("File uploaded successfully!");
-        trackAnalyticsEvent("resume_uploaded", {
-          file_size_bytes: fileToUpload.size,
-          file_name_length: fileToUpload.name.length,
-        });
       } catch (err) {
         const errorMessage = getFriendlyError(err);
         setError(errorMessage);
         setUploadState("error");
         toast.error(errorMessage);
         await clearPendingUploadCookie();
-        trackAnalyticsEvent("resume_upload_failed", { error_message: errorMessage });
 
         if (!onClaim) {
           setUploadedKey(null);

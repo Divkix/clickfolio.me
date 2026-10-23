@@ -1,7 +1,6 @@
-import { log } from "@/lib/utils/log";
+import { log, logEvent } from "@/lib/utils/log";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/analytics/server";
 import { checkRetryEligibilityForRow, getStatusView, RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { resumes } from "@/lib/db/schema";
@@ -250,10 +249,11 @@ export async function POST(request: Request) {
         return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
-      // SAFETY: id is a validated string PK; cast bridges Drizzle type for event payload.
-      captureServerEvent(userId, "resume_parse_retried", {
-        resume_id: resume.id as string,
-        retry_count: nextRetryCount,
+      // SAFETY: id is a validated string PK; cast bridges Drizzle type for log fields.
+      logEvent("resume_parse_retried", {
+        userId,
+        resumeId: resume.id as string,
+        retryCount: nextRetryCount,
       });
 
       // SAFETY: id is a validated string PK; cast bridges Drizzle type for response payload.

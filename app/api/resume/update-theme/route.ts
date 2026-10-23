@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { and, eq, lte } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/analytics/server";
+import { logEvent } from "@/lib/utils/log";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
@@ -110,9 +110,7 @@ export async function POST(request: Request) {
         notifyIndexNowForProfiles([dbUser.handle]);
       }
 
-      captureServerEvent(userId, "theme_changed", {
-        theme_id,
-      });
+      logEvent("theme_changed", { userId, themeId: theme_id });
 
       revalidatePublicProfilePages([dbUser.handle]);
 

@@ -175,7 +175,7 @@ describe("Worker fetch handler", () => {
     expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
   });
 
-  it("passes env and ctx to vinext so onRequestError reports run under ctx.waitUntil", async () => {
+  it("passes env and ctx to vinext so background work runs under ctx.waitUntil", async () => {
     const env = makeEnv();
     const ctx = makeCtx();
     const request = new Request("https://clickfolio.me/dashboard");
