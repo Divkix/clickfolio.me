@@ -5,7 +5,7 @@ import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import { aiProviderFailure, createAiProvider, generateAiText, type AiEnvVars } from "./ai-parser";
 import {
-  DEFAULT_AI_MODEL,
+  resolveAiModel,
   extractJson,
   MAX_OUTPUT_TOKENS,
   PROVIDER_ROUTING,
@@ -40,7 +40,7 @@ export function parsePdfWithVisionEffect(
   model?: string,
 ): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
   return Effect.gen(function* () {
-    const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
+    const modelId = resolveAiModel(env, model);
 
     const provider = yield* Effect.try({
       try: () => createAiProvider(env),

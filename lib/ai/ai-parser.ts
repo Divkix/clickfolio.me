@@ -1,13 +1,15 @@
 import { Effect } from "effect";
 import { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText } from "ai";
+import { generateText, type LanguageModelUsage } from "ai";
+import { z } from "zod";
 import type { UnknownRecord } from "@/lib/types/json";
 import { withSpan } from "@/lib/telemetry/spans";
+import { logEvent } from "@/lib/utils/log";
 import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import {
-  DEFAULT_AI_MODEL,
+  resolveAiModel,
   extractJson,
   MAX_OUTPUT_TOKENS,
   PROVIDER_ROUTING,
@@ -197,44 +199,79 @@ export function aiProviderFailure(cause: unknown): AiProviderFailed | AiTimedOut
   return new AiProviderFailed({ message, cause });
 }
 
+function usageFields(usage: LanguageModelUsage): UnknownRecord {
+  return {
+    input_tokens: usage.inputTokens,
+    cached_input_tokens: usage.inputTokenDetails.cacheReadTokens,
+    output_tokens: usage.outputTokens,
+    reasoning_tokens: usage.outputTokenDetails.reasoningTokens,
+    total_tokens: usage.totalTokens,
+    // OpenRouter adds `usage.cost` (credits) to every response; the provider
+    // passes the provider's usage object through as `raw`. The SDK drops `raw`
+    // when it sums multi-step usage, so a tool loop would report no cost.
+    cost_credits: z.number().safeParse(usage.raw?.cost).data,
+  };
+}
+
 export function generateAiText(
   options: Parameters<typeof generateText>[0],
   timeoutMs: number = TIMEOUT_MS,
 ): Effect.Effect<string, AiProviderFailed | AiTimedOut> {
   const model = options.model instanceof Object ? options.model.modelId : options.model;
 
-  return Effect.tryPromise({
-    // OTel GenAI client inference span: "{operation} {model}", token usage, finish reason.
-    try: (signal) =>
-      withSpan(
-        `chat ${model}`,
-        {
-          "gen_ai.operation.name": "chat",
-          "gen_ai.provider.name": AI_PROVIDER,
-          "gen_ai.request.model": model,
-        },
-        async (annotate) => {
-          const result = await generateText({ ...options, abortSignal: signal });
+  return Effect.suspend(() => {
+    const startedAt = Date.now();
 
-          annotate({
-            "gen_ai.response.model": result.response.modelId,
-            "gen_ai.response.finish_reasons": result.finishReason,
-            "gen_ai.usage.input_tokens": result.usage.inputTokens,
-            "gen_ai.usage.output_tokens": result.usage.outputTokens,
-          });
+    return Effect.tryPromise({
+      // OTel GenAI client inference span: "{operation} {model}", token usage, finish reason.
+      try: (signal) =>
+        withSpan(
+          `chat ${model}`,
+          {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": AI_PROVIDER,
+            "gen_ai.request.model": model,
+          },
+          async (annotate) => {
+            const result = await generateText({ ...options, abortSignal: signal });
 
-          return result;
-        },
+            annotate({
+              "gen_ai.response.model": result.response.modelId,
+              "gen_ai.response.finish_reasons": result.finishReason,
+              "gen_ai.usage.input_tokens": result.usage.inputTokens,
+              "gen_ai.usage.output_tokens": result.usage.outputTokens,
+            });
+
+            logEvent("ai_generation_completed", {
+              model,
+              response_model: result.response.modelId,
+              finish_reason: result.finishReason,
+              duration_ms: Date.now() - startedAt,
+              ...usageFields(result.usage),
+            });
+
+            return result;
+          },
+        ),
+      catch: aiProviderFailure,
+    }).pipe(
+      Effect.map((result) => result.text),
+      Effect.timeoutOrElse({
+        duration: timeoutMs,
+        orElse: () =>
+          Effect.fail(new AiTimedOut({ message: `AI request timed out after ${timeoutMs}ms` })),
+      }),
+      Effect.tapError((error) =>
+        Effect.sync(() =>
+          logEvent(
+            "ai_generation_failed",
+            { model, errorType: error._tag, duration_ms: Date.now() - startedAt },
+            "warn",
+          ),
+        ),
       ),
-    catch: aiProviderFailure,
-  }).pipe(
-    Effect.map((result) => result.text),
-    Effect.timeoutOrElse({
-      duration: timeoutMs,
-      orElse: () =>
-        Effect.fail(new AiTimedOut({ message: `AI request timed out after ${timeoutMs}ms` })),
-    }),
-  );
+    );
+  });
 }
 
 export function parseWithAiEffect(
@@ -245,7 +282,7 @@ export function parseWithAiEffect(
   source: ResumeSource = "generic",
 ): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
   return Effect.gen(function* () {
-    const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
+    const modelId = resolveAiModel(env, model);
     const provider = yield* Effect.try({ try: () => getAiProvider(env), catch: aiProviderFailure });
     const providerOptions = withReasoning(PROVIDER_ROUTING, getReasoningEffort(env));
 

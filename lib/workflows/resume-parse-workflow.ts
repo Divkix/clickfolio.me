@@ -5,6 +5,7 @@ import {
   type WorkflowEvent,
   type WorkflowStep,
   type WorkflowStepConfig,
+  type WorkflowStepContext,
 } from "cloudflare:workers";
 import { classifyParseError, decodeParseError } from "../parse/errors";
 import { toParseErrorJson } from "../parse/failures";
@@ -20,7 +21,8 @@ import {
 } from "../parse/pipeline";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import { parseRunAttributes, type ResumeParseParams } from "./resume-parse";
-import { log } from "../utils/log";
+import { resolveAiModel } from "../ai/prompt-config";
+import { log, logEvent } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
 import { withSpan } from "../telemetry/spans";
 
@@ -39,7 +41,7 @@ const PARSE_STEP = {
 type TracedStep = <T extends Rpc.Serializable<T>>(
   name: string,
   config: WorkflowStepConfig,
-  run: () => Promise<T>,
+  run: (context: WorkflowStepContext) => Promise<T>,
 ) => Promise<T>;
 
 /**
@@ -55,7 +57,7 @@ function tracedSteps(step: WorkflowStep, event: WorkflowEvent<ResumeParseParams>
       withSpan(
         `workflow.step ${name}`,
         { ...attributes, "workflow.step.name": name, "workflow.step.attempt": context.attempt },
-        run,
+        () => run(context),
       ),
     );
 }
@@ -109,10 +111,23 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
     let failedDuringParse = true;
     let currentFailure: ParseErrorJson | null = null;
+    // Unknown when the parse result comes from the journal (a replayed run).
+    let parseAttempts: number | undefined;
+
+    // Fields for the run's one resume_parse_completed / resume_parse_failed event.
+    // `duration_ms` runs from the instance's creation, so it includes retry backoff.
+    const outcome = () => ({
+      resumeId: job.resumeId,
+      model: resolveAiModel(this.env),
+      attempts: parseAttempts,
+      duration_ms: Date.now() - event.timestamp.getTime(),
+    });
 
     try {
-      const parsed = await tracedStep("parse", PARSE_STEP, () =>
-        runStep(
+      const parsed = await tracedStep("parse", PARSE_STEP, (context) => {
+        parseAttempts = context.attempt;
+
+        return runStep(
           parseResumePdf(job, this.env).pipe(
             Effect.tapCause((cause) =>
               Effect.sync(() => {
@@ -131,15 +146,18 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
               }),
             ),
           ),
-        ),
-      );
+        );
+      });
 
       failedDuringParse = false;
       currentFailure = null;
 
       if (!parsed) return "skipped";
 
-      await tracedStep("complete", DB_STEP, () => completeParsedResume(job, parsed, this.env));
+      await tracedStep("complete", DB_STEP, async () => {
+        await completeParsedResume(job, parsed, this.env);
+        logEvent("resume_parse_completed", outcome());
+      });
 
       return "completed";
     } catch (error) {
@@ -166,11 +184,11 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
         // After the write, inside the step body: once per run, not once per
         // step retry or per replay of `run`.
-        log("error", "resume parse failed", {
-          resumeId: job.resumeId,
-          errorType: failure.type,
-          ...errorFields(error),
-        });
+        logEvent(
+          "resume_parse_failed",
+          { ...outcome(), errorType: failure.type, ...errorFields(error) },
+          "error",
+        );
       });
 
       await this.emailFailure(job.resumeId, tracedStep);

@@ -188,13 +188,12 @@ export default {
     try {
       switch (controller.cron) {
         case "0 3 * * *": {
-          const result = await performCleanup(
+          // Logs its own cleanup_completed / cleanup_failed event.
+          await performCleanup(
             db,
             env.CLICKFOLIO_R2_BUCKET ?? null,
             env.CLICKFOLIO_R2_DELETE_WORKFLOW,
           );
-
-          log("info", "cron completed", { cron: controller.cron, result });
           break;
         }
 
