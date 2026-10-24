@@ -1,39 +1,40 @@
+import { Effect } from "effect";
 import { env } from "cloudflare:workers";
-import { count, eq, sql } from "drizzle-orm";
+import { count, eq, sql, type SQL } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
-import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
+import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 import { safePageParam } from "@/lib/utils/pagination";
 
 const PAGE_SIZE = 25;
 
 const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "failed"]);
 
-export async function GET(request: Request) {
-  return withAdmin(request, async () => {
+function listResumes(request: Request): Effect.Effect<Response, ServerFailure, Db> {
+  return Effect.gen(function* () {
     const url = new URL(request.url);
     const page = safePageParam(url.searchParams.get("page"));
     const statusFilter = url.searchParams.get("status") || "all";
     const offset = (page - 1) * PAGE_SIZE;
 
     if (!VALID_STATUSES.has(statusFilter)) {
-      return createErrorResponse("Invalid status filter", ERROR_CODES.VALIDATION_ERROR, 400);
+      return yield* Effect.fail(new InvalidInput({ message: "Invalid status filter" }));
     }
 
-    const db = getDb(env.HYPERDRIVE);
-
-    const statusCounts = await db
-      .select({
-        status: resumes.status,
-        count: count(),
-      })
-      .from(resumes)
-      .groupBy(resumes.status);
+    const statusCounts = yield* Db.use((db) =>
+      db.query("admin.resumes.status-counts", (handle) =>
+        handle
+          .select({
+            status: resumes.status,
+            count: count(),
+          })
+          .from(resumes)
+          .groupBy(resumes.status),
+      ),
+    );
 
     const stats = {
       completed: 0,
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
       }
     }
 
-    let statusCondition;
+    let statusCondition: SQL | undefined;
 
     if (statusFilter === "completed") {
       statusCondition = sql`${resumes.status} IN ('completed', 'waiting_for_cache')`;
@@ -66,30 +67,41 @@ export async function GET(request: Request) {
       statusCondition = eq(resumes.status, "failed");
     }
 
-    const [[totalResult], resumeList] = await Promise.all([
-      db.select({ count: count() }).from(resumes).where(statusCondition),
-      db
-        .select({
-          id: resumes.id,
-          userId: resumes.userId,
-          status: resumes.status,
-          retryCount: resumes.retryCount,
-          totalAttempts: resumes.totalAttempts,
-          lastAttemptError: resumes.lastAttemptError,
-          errorMessage: resumes.errorMessage,
-          queuedAt: resumes.queuedAt,
-          updatedAt: resumes.updatedAt,
-          createdAt: resumes.createdAt,
-          userEmail: user.email,
-        })
-        .from(resumes)
-        .leftJoin(user, eq(resumes.userId, user.id))
-        .where(statusCondition)
-        // updated_at is NULL for rows that completed without a later write; fall back to created_at.
-        .orderBy(sql`COALESCE(${resumes.updatedAt}, ${resumes.createdAt}) DESC`)
-        .limit(PAGE_SIZE)
-        .offset(offset),
-    ]);
+    const [[totalResult], resumeList] = yield* Effect.all(
+      [
+        Db.use((db) =>
+          db.query("admin.resumes.count", (handle) =>
+            handle.select({ count: count() }).from(resumes).where(statusCondition),
+          ),
+        ),
+        Db.use((db) =>
+          db.query("admin.resumes.list", (handle) =>
+            handle
+              .select({
+                id: resumes.id,
+                userId: resumes.userId,
+                status: resumes.status,
+                retryCount: resumes.retryCount,
+                totalAttempts: resumes.totalAttempts,
+                lastAttemptError: resumes.lastAttemptError,
+                errorMessage: resumes.errorMessage,
+                queuedAt: resumes.queuedAt,
+                updatedAt: resumes.updatedAt,
+                createdAt: resumes.createdAt,
+                userEmail: user.email,
+              })
+              .from(resumes)
+              .leftJoin(user, eq(resumes.userId, user.id))
+              .where(statusCondition)
+              // updated_at is NULL for rows that completed without a later write; fall back to created_at.
+              .orderBy(sql`COALESCE(${resumes.updatedAt}, ${resumes.createdAt}) DESC`)
+              .limit(PAGE_SIZE)
+              .offset(offset),
+          ),
+        ),
+      ],
+      { concurrency: "unbounded" },
+    );
 
     return createSuccessResponse({
       stats,
@@ -107,4 +119,10 @@ export async function GET(request: Request) {
       pageSize: PAGE_SIZE,
     });
   });
+}
+
+export async function GET(request: Request) {
+  return withAdmin(request, () =>
+    runRoute(request, listResumes(request), Db.layer(env.HYPERDRIVE)),
+  );
 }
