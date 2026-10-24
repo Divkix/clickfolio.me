@@ -309,6 +309,30 @@ describe("POST /api/webhooks/clerk", () => {
     expect(mocks.indexNow).toHaveBeenCalledWith(["alice-site"]);
   });
 
+  it("removes a row that was only matched by external id, not left behind with its files gone", async () => {
+    await seedUser(db, "legacy-id-7", { clerkId: null });
+    await db.insert(resumes).values({
+      id: "r1",
+      userId: "legacy-id-7",
+      r2Key: "users/legacy-id-7/r1/cv.pdf",
+      status: "completed",
+      createdAt: NOW,
+    });
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery("user.deleted", { id: "user_clerk_1", external_id: "legacy-id-7", deleted: true }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.workflowCreate).toHaveBeenCalledWith({
+      params: { keys: ["users/legacy-id-7/r1/cv.pdf"], prefix: "users/legacy-id-7/" },
+    });
+    expect(await db.select().from(user).where(eq(user.id, "legacy-id-7"))).toHaveLength(0);
+    expect(await db.select().from(resumes)).toHaveLength(0);
+  });
+
   it("keeps the user and answers 500 when the R2 cleanup cannot be scheduled, so Svix retries", async () => {
     await seedUser(db, "alice", { clerkId: "user_clerk_1" });
     mocks.workflowCreate.mockRejectedValue(new Error("workflow down"));

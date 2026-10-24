@@ -280,11 +280,15 @@ function handleDelivery(request: Request) {
         );
       }
 
-      yield* Db.use((db) =>
-        db.query("webhook.clerk.delete-user", (handle) =>
-          handle.delete(users).where(eq(users.clerkId, payload.id)),
-        ),
-      );
+      // Delete the row that was mapped, which may have matched by external id alone: deleting
+      // by Clerk id would leave it behind with its files already swept.
+      if (mapped) {
+        yield* Db.use((db) =>
+          db.query("webhook.clerk.delete-user", (handle) =>
+            handle.delete(users).where(eq(users.id, mapped.id)),
+          ),
+        );
+      }
 
       yield* Effect.sync(() => {
         notifyIndexNowForProfiles([mapped?.handle]);
