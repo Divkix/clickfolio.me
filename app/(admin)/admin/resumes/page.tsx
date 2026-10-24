@@ -14,6 +14,7 @@ import { StatCard } from "@/components/admin/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { safePageParam } from "@/lib/utils/pagination";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { RETRY_LIMITS } from "@/lib/resume/lifecycle";
 
 interface ResumeData {
   id: string;
@@ -273,7 +274,7 @@ function AdminResumesContent() {
                         className="px-4 py-3 text-center text-sm text-muted-foreground"
                         style={{ fontVariantNumeric: "tabular-nums" }}
                       >
-                        {resume.retryCount}/3
+                        {resume.retryCount}/{RETRY_LIMITS.MANUAL_MAX_RETRIES}
                       </td>
                       <td className="px-4 py-3">
                         {resume.lastAttemptError ? (

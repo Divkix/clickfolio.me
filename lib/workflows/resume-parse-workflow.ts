@@ -31,7 +31,7 @@ import {
   type ResumeParseJob,
 } from "../parse/pipeline";
 import { refreshPublicProfiles } from "../parse/public-refresh";
-import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
+import { RETRY_LIMITS, WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import {
   parseRunAttributes,
   resumeParseParamsSchema,
@@ -77,7 +77,11 @@ const DB_STEP = {
 // Transient failures (AI provider, DB, R2 throttling) retry here; permanent ones
 // throw NonRetryableError and go straight to `mark failed`.
 const PARSE_STEP = {
-  retries: { limit: 3, delay: "30 seconds", backoff: "exponential" },
+  retries: {
+    limit: RETRY_LIMITS.PARSE_MAX_ATTEMPTS - 1,
+    delay: "30 seconds",
+    backoff: "exponential",
+  },
   timeout: "10 minutes",
 } as const;
 
