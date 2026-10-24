@@ -7,10 +7,24 @@ import { INDEXABLE_CONTENT } from "../helpers/pglite-db";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 describe("wizard initial client render", () => {
-  it("renders the existing handle-first flow immediately when content is preloaded", () => {
+  it("opens a returning owner's preloaded content at review without a loading phase", () => {
     const html = renderToStaticMarkup(
       createElement(WizardClient, {
         initialStart: { kind: "review", content: INDEXABLE_CONTENT },
+        ownerHandle: "alice",
+      }),
+    );
+
+    expect(html).toContain("Review Your Information");
+    expect(html).not.toContain("Choose Your Handle");
+    expect(html).not.toContain("Loading your resume");
+  });
+
+  it("asks an owner without a handle to choose one before review", () => {
+    const html = renderToStaticMarkup(
+      createElement(WizardClient, {
+        initialStart: { kind: "review", content: INDEXABLE_CONTENT },
+        ownerHandle: null,
       }),
     );
 
@@ -20,7 +34,7 @@ describe("wizard initial client render", () => {
 
   it("renders upload immediately when no resume exists", () => {
     const html = renderToStaticMarkup(
-      createElement(WizardClient, { initialStart: { kind: "upload" } }),
+      createElement(WizardClient, { initialStart: { kind: "upload" }, ownerHandle: null }),
     );
 
     expect(html).toContain("Upload Your Resume");
@@ -34,6 +48,7 @@ describe("wizard initial client render", () => {
           kind: "claim-first",
           pendingUpload: { key: "temp/new-resume.pdf", file_hash: null },
         },
+        ownerHandle: "alice",
       }),
     );
 
