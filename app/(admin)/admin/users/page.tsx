@@ -1,203 +1,22 @@
-"use client";
+import { env } from "cloudflare:workers";
+import { requireAdminAuth } from "@/lib/auth/admin";
+import { adminUsersParamsSchema, loadAdminUsers } from "@/lib/data/admin-users";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
+import AdminUsersClient from "./AdminUsersClient";
 
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
-import { Search, Users } from "lucide-react";
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Pagination } from "@/components/admin/Pagination";
-import { UserStatusBadge } from "@/components/admin/UserStatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatRelativeTime } from "@/lib/utils/format";
+export const dynamic = "force-dynamic";
 
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  handle: string | null;
-  status: "live" | "processing" | "no_resume" | "failed";
-  views: number;
-  createdAt: string;
-}
-
-interface UsersResponse {
-  users: UserData[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-export default function AdminUsersPage() {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-
-  const requestKey = `${page} ${search}`;
-  // Latest requested key: only that request's response may settle `loading`,
-  // so a stale response arriving late cannot clobber a newer request's state.
-  const activeKeyRef = useRef(requestKey);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
-  const loading = loadedKey !== requestKey;
-
-  const fetchUsers = useCallback((p: number, s: string) => {
-    const key = `${p} ${s}`;
-    activeKeyRef.current = key;
-
-    const params = new URLSearchParams({ page: p.toString() });
-
-    if (s) params.set("search", s);
-
-    return fetch(`/api/admin/users?${params}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data: UsersResponse = await res.json();
-        setUsers(data.users);
-        setTotal(data.total);
-        setPage(data.page);
-        setPageSize(data.pageSize);
-
-        if (activeKeyRef.current === key) {
-          setLoadedKey(key);
-        }
-      })
-      .catch((err) => {
-        log("error", "Failed to fetch users:", { ...errorFields(err) });
-
-        if (activeKeyRef.current === key) {
-          setLoadedKey(key);
-        }
-      });
-  }, []);
-
-  useEffect(() => {
-    void fetchUsers(page, search);
-  }, [page, search, fetchUsers]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    setSearch(searchInput);
-  };
-
-  const totalPages = Math.ceil(total / pageSize);
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requireAdminAuth();
+  const params = adminUsersParamsSchema.parse(await searchParams);
+  const data = await runPage(loadAdminUsers(params), Db.layer(env.HYPERDRIVE));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
-          <span className="text-sm text-muted-foreground">
-            {total.toLocaleString()} total users
-          </span>
-        </div>
-
-        <form onSubmit={handleSearch} className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search name, email, handle..."
-            className="w-full sm:w-64 pl-9 pr-4 py-2 text-sm bg-card text-foreground border border-border-strong rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
-            aria-label="Search users"
-          />
-        </form>
-      </div>
-
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
-                  User
-                </th>
-                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
-                  Handle
-                </th>
-                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
-                  Status
-                </th>
-                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
-                  Joined
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-10 w-48" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-24" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-20" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-12 ml-auto" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-16 ml-auto" />
-                    </td>
-                  </tr>
-                ))
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                    {search ? "No users found matching your search" : "No users yet"}
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-muted/50 transition-colors">
-                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <td> is not an interactive control */}
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium text-foreground">{user.name || "Unnamed"}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {user.handle ? (
-                        <Link
-                          href={`/@${user.handle}`}
-                          target="_blank"
-                          className="text-sm font-mono text-brand hover:underline"
-                        >
-                          @{user.handle}
-                        </Link>
-                      ) : (
-                        <span className="text-sm text-muted-foreground/70">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <UserStatusBadge status={user.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                      {formatRelativeTime(user.createdAt)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="border-t border-border px-4 py-3">
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-          </div>
-        )}
-      </div>
-    </div>
+    <AdminUsersClient key={`${params.page} ${params.search}`} data={data} search={params.search} />
   );
 }
