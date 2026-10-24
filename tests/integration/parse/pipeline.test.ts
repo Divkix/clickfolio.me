@@ -258,6 +258,33 @@ describe("claimResumeForParse", () => {
     expect(pushes).toEqual([{ resumeId: JOB.resumeId, status: "completed" }]);
     expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
   });
+
+  it("returns the handles again when the step retries after its cache completion committed", async () => {
+    await db.update(user).set({ handle: "ada" }).where(eq(user.id, JOB.userId));
+    await seed("earlier", { status: "completed", parsedContent: CONTENT });
+    await seed(JOB.resumeId, { status: "queued" });
+
+    const cachedClaim = { kind: "cached", handles: ["ada"] };
+
+    await expect(run(claimResumeForParse(JOB))).resolves.toEqual(cachedClaim);
+    // The commit landed but the step's result was lost, so Workflows runs the step again.
+    await expect(run(claimResumeForParse(JOB))).resolves.toEqual(cachedClaim);
+
+    expect(pushes).toEqual([{ resumeId: JOB.resumeId, status: "completed" }]);
+  });
+
+  it("refreshes nothing for a run whose row a newer run completed from the cache", async () => {
+    await db.update(user).set({ handle: "ada" }).where(eq(user.id, JOB.userId));
+    await seed("earlier", { status: "completed", parsedContent: CONTENT });
+    await seed(JOB.resumeId, { status: "completed", parsedContent: CONTENT, retryCount: 1 });
+
+    await expect(run(claimResumeForParse({ ...JOB, retryCount: 0 }))).resolves.toEqual({
+      kind: "cached",
+      handles: [],
+    });
+
+    expect(pushes).toEqual([]);
+  });
 });
 
 describe("parseResumePdf", () => {
