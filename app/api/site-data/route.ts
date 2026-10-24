@@ -1,16 +1,15 @@
 import { eq } from "drizzle-orm";
 import { Effect } from "effect";
-import { withUser } from "@/lib/auth/with-auth";
+import { withUserEffect } from "@/lib/auth/with-auth";
 import { siteData } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { runRoute } from "@/lib/effect/edges";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export async function GET(request?: Request) {
-  return withUser(
+  return withUserEffect(
     request,
-    async ({ user, db }) => {
-      const program = Db.use((service) =>
+    ({ user }) =>
+      Db.use((service) =>
         service.query("site-data.get", (handle) =>
           handle
             .select({
@@ -27,11 +26,7 @@ export async function GET(request?: Request) {
             .where(eq(siteData.userId, user.id))
             .limit(1),
         ),
-      ).pipe(Effect.map((rows) => createSuccessResponse(rows[0] ?? null)));
-
-      // The auth wrapper already opened this request's pool; the service reuses it.
-      return runRoute(request, program, Db.layerFrom(db));
-    },
+      ).pipe(Effect.map((rows) => createSuccessResponse(rows[0] ?? null))),
     "You must be logged in to access site data",
   );
 }
