@@ -337,3 +337,41 @@ describe("POST /api/wizard/complete", () => {
     expect((await POST(complete(validBody(), { "Content-Length": "9999999" }))).status).toBe(413);
   });
 });
+
+describe("POST /api/wizard/complete when the database fails", () => {
+  it("answers 503 and publishes nothing when the transaction cannot run", async () => {
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      Object.assign(new Error("connection terminated"), { code: "08006" }),
+    );
+
+    const { POST } = await import("@/app/api/wizard/complete/route");
+    const response = await POST(complete(validBody()));
+
+    expect(response.status).toBe(503);
+    expect((await rowOf("alice")).handle).toBeNull();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.indexNow).not.toHaveBeenCalled();
+  });
+
+  it("tells a rate-limited client when to come back", async () => {
+    await db.update(user).set({ handle: "old-handle" }).where(eq(user.id, "alice"));
+
+    const recent = new Date().toISOString();
+
+    await db.insert(handleChanges).values(
+      ["one", "two", "three"].map((name) => ({
+        id: `hc-${name}`,
+        userId: "alice",
+        oldHandle: null,
+        newHandle: name,
+        createdAt: recent,
+      })),
+    );
+
+    const { POST } = await import("@/app/api/wizard/complete/route");
+    const response = await POST(complete(validBody()));
+
+    expect(response.status).toBe(429);
+    expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(0);
+  });
+});
