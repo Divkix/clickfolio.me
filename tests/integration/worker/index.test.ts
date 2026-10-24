@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import handler from "vinext/server/app-router-entry";
 import worker from "@/worker/index";
 import { verifyToken } from "@clerk/backend";
@@ -595,5 +597,25 @@ describe("Worker scheduled handler", () => {
     const env = makeEnv();
 
     await expect(worker.scheduled(makeController("0 12 * * MON"), env)).resolves.not.toThrow();
+  });
+
+  it("routes every cron trigger configured in wrangler.jsonc", async () => {
+    const config = readFileSync(resolve(import.meta.dirname, "../../../wrangler.jsonc"), "utf8");
+
+    const crons = [
+      ...(/"crons"\s*:\s*\[([^\]]*)\]/.exec(config)?.[1] ?? "").matchAll(/"([^"]+)"/g),
+    ].map(([, cron]) => cron);
+
+    expect(crons.length).toBeGreaterThan(0);
+
+    for (const cron of crons) {
+      vi.clearAllMocks();
+
+      await worker.scheduled(makeController(cron), makeEnv());
+
+      expect(
+        mockPerformCleanup.mock.calls.length + mockPerformStrandedSweep.mock.calls.length,
+      ).toBe(1);
+    }
   });
 });

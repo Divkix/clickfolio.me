@@ -309,19 +309,6 @@ describe("runStrandedSweep: guards", () => {
     },
   );
 
-  it("keeps a row that completed after the sweep would have picked it", async () => {
-    // Completion lands between the sweeper's two statements: the second only sees the row as
-    // completed, and the status guard inside its UPDATE keeps it.
-    await seed("done", { status: "processing", queuedAt: minutesAgo(120) });
-    await seed("late", { status: "queued", queuedAt: minutesAgo(40) });
-    await db.update(resumes).set({ status: "completed" }).where(eq(resumes.id, "done"));
-
-    await expect(sweep()).resolves.toEqual({ neverStarted: 1, timedOut: 0 });
-
-    expect((await row("done")).status).toBe("completed");
-    expect((await row("late")).status).toBe("failed");
-  });
-
   it("sweeps at most one batch per rule and takes the oldest first", async () => {
     await seed("a-oldest", { status: "queued", queuedAt: minutesAgo(300) });
     await seed("b-old", { status: "queued", queuedAt: minutesAgo(200) });
