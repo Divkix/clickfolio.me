@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, type GenerateTextResult, JSONParseError, type ToolSet } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { textResult } from "@/tests/helpers/ai-result";
@@ -154,6 +155,21 @@ describe("Effect AI boundaries", () => {
       expect(generateText).toHaveBeenCalledTimes(2);
     },
   );
+
+  it("builds the gateway provider per call, so a rotated token is never served from a cache", async () => {
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
+
+    await Effect.runPromise(parseWithAiEffect("resume", ENV));
+    await Effect.runPromise(parseWithAiEffect("resume", ENV));
+    await Effect.runPromise(parseWithAiEffect("resume", { ...ENV, CF_AIG_AUTH_TOKEN: "rotated" }));
+
+    expect(createOpenAICompatible).toHaveBeenCalledTimes(3);
+    expect(createOpenAICompatible).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        headers: { "cf-aig-authorization": "Bearer rotated" },
+      }),
+    );
+  });
 
   it("returns typed resume content without serializing it", async () => {
     vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));

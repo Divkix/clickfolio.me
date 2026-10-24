@@ -1,28 +1,34 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { Effect, Layer } from "effect";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { resumes, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { StatusChannel } from "@/lib/effect/services/status-channel";
+import { expireWaitingForCache } from "@/lib/parse/pipeline";
 import { WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { createTestDb, type TestDb } from "@/tests/helpers/pglite-db";
 
 // The await-cache timer is a Workflow step: Workflows retries it until it returns, and its
 // result decides whether the failure email goes out. Runs against real SQL.
 
-const handles = vi.hoisted(() => new Array<unknown>());
-
-vi.mock("@/lib/db", () => ({ getDb: vi.fn(() => handles[0]) }));
-
 const T0 = "2026-01-01T00:00:00.000Z";
-
-// SAFETY: getDb is module-mocked; the status Durable Object is unbound, so notifying is a no-op.
-const ENV = {} as CloudflareEnv;
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;
 
+// The status Durable Object is unbound, so notifying is a no-op.
+function expire(resumeId: string) {
+  return Effect.runPromise(
+    Effect.provide(
+      expireWaitingForCache(resumeId),
+      Layer.mergeAll(Db.layerFrom(db), StatusChannel.layerFrom(undefined)),
+    ),
+  );
+}
+
 beforeAll(async () => {
   testDb = await createTestDb();
   db = testDb.db;
-  handles.push(db);
 });
 
 afterAll(async () => {
@@ -53,10 +59,9 @@ async function seed(id: string, values: Partial<typeof resumes.$inferInsert>) {
 
 describe("expireWaitingForCache", () => {
   it("expires a waiting row and reports it", async () => {
-    const { expireWaitingForCache } = await import("@/lib/parse/pipeline");
     await seed("r1", { status: "waiting_for_cache" });
 
-    await expect(expireWaitingForCache("r1", ENV)).resolves.toBe(true);
+    await expect(expire("r1")).resolves.toBe(true);
 
     const [row] = await db.select().from(resumes).where(eq(resumes.id, "r1"));
     expect(row).toMatchObject({
@@ -66,15 +71,14 @@ describe("expireWaitingForCache", () => {
   });
 
   it("still reports expiry when a retry finds the row its first attempt already failed", async () => {
-    const { expireWaitingForCache } = await import("@/lib/parse/pipeline");
     await seed("r1", { status: "waiting_for_cache" });
 
     // First attempt: the UPDATE commits, then the step is lost before it returns.
-    await expect(expireWaitingForCache("r1", ENV)).resolves.toBe(true);
+    await expect(expire("r1")).resolves.toBe(true);
 
     // Workflows retries the step. The journal has no result, so the answer must still be
     // "expired": `false` would skip the failure email for good.
-    await expect(expireWaitingForCache("r1", ENV)).resolves.toBe(true);
+    await expect(expire("r1")).resolves.toBe(true);
   });
 
   it.each([
@@ -93,15 +97,12 @@ describe("expireWaitingForCache", () => {
     ],
     ["retried by the user", { status: "queued" as const }],
   ])("reports resolved for a row %s", async (_label, values) => {
-    const { expireWaitingForCache } = await import("@/lib/parse/pipeline");
     await seed("r1", values);
 
-    await expect(expireWaitingForCache("r1", ENV)).resolves.toBe(false);
+    await expect(expire("r1")).resolves.toBe(false);
   });
 
   it("reports resolved for a row that no longer exists", async () => {
-    const { expireWaitingForCache } = await import("@/lib/parse/pipeline");
-
-    await expect(expireWaitingForCache("gone", ENV)).resolves.toBe(false);
+    await expect(expire("gone")).resolves.toBe(false);
   });
 });

@@ -1,60 +1,102 @@
 import { Context, Effect, Layer } from "effect";
+import { withSpan } from "@/lib/telemetry/spans";
 import {
-  startResumeParse,
+  PARSE_WORKFLOW_NAME,
+  parseRunAttributes,
+  resumeParseParamsSchema,
   type ResumeParseParams,
-  type ResumeParseWorkflowBinding,
-} from "@/lib/workflows/resume-parse";
+} from "@/lib/workflows/resume-parse-params";
+import { log } from "@/lib/utils/log";
 import { externalCall } from "../external";
-import { WorkflowFailed } from "../failures";
+import { upstreamLogFields } from "../failure-fields";
+import { InvalidInput, WorkflowFailed } from "../failures";
 import { TIMEOUT_MS } from "../timeouts";
 
-type ParseWorkflowLike = Pick<ResumeParseWorkflowBinding, "create" | "get">;
+/** The slice of the ResumeParseWorkflow binding this service uses; tests pass a fake. */
+type ParseWorkflowLike = {
+  create(options: { id: string; params: ResumeParseParams }): Promise<{ id: string }>;
+  get(id: string): Promise<{ id: string }>;
+};
 
 type WorkflowStarterService = {
   /**
-   * Starts a ResumeParseWorkflow run under `id`, which is the idempotency key: a create that
-   * errored after the instance was persisted is not a failure. Never retried here. A `timeout`
-   * failure means the outcome is unknown (the instance may exist); callers that give up on the
-   * run rely on the pipeline's steps being status-guarded, so a late start finds nothing to do.
+   * Starts a ResumeParseWorkflow run under `id`. The id is the idempotency key, so a create that
+   * failed or timed out after the instance was persisted is not an error: the instance is looked
+   * up before giving up. Params are checked first; never retried here.
    */
   readonly startResumeParse: (
     id: string,
     params: ResumeParseParams,
-  ) => Effect.Effect<void, WorkflowFailed>;
+  ) => Effect.Effect<void, WorkflowFailed | InvalidInput>;
 };
 
-const OPERATION = "workflow.create.resume_parse";
+const CREATE = "workflow.resume_parse.create";
+
+const LOOKUP = "workflow.resume_parse.get";
 
 function service(workflow: ParseWorkflowLike | undefined): WorkflowStarterService {
   return {
     startResumeParse: (id, params) => {
+      const parsed = resumeParseParamsSchema.safeParse(params);
+
+      if (!parsed.success) {
+        return Effect.fail(new InvalidInput({ message: "Invalid resume parse request" }));
+      }
+
       if (!workflow) {
         return Effect.fail(
           new WorkflowFailed({
-            operation: OPERATION,
+            operation: CREATE,
             kind: "unavailable",
             message: "CLICKFOLIO_PARSE_WORKFLOW binding not available",
           }),
         );
       }
 
+      // The runtime exposes no trace context to pass on, so the run's step spans repeat these ids.
+      const attributes = {
+        ...parseRunAttributes(id, parsed.data.resumeId),
+        "workflow.params.kind": parsed.data.kind,
+      };
+
       return externalCall({
-        operation: OPERATION,
+        operation: CREATE,
         timeoutMs: TIMEOUT_MS.workflow,
-        // startResumeParse owns the create-or-get idempotency and the workflow.create span.
-        run: () => startResumeParse(workflow, id, params),
+        run: () =>
+          withSpan(`workflow.create ${PARSE_WORKFLOW_NAME}`, attributes, () =>
+            workflow.create({ id, params: parsed.data }),
+          ),
         fail: (details) => new WorkflowFailed(details),
         span: false,
-      });
+      }).pipe(
+        Effect.asVoid,
+        Effect.catchTag("WorkflowFailed", (created) =>
+          externalCall({
+            operation: LOOKUP,
+            timeoutMs: TIMEOUT_MS.workflow,
+            run: () => workflow.get(id),
+            fail: (details) => new WorkflowFailed(details),
+          }).pipe(
+            Effect.asVoid,
+            // Not found is the common answer here; the create failure is what the caller needs.
+            Effect.catchTag("WorkflowFailed", (lookup) =>
+              Effect.sync(() =>
+                log("warn", "resume parse instance not found after create failed", {
+                  ...upstreamLogFields(lookup),
+                }),
+              ).pipe(Effect.andThen(Effect.fail(created))),
+            ),
+          ),
+        ),
+      );
     },
   };
 }
 
-/** Starts parse runs. Provide it at the edge, never from module scope. */
+/** Starts Workflows runs. Provide it at the edge, never from module scope. */
 export class WorkflowStarter extends Context.Service<WorkflowStarter, WorkflowStarterService>()(
   "clickfolio/WorkflowStarter",
 ) {
-  /** A missing binding makes every start fail `unavailable`. */
   static layer(
     env: Partial<Pick<CloudflareEnv, "CLICKFOLIO_PARSE_WORKFLOW">>,
   ): Layer.Layer<WorkflowStarter> {

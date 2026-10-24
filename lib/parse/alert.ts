@@ -1,8 +1,6 @@
-import { Cause, Effect, Exit } from "effect";
-import { runBackground } from "../effect/edges";
+import { Effect } from "effect";
 import { upstreamLogFields } from "../effect/failure-fields";
 import { AlertWebhook } from "../effect/services/alert-webhook";
-import { errorFields } from "../utils/error-fields";
 import { log } from "../utils/log";
 import type { UnknownRecord } from "../types/json";
 
@@ -48,20 +46,4 @@ export function parseFailureAlertBestEffort(payload: ParseFailureAlert, channel:
       Effect.sync(() => log("error", "webhook alert failed", upstreamLogFields(failure))),
     ),
   );
-}
-
-export async function sendAlert(
-  payload: ParseFailureAlert,
-  channel: AlertChannel,
-  env: AlertEnv,
-): Promise<void> {
-  const exit = await runBackground(
-    parseFailureAlertBestEffort(payload, channel),
-    AlertWebhook.layer(env),
-  );
-
-  // Typed failures were logged above; what reaches here is a defect.
-  if (Exit.isFailure(exit)) {
-    log("error", "webhook alert failed", errorFields(Cause.squash(exit.cause)));
-  }
 }

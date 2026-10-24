@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { parseWorkflow } from "../../helpers/parse-workflow";
 import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
@@ -43,10 +44,10 @@ const mockDb = {
   insert: mockInsert,
 };
 
-vi.mock("cloudflare:workers", () => ({
+vi.mock("cloudflare:workers", async () => ({
   env: {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    CLICKFOLIO_PARSE_WORKFLOW: {},
+    CLICKFOLIO_PARSE_WORKFLOW: (await import("../../helpers/parse-workflow")).parseWorkflow,
   },
 }));
 
@@ -119,11 +120,6 @@ vi.mock("@/lib/db/schema", async (importOriginal) => {
     },
   };
 });
-
-vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
-  startResumeParse: vi.fn().mockResolvedValue(undefined),
-}));
 
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn(() => ({})),
@@ -260,7 +256,7 @@ function authedAs(userId: string) {
     // of CloudflareEnv is intentionally absent and never dereferenced.
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      CLICKFOLIO_PARSE_WORKFLOW: {},
+      CLICKFOLIO_PARSE_WORKFLOW: parseWorkflow,
     } as never,
     error: null,
   });

@@ -1,14 +1,12 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { sql } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { Db } from "@/lib/effect/db";
 import { logFailure, runRoute } from "@/lib/effect/edges";
-import { externalCall } from "@/lib/effect/external";
-import { R2Failed, type DbConflict, type DbFailed } from "@/lib/effect/failures";
-import { TIMEOUT_MS } from "@/lib/effect/timeouts";
+import type { DbConflict, DbFailed, R2Failed } from "@/lib/effect/failures";
+import { R2Store } from "@/lib/effect/services/r2-store";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
-import { getR2Binding } from "@/lib/r2";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -78,16 +76,7 @@ const checkPg = measure(
   ),
 );
 
-function checkR2(r2: R2Bucket) {
-  return measure(
-    externalCall({
-      operation: "health.r2",
-      timeoutMs: TIMEOUT_MS.r2,
-      run: () => r2.list({ limit: 1 }),
-      fail: (details) => new R2Failed(details),
-    }).pipe(Effect.asVoid),
-  );
-}
+const checkR2 = measure(R2Store.use((store) => store.ping()));
 
 function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
@@ -113,11 +102,9 @@ const unavailable = () =>
   createErrorResponse("Health check unavailable", ERROR_CODES.INTERNAL_ERROR, 503);
 
 function healthProgram(typedEnv: CloudflareEnv) {
-  const r2Binding = getR2Binding(typedEnv);
-
   return Effect.gen(function* () {
     const [r2Health, pgHealth] = yield* Effect.all(
-      [r2Binding ? checkR2(r2Binding) : Effect.sync(missingR2), checkPg],
+      [typedEnv.CLICKFOLIO_R2_BUCKET ? checkR2 : Effect.sync(missingR2), checkPg],
       { concurrency: "unbounded" },
     );
 
@@ -150,7 +137,11 @@ export async function GET() {
     // SAFETY: env is CloudflareEnv in Workers runtime; cast bridges missing CloudflareEnv augmentation.
     const typedEnv = env as CloudflareEnv;
 
-    return await runRoute(undefined, healthProgram(typedEnv), Db.layer(typedEnv.HYPERDRIVE));
+    return await runRoute(
+      undefined,
+      healthProgram(typedEnv),
+      Layer.mergeAll(Db.layer(typedEnv.HYPERDRIVE), R2Store.layer(typedEnv)),
+    );
   } catch (error) {
     log("error", "Health check error", { ...errorFields(error) });
 

@@ -171,6 +171,33 @@ describe("R2Store", () => {
     expect(list.mock.calls[1][0]).toMatchObject({ prefix: "users/u1/", cursor: "c1" });
   });
 
+  it("pings with a one-key listing", async () => {
+    const list = vi.fn<FakeBucket["list"]>(async () => ({ objects: [], truncated: false }));
+
+    await run(
+      R2Store.use((store) => store.ping()),
+      R2Store.layerFrom(bucket({ list })),
+    );
+
+    expect(list).toHaveBeenCalledWith({ prefix: "", limit: 1 });
+  });
+
+  it("fails a ping with R2Failed when the bucket does not answer", async () => {
+    const failure = await fail(
+      R2Store.use((store) => store.ping()),
+      R2Store.layerFrom(
+        bucket({
+          list: async () => {
+            throw new Error("R2 is down");
+          },
+        }),
+      ),
+    );
+
+    expect(failure).toBeInstanceOf(R2Failed);
+    expect(failure).toMatchObject({ operation: "r2.ping" });
+  });
+
   it("fails every call as unavailable when the binding is not configured", async () => {
     const failure = await fail(
       R2Store.use((store) => store.delete("k")),

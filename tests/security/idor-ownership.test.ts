@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { parseWorkflow } from "../helpers/parse-workflow";
 import type { JsonValue } from "@/lib/types/json";
 
 const mockFindFirst = vi.fn();
@@ -37,10 +38,10 @@ const mockDb = {
   insert: mockInsert,
 };
 
-vi.mock("cloudflare:workers", () => ({
+vi.mock("cloudflare:workers", async () => ({
   env: {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    CLICKFOLIO_PARSE_WORKFLOW: {},
+    CLICKFOLIO_PARSE_WORKFLOW: (await import("../helpers/parse-workflow")).parseWorkflow,
   },
 }));
 
@@ -98,11 +99,6 @@ vi.mock("@/lib/db/schema", async (importOriginal) => {
     },
   };
 });
-
-vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
-  startResumeParse: vi.fn().mockResolvedValue(undefined),
-}));
 
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn(() => ({})),
@@ -174,7 +170,7 @@ function authedAs(userId: string) {
     // SAFETY: the retry route reads only CLICKFOLIO_PARSE_WORKFLOW and hands it to the mocked
     // publisher, and the status route reads no binding; the remaining CloudflareEnv members
     // stay untouched.
-    env: { CLICKFOLIO_PARSE_WORKFLOW: {} } as never,
+    env: { CLICKFOLIO_PARSE_WORKFLOW: parseWorkflow } as never,
     error: null,
   });
 }

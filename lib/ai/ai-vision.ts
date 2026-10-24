@@ -11,10 +11,9 @@ import {
   PROVIDER_ROUTING,
   RESUME_SCHEMA_PROMPT,
 } from "./prompt-config";
+import { TIMEOUT_MS } from "../effect/timeouts";
 import { log } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
-
-const VISION_TIMEOUT_MS = 90_000;
 
 const VISION_SYSTEM_PROMPT = `You are an expert resume parser. Extract information from the attached resume PDF (scanned image). Read all text visible in the document via OCR/vision and return ONLY valid JSON (no markdown, no code fences, no commentary).
 
@@ -65,7 +64,7 @@ export function parsePdfWithVisionEffect(
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         providerOptions: PROVIDER_ROUTING,
       },
-      VISION_TIMEOUT_MS,
+      TIMEOUT_MS.aiVision,
     ).pipe(
       Effect.tapError((error) =>
         Effect.sync(() =>

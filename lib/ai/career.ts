@@ -4,6 +4,7 @@ import { aiProviderFailure } from "./ai-parser";
 import { z } from "zod";
 import { ROLES, USER_ROLES, type UserRole } from "@/lib/config/roles";
 import type { ResumeContent } from "@/lib/types/database";
+import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import type { AiEnvVars } from "./ai-parser";
@@ -11,8 +12,6 @@ import type { AiEnvVars } from "./ai-parser";
 // Jev (TypeSafe System One model) via OpenRouter's System One API, proxied by the same
 // AI Gateway as the parser (BYOK). Typed answers only: it cannot return an unlisted level.
 const JEV_MODEL = "~typesafe/jev-latest";
-
-const TIMEOUT_MS = 10_000;
 
 export type CareerProfile = { role: UserRole; isFreelance: boolean };
 
@@ -113,12 +112,17 @@ export function classifyCareerEffect(
     return { role: answers.level.choice, isFreelance: answers.freelance.noul >= 0.5 };
   }).pipe(
     Effect.timeoutOrElse({
-      duration: TIMEOUT_MS,
+      duration: TIMEOUT_MS.aiCareer,
       orElse: () => Effect.fail(new AiTimedOut({ message: "Career classification timed out" })),
     }),
     Effect.tapError((error) =>
       Effect.sync(() => log("warn", "career classification failed", errorFields(error))),
     ),
-    Effect.catch(() => Effect.succeed(null)),
+    // Already logged above: a classifier that is down or unintelligible leaves the user's level alone.
+    Effect.catchTags({
+      AiProviderFailed: () => Effect.succeed(null),
+      AiTimedOut: () => Effect.succeed(null),
+      AiOutputInvalid: () => Effect.succeed(null),
+    }),
   );
 }
