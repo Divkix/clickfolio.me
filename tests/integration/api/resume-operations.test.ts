@@ -13,6 +13,13 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithMessage: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
+  authenticate: (await import("@/tests/helpers/authenticate-stub")).authenticateStub(() =>
+    mockedAuth(),
+  ),
+}));
+
 vi.mock("@/lib/auth/admin", () => ({
   requireAdminAuthForApi: vi.fn(),
 }));

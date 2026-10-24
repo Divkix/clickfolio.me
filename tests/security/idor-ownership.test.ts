@@ -37,6 +37,23 @@ const mockDb = {
   insert: mockInsert,
 };
 
+vi.mock("cloudflare:workers", () => ({
+  env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
+}));
+
+vi.mock("@/lib/db", () => ({ getDb: () => mockDb }));
+
+vi.mock("@/lib/auth/clerk", async (importOriginal) => {
+  // Resolved once here: a per-request dynamic import of the mocked module races its registration.
+  const middleware = await import("@/lib/auth/middleware");
+  const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
+
+  return {
+    ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
+    authenticate: authenticateStub(() => middleware.requireAuthWithUserValidation("Unauthorized")),
+  };
+});
+
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
