@@ -10,6 +10,7 @@ import { Webhook } from "svix";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, type Database } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { user as users } from "@/lib/db/schema";
 import { collectR2KeysForUser } from "@/lib/r2";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
@@ -133,16 +134,40 @@ async function upsertUser(db: Database, payload: ClerkUserPayload): Promise<stri
   const now = new Date().toISOString();
   const profile = profileColumns(payload);
 
+  const primary = primaryEmailOf(payload);
+
   if (existing) {
-    await db
-      .update(users)
-      .set({ ...profile, clerkId: payload.id, updatedAt: now })
-      .where(eq(users.id, existing.id));
+    const base = { ...profile, clerkId: payload.id, updatedAt: now };
+
+    if (!primary?.verified) {
+      await db.update(users).set(base).where(eq(users.id, existing.id));
+
+      return existing.id;
+    }
+
+    // The new primary is verified: it becomes the address parse-failure mail goes to.
+    try {
+      await db
+        .update(users)
+        .set({ ...base, email: primary.email, emailVerified: true })
+        .where(eq(users.id, existing.id));
+    } catch (error) {
+      if (!(error instanceof Error && isUniqueViolation(error))) throw error;
+
+      // Another account owns that address. Keep the old one but stop mailing it: it is
+      // no longer the account's verified primary. Acked (2xx) so Svix does not retry.
+      log("warn", "[clerk-webhook] primary email already belongs to another account", {
+        userId: existing.id,
+      });
+      await db
+        .update(users)
+        .set({ ...base, emailVerified: false })
+        .where(eq(users.id, existing.id));
+    }
 
     return existing.id;
   }
 
-  const primary = primaryEmailOf(payload);
   await db.insert(users).values({
     id: payload.externalId ?? payload.id,
     clerkId: payload.id,
