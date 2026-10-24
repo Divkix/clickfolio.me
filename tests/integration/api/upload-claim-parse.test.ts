@@ -161,10 +161,6 @@ vi.mock("@/lib/rate-limit/ip", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-vi.mock("@/lib/rate-limit/user", () => ({
-  enforceRateLimit: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
 }));

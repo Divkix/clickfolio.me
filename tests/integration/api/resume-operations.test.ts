@@ -71,10 +71,6 @@ vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/rate-limit/user", () => ({
-  enforceRateLimit: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("@/lib/utils/validation", () => ({
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   MAX_FILE_SIZE_LABEL: "5MB",

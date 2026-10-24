@@ -11,7 +11,6 @@ import {
 import { uploadRateLimits } from "@/lib/db/schema";
 import { sha256Hex } from "@/lib/utils/hash";
 import { limitsBypassed } from "./bypass";
-import { runLimiter } from "./legacy-edge";
 import { storeDown } from "./store-failure";
 
 const HOURLY_LIMIT = 10;
@@ -39,15 +38,6 @@ type Remaining = { hourly: number; daily: number };
 type Decision =
   | { allowed: true; remaining: Remaining }
   | { allowed: false; remaining: Remaining; message: string; retryAfterSeconds: number };
-
-interface IPRateLimitResult {
-  allowed: boolean;
-  remaining: Remaining;
-  message?: string;
-  /** The limit store could not be read or written; the request was refused (fail closed). */
-  unavailable?: boolean;
-  retryAfterSeconds?: number;
-}
 
 type Meter = {
   actionType: ActionType;
@@ -262,47 +252,4 @@ export function getClientIP(request: Request): string {
   if (forwarded) return ipOrUnknown(forwarded.split(",")[0]);
 
   return UNKNOWN_IP;
-}
-
-function toResult(decision: Decision): IPRateLimitResult {
-  if (decision.allowed) return { allowed: true, remaining: decision.remaining };
-
-  return { allowed: false, remaining: decision.remaining, message: decision.message };
-}
-
-function unavailableResult(unavailable: RateLimitUnavailable): IPRateLimitResult {
-  return {
-    allowed: false,
-    remaining: { hourly: 0, daily: 0 },
-    message: unavailable.message,
-    unavailable: true,
-    retryAfterSeconds: unavailable.retryAfterSeconds,
-  };
-}
-
-/** Promise edge for routes not yet under `runRoute`; they move to `checkIPRateLimitEffect`. */
-export function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
-  return runLimiter(
-    uploadDecision(ip).pipe(
-      Effect.map(toResult),
-      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
-        Effect.succeed(unavailableResult(unavailable)),
-      ),
-    ),
-  );
-}
-
-/**
- * Promise edge for routes not yet under `runRoute`; they move to `checkHandleRateLimitEffect`.
- * A store outage refuses the check (`unavailable`): a handle probe must not run unmetered.
- */
-export function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
-  return runLimiter(
-    handleCheckDecision(ip).pipe(
-      Effect.map(toResult),
-      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
-        Effect.succeed(unavailableResult(unavailable)),
-      ),
-    ),
-  );
 }
