@@ -37,14 +37,13 @@ const buttonVariants = cva(
 const subscribeToWebShare = () => () => {};
 
 interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
-  url?: string;
   handle?: string;
   title: string;
   name: string;
   className?: string;
 }
 
-export function ShareBar({ url, handle, title, name, variant, className }: ShareBarProps) {
+export function ShareBar({ handle, title, name, variant, className }: ShareBarProps) {
   const hasWebShare = useSyncExternalStore(subscribeToWebShare, isWebShareSupported, () => false);
 
   const {
@@ -54,7 +53,7 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
     handleLinkedInShare,
     handleWhatsAppShare,
     handleCopyLink,
-  } = useShareActions({ url, handle, title, name });
+  } = useShareActions({ handle, title, name });
 
   return (
     <fieldset

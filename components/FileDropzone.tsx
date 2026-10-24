@@ -13,8 +13,8 @@ import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 
 interface FileDropzoneProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 interface ClaimResponse {
@@ -53,8 +53,7 @@ function claimErrorMessage(err: ClaimFailure): string {
   return "Failed to claim resume";
 }
 
-export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
-  const isModal = open !== undefined && onOpenChange !== undefined;
+export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
   const user = session?.user ?? null;
@@ -177,28 +176,19 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         onReset={handleReset}
       />
     ) : (
-      <FileDropzonePrompt
-        upload={upload}
-        uploading={uploading}
-        isModal={isModal}
-        onRetry={handleRetry}
-      />
+      <FileDropzonePrompt upload={upload} uploading={uploading} onRetry={handleRetry} />
     );
 
-  if (isModal) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload New Resume</DialogTitle>
-          </DialogHeader>
-          {content}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return content;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload New Resume</DialogTitle>
+        </DialogHeader>
+        {content}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function UploadProgress({ uploadProgress }: { uploadProgress: number }) {
@@ -224,61 +214,29 @@ function UploadProgress({ uploadProgress }: { uploadProgress: number }) {
   );
 }
 
-function TrustSignals({
-  uploading,
-  error,
-  isModal,
-}: {
-  uploading: boolean;
-  error: string | null;
-  isModal: boolean;
-}) {
-  return (
-    <>
-      {!uploading && !error && (
-        <a
-          href="https://github.com/divkix/clickfolio.me"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mt-3"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Open source &amp; transparent — audit the code yourself</span>
-        </a>
-      )}
+function TrustSignals({ uploading, error }: { uploading: boolean; error: string | null }) {
+  if (uploading || error) return null;
 
-      {!uploading && !error && !isModal && (
-        <div className="flex items-center justify-center gap-2 bg-success/10 border border-success/30 rounded-lg px-3 py-2 mt-3">
-          <svg
-            className="w-4 h-4 text-success shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-xs text-muted-foreground">
-            Upload anonymously. No account needed until you publish.
-          </span>
-        </div>
-      )}
-    </>
+  return (
+    <a
+      href="https://github.com/divkix/clickfolio.me"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mt-3"
+    >
+      <ShieldCheck className="w-4 h-4" />
+      <span>Open source &amp; transparent — audit the code yourself</span>
+    </a>
   );
 }
 
 function FileDropzonePrompt({
   upload,
   uploading,
-  isModal,
   onRetry,
 }: {
   upload: ReturnType<typeof useFileUpload>;
   uploading: boolean;
-  isModal: boolean;
   onRetry: () => void;
 }) {
   const {
@@ -389,7 +347,7 @@ function FileDropzonePrompt({
         </div>
       )}
 
-      <TrustSignals uploading={uploading} error={error} isModal={isModal} />
+      <TrustSignals uploading={uploading} error={error} />
     </div>
   );
 }

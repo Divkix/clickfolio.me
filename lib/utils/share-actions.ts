@@ -62,17 +62,16 @@ async function handleCopyLink(
 }
 
 export function useShareActions(options: {
-  url?: string;
   handle?: string;
   title: string;
   name: string;
   onSuccess?: () => void;
 }) {
-  const { url, handle, title, name, onSuccess } = options;
+  const { handle, title, name, onSuccess } = options;
   const { copied, copy } = useCopyToClipboard();
 
   const shareText = useMemo(() => generateShareText(name), [name]);
-  const shareUrl = useMemo(() => url || getShareUrl(handle), [url, handle]);
+  const shareUrl = useMemo(() => getShareUrl(handle), [handle]);
 
   const onNativeShare = useCallback(async () => {
     try {
@@ -105,8 +104,6 @@ export function useShareActions(options: {
   }, [shareUrl, copy, onSuccess]);
 
   return {
-    shareUrl,
-    shareText,
     copied,
     handleNativeShare: onNativeShare,
     handleTwitterShare: onTwitterShare,

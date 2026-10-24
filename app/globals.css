@@ -201,10 +201,6 @@
   animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.delay-100 {
-  animation-delay: 100ms;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-up {
     animation: none;
@@ -230,15 +226,6 @@
   }
 }
 
-@keyframes landing-flow {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(200%);
-  }
-}
-
 .landing-glow {
   background: conic-gradient(
     from var(--landing-glow-angle),
@@ -258,15 +245,10 @@
   animation: landing-marquee 60s linear infinite reverse;
 }
 
-.animate-landing-flow {
-  animation: landing-flow 1.6s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .landing-glow,
   .animate-landing-marquee,
-  .animate-landing-marquee-reverse,
-  .animate-landing-flow {
+  .animate-landing-marquee-reverse {
     animation: none;
   }
 }
@@ -277,10 +259,6 @@
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
-}
-
-.mask-image-b {
-  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
 }
 
 @layer base {
