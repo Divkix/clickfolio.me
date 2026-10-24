@@ -13,7 +13,8 @@ const DAILY_LIMIT = 50;
 
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
 
-const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
+export const UPLOAD_UNAVAILABLE_MESSAGE =
+  "Upload temporarily unavailable. Please try again in a moment.";
 
 const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
 
@@ -24,6 +25,8 @@ interface IPRateLimitResult {
     daily: number;
   };
   message?: string;
+  /** The limit store failed, so the request was refused unmetered (fail closed): a 503, not a 429. */
+  unavailable?: boolean;
 }
 
 async function hashIP(ip: string): Promise<string> {
@@ -166,6 +169,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
 
       return {
         allowed: false,
+        unavailable: true,
         remaining: { hourly: 0, daily: dailyRemaining },
         message: UPLOAD_UNAVAILABLE_MESSAGE,
       };
@@ -183,6 +187,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
 
     return {
       allowed: false,
+      unavailable: true,
       remaining: { hourly: 0, daily: 0 },
       message: UPLOAD_UNAVAILABLE_MESSAGE,
     };

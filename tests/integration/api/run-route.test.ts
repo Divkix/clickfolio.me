@@ -1,7 +1,13 @@
 import { Effect } from "effect";
 import { z } from "zod";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { InvalidInput, PayloadTooLarge, type HttpFailure } from "@/lib/api/errors";
+import {
+  InvalidInput,
+  PayloadTooLarge,
+  RateLimited,
+  RateLimitUnavailable,
+  type HttpFailure,
+} from "@/lib/api/errors";
 import { decodeJsonBody, decodeWith, runRoute } from "@/lib/api/route";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/security-headers";
 import { logLines } from "../../helpers/log-lines";
@@ -228,6 +234,15 @@ describe("HttpFailure classes", () => {
       "info",
     ],
     ["PayloadTooLarge", new PayloadTooLarge({ message: "m" }), 413, "BAD_REQUEST", false, "info"],
+    ["RateLimited", new RateLimited({ message: "m" }), 429, "RATE_LIMIT_EXCEEDED", true, "info"],
+    [
+      "RateLimitUnavailable",
+      new RateLimitUnavailable({ message: "m" }),
+      503,
+      "RATE_LIMIT_UNAVAILABLE",
+      true,
+      "warn",
+    ],
   ];
 
   it.each(cases)("%s maps to status, code, retryable and log level", (...row) => {

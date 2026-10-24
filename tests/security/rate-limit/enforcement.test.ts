@@ -105,6 +105,7 @@ describe("Rate Limit Security Enforcement", () => {
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
+      expect(result.unavailable).toBeUndefined();
       expect(result.remaining.hourly).toBe(0);
     });
 
@@ -346,6 +347,7 @@ describe("Rate Limit Security Enforcement", () => {
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
+      expect(result.unavailable).toBe(true);
       expect(result.message).toContain("temporarily unavailable");
     });
   });
@@ -562,6 +564,7 @@ describe("Rate Limit Security Enforcement", () => {
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
+      expect(result.unavailable).toBe(true);
       expect(result.message).toContain("temporarily unavailable");
     });
 

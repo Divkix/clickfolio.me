@@ -80,3 +80,42 @@ export class PayloadTooLarge
     return this.message;
   }
 }
+
+/** The caller used up a rate limit. `message` (shown) says when to come back. */
+export class RateLimited
+  extends Data.TaggedError("RateLimited")<FailureArgs & { readonly details?: UnknownRecord }>
+  implements HttpFailure
+{
+  readonly httpStatus = 429;
+  readonly code: ErrorCode = "RATE_LIMIT_EXCEEDED";
+  readonly retryable = true;
+  readonly logLevel: LogLevel = "info";
+
+  get userMessage(): string {
+    return this.message;
+  }
+}
+
+/** Seconds a client waits before retrying when the rate-limit store is down. */
+const RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
+
+/**
+ * The rate-limit store could not be read or written, so the request is refused (fail closed)
+ * rather than let through unmetered. `message` is shown and must not say "limit": clients read
+ * that word as an exhausted quota.
+ */
+export class RateLimitUnavailable
+  extends Data.TaggedError("RateLimitUnavailable")<FailureArgs>
+  implements HttpFailure
+{
+  readonly httpStatus = 503;
+  readonly code: ErrorCode = "RATE_LIMIT_UNAVAILABLE";
+  readonly retryable = true;
+  readonly logLevel: LogLevel = "warn";
+  readonly details = { retryAfterSeconds: RATE_LIMIT_RETRY_AFTER_SECONDS };
+  readonly headers = { "Retry-After": String(RATE_LIMIT_RETRY_AFTER_SECONDS) };
+
+  get userMessage(): string {
+    return this.message;
+  }
+}
