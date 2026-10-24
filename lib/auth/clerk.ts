@@ -140,7 +140,12 @@ export function resolveAuth(
   });
 }
 
-function findAuthUserRows(clerkId: string) {
+/**
+ * The one `clerk_id` → user-row lookup: the API (`authenticate`) and page (`findSession`) readers
+ * both read their own fields from this row, so a new auth-relevant column or predicate lands
+ * here once.
+ */
+export function findUserByClerkId(clerkId: string) {
   return Db.use((service) =>
     service.query("auth.user-by-clerk-id", (db) =>
       db
@@ -154,6 +159,7 @@ function findAuthUserRows(clerkId: string) {
           privacySettings: userTable.privacySettings,
           onboardingCompleted: userTable.onboardingCompleted,
           role: userTable.role,
+          isAdmin: userTable.isAdmin,
         })
         .from(userTable)
         .where(eq(userTable.clerkId, clerkId))
@@ -180,7 +186,7 @@ export function authenticate(
       );
     }
 
-    const rows = yield* findAuthUserRows(auth.clerkId);
+    const rows = yield* findUserByClerkId(auth.clerkId);
     const row = rows[0];
 
     if (!row) {

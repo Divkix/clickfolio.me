@@ -1,11 +1,9 @@
 import { env } from "cloudflare:workers";
 import { cache } from "react";
-import { eq } from "drizzle-orm";
 import { Effect } from "effect";
-import { resolveAuth } from "@/lib/auth/clerk";
+import { findUserByClerkId, resolveAuth } from "@/lib/auth/clerk";
 import type { UserRole } from "@/lib/config/roles";
 import type { User as SchemaUser } from "@/lib/db/schema";
-import { user as users } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { runPage } from "@/lib/effect/edges";
 import type { ClerkFailed, DbConflict, DbFailed } from "@/lib/effect/failures";
@@ -49,11 +47,7 @@ export function findSession(
 
     if (!auth) return null;
 
-    const dbUser = yield* Db.use((service) =>
-      service.query("session.user-by-clerk-id", (db) =>
-        db.query.user.findFirst({ where: eq(users.clerkId, auth.clerkId) }),
-      ),
-    );
+    const dbUser = (yield* findUserByClerkId(auth.clerkId))[0];
 
     if (!dbUser) return null;
 
