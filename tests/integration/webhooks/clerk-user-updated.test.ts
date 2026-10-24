@@ -123,3 +123,81 @@ describe("clerk webhook user.updated email verification", () => {
     expect((await storedUser("user_1"))?.emailVerified).toBe(false);
   });
 });
+
+describe("clerk webhook user.updated email sync", () => {
+  it("moves to a verified new primary email and marks it verified", async () => {
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(userUpdated("new@example.com", "verified"));
+
+    expect(response.status).toBe(200);
+
+    const row = await storedUser("user_1");
+
+    expect(row?.email).toBe("new@example.com");
+    expect(row?.emailVerified).toBe(true);
+  });
+
+  it("does not adopt an unverified new primary email", async () => {
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(userUpdated("new@example.com", "unverified"));
+
+    expect(response.status).toBe(200);
+
+    const row = await storedUser("user_1");
+
+    expect(row?.email).toBe("old@example.com");
+    expect(row?.emailVerified).toBe(false);
+  });
+
+  it("on an email collision keeps the old email, clears emailVerified, warns without the address, and still acks", async () => {
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    await db.update(user).set({ emailVerified: true }).where(eq(user.id, "user_1"));
+
+    const response = await POST(userUpdated("taken@example.com", "verified", "Avery Renamed"));
+
+    expect(response.status).toBe(200);
+
+    const row = await storedUser("user_1");
+
+    expect(row?.email).toBe("old@example.com");
+    expect(row?.emailVerified).toBe(false);
+    // Other fields still sync.
+    expect(row?.name).toBe("Avery Renamed");
+
+    const other = await storedUser("user_2");
+
+    expect(other?.email).toBe("taken@example.com");
+    expect(other?.emailVerified).toBe(true);
+
+    const warns = logMock.mock.calls.filter(([level]) => level === "warn");
+
+    expect(warns).toHaveLength(1);
+    expect(JSON.stringify(warns)).not.toContain("example.com");
+  });
+
+  it("answers 500 for a real database failure so Svix retries", async () => {
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const original = state.db;
+
+    state.db = {
+      query: {
+        user: {
+          findFirst: async () => {
+            throw new Error("connection refused");
+          },
+        },
+      },
+    };
+
+    try {
+      const response = await POST(userUpdated("new@example.com", "verified"));
+
+      expect(response.status).toBe(500);
+    } finally {
+      state.db = original;
+    }
+  });
+});
