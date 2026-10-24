@@ -110,7 +110,7 @@ describe("GET /api/health", () => {
     expect(mocks.log).toHaveBeenCalledWith(
       "error",
       "request failed",
-      expect.objectContaining({ failure: "R2Failed", kind: "timeout", operation: "health.r2" }),
+      expect.objectContaining({ failure: "R2Failed", kind: "timeout", operation: "r2.ping" }),
     );
   });
 

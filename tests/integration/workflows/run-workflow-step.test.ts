@@ -1,6 +1,7 @@
-import { Effect } from "effect";
+import { Cause, Effect } from "effect";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { DbFailed, InvalidInput, R2Failed } from "@/lib/effect/failures";
+import { AiProviderFailed, AiTimedOut, PdfInvalid, toParseErrorJson } from "@/lib/parse/failures";
 import { runWorkflowStep } from "@/lib/workflows/run-workflow-step";
 import { logLines } from "../../helpers/log-lines";
 
@@ -71,4 +72,48 @@ describe("runWorkflowStep", () => {
       await expect(runWorkflowStep(Effect.die(defect))).rejects.toBe(defect);
     },
   );
+
+  it("preserves a defect even when its Cause also has a typed failure", async () => {
+    const defect = new Error("programming defect");
+
+    const cause = Cause.combine(
+      Cause.fail(new PdfInvalid({ message: "bad PDF", reason: "corrupt" })),
+      Cause.die(defect),
+    );
+
+    await expect(runWorkflowStep(Effect.failCause(cause))).rejects.toBe(defect);
+  });
+
+  describe("with a ParseFailure", () => {
+    it("uses the exact NonRetryableError name and keeps the wire metadata in the cause", async () => {
+      const failure = new PdfInvalid({ message: "encrypted PDF", reason: "encrypted" });
+
+      await expect(runWorkflowStep(Effect.fail(failure))).rejects.toMatchObject({
+        name: "NonRetryableError",
+        message: "invalid_pdf: encrypted PDF",
+        cause: toParseErrorJson(failure),
+      });
+    });
+
+    it("throws a plain Error for Workflows to retry", async () => {
+      const failure = new AiProviderFailed({ message: "provider offline" });
+
+      await expect(runWorkflowStep(Effect.fail(failure))).rejects.toMatchObject({
+        name: "Error",
+        message: "provider offline",
+        cause: toParseErrorJson(failure),
+      });
+    });
+
+    it("leaves logging to the parse failure handler", async () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      await expect(
+        runWorkflowStep(Effect.fail(new AiTimedOut({ message: "AI timed out" }))),
+      ).rejects.toBeInstanceOf(Error);
+      expect(error).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalled();
+    });
+  });
 });

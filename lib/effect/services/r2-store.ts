@@ -16,6 +16,9 @@ export class R2ObjectMissing extends Data.TaggedError("R2ObjectMissing")<{
   readonly message: string;
 }> {}
 
+/** What `R2Failed` says when the deployment has no bucket bound: a fault no retry will heal. */
+export const R2_BINDING_MISSING_MESSAGE = "R2 binding is not configured";
+
 /** The slice of `R2Bucket` this service uses, so tests can fake it without building R2 objects. */
 type R2BucketLike = {
   get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
@@ -64,6 +67,8 @@ type R2StoreService = {
   readonly listPage: (prefix: string, cursor?: string) => Effect.Effect<R2KeyPage, R2Failed>;
   /** Every key under `prefix`, one timed call per page. */
   readonly listKeys: (prefix: string) => Effect.Effect<string[], R2Failed>;
+  /** A one-key listing: succeeds when the bucket answers, whatever it holds. */
+  readonly ping: () => Effect.Effect<void, R2Failed>;
 };
 
 function missing(operation: string): R2ObjectMissing {
@@ -77,7 +82,7 @@ function call<A>(
 ): Effect.Effect<A, R2Failed> {
   if (!bucket) {
     return Effect.fail(
-      new R2Failed({ operation, kind: "unavailable", message: "R2 binding is not configured" }),
+      new R2Failed({ operation, kind: "unavailable", message: R2_BINDING_MISSING_MESSAGE }),
     );
   }
 
@@ -137,6 +142,8 @@ function service(bucket: R2BucketLike | undefined): R2StoreService {
         Effect.flatMap((info) => (info ? Effect.succeed(info) : Effect.fail(missing("r2.head")))),
       ),
     listPage,
+    ping: () =>
+      call("r2.ping", bucket, (b) => b.list({ prefix: "", limit: 1 })).pipe(Effect.asVoid),
     listKeys: (prefix) =>
       Effect.gen(function* () {
         const keys: string[] = [];

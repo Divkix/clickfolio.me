@@ -1,95 +1,138 @@
 import { Effect } from "effect";
-import { afterEach, describe, expect, it, vi, type Mock } from "vite-plus/test";
-import { WorkflowFailed } from "@/lib/effect/failures";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { InvalidInput, WorkflowFailed } from "@/lib/effect/failures";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
-import { TIMEOUT_MS } from "@/lib/effect/timeouts";
+import type { ResumeParseParams } from "@/lib/workflows/resume-parse-params";
+import { logLines } from "../../helpers/log-lines";
 
-type Workflow = Parameters<typeof WorkflowStarter.layerFrom>[0];
+type Binding = NonNullable<Parameters<typeof WorkflowStarter.layerFrom>[0]>;
 
-const PARAMS = { kind: "await-cache", resumeId: "resume_1" } as const;
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
-type Fake = {
-  create: Mock<() => Promise<{ id: string }>>;
-  get: Mock<() => Promise<{ id: string }>>;
+const PARSE: ResumeParseParams = {
+  kind: "parse",
+  resumeId: "r1",
+  userId: "u1",
+  r2Key: "users/u1/r1/cv.pdf",
+  fileHash: "abc",
 };
 
-function binding(overrides: Partial<Fake> = {}): Fake {
+const AWAIT_CACHE: ResumeParseParams = { kind: "await-cache", resumeId: "r1" };
+
+function binding(overrides: Partial<Binding> = {}): Binding {
   return {
-    create: vi.fn(async () => ({ id: "resume_1" })),
-    get: vi.fn(async () => ({ id: "resume_1" })),
+    create: async () => ({ id: "r1" }),
+    get: async () => {
+      throw new Error("instance.not_found");
+    },
     ...overrides,
   };
 }
 
-function start(fake: Fake | undefined) {
-  // SAFETY: the starter only calls create and get; the instances they resolve to are never read.
-  const workflow = fake as Workflow;
-
-  return Effect.provide(
-    WorkflowStarter.use((starter) => starter.startResumeParse("resume_1", PARAMS)),
-    WorkflowStarter.layerFrom(workflow),
+function start(workflow: Binding | undefined, params: ResumeParseParams = PARSE) {
+  return Effect.runPromise(
+    Effect.flip(
+      Effect.provide(
+        WorkflowStarter.use((starter) => starter.startResumeParse("r1", params)),
+        WorkflowStarter.layerFrom(workflow),
+      ),
+    ),
   );
 }
 
-describe("WorkflowStarter", () => {
-  it("creates the run under the given instance id", async () => {
-    const workflow = binding();
+function startOk(workflow: Binding, params: ResumeParseParams = PARSE) {
+  return Effect.runPromise(
+    Effect.provide(
+      WorkflowStarter.use((starter) => starter.startResumeParse("r1", params)),
+      WorkflowStarter.layerFrom(workflow),
+    ),
+  );
+}
 
-    await Effect.runPromise(start(workflow));
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
-    expect(workflow.create).toHaveBeenCalledWith({ id: "resume_1", params: PARAMS });
+describe("WorkflowStarter.startResumeParse", () => {
+  it("creates the instance under the given id with the validated params", async () => {
+    const create = vi.fn<Binding["create"]>(async () => ({ id: "r1" }));
+
+    await startOk(binding({ create }), AWAIT_CACHE);
+
+    expect(create).toHaveBeenCalledWith({ id: "r1", params: AWAIT_CACHE });
   });
 
-  it("treats a create that errored after the instance was persisted as started", async () => {
-    const workflow = binding({
-      create: vi.fn(async () => {
-        throw new Error("network reset");
-      }),
-      get: vi.fn(async () => ({ id: "resume_1" })),
-    });
+  it("treats a create that failed after the instance was persisted as started", async () => {
+    const get = vi.fn<Binding["get"]>(async () => ({ id: "r1" }));
 
-    await expect(Effect.runPromise(start(workflow))).resolves.toBeUndefined();
+    await startOk(
+      binding({
+        create: async () => {
+          throw new Error("instance.already_exists");
+        },
+        get,
+      }),
+    );
+
+    expect(get).toHaveBeenCalledWith("r1");
   });
 
-  it("fails WorkflowFailed when create errors and no instance exists", async () => {
-    const workflow = binding({
-      create: vi.fn(async () => {
-        throw new Error("workflow down");
-      }),
-      get: vi.fn(async () => {
-        throw new Error("not found");
-      }),
-    });
+  it("fails with the create error when the instance does not exist, and logs the lookup", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const failure = await Effect.runPromise(Effect.flip(start(workflow)));
+    const failure = await start(
+      binding({
+        create: async () => {
+          throw new Error("Workflows unavailable");
+        },
+      }),
+    );
 
     expect(failure).toBeInstanceOf(WorkflowFailed);
-    expect(failure).toMatchObject({ operation: "workflow.create.resume_parse" });
+    expect(failure).toMatchObject({ operation: "workflow.resume_parse.create" });
+    expect(logLines(warn)[0]).toMatchObject({
+      level: "warn",
+      msg: "resume parse instance not found after create failed",
+    });
+  });
+
+  it("fails with a timeout kind when create hangs, after checking the instance", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      const get = vi.fn<Binding["get"]>(async () => {
+        throw new Error("instance.not_found");
+      });
+
+      const pending = start(binding({ create: () => new Promise(() => {}), get }));
+
+      await vi.advanceTimersByTimeAsync(8_001);
+
+      expect(await pending).toMatchObject({
+        kind: "timeout",
+        operation: "workflow.resume_parse.create",
+      });
+      expect(get).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("fails as unavailable when the binding is missing", async () => {
-    const failure = await Effect.runPromise(Effect.flip(start(undefined)));
+    const failure = await start(undefined);
 
     expect(failure).toBeInstanceOf(WorkflowFailed);
     expect(failure).toMatchObject({ kind: "unavailable" });
   });
 
-  it("fails with a timeout kind when create hangs, without a second create", async () => {
-    vi.useFakeTimers();
+  it("refuses a malformed payload without calling the workflow", async () => {
+    const create = vi.fn<Binding["create"]>(async () => ({ id: "r1" }));
 
-    const create = vi.fn(() => new Promise<{ id: string }>(() => {}));
-    const pending = Effect.runPromise(Effect.flip(start(binding({ create }))));
+    // SAFETY: a non-string hash is the malformed payload this test sends on purpose.
+    const malformed = { ...PARSE, fileHash: 7 as never };
 
-    await vi.advanceTimersByTimeAsync(TIMEOUT_MS.workflow + 1);
+    const failure = await start(binding({ create }), malformed);
 
-    const failure = await pending;
-
-    expect(failure).toBeInstanceOf(WorkflowFailed);
-    expect(failure).toMatchObject({ kind: "timeout" });
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(failure).toBeInstanceOf(InvalidInput);
+    expect(create).not.toHaveBeenCalled();
   });
 });

@@ -39,7 +39,21 @@ vi.mock("cloudflare:workers", () => ({
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
     PENDING_UPLOAD_SECRET: "test-secret-key-for-testing-only",
     get CLICKFOLIO_PARSE_WORKFLOW() {
-      return mocks.bound.workflow ? {} : undefined;
+      if (!mocks.bound.workflow) return undefined;
+
+      // The real WorkflowStarter calls this binding; `mocks.startResumeParse` records the start.
+      const workflow = {
+        create: async ({ id, params }: { id: string; params: unknown }) => {
+          await mocks.startResumeParse(workflow, id, params);
+
+          return { id };
+        },
+        get: async () => {
+          throw new Error("instance.not_found");
+        },
+      };
+
+      return workflow;
     },
     CLICKFOLIO_R2_BUCKET: mocks.bucket,
   },
@@ -74,11 +88,6 @@ vi.mock("@/lib/auth/clerk", async (importOriginal) => {
     }),
   };
 });
-
-vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
-  startResumeParse: mocks.startResumeParse,
-}));
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;

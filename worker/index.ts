@@ -1,14 +1,10 @@
 // eslint-disable-next-line typescript/triple-slash-reference -- required for Cloudflare Workers env types; import-style not supported here
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
-import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
-import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/clerk";
 import { processEdgePurgeBatch } from "../lib/cache/edge-purge";
 import { performCleanup } from "../lib/cron/cleanup";
-import { getDb } from "../lib/db";
 import { CachePurge } from "../lib/effect/services/cache-purge";
-import { resumes, user as userTable } from "../lib/db/schema";
 import { log } from "../lib/utils/log";
 import { errorFields } from "../lib/utils/error-fields";
 // See issue #172.
@@ -23,6 +19,7 @@ import {
   prefersMarkdown,
 } from "../lib/worker/markdown-negotiation";
 import { handleOtelProxy, isOtelProxyPath } from "../lib/worker/otel-proxy";
+import { handleResumeStatusSocket } from "../lib/worker/resume-status-socket";
 import {
   encodedProfileRedirect,
   withoutProfileCredentials,
@@ -96,61 +93,7 @@ export default {
       url.pathname === "/ws/resume-status" &&
       request.headers.get("Upgrade")?.toLowerCase() === "websocket"
     ) {
-      const resumeId = url.searchParams.get("resume_id");
-
-      if (!resumeId) {
-        return new Response("Missing resume_id query parameter", { status: 400 });
-      }
-
-      const token = extractClerkTokenFromRequest(request);
-      const claims = token ? await verifyClerkToken(token) : null;
-
-      if (!claims?.sub) {
-        return new Response("Unauthorized: Invalid session", { status: 401 });
-      }
-
-      const db = getDb(env.HYPERDRIVE);
-
-      const owner = await db.query.user.findFirst({
-        where: eq(userTable.clerkId, claims.sub),
-        columns: { id: true },
-      });
-
-      if (!owner) {
-        return new Response("Unauthorized: Unknown user", { status: 401 });
-      }
-
-      const userId = owner.id;
-
-      const resume = await db.query.resumes.findFirst({
-        where: eq(resumes.id, resumeId),
-        columns: { id: true, userId: true },
-      });
-
-      if (!resume) {
-        return new Response("Resume not found", { status: 404 });
-      }
-
-      if (resume.userId !== userId) {
-        return new Response("Forbidden: You don't own this resume", { status: 403 });
-      }
-
-      if (!env.CLICKFOLIO_STATUS_DO) {
-        return new Response("WebSocket not available", { status: 503 });
-      }
-
-      const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
-      const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
-
-      // Forward the WebSocket upgrade request to the DO with the authenticated
-      // user header. Headers.set (not object spread) guarantees a client-supplied
-      // x-authenticated-user-id is overwritten — object keys are case-sensitive,
-      // header names are not, so spread would leave both values behind.
-      const forwardedHeaders = new Headers(request.headers);
-      forwardedHeaders.set("X-Authenticated-User-Id", userId);
-      const modifiedRequest = new Request(request, { headers: forwardedHeaders });
-
-      return stub.fetch(modifiedRequest);
+      return handleResumeStatusSocket(request, env);
     }
 
     // A `.md` URL is a request for the Markdown twin of the page it names.

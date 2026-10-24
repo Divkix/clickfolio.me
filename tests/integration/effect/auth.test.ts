@@ -12,7 +12,7 @@ import {
   it,
   vi,
 } from "vite-plus/test";
-import { requireAuthClerk, verifyClerkToken } from "@/lib/auth/clerk";
+import { requireAuthClerk } from "@/lib/auth/clerk";
 import { getServerSession } from "@/lib/auth/session";
 import { requireAdminAuth } from "@/lib/auth/admin";
 import { withAdminEffect, withUserEffect } from "@/lib/auth/with-auth";
@@ -359,13 +359,5 @@ describe("Promise API kept for routes that have not moved", () => {
     mockVerifyToken.mockRejectedValue(tokenError("jwk-remote-failed-to-load"));
 
     await expect(requireAuthClerk("You must be logged in")).rejects.toBeInstanceOf(ClerkFailed);
-  });
-
-  it("verifyClerkToken returns null for an invalid token and throws for an outage", async () => {
-    mockVerifyToken.mockRejectedValueOnce(tokenError("token-invalid-signature"));
-    await expect(verifyClerkToken("bad")).resolves.toBeNull();
-
-    mockVerifyToken.mockRejectedValueOnce(new TypeError("fetch failed"));
-    await expect(verifyClerkToken("good-but-clerk-down")).rejects.toBeInstanceOf(ClerkFailed);
   });
 });

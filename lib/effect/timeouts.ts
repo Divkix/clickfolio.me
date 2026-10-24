@@ -16,4 +16,10 @@ export const TIMEOUT_MS = {
   /** A whole Umami call: a cold login plus the GET, one hop of up to 5s each. */
   umami: 10_000,
   workflow: 8_000,
+  /** One AI Gateway text generation. */
+  ai: 60_000,
+  /** A scanned-PDF generation: the model reads the file itself. */
+  aiVision: 90_000,
+  /** The career-level classifier, which is best effort. */
+  aiCareer: 10_000,
 } as const;

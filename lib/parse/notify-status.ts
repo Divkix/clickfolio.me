@@ -1,16 +1,12 @@
-import { Cause, Effect, Exit } from "effect";
+import { Effect } from "effect";
 import type { ResumeStatus } from "../db/schema/resume";
-import { runBackground } from "../effect/edges";
 import { upstreamLogFields } from "../effect/failure-fields";
 import {
   MAX_NOTICE_ERROR_LENGTH,
   StatusChannel,
   type StatusNotice,
 } from "../effect/services/status-channel";
-import { errorFields } from "../utils/error-fields";
 import { log } from "../utils/log";
-
-type StatusEnv = { CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined };
 
 type StatusChange = { resumeId: string; status: ResumeStatus; error?: string };
 
@@ -42,44 +38,4 @@ export function notifyStatusBestEffort(change: StatusChange) {
       ),
     ),
   );
-}
-
-function logDefect(resumeIds: readonly string[], exit: Exit.Exit<unknown, unknown>): void {
-  if (Exit.isSuccess(exit)) return;
-
-  // Typed failures were logged per resume; what reaches here is a defect.
-  log("error", "notify-status: failed to notify DO for resume", {
-    resumeCount: resumeIds.length,
-    ...errorFields(Cause.squash(exit.cause)),
-  });
-}
-
-export async function notifyStatusChange({
-  resumeId,
-  status,
-  error,
-  env,
-}: StatusChange & { env: StatusEnv }): Promise<void> {
-  const exit = await runBackground(
-    notifyStatusBestEffort({ resumeId, status, error }),
-    StatusChannel.layer(env),
-  );
-
-  logDefect([resumeId], exit);
-}
-
-export async function notifyStatusChangeBatch(
-  resumeIds: string[],
-  status: ResumeStatus,
-  env: StatusEnv,
-): Promise<void> {
-  const exit = await runBackground(
-    Effect.forEach(resumeIds, (resumeId) => notifyStatusBestEffort({ resumeId, status }), {
-      concurrency: 10,
-      discard: true,
-    }),
-    StatusChannel.layer(env),
-  );
-
-  logDefect(resumeIds, exit);
 }
