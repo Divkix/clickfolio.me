@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { requireCronAuth } from "@/lib/auth/middleware";
 
-vi.mock("@/lib/auth/clerk", () => ({
-  requireAuthClerk: vi.fn(),
-}));
-
 // SAFETY: requireCronAuth reads nothing but CRON_SECRET, so a bare environment stands in.
 const bareEnv = {} as CloudflareEnv;
 

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-vi.mock("@/lib/auth/admin", () => ({
-  requireAdminAuthForApi: vi.fn(),
+const admin = vi.hoisted(() => ({ read: vi.fn() }));
+
+vi.mock("@/lib/auth/admin", async () => ({
+  authenticateAdmin: (await import("../../helpers/authenticate-stub")).authenticateAdminStub(() =>
+    admin.read(),
+  ),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -154,9 +158,9 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-import { type AdminUser, requireAdminAuthForApi } from "@/lib/auth/admin";
+import type { AdminUser } from "@/lib/auth/admin";
 
-const mockedAdminAuth = vi.mocked(requireAdminAuthForApi);
+const mockedAdminAuth = admin.read;
 
 const mockSelect = vi.fn();
 
@@ -222,7 +226,7 @@ const mockDb = {
 
 type AdminAuthedResult = { user: AdminUser; error: null };
 
-type AuthErrorResult = { user: null; error: Response };
+type AuthErrorResult = { error: Response };
 
 function adminAuthed(userId = "admin-123"): AdminAuthedResult {
   const user: AdminUser = {
@@ -240,23 +244,17 @@ function adminAuthed(userId = "admin-123"): AdminAuthedResult {
 function regularUserAuthed(): AuthErrorResult {
   const error = new Response(JSON.stringify({ error: "Admin access required" }), { status: 403 });
 
-  mockedAdminAuth.mockResolvedValue({
-    user: null,
-    error,
-  });
+  mockedAdminAuth.mockResolvedValue({ error });
 
-  return { user: null, error };
+  return { error };
 }
 
 function unauthenticated(): AuthErrorResult {
   const error = new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
 
-  mockedAdminAuth.mockResolvedValue({
-    user: null,
-    error,
-  });
+  mockedAdminAuth.mockResolvedValue({ error });
 
-  return { user: null, error };
+  return { error };
 }
 
 function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
@@ -593,7 +591,7 @@ describe("Admin API Integration Tests", () => {
   describe("Admin Authentication Edge Cases", () => {
     it("handles deleted user with stale admin session (test 8)", async () => {
       const error = new Response(JSON.stringify({ error: "User not found" }), { status: 401 });
-      mockedAdminAuth.mockResolvedValue({ user: null, error });
+      mockedAdminAuth.mockResolvedValue({ error });
 
       const { GET } = await import("@/app/api/admin/users/route");
       const response = await GET(makeRequest("http://localhost:3000/api/admin/users"));

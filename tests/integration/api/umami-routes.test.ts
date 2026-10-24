@@ -12,29 +12,31 @@ import { handleChanges, user } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
-const auth = vi.hoisted(() => ({ user: vi.fn(), admin: vi.fn() }));
+const auth = vi.hoisted(() => ({ user: vi.fn(), admin: vi.fn(), db: vi.fn() }));
 
-vi.mock("@/lib/auth/middleware", () => ({
-  requireAuthWithUserValidation: () => auth.user(),
+vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
+  authenticate: (await import("../../helpers/authenticate-stub")).authenticateStub(() =>
+    auth.user(),
+  ),
 }));
 
-vi.mock("@/lib/auth/admin", () => ({
-  requireAdminAuthForApi: () => auth.admin(),
+vi.mock("@/lib/auth/admin", async () => ({
+  authenticateAdmin: (await import("../../helpers/authenticate-stub")).authenticateAdminStub(() =>
+    auth.admin(),
+  ),
 }));
+
+vi.mock("@/lib/db", () => ({ getDb: () => auth.db() }));
 
 vi.mock("cloudflare:workers", () => ({
   env: {
+    HYPERDRIVE: {},
     UMAMI_API_URL: "https://umami.invalid-host.test",
     UMAMI_USERNAME: "admin-user",
     UMAMI_PASSWORD: "admin-password",
   },
 }));
-
-const umamiEnv = {
-  UMAMI_API_URL: "https://umami.invalid-host.test",
-  UMAMI_USERNAME: "admin-user",
-  UMAMI_PASSWORD: "admin-password",
-};
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;
@@ -42,6 +44,7 @@ let db: TestDb;
 beforeAll(async () => {
   testDb = await createTestDb();
   db = testDb.db;
+  auth.db.mockReturnValue(db);
 });
 
 afterAll(async () => {
@@ -94,7 +97,10 @@ afterEach(() => {
 
 describe("GET /api/admin/analytics", () => {
   beforeEach(() => {
-    auth.admin.mockResolvedValue({ user: { id: "admin-1", isAdmin: true }, error: null });
+    auth.admin.mockResolvedValue({
+      user: { id: "admin-1", email: "admin@example.com", name: "Admin", isAdmin: true },
+      error: null,
+    });
   });
 
   it("builds the dashboard from validated Umami data", async () => {
@@ -152,7 +158,6 @@ describe("GET /api/admin/analytics", () => {
 
   it("passes the auth refusal through untouched", async () => {
     auth.admin.mockResolvedValue({
-      user: null,
       error: new Response(JSON.stringify({ error: "Admin access required" }), { status: 403 }),
     });
 
@@ -188,9 +193,7 @@ describe("GET /api/analytics/stats", () => {
 
     auth.user.mockResolvedValue({
       user: { id: "user-1" },
-      db,
       dbUser: { id: "user-1", handle: "alice", clerkId: "clerk-1" },
-      env: umamiEnv,
       error: null,
     });
   });
@@ -248,9 +251,7 @@ describe("GET /api/analytics/stats", () => {
 
     auth.user.mockResolvedValue({
       user: { id: "user-1" },
-      db,
       dbUser: { id: "user-1", handle: null, clerkId: "clerk-1" },
-      env: umamiEnv,
       error: null,
     });
 

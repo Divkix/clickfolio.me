@@ -16,13 +16,6 @@ import { handleChanges, resumes, user } from "@/lib/db/schema";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
-// The Promise edges build their own Db layer from getDb(env.HYPERDRIVE): point it at PGlite.
-const store = vi.hoisted(() => new Map<string, unknown>());
-
-vi.mock("cloudflare:workers", () => ({ env: { HYPERDRIVE: { connectionString: "unused" } } }));
-
-vi.mock("@/lib/db", () => ({ getDb: () => store.get("db") }));
-
 const HOUR_MS = 60 * 60 * 1000;
 
 let working: Awaited<ReturnType<typeof createTestDb>>;
@@ -53,7 +46,6 @@ beforeEach(async () => {
     { id: "u1", name: "U One", email: "u1@example.com", createdAt: now, updatedAt: now },
     { id: "u2", name: "U Two", email: "u2@example.com", createdAt: now, updatedAt: now },
   ]);
-  store.set("db", db);
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("APP_URL", "https://clickfolio.me");
   vi.stubEnv("DISABLE_RATE_LIMITS", "");
@@ -182,67 +174,5 @@ describe("countHandleChangesInWindow", () => {
     const counted = await db.transaction((tx) => countHandleChangesInWindow(tx, "u1"));
 
     expect(counted).toBe(2);
-  });
-});
-
-describe("Promise edges", () => {
-  it("checkRateLimit reports remaining quota and the reset time from the oldest row", async () => {
-    const { checkRateLimit } = await import("@/lib/rate-limit/user");
-
-    await seedHandleChanges("u1", 12 * HOUR_MS, 2);
-
-    const result = await checkRateLimit("u1", "handle_change");
-
-    expect(result).toMatchObject({ allowed: true, remaining: 1 });
-    expect(Math.abs(result.resetAt.getTime() - (Date.now() + 12 * HOUR_MS))).toBeLessThan(5000);
-  });
-
-  it("checkRateLimit fails closed and flags unavailable when the store is down", async () => {
-    const { checkRateLimit } = await import("@/lib/rate-limit/user");
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    store.set("db", brokenDb);
-
-    expect(await checkRateLimit("u1", "resume_upload")).toMatchObject({
-      allowed: false,
-      remaining: 0,
-      unavailable: true,
-    });
-  });
-
-  it("enforceRateLimit answers 429 with the quota headers", async () => {
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-
-    await seedResumes("u1", HOUR_MS, 5);
-
-    const response = await enforceRateLimit("u1", "resume_upload");
-
-    expect(response?.status).toBe(429);
-    expect(response?.headers.get("Retry-After")).toBeTruthy();
-    expect(response?.headers.get("X-RateLimit-Limit")).toBe("5");
-    expect(response?.headers.get("X-RateLimit-Remaining")).toBe("0");
-    await expect(response?.json()).resolves.toMatchObject({ code: "RATE_LIMIT_EXCEEDED" });
-  });
-
-  it("enforceRateLimit answers a retryable 503 when the store is down", async () => {
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    store.set("db", brokenDb);
-
-    const response = await enforceRateLimit("u1", "resume_upload");
-
-    expect(response?.status).toBe(503);
-    expect(response?.headers.get("Retry-After")).toBe("60");
-    await expect(response?.json()).resolves.toMatchObject({
-      code: "RATE_LIMIT_UNAVAILABLE",
-      message: expect.stringContaining("temporarily unavailable"),
-    });
-  });
-
-  it("enforceRateLimit lets an under-quota user through", async () => {
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-
-    expect(await enforceRateLimit("u1", "resume_upload")).toBeNull();
   });
 });

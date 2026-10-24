@@ -4,9 +4,7 @@ import type { PgQueryable } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { RateLimited, type RateLimitUnavailable } from "@/lib/effect/failures";
-import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
 import { limitsBypassed } from "./bypass";
-import { runLimiter } from "./legacy-edge";
 import { storeDown } from "./store-failure";
 
 export const RATE_LIMITS = {
@@ -45,8 +43,6 @@ interface RateLimitResult {
   remaining: number;
   resetAt: Date;
   message?: string;
-  /** The backend could not be read; callers should fail closed with a retryable 503. */
-  unavailable?: boolean;
 }
 
 type Usage = { count: number; oldest: string | null };
@@ -172,90 +168,4 @@ export function enforceRateLimitEffect(
   if (limitsBypassed()) return Effect.void;
 
   return Effect.flatMap(readWindow(userId, action), requireQuota);
-}
-
-/** Promise edge: the quota as data, with `unavailable` set when the store failed. */
-export function checkRateLimit(
-  userId: string,
-  action: RateLimitAction,
-  existingEnv?: Pick<CloudflareEnv, "HYPERDRIVE">,
-): Promise<RateLimitResult> {
-  return runLimiter(
-    readWindow(userId, action).pipe(
-      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
-        Effect.succeed<RateLimitResult>({
-          allowed: false,
-          remaining: 0,
-          resetAt: new Date(Date.now() + unavailable.retryAfterSeconds * 1000),
-          unavailable: true,
-          message: unavailable.message,
-        }),
-      ),
-    ),
-    existingEnv?.HYPERDRIVE,
-  );
-}
-
-/**
- * Promise edge for routes not yet under `runRoute`; they move to `enforceRateLimitEffect`,
- * which answers through `describeFailure` (429 without the X-RateLimit-* headers and details,
- * 503 with code EXTERNAL_SERVICE_ERROR instead of RATE_LIMIT_UNAVAILABLE).
- */
-export async function enforceRateLimit(
-  userId: string,
-  action: RateLimitAction,
-  bindings?: Pick<CloudflareEnv, "HYPERDRIVE">,
-): Promise<Response | null> {
-  if (limitsBypassed()) return null;
-
-  const result = await checkRateLimit(userId, action, bindings);
-
-  if (result.unavailable) {
-    const retryAfter = retryAfterSeconds(result.resetAt);
-
-    return new Response(
-      JSON.stringify({
-        error: "Rate Limiting Unavailable",
-        code: "RATE_LIMIT_UNAVAILABLE",
-        message: result.message,
-        details: { retryAfterSeconds: retryAfter },
-      }),
-      {
-        status: 503,
-        headers: {
-          "Content-Type": "application/json",
-          ...SECURITY_HEADERS,
-          "Retry-After": String(retryAfter),
-        },
-      },
-    );
-  }
-
-  if (!result.allowed) {
-    return new Response(
-      JSON.stringify({
-        error: "Rate Limit Exceeded",
-        code: "RATE_LIMIT_EXCEEDED",
-        message: result.message,
-        details: {
-          limit: RATE_LIMITS[action].limit,
-          windowHours: RATE_LIMITS[action].windowHours,
-          resetAt: result.resetAt.toISOString(),
-        },
-      }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          ...SECURITY_HEADERS,
-          "X-RateLimit-Limit": String(RATE_LIMITS[action].limit),
-          "X-RateLimit-Remaining": String(result.remaining),
-          "X-RateLimit-Reset": result.resetAt.toISOString(),
-          "Retry-After": String(Math.ceil((result.resetAt.getTime() - Date.now()) / 1000)),
-        },
-      },
-    );
-  }
-
-  return null;
 }

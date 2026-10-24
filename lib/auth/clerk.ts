@@ -4,19 +4,15 @@
  *   - NOT `@clerk/nextjs`: its middleware/`auth()` relies on standard Next.js
  *     request plumbing that vinext's Vite-based runtime does not provide.
  *
- * Session handling is Effect-first (`resolveAuth`, `authenticate`); the Promise functions at the
- * bottom (`requireAuthClerk`) exist for callers that have not moved yet.
+ * Session handling is Effect-only (`resolveAuth`, `authenticate`).
  */
 
-import { env } from "cloudflare:workers";
-import { Cause, Effect, Exit, Layer } from "effect";
+import { Effect } from "effect";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { getDb, type Database } from "@/lib/db";
 import type { User as SchemaUser } from "@/lib/db/schema";
 import { user as userTable } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { runBackground } from "@/lib/effect/edges";
 import {
   NotFound,
   Unauthorized,
@@ -25,7 +21,6 @@ import {
   type DbFailed,
 } from "@/lib/effect/failures";
 import { Clerk, type ClerkClaims } from "@/lib/effect/services/clerk";
-import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
 export const CLERK_SESSION_COOKIE = "__session";
 
@@ -207,57 +202,4 @@ export function authenticate(
       dbUser: { id: row.id, handle: row.handle, clerkId: auth.clerkId },
     };
   });
-}
-
-// --- Promise API for callers that have not moved to the Effect entry points yet ---------------
-// Each runs through `runBackground`, so framework signals and typed failures behave the same
-// as on the Effect path. Remove with `withUser` once every route uses `withUserEffect`.
-
-function clerkLayer(): Layer.Layer<Clerk> {
-  return Clerk.layer(env);
-}
-
-type RequireAuthResult =
-  | {
-      user: AuthUser;
-      db: Database;
-      dbUser: DbUser;
-      env: CloudflareEnv;
-      error: null;
-    }
-  | {
-      user: null;
-      db: null;
-      dbUser: null;
-      env: null;
-      error: Response;
-    };
-
-function denied(error: Response): RequireAuthResult {
-  return { user: null, db: null, dbUser: null, env: null, error };
-}
-
-export async function requireAuthClerk(errorMessage: string): Promise<RequireAuthResult> {
-  const db = getDb(env.HYPERDRIVE);
-
-  const exit = await runBackground(
-    authenticate({ unauthorizedMessage: errorMessage }),
-    Layer.mergeAll(Db.layerFrom(db), clerkLayer()),
-  );
-
-  if (Exit.isSuccess(exit)) {
-    return { ...exit.value, db, env, error: null };
-  }
-
-  const failure = Cause.squash(exit.cause);
-
-  if (failure instanceof Unauthorized) {
-    return denied(createErrorResponse(failure.message, ERROR_CODES.UNAUTHORIZED, 401));
-  }
-
-  if (failure instanceof NotFound) {
-    return denied(createErrorResponse(failure.message, ERROR_CODES.NOT_FOUND, 404));
-  }
-
-  throw failure;
 }

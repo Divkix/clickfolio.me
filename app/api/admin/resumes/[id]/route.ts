@@ -1,40 +1,37 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
-import { withAdmin } from "@/lib/auth/with-auth";
+import { withAdminEffect } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { runRoute } from "@/lib/effect/edges";
-import { externalCall } from "@/lib/effect/external";
-import { Conflict, NotFound, R2Failed, type ServerFailure } from "@/lib/effect/failures";
-import { TIMEOUT_MS } from "@/lib/effect/timeouts";
-import { getR2Binding } from "@/lib/r2";
-import { deleteR2Objects } from "@/lib/workflows/r2-delete";
+import { Conflict, NotFound, type ServerFailure } from "@/lib/effect/failures";
+import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
+import { R2Store } from "@/lib/effect/services/r2-store";
+import { purgeR2Keys } from "@/lib/workflows/r2-purge";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
-/** The row is already gone, so a failed cleanup is logged, never surfaced: a retry would only 404. */
+function logCleanupFailed(error: { readonly operation?: string; readonly cause?: unknown }): void {
+  log("error", "admin resume dismiss: R2 cleanup failed", {
+    operation: error.operation,
+    ...errorFields(error),
+  });
+}
+
+/**
+ * The row is already gone, so a failed cleanup is logged, never surfaced: a retry would only 404.
+ * `purgeR2Keys` deletes inline and hands a failed key to R2DeleteWorkflow; only when both are
+ * unreachable does the object stay behind (it has logged that already).
+ */
 function removeStoredFile(r2Key: string) {
-  const r2 = getR2Binding(env);
-
-  if (!r2) return Effect.void;
-
-  return externalCall({
-    operation: "admin.resume.r2-delete",
-    timeoutMs: TIMEOUT_MS.r2,
-    run: () => deleteR2Objects(r2, env.CLICKFOLIO_R2_DELETE_WORKFLOW, [r2Key]),
-    fail: (details) => new R2Failed(details),
-  }).pipe(
-    Effect.catchTag("R2Failed", (error) =>
-      Effect.sync(() => {
-        log("error", "admin resume dismiss: R2 cleanup failed", {
-          operation: error.operation,
-          kind: error.kind,
-          ...errorFields(error),
-        });
-      }),
-    ),
+  return purgeR2Keys([r2Key]).pipe(
+    Effect.asVoid,
+    Effect.catchTags({
+      WorkflowFailed: (error) => Effect.sync(() => logCleanupFailed(error)),
+      InvalidInput: (error) => Effect.sync(() => logCleanupFailed(error)),
+    }),
+    Effect.provide(Layer.mergeAll(R2Store.layer(env), R2DeleteScheduler.layer(env))),
   );
 }
 
@@ -74,9 +71,7 @@ function dismissResume(id: string): Effect.Effect<Response, ServerFailure, Db> {
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  return withAdmin(request, async () => {
-    const { id } = await params;
+  const { id } = await params;
 
-    return runRoute(request, dismissResume(id), Db.layer(env.HYPERDRIVE));
-  });
+  return withAdminEffect(request, () => dismissResume(id));
 }

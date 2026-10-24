@@ -3,6 +3,8 @@ import { parseWorkflow } from "../../helpers/parse-workflow";
 import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
+const session = vi.hoisted(() => ({ read: vi.fn() }));
+
 const mockFindFirst = vi.fn();
 
 const mockSelect = vi.fn().mockReturnThis();
@@ -54,20 +56,13 @@ vi.mock("cloudflare:workers", async () => ({
 vi.mock("@/lib/db", () => ({ getDb: () => mockDb }));
 
 vi.mock("@/lib/auth/clerk", async (importOriginal) => {
-  // Resolved once here: a per-request dynamic import of the mocked module races its registration.
-  const middleware = await import("@/lib/auth/middleware");
   const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
 
   return {
     ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
-    authenticate: authenticateStub(() => middleware.requireAuthWithUserValidation("Unauthorized")),
+    authenticate: authenticateStub(() => session.read()),
   };
 });
-
-vi.mock("@/lib/auth/middleware", () => ({
-  requireAuthWithUserValidation: vi.fn(),
-  requireAuthWithMessage: vi.fn(),
-}));
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
@@ -121,16 +116,6 @@ vi.mock("@/lib/db/schema", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/r2", () => ({
-  getR2Binding: vi.fn(() => ({})),
-  R2: {
-    getAsUint8Array: vi.fn(),
-    getAsArrayBuffer: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
-
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
 
@@ -180,9 +165,7 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-
-const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+const mockedAuth = session.read;
 
 function createValidResumeContent() {
   return {
@@ -405,9 +388,6 @@ describe("IDOR - Resume Routes Security", () => {
 
       const maliciousKey = "temp/user-b-uuid/resume.pdf";
 
-      const { R2 } = await import("@/lib/r2");
-      vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
-
       const { POST } = await import("@/app/api/resume/claim/route");
 
       const request = new Request("http://localhost:3000/api/resume/claim", {
@@ -428,9 +408,6 @@ describe("IDOR - Resume Routes Security", () => {
 
       const stolenKey = "temp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/other-user-resume.pdf";
 
-      const { R2 } = await import("@/lib/r2");
-      vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
-
       const { POST } = await import("@/app/api/resume/claim/route");
 
       const request = new Request("http://localhost:3000/api/resume/claim", {
@@ -448,9 +425,6 @@ describe("IDOR - Resume Routes Security", () => {
       authedAs("user-a");
 
       const leakedKey = "temp/stolen-uuid/resume.pdf";
-
-      const { R2 } = await import("@/lib/r2");
-      vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");
 

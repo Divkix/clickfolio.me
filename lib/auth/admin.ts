@@ -9,7 +9,6 @@ import {
   type DbFailed,
 } from "@/lib/effect/failures";
 import type { Clerk } from "@/lib/effect/services/clerk";
-import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { findSession, getServerSession, type AppSessionUser } from "./session";
 
 export interface AdminUser {
@@ -39,30 +38,6 @@ export async function requireAdminAuth(): Promise<AdminUser> {
   }
 
   return adminUser;
-}
-
-export async function requireAdminAuthForApi(): Promise<
-  { user: AdminUser; error: null } | { user: null; error: Response }
-> {
-  const session = await getServerSession();
-
-  if (!session?.user) {
-    return {
-      user: null,
-      error: createErrorResponse("Unauthorized", ERROR_CODES.UNAUTHORIZED, 401),
-    };
-  }
-
-  const adminUser = adminUserFromSession(session.user);
-
-  if (!adminUser.isAdmin) {
-    return {
-      user: null,
-      error: createErrorResponse("Admin access required", ERROR_CODES.FORBIDDEN, 403),
-    };
-  }
-
-  return { user: adminUser, error: null };
 }
 
 /**

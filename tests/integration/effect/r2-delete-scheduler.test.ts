@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { InvalidInput, WorkflowFailed } from "@/lib/effect/failures";
 import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
 import { R2Store } from "@/lib/effect/services/r2-store";
-import { scheduleR2Deletion } from "@/lib/workflows/r2-delete";
 import { purgeR2Keys } from "@/lib/workflows/r2-purge";
 import { logLines } from "../../helpers/log-lines";
 
@@ -153,17 +152,5 @@ describe("purgeR2Keys", () => {
 
     expect(Exit.isFailure(exit)).toBe(true);
     expect(logLines(error)[0]).toMatchObject({ level: "error", keyCount: 1 });
-  });
-});
-
-describe("scheduleR2Deletion (legacy)", () => {
-  it("refuses a sweeping prefix before it reaches the workflow", async () => {
-    const create = vi.fn(async () => ({ id: "i1" }));
-
-    // SAFETY: the stub implements only `create`, the one method scheduleR2Deletion calls.
-    const workflow = { create } as never;
-
-    await expect(scheduleR2Deletion(workflow, { keys: [], prefix: "users/" })).rejects.toThrow();
-    expect(create).not.toHaveBeenCalled();
   });
 });

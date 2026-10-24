@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { env } from "cloudflare:workers";
-import { withAdmin } from "@/lib/auth/with-auth";
-import { runRoute } from "@/lib/effect/edges";
+import { withAdminEffect } from "@/lib/auth/with-auth";
 import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
 import { Umami } from "@/lib/effect/services/umami";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
@@ -156,5 +155,7 @@ function loadAnalytics(request: Request): Effect.Effect<Response, ServerFailure,
 }
 
 export async function GET(request: Request) {
-  return withAdmin(request, () => runRoute(request, loadAnalytics(request), Umami.layer(env)));
+  return withAdminEffect(request, () =>
+    loadAnalytics(request).pipe(Effect.provide(Umami.layer(env))),
+  );
 }
