@@ -172,7 +172,7 @@ async function upsertUser(db: PgQueryable, payload: ClerkUserPayload): Promise<s
     return existing.id;
   }
 
-  await db.insert(users).values({
+  const values = {
     id: payload.externalId ?? payload.id,
     clerkId: payload.id,
     name: profile.name,
@@ -181,7 +181,23 @@ async function upsertUser(db: PgQueryable, payload: ClerkUserPayload): Promise<s
     image: profile.image,
     createdAt: now,
     updatedAt: now,
-  });
+  };
+
+  try {
+    await db.insert(users).values(values);
+  } catch (error) {
+    if (!(error instanceof Error && isUniqueViolation(error))) throw error;
+
+    // Preserve the other account's email mapping while acknowledging this delivery.
+    log("warn", "[clerk-webhook] primary email already belongs to another account", {
+      userId: values.id,
+    });
+    await db.insert(users).values({
+      ...values,
+      email: `${payload.id}@unverified.clerk`,
+      emailVerified: false,
+    });
+  }
 
   return payload.externalId ?? payload.id;
 }
