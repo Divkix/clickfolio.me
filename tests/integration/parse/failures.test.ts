@@ -89,7 +89,6 @@ describe("stable parse failure wire format", () => {
     expect(wire).not.toHaveProperty("_tag");
     expect(parseLastAttemptError(JSON.stringify(wire))).toMatchObject({
       type,
-      isRetryable: retryable,
     });
   });
 
@@ -102,13 +101,13 @@ describe("stable parse failure wire format", () => {
       isRetryable: !isPermanentErrorType(type) && type !== "unknown",
     });
 
-    expect(parseLastAttemptError({ lastAttemptError: raw })).toMatchObject({
-      name: "ParseError",
-      type,
-      message: "old error",
-      raw,
-    });
+    expect(parseLastAttemptError(raw)).toEqual({ type });
   });
+
+  it.each([null, "", "not json", "null", "[]", "{}", '{"type":4}'])(
+    "ignores an invalid stored failure %s",
+    (raw) => expect(parseLastAttemptError(raw)).toBeNull(),
+  );
 
   it.each([
     ["encrypted", "password-protected"],
@@ -176,7 +175,7 @@ describe("legacy stored error golden cases", () => {
       originalError: { name: "Error", message },
     });
 
-    expect(parseLastAttemptError(stored)).toMatchObject({ type, message });
+    expect(parseLastAttemptError(stored)).toEqual({ type });
   });
 });
 
