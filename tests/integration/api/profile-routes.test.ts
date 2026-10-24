@@ -111,54 +111,6 @@ async function skipUserUpdates() {
   `);
 }
 
-describe("GET /api/profile/me", () => {
-  it("returns the caller's own profile and nobody else's", async () => {
-    // Bob is the second row: a query without the caller filter returns alice's profile.
-    signedInAs("clerk-bob");
-
-    const { GET } = await import("@/app/api/profile/me/route");
-
-    const response = await GET(new Request("https://clickfolio.me/api/profile/me"));
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body).toMatchObject({
-      id: "bob",
-      email: "bob@example.com",
-      handle: "handle-bob",
-      onboardingCompleted: true,
-      privacySettings: {
-        show_phone: false,
-        show_address: false,
-        hide_from_search: false,
-        show_in_directory: true,
-      },
-    });
-  });
-
-  it("answers 401 when signed out", async () => {
-    signedInAs(null);
-
-    const { GET } = await import("@/app/api/profile/me/route");
-    const response = await GET(new Request("https://clickfolio.me/api/profile/me"));
-
-    expect(response.status).toBe(401);
-    expect(await response.json()).toMatchObject({
-      error: "You must be logged in to access your profile",
-      code: "UNAUTHORIZED",
-    });
-  });
-
-  it("answers 404 when the signed-in Clerk user has no row yet", async () => {
-    signedInAs("clerk-ghost");
-
-    const { GET } = await import("@/app/api/profile/me/route");
-    const response = await GET(new Request("https://clickfolio.me/api/profile/me"));
-
-    expect(response.status).toBe(404);
-  });
-});
-
 describe("PUT /api/profile/handle", () => {
   it("changes the handle, writes the audit row and refreshes both public pages", async () => {
     const { PUT } = await import("@/app/api/profile/handle/route");

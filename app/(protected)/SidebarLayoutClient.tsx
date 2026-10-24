@@ -4,7 +4,15 @@ import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 
-export function SidebarLayoutClient({ children }: { children: React.ReactNode }) {
+export function SidebarLayoutClient({
+  children,
+  handle,
+  isAdmin,
+}: {
+  children: React.ReactNode;
+  handle: string | null;
+  isAdmin: boolean;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -35,7 +43,12 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        handle={handle}
+        isAdmin={isAdmin}
+      />
 
       <button
         type="button"
