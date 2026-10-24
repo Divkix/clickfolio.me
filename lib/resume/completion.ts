@@ -52,7 +52,8 @@ type CompletionUserRow = {
 // notification after the transaction so no caller can forget it. The notification
 // is best effort; a database failure is the only way this fails. Resolves to the handles whose
 // public site-data was rewritten (a missing handle or a newer manual edit leaves them out),
-// for the caller to refresh the public pages.
+// for the caller to refresh the public pages. A single-row replay of a completion this run
+// already committed resolves to the owner's handle again, so a retried step still refreshes it.
 export function completeResumes(input: ResumeCompletionInput) {
   return Effect.gen(function* () {
     const { items, parsedContent, career, totalAttempts, fanOut, retryCount } = input;
@@ -104,10 +105,16 @@ export function completeResumes(input: ResumeCompletionInput) {
 
     const completion: CompletionOutcome = yield* Db.use((db) =>
       db.transaction("resume.complete", async (tx) => {
-        // Snapshot createdAt before the UPDATE: it is the reference point for the
-        // manual-edit guard on site_data below.
+        // Snapshot the row before the UPDATE: createdAt is the reference point for the
+        // manual-edit guard on site_data below, and status/retryCount tell a replay of
+        // this run's own completion apart from a row another run owns.
         const createdRows = await tx
-          .select({ id: resumes.id, createdAt: resumes.createdAt })
+          .select({
+            id: resumes.id,
+            createdAt: resumes.createdAt,
+            status: resumes.status,
+            retryCount: resumes.retryCount,
+          })
           .from(resumes)
           .where(inArray(resumes.id, resumeIds));
 
@@ -127,10 +134,23 @@ export function completeResumes(input: ResumeCompletionInput) {
           )
           .returning({ id: resumes.id });
 
-        // Nothing written (row gone via account deletion, or already completed):
-        // no site-data upsert, no user sync, no completion notify.
+        // Nothing written (row gone via account deletion, or already completed): no
+        // site-data upsert, no user sync, no completion notify. A row this run itself
+        // completed in an earlier attempt (a step retried after its commit committed)
+        // still resolves to its owner's handle so the caller's public refresh runs;
+        // a superseded run (its retryCount moved on) or a fan-out batch resolves to none.
         if (updated.length === 0) {
-          return { ids: [], handles: [] };
+          const owned = fanOut
+            ? undefined
+            : createdRows.find((row) => row.id === items[0].resumeId);
+
+          const replaysOwnCompletion =
+            owned?.status === "completed" &&
+            (retryCount === undefined || owned.retryCount === retryCount);
+
+          return replaysOwnCompletion && singleRow?.handle
+            ? { ids: [], handles: [singleRow.handle] }
+            : { ids: [], handles: [] };
         }
 
         const ids = updated.map((row) => row.id);
