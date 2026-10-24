@@ -191,7 +191,7 @@ export default async function HandlePage({ params }: PageProps) {
       />
       <OwnerDetector profileId={profile.id} />
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
-        <CreateYoursCTA handle={handle} variant={theme_id} />
+        <CreateYoursCTA handle={handle} profileId={profile.id} variant={theme_id} />
       </div>
       <SharePopover
         handle={handle}
