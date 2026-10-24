@@ -1,7 +1,7 @@
 import * as workers from "cloudflare:workers";
 import type { UnknownRecord } from "@/lib/types/json";
 
-type LogLevel = "info" | "warn" | "error";
+export type LogLevel = "info" | "warn" | "error";
 
 type Deployment = {
   "service.version": string;

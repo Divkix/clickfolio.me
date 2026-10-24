@@ -7,11 +7,13 @@ export const SECURITY_HEADERS = {
   "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
 } as const;
 
+/** The one error body: `{ error, code, details? }`. `headers` adds e.g. `Retry-After`. */
 export function createErrorResponse<T>(
   error: string,
   code: string,
   status: number,
   details?: T,
+  headers?: Readonly<Record<string, string>>,
 ): Response {
   return new Response(
     JSON.stringify({
@@ -24,6 +26,7 @@ export function createErrorResponse<T>(
       headers: {
         "Content-Type": "application/json",
         ...SECURITY_HEADERS,
+        ...headers,
       },
     },
   );

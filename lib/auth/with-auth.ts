@@ -4,11 +4,9 @@
  * Next.js) has unproven route detection for const-exported handlers.
  */
 
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
+import { reportUnhandledError, unexpectedErrorResponse } from "@/lib/api/route";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
 type AuthedUserContext = Omit<
   Extract<Awaited<ReturnType<typeof requireAuthWithUserValidation>>, { error: null }>,
@@ -21,30 +19,6 @@ type AuthedAdminContext = Omit<
 >;
 
 const DEFAULT_UNAUTHORIZED_MESSAGE = "You must be logged in";
-
-const UNEXPECTED_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
-
-function pathnameOf(request: Request | undefined): string {
-  if (!request) return "unknown path";
-
-  try {
-    return new URL(request.url).pathname;
-  } catch {
-    return request.url;
-  }
-}
-
-// A caught error never reaches onRequestError, so log it here (with its stack)
-// to keep the 500 diagnosable in HyperDX.
-function reportUnhandledError(request: Request | undefined, cause: unknown): void {
-  const path = pathnameOf(request);
-
-  log("error", "Unhandled API route error", {
-    ...errorFields(cause),
-    path,
-    method: request?.method ?? "unknown",
-  });
-}
 
 export async function withUser(
   request: Request | undefined,
@@ -62,7 +36,7 @@ export async function withUser(
   } catch (error) {
     reportUnhandledError(request, error);
 
-    return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
+    return unexpectedErrorResponse();
   }
 }
 
@@ -81,6 +55,6 @@ export async function withAdmin(
   } catch (error) {
     reportUnhandledError(request, error);
 
-    return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
+    return unexpectedErrorResponse();
   }
 }
