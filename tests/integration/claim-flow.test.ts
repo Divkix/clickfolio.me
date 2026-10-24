@@ -382,7 +382,7 @@ describe("POST /api/resume/claim", () => {
     expect(mocks.bucket.objects.has(TEMP_KEY)).toBe(false);
   });
 
-  it("accepts a percent-encoded cookie as set by cookies().set() in /api/upload/pending", async () => {
+  it("accepts a percent-encoded signed cookie", async () => {
     const cookie = encodeURIComponent(await createSignedCookieValue(TEMP_KEY, TEST_SECRET));
 
     expect((await claim({ key: TEMP_KEY }, { cookie })).status).toBe(200);
