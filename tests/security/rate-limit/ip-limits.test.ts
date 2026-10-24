@@ -12,7 +12,7 @@ import {
 } from "vite-plus/test";
 import { Db } from "@/lib/effect/db";
 import { RateLimited, RateLimitUnavailable } from "@/lib/effect/failures";
-import { uploadRateLimits } from "@/lib/db/schema";
+import { rateLimitLocks, uploadRateLimits } from "@/lib/db/schema";
 import { sha256Hex } from "@/lib/utils/hash";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
@@ -96,31 +96,48 @@ describe("upload limiter (Effect)", () => {
     expect(await rowCount(IP, "upload")).toBe(1);
   });
 
-  it("refuses the 11th request in an hour with RateLimited and an hour Retry-After", async () => {
+  it("refuses the 11th request in an hour until the oldest of the ten expires", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
     await seed(IP, "upload", 5 * 60 * 1000, 10);
     const refusal = await fail(checkIPRateLimitEffect(IP));
 
     expect(refusal).toBeInstanceOf(RateLimited);
-    expect(refusal).toMatchObject({
-      message: expect.stringContaining("Limit: 10/hour"),
-      retryAfterSeconds: 3600,
-    });
+    expect(refusal).toMatchObject({ message: expect.stringContaining("Limit: 10/hour") });
+    // 5 minutes into the window, so a slot frees in 55 minutes — not the full hour.
+    expect(Math.abs(refusal.retryAfterSeconds - 55 * 60)).toBeLessThan(5);
     expect(await rowCount(IP, "upload")).toBe(10);
   });
 
-  it("refuses at 50 a day even when the hour is clear, with a day Retry-After", async () => {
+  it("refuses at 50 a day until the oldest daily row expires, even when the hour is clear", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
     await seed(IP, "upload", 5 * HOUR_MS, 50);
     const refusal = await fail(checkIPRateLimitEffect(IP));
 
-    expect(refusal).toMatchObject({
-      message: expect.stringContaining("Limit: 50/day"),
-      retryAfterSeconds: 86_400,
-    });
+    expect(refusal).toMatchObject({ message: expect.stringContaining("Limit: 50/day") });
+    // 5 hours into the day window, so a slot frees in 19 hours — not the full day.
+    expect(Math.abs(refusal.retryAfterSeconds - 19 * 3600)).toBeLessThan(5);
   });
+
+  // Both windows full: nothing is admitted until both have freed a slot, so the window that
+  // frees last sets the wait and the message.
+  it.each([
+    ["the day frees last", 5 * HOUR_MS, "Limit: 50/day", 19 * 3600],
+    ["the hour frees last", 24 * HOUR_MS - 5 * 60 * 1000, "Limit: 10/hour", 55 * 60],
+  ])(
+    "waits for the later window when both are full and %s",
+    async (_label, ageOfDay, message, wait) => {
+      const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+
+      await seed(IP, "upload", ageOfDay, 40);
+      await seed(IP, "upload", 5 * 60 * 1000, 10);
+      const refusal = await fail(checkIPRateLimitEffect(IP));
+
+      expect(refusal).toMatchObject({ message: expect.stringContaining(message) });
+      expect(Math.abs(refusal.retryAfterSeconds - wait)).toBeLessThan(5);
+    },
+  );
 
   it("ignores rows older than the windows", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
@@ -169,8 +186,8 @@ describe("upload limiter (Effect)", () => {
     );
   });
 
-  // PGlite serializes transactions on one connection, so this cannot prove the advisory lock
-  // works under real concurrency; it pins the count-then-insert arithmetic under a burst.
+  // PGlite serializes transactions on one connection, so this cannot prove the row lock blocks
+  // concurrent transactions; it pins the count-then-insert arithmetic under a burst.
   it("admits exactly the limit from a burst of 15 simultaneous requests", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
@@ -237,11 +254,45 @@ describe("upload limiter (Effect)", () => {
   });
 });
 
+describe("row lock", () => {
+  it("seeds every lock slot and meters through the locked row", async () => {
+    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+
+    const slots = await db
+      .select({ slot: rateLimitLocks.slot })
+      .from(rateLimitLocks)
+      .orderBy(rateLimitLocks.slot);
+
+    expect(slots.map(({ slot }) => slot)).toEqual(Array.from({ length: 256 }, (_, i) => i));
+    expect(await run(checkIPRateLimitEffect(IP))).toMatchObject({
+      remaining: { hourly: 9, daily: 49 },
+    });
+    expect(await rowCount(IP, "upload")).toBe(1);
+  });
+
+  it("fails closed when no lock slot is seeded", async () => {
+    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const seeded = await db.select({ slot: rateLimitLocks.slot }).from(rateLimitLocks);
+
+    await db.delete(rateLimitLocks);
+
+    try {
+      const refusal = await fail(checkIPRateLimitEffect(IP));
+
+      expect(refusal).toBeInstanceOf(RateLimitUnavailable);
+      expect(logLines(error)[0]).toMatchObject({ msg: "Rate limit store failed" });
+    } finally {
+      await db.insert(rateLimitLocks).values(seeded);
+    }
+  });
+});
+
 describe("handle-check limiter (Effect)", () => {
   it("admits 100 an hour and refuses the 101st", async () => {
     const { checkHandleRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
-    await seed(IP, "handle_check", 1000, 99);
+    await seed(IP, "handle_check", 30 * 60 * 1000, 99);
 
     const last = await run(checkHandleRateLimitEffect(IP));
 
@@ -251,8 +302,9 @@ describe("handle-check limiter (Effect)", () => {
 
     expect(refusal).toMatchObject({
       message: "Too many handle checks. Please try again later.",
-      retryAfterSeconds: 3600,
     });
+    // The 99 seeded rows are 30 minutes old, so the next slot frees in 30 minutes, not an hour.
+    expect(Math.abs(refusal.retryAfterSeconds - 30 * 60)).toBeLessThan(5);
     expect(await rowCount(IP, "handle_check")).toBe(100);
   });
 
