@@ -543,18 +543,25 @@ describe("IDOR - Resume Routes Security", () => {
 
     it("rejects malformed resume IDs", async () => {
       authedAs("user-a");
+      mockFindFirst.mockResolvedValue(undefined);
 
       const { GET } = await import("@/app/api/resume/status/route");
 
-      const malformedIds = ["", "   ", "../../etc/passwd", "<script>", "' OR 1=1 --"];
+      const malformedIds = [
+        ["", 400],
+        ["   ", 404],
+        ["../../etc/passwd", 404],
+        ["<script>", 404],
+        ["' OR 1=1 --", 404],
+      ] as const;
 
-      for (const id of malformedIds) {
+      for (const [id, expectedStatus] of malformedIds) {
         const request = new Request(
           `http://localhost:3000/api/resume/status?resume_id=${encodeURIComponent(id)}`,
         );
 
         const response = await GET(request);
-        expect([400, 403, 404, 200]).toContain(response.status);
+        expect(response.status).toBe(expectedStatus);
       }
     });
 
