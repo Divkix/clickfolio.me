@@ -1,6 +1,16 @@
+import { Effect } from "effect";
 import { redirect } from "next/navigation";
+import type { Db } from "@/lib/effect/db";
+import {
+  Forbidden,
+  Unauthorized,
+  type ClerkFailed,
+  type DbConflict,
+  type DbFailed,
+} from "@/lib/effect/failures";
+import type { Clerk } from "@/lib/effect/services/clerk";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
-import { getServerSession, type AppSessionUser } from "./session";
+import { findSession, getServerSession, type AppSessionUser } from "./session";
 
 export interface AdminUser {
   id: string;
@@ -53,4 +63,30 @@ export async function requireAdminAuthForApi(): Promise<
   }
 
   return { user: adminUser, error: null };
+}
+
+/**
+ * Admin check for API routes as an Effect. `isAdmin` is read from Postgres on every call, never
+ * from the token. `Unauthorized` when signed out, `Forbidden` when signed in without admin.
+ */
+export function authenticateAdmin(): Effect.Effect<
+  AdminUser,
+  Unauthorized | Forbidden | ClerkFailed | DbFailed | DbConflict,
+  Clerk | Db
+> {
+  return Effect.gen(function* () {
+    const session = yield* findSession();
+
+    if (!session?.user) {
+      return yield* Effect.fail(new Unauthorized({ message: "Unauthorized" }));
+    }
+
+    const adminUser = adminUserFromSession(session.user);
+
+    if (!adminUser.isAdmin) {
+      return yield* Effect.fail(new Forbidden({ message: "Admin access required" }));
+    }
+
+    return adminUser;
+  });
 }
