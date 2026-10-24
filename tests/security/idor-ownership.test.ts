@@ -38,7 +38,10 @@ const mockDb = {
 };
 
 vi.mock("cloudflare:workers", () => ({
-  env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
+  env: {
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    CLICKFOLIO_PARSE_WORKFLOW: {},
+  },
 }));
 
 vi.mock("@/lib/db", () => ({ getDb: () => mockDb }));

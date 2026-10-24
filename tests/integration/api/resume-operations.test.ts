@@ -802,7 +802,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       const response = await POST(request);
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(503);
       expect(mockUpdateSet).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
