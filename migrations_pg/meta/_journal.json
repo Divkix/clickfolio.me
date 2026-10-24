@@ -85,6 +85,20 @@
       "when": 1792598047485,
       "tag": "0011_remap_removed_themes",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792859219691,
+      "tag": "0012_material_maestro",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792859225364,
+      "tag": "0013_seed-rate-limit-locks",
+      "breakpoints": true
     }
   ]
 }

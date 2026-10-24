@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 export const handleChanges = pgTable(
@@ -37,6 +37,15 @@ export const uploadRateLimits = pgTable(
     index("upload_rate_limits_ip_action_idx").on(table.ipHash, table.actionType, table.createdAt),
   ],
 );
+
+/**
+ * Fixed lock slots for per-IP metering: a transaction locks one row with `FOR UPDATE` to
+ * serialize its count+insert (lib/rate-limit/ip.ts). Seeded by migration, never written at
+ * runtime; slots are reused, so hash collisions only cost serialization.
+ */
+export const rateLimitLocks = pgTable("rate_limit_locks", {
+  slot: integer("slot").primaryKey(),
+});
 
 export type HandleChange = typeof handleChanges.$inferSelect;
 

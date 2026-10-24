@@ -8,7 +8,7 @@ import {
   type DbConflict,
   type DbFailed,
 } from "@/lib/effect/failures";
-import { uploadRateLimits } from "@/lib/db/schema";
+import { rateLimitLocks, uploadRateLimits } from "@/lib/db/schema";
 import { sha256Hex } from "@/lib/utils/hash";
 import { limitsBypassed } from "./bypass";
 import { storeDown } from "./store-failure";
@@ -24,6 +24,9 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 const UNKNOWN_IP = "unknown";
+
+/** Seeded rows in `rate_limit_locks`; must match migrations_pg/0013_seed-rate-limit-locks.sql. */
+const RATE_LIMIT_LOCK_SLOTS = 256;
 
 const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
 
@@ -47,10 +50,12 @@ type Meter = {
   ttlMs: number;
 };
 
+type Window = "hourly" | "daily";
+
 type Metered =
   | { kind: "recorded"; hourly: number; daily: number }
-  | { kind: "hourly-full"; daily: number }
-  | { kind: "daily-full"; hourly: number };
+  /** `window` is the full window that frees a slot last; `retryAfterSeconds` is when it does. */
+  | { kind: "full"; hourly: number; daily: number; window: Window; retryAfterSeconds: number };
 
 const UPLOAD_METER: Meter = {
   actionType: "upload",
@@ -70,10 +75,13 @@ async function hashIP(ip: string): Promise<string> {
 }
 
 /**
- * Counts this address's recent actions and records one more, in a single transaction. The
- * advisory lock is held until commit, so concurrent requests from one address queue up: the
- * count statement that follows takes a fresh snapshot after the lock is granted, and so sees
- * every row a previous holder committed. A burst cannot read the same below-limit count.
+ * Counts this address's recent actions and records one more, in a single transaction.
+ *
+ * The transaction first takes a `FOR UPDATE` row lock on one of the fixed `rate_limit_locks`
+ * slots (Hyperdrive does not support advisory locks) and holds it until commit. Concurrent
+ * requests that hash to the same slot queue up there: the count statement follows the lock and
+ * takes a fresh snapshot, so it sees every row a previous holder committed. A burst cannot read
+ * the same below-limit count, and a hash collision only adds serialization.
  */
 function meterAction(
   ipHash: string,
@@ -81,9 +89,21 @@ function meterAction(
 ): Effect.Effect<Metered, DbFailed | DbConflict, Db> {
   return Db.use((service) =>
     service.transaction(`rate-limit.ip.${meter.actionType}`, async (tx): Promise<Metered> => {
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${meter.actionType}`}))`,
-      );
+      const locked = await tx
+        .select({ slot: rateLimitLocks.slot })
+        .from(rateLimitLocks)
+        .where(
+          eq(
+            rateLimitLocks.slot,
+            sql`abs(hashtext(${`${ipHash}||${meter.actionType}`})::bigint) % ${RATE_LIMIT_LOCK_SLOTS}`,
+          ),
+        )
+        .for("update");
+
+      if (locked.length === 0) {
+        // An unseeded slot would silently skip the lock, so refuse instead of racing the count.
+        throw new Error("rate limit lock slot is missing");
+      }
 
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - HOUR_MS).toISOString();
@@ -100,6 +120,10 @@ function meterAction(
               Number,
             ),
           daily: sql<number>`count(*)::int`.mapWith(Number),
+          oldestHourly: sql<
+            string | null
+          >`MIN(${uploadRateLimits.createdAt}) filter (where ${uploadRateLimits.createdAt} >= ${oneHourAgo})`,
+          oldestDaily: sql<string | null>`MIN(${uploadRateLimits.createdAt})`,
         })
         .from(uploadRateLimits)
         .where(
@@ -113,10 +137,34 @@ function meterAction(
       const hourly = counts?.hourly ?? 0;
       const daily = counts?.daily ?? 0;
 
-      if (hourly >= meter.hourlyLimit) return { kind: "hourly-full", daily };
+      // A refusal records nothing, so the counts only fall: the request is admitted once every
+      // full window has freed a slot. The window that frees last names the refusal and its wait.
+      const waits: { window: Window; seconds: number }[] = [];
+
+      if (hourly >= meter.hourlyLimit) {
+        waits.push({
+          window: "hourly",
+          seconds: retryAfterSeconds(counts?.oldestHourly ?? null, HOUR_MS),
+        });
+      }
 
       if (meter.dailyLimit !== undefined && daily >= meter.dailyLimit) {
-        return { kind: "daily-full", hourly };
+        waits.push({
+          window: "daily",
+          seconds: retryAfterSeconds(counts?.oldestDaily ?? null, DAY_MS),
+        });
+      }
+
+      const binding = waits.sort((a, b) => b.seconds - a.seconds)[0];
+
+      if (binding) {
+        return {
+          kind: "full",
+          hourly,
+          daily,
+          window: binding.window,
+          retryAfterSeconds: binding.seconds,
+        };
       }
 
       await tx.insert(uploadRateLimits).values({
@@ -132,6 +180,13 @@ function meterAction(
   );
 }
 
+/** Seconds until the oldest in-window row leaves it; the full window if there is none. */
+function retryAfterSeconds(oldest: string | null, windowMs: number): number {
+  if (oldest === null) return windowMs / 1000;
+
+  return Math.max(1, Math.ceil((new Date(oldest).getTime() + windowMs - Date.now()) / 1000));
+}
+
 function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailable, Db> {
   if (limitsBypassed(ip)) {
     return Effect.succeed({
@@ -144,30 +199,22 @@ function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailabl
     Effect.flatMap((ipHash) => meterAction(ipHash, UPLOAD_METER)),
     Effect.mapError(storeDown("upload", UPLOAD_UNAVAILABLE_MESSAGE)),
     Effect.map((metered): Decision => {
-      switch (metered.kind) {
-        case "recorded":
-          return {
-            allowed: true,
-            remaining: {
-              hourly: Math.max(0, HOURLY_LIMIT - metered.hourly),
-              daily: Math.max(0, DAILY_LIMIT - metered.daily),
-            },
-          };
-        case "hourly-full":
-          return {
-            allowed: false,
-            remaining: { hourly: 0, daily: Math.max(0, DAILY_LIMIT - metered.daily) },
-            message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
-            retryAfterSeconds: HOUR_MS / 1000,
-          };
-        case "daily-full":
-          return {
-            allowed: false,
-            remaining: { hourly: Math.max(0, HOURLY_LIMIT - metered.hourly), daily: 0 },
-            message: `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
-            retryAfterSeconds: DAY_MS / 1000,
-          };
-      }
+      const remaining = {
+        hourly: Math.max(0, HOURLY_LIMIT - metered.hourly),
+        daily: Math.max(0, DAILY_LIMIT - metered.daily),
+      };
+
+      if (metered.kind === "recorded") return { allowed: true, remaining };
+
+      return {
+        allowed: false,
+        remaining,
+        message:
+          metered.window === "hourly"
+            ? `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`
+            : `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
+        retryAfterSeconds: metered.retryAfterSeconds,
+      };
     }),
   );
 }
@@ -195,7 +242,7 @@ function handleCheckDecision(ip: string): Effect.Effect<Decision, RateLimitUnava
         allowed: false,
         remaining: { hourly: 0, daily: 0 },
         message: "Too many handle checks. Please try again later.",
-        retryAfterSeconds: HOUR_MS / 1000,
+        retryAfterSeconds: metered.retryAfterSeconds,
       };
     }),
   );
