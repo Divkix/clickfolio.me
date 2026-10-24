@@ -1,62 +1,41 @@
+import { Effect } from "effect";
 import { eq } from "drizzle-orm";
-import { withUser } from "@/lib/auth/with-auth";
+import { withUserEffect } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { roleUpdateSchema } from "@/lib/schemas/profile";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export async function PUT(request: Request) {
-  const sizeCheck = validateRequestSize(request);
+  const oversized = oversizedBodyResponse(request);
 
-  if (!sizeCheck.valid) {
-    return createErrorResponse(
-      sizeCheck.error || "Request body too large",
-      ERROR_CODES.BAD_REQUEST,
-      413,
-    );
-  }
+  if (oversized) return oversized;
 
-  return withUser(
+  return withUserEffect(
     request,
-    async ({ user: authUser, db }) => {
-      const rawBodyResult = await readJsonWithLimit(request);
+    ({ user: authUser }) =>
+      Effect.gen(function* () {
+        const update = yield* readJsonBody(request, roleUpdateSchema, "Invalid role value");
+        const { role, isFreelance } = update;
 
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
+        const changes: Partial<typeof user.$inferInsert> = { updatedAt: new Date().toISOString() };
+
+        if (role) {
+          changes.role = role;
+          changes.roleSource = "user";
+        }
+
+        if (isFreelance !== undefined) changes.isFreelance = isFreelance;
+
+        yield* Db.use((db) =>
+          db.query("profile.role.update", (handle) =>
+            handle.update(user).set(changes).where(eq(user.id, authUser.id)),
+          ),
         );
-      }
 
-      const validation = roleUpdateSchema.safeParse(rawBodyResult.data);
-
-      if (!validation.success) {
-        return createErrorResponse(
-          "Invalid role value",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          validation.error.issues,
-        );
-      }
-
-      const { role, isFreelance } = validation.data;
-
-      await db
-        .update(user)
-        .set({
-          ...(role && { role, roleSource: "user" as const }),
-          ...(isFreelance !== undefined && { isFreelance }),
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(user.id, authUser.id));
-
-      return createSuccessResponse(validation.data);
-    },
+        return createSuccessResponse(update);
+      }),
     "You must be logged in to update your role",
   );
 }

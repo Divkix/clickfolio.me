@@ -1,12 +1,14 @@
+import { Effect } from "effect";
 import { and, eq, isNull, or, sql } from "drizzle-orm";
-import type { z } from "zod";
-import { withUser } from "@/lib/auth/with-auth";
+import { withUserEffect } from "@/lib/auth/with-auth";
 import { logEvent } from "@/lib/utils/log";
 
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
-import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
-import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
+import { Db } from "@/lib/effect/db";
+import { Conflict, InvalidInput, RateLimited } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
+import { isHandleTakenEffect, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow, RATE_LIMITS } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
@@ -18,12 +20,9 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 // SAFETY: THEME_IDS is non-empty const array of ThemeId strings; spread cast creates required tuple type for zod enum schema.
 const wizardCompleteSchema = buildWizardCompleteSchema([...THEME_IDS] as [ThemeId, ...ThemeId[]]);
-
-type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
 
 const PENDING_RESUME_CONTENT: ResumeContent = {
   full_name: "Pending",
@@ -44,219 +43,204 @@ type WizardCompleteOutcome =
   | { kind: "rate_limited" };
 
 export async function POST(request: Request) {
-  const sizeCheck = validateRequestSize(request);
+  const oversized = oversizedBodyResponse(request);
 
-  if (!sizeCheck.valid) {
-    return createErrorResponse(
-      sizeCheck.error || "Request body too large",
-      ERROR_CODES.BAD_REQUEST,
-      413,
-    );
-  }
+  if (oversized) return oversized;
 
-  return withUser(
+  return withUserEffect(
     request,
-    async ({ user: authUser, db }) => {
-      const rawBodyResult = await readJsonWithLimit(request);
-
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
-        );
-      }
-
-      const validation = wizardCompleteSchema.safeParse(rawBodyResult.data);
-
-      if (!validation.success) {
-        return createErrorResponse(
+    ({ user: authUser }) =>
+      Effect.gen(function* () {
+        const body = yield* readJsonBody(
+          request,
+          wizardCompleteSchema,
           "Validation failed. Please check your input.",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          validation.error.issues,
         );
-      }
 
-      const body: WizardCompleteRequest = validation.data;
+        if (!isValidHandleFormat(body.handle)) {
+          return yield* Effect.fail(
+            new InvalidInput({
+              message: "This handle is reserved. Please choose a different one.",
+            }),
+          );
+        }
 
-      if (!isValidHandleFormat(body.handle)) {
-        return createErrorResponse(
-          "This handle is reserved. Please choose a different one.",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          { field: "handle", message: "Handle is reserved" },
+        const handleTaken = yield* isHandleTakenEffect(authUser.id, body.handle);
+
+        if (handleTaken) {
+          return yield* Effect.fail(
+            new InvalidInput({ message: "This handle is already taken. Please choose another." }),
+          );
+        }
+
+        const currentUserRow = yield* Db.use((db) =>
+          db.query("wizard.current-handle", (handle) =>
+            handle
+              .select({ handle: user.handle })
+              .from(user)
+              .where(eq(user.id, authUser.id))
+              .limit(1),
+          ),
         );
-      }
 
-      const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
+        // Compare-and-swap expectation: the handle this request observed before the transaction.
+        const expectedHandle = currentUserRow[0]?.handle ?? null;
 
-      if (handleTaken) {
-        return createErrorResponse(
-          "This handle is already taken. Please choose another.",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          { field: "handle", message: "Handle already taken" },
+        const siteDataRow = yield* Db.use((db) =>
+          db.query("wizard.site-data-snapshot", (handle) =>
+            handle
+              .select({ updatedAt: siteData.updatedAt })
+              .from(siteData)
+              .where(eq(siteData.userId, authUser.id))
+              .limit(1),
+          ),
         );
-      }
 
-      const currentUserRow = await db
-        .select({ handle: user.handle })
-        .from(user)
-        .where(eq(user.id, authUser.id))
-        .limit(1);
+        const siteDataSnapshot = siteDataRow[0]?.updatedAt;
 
-      // Compare-and-swap expectation: the handle this request observed before the transaction.
-      const expectedHandle = currentUserRow[0]?.handle ?? null;
+        const now = new Date().toISOString();
 
-      const siteDataRow = await db
-        .select({ updatedAt: siteData.updatedAt })
-        .from(siteData)
-        .where(eq(siteData.userId, authUser.id))
-        .limit(1);
+        // The unique index is the arbiter: a rival that took the handle after the check above
+        // makes the transaction fail with a conflict, answered as 409.
+        const outcome = yield* Db.use((db) =>
+          db.transaction("wizard.complete", async (tx): Promise<WizardCompleteOutcome> => {
+            // Row lock serializes concurrent completes for this user (quota count, audit, CAS write).
+            const locked = await tx
+              .select({ handle: user.handle })
+              .from(user)
+              .where(eq(user.id, authUser.id))
+              .limit(1)
+              .for("update");
 
-      const siteDataSnapshot = siteDataRow[0]?.updatedAt;
+            if (!locked.length) return { kind: "missing_user" };
 
-      const now = new Date().toISOString();
+            const oldHandle = locked[0].handle;
+            const isHandleChange = oldHandle !== body.handle;
 
-      try {
-        const outcome = await db.transaction(async (tx): Promise<WizardCompleteOutcome> => {
-          // Row lock serializes concurrent completes for this user (quota count, audit, CAS write).
-          const locked = await tx
-            .select({ handle: user.handle })
-            .from(user)
-            .where(eq(user.id, authUser.id))
-            .limit(1)
-            .for("update");
+            if (isHandleChange) {
+              const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
 
-          if (!locked.length) return { kind: "missing_user" };
+              if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
+            }
 
-          const oldHandle = locked[0].handle;
-          const isHandleChange = oldHandle !== body.handle;
+            const updated = await tx
+              .update(user)
+              .set({
+                handle: body.handle,
+                privacySettings: body.privacy_settings,
+                showInDirectory: body.privacy_settings.show_in_directory,
+                onboardingCompleted: true,
+                updatedAt: now,
+              })
+              .where(
+                and(
+                  eq(user.id, authUser.id),
+                  expectedHandle === null
+                    ? isNull(user.handle)
+                    : or(isNull(user.handle), eq(user.handle, expectedHandle)),
+                ),
+              )
+              .returning({ id: user.id });
 
-          if (isHandleChange) {
-            const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
+            if (!updated.length) return { kind: "stale" };
 
-            if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
-          }
-
-          const updated = await tx
-            .update(user)
-            .set({
-              handle: body.handle,
-              privacySettings: body.privacy_settings,
-              showInDirectory: body.privacy_settings.show_in_directory,
-              onboardingCompleted: true,
+            const conflictUpdate = {
+              themeId: body.theme_id,
+              lastPublishedAt: now,
               updatedAt: now,
-            })
-            .where(
-              and(
-                eq(user.id, authUser.id),
-                expectedHandle === null
-                  ? isNull(user.handle)
-                  : or(isNull(user.handle), eq(user.handle, expectedHandle)),
-              ),
-            )
-            .returning({ id: user.id });
+            };
 
-          if (!updated.length) return { kind: "stale" };
+            if (siteDataSnapshot) {
+              // Skip when the row moved past the snapshot read at request start (e.g. parse completion published).
+              await tx
+                .insert(siteData)
+                .values({
+                  id: crypto.randomUUID(),
+                  userId: authUser.id,
+                  ...siteDataContentColumns(PENDING_RESUME_CONTENT),
+                  themeId: body.theme_id,
+                  createdAt: now,
+                  updatedAt: now,
+                })
+                .onConflictDoUpdate({
+                  target: siteData.userId,
+                  set: conflictUpdate,
+                  setWhere: sql`${siteData.updatedAt} <= ${siteDataSnapshot}`,
+                });
+            } else {
+              await tx
+                .insert(siteData)
+                .values({
+                  id: crypto.randomUUID(),
+                  userId: authUser.id,
+                  ...siteDataContentColumns(PENDING_RESUME_CONTENT),
+                  themeId: body.theme_id,
+                  createdAt: now,
+                  updatedAt: now,
+                })
+                .onConflictDoUpdate({ target: siteData.userId, set: conflictUpdate });
+            }
 
-          const conflictUpdate = {
-            themeId: body.theme_id,
-            lastPublishedAt: now,
-            updatedAt: now,
-          };
-
-          if (siteDataSnapshot) {
-            // Skip when the row moved past the snapshot read at request start (e.g. parse completion published).
-            await tx
-              .insert(siteData)
-              .values({
+            if (isHandleChange) {
+              await tx.insert(handleChanges).values({
                 id: crypto.randomUUID(),
                 userId: authUser.id,
-                ...siteDataContentColumns(PENDING_RESUME_CONTENT),
-                themeId: body.theme_id,
+                oldHandle,
+                newHandle: body.handle,
                 createdAt: now,
-                updatedAt: now,
-              })
-              .onConflictDoUpdate({
-                target: siteData.userId,
-                set: conflictUpdate,
-                setWhere: sql`${siteData.updatedAt} <= ${siteDataSnapshot}`,
               });
-          } else {
-            await tx
-              .insert(siteData)
-              .values({
-                id: crypto.randomUUID(),
-                userId: authUser.id,
-                ...siteDataContentColumns(PENDING_RESUME_CONTENT),
-                themeId: body.theme_id,
-                createdAt: now,
-                updatedAt: now,
-              })
-              .onConflictDoUpdate({ target: siteData.userId, set: conflictUpdate });
-          }
+            }
 
-          if (isHandleChange) {
-            await tx.insert(handleChanges).values({
-              id: crypto.randomUUID(),
-              userId: authUser.id,
-              oldHandle,
-              newHandle: body.handle,
-              createdAt: now,
-            });
-          }
-
-          return { kind: "ok", oldHandle };
-        });
+            return { kind: "ok", oldHandle };
+          }),
+        ).pipe(
+          Effect.catchTag("DbConflict", () =>
+            Effect.fail(
+              new Conflict({
+                message: "This handle was just taken. Please choose a different one.",
+              }),
+            ),
+          ),
+        );
 
         if (outcome.kind === "missing_user") {
           return createErrorResponse("Failed to load profile", ERROR_CODES.DATABASE_ERROR, 500);
         }
 
         if (outcome.kind === "stale") {
-          return createErrorResponse(
-            "Your profile was updated elsewhere. Please reload and try again.",
-            ERROR_CODES.CONFLICT,
-            409,
+          return yield* Effect.fail(
+            new Conflict({
+              message: "Your profile was updated elsewhere. Please reload and try again.",
+            }),
           );
         }
 
         if (outcome.kind === "rate_limited") {
-          return createErrorResponse(
-            `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
-            ERROR_CODES.RATE_LIMIT_EXCEEDED,
-            429,
+          return yield* Effect.fail(
+            new RateLimited({
+              message: `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
+              // Upper bound: the oldest change in the window frees a slot sooner than this.
+              retryAfterSeconds: RATE_LIMITS.handle_change.windowHours * 60 * 60,
+            }),
           );
         }
 
-        revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
-        notifyIndexNowForProfiles([outcome.oldHandle, body.handle]);
+        yield* Effect.sync(() => {
+          revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
+          notifyIndexNowForProfiles([outcome.oldHandle, body.handle]);
 
-        logEvent("onboarding_completed", {
-          userId: authUser.id,
-          themeId: body.theme_id,
-          showInDirectory: body.privacy_settings.show_in_directory,
+          logEvent("onboarding_completed", {
+            userId: authUser.id,
+            themeId: body.theme_id,
+            showInDirectory: body.privacy_settings.show_in_directory,
+          });
         });
 
         return createSuccessResponse({
           success: true,
           handle: body.handle,
         });
-      } catch (error) {
-        // Unique constraint violation (race condition): Postgres SQLSTATE 23505 → 409.
-        if (error instanceof Error && isUniqueViolation(error)) {
-          return createErrorResponse(
-            "This handle was just taken. Please choose a different one.",
-            ERROR_CODES.CONFLICT,
-            409,
-          );
-        }
-
-        throw error;
-      }
-    },
+      }),
     "You must be logged in to complete onboarding",
   );
 }

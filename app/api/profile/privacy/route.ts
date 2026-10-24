@@ -1,98 +1,80 @@
+import { Effect } from "effect";
 import { and, eq } from "drizzle-orm";
-import { withUser } from "@/lib/auth/with-auth";
-
+import { withUserEffect } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { Conflict } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export async function PUT(request: Request) {
-  const sizeCheck = validateRequestSize(request);
+  const oversized = oversizedBodyResponse(request);
 
-  if (!sizeCheck.valid) {
-    return createErrorResponse(
-      sizeCheck.error || "Request body too large",
-      ERROR_CODES.BAD_REQUEST,
-      413,
-    );
-  }
+  if (oversized) return oversized;
 
-  return withUser(
+  return withUserEffect(
     request,
-    async ({ user: authUser, db, dbUser }) => {
-      const rawBodyResult = await readJsonWithLimit(request);
-
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
-        );
-      }
-
-      const validation = privacySettingsSchema.safeParse(rawBodyResult.data);
-
-      if (!validation.success) {
-        return createErrorResponse(
+    ({ user: authUser, dbUser }) =>
+      Effect.gen(function* () {
+        const settings = yield* readJsonBody(
+          request,
+          privacySettingsSchema,
           "Invalid privacy settings data",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          validation.error.issues,
         );
-      }
 
-      const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
+        const { show_phone, show_address, hide_from_search, show_in_directory } = settings;
 
-      const privacySettings = {
-        show_phone,
-        show_address,
-        hide_from_search,
-        show_in_directory,
-      };
-
-      // Version the client loaded; absent means a legacy client, which keeps the unguarded write.
-      const expectedUpdatedAt = request.headers.get("If-Unmodified-Since");
-
-      const now = new Date().toISOString();
-
-      const updated = await db
-        .update(user)
-        .set({
-          privacySettings,
-          showInDirectory: show_in_directory,
-          updatedAt: now,
-        })
-        .where(
-          expectedUpdatedAt
-            ? and(eq(user.id, authUser.id), eq(user.updatedAt, expectedUpdatedAt))
-            : eq(user.id, authUser.id),
-        )
-        .returning({ id: user.id });
-
-      if (expectedUpdatedAt && updated.length === 0) {
-        return createErrorResponse("Settings changed elsewhere, reload", ERROR_CODES.CONFLICT, 409);
-      }
-
-      revalidatePublicProfilePages([dbUser.handle]);
-      notifyIndexNowForProfiles([dbUser.handle]);
-
-      return createSuccessResponse({
-        success: true,
-        updated_at: now,
-        privacy_settings: {
+        const privacySettings = {
           show_phone,
           show_address,
           hide_from_search,
           show_in_directory,
-        },
-      });
-    },
+        };
+
+        // Version the client loaded; absent means a legacy client, which keeps the unguarded write.
+        const expectedUpdatedAt = request.headers.get("If-Unmodified-Since");
+
+        const now = new Date().toISOString();
+
+        // The column and the jsonb flag are one setting: they are written together or not at all.
+        const updated = yield* Db.use((db) =>
+          db.query("profile.privacy.update", (handle) =>
+            handle
+              .update(user)
+              .set({
+                privacySettings,
+                showInDirectory: show_in_directory,
+                updatedAt: now,
+              })
+              .where(
+                expectedUpdatedAt
+                  ? and(eq(user.id, authUser.id), eq(user.updatedAt, expectedUpdatedAt))
+                  : eq(user.id, authUser.id),
+              )
+              .returning({ id: user.id }),
+          ),
+        );
+
+        if (expectedUpdatedAt && updated.length === 0) {
+          return yield* Effect.fail(
+            new Conflict({ message: "Settings changed elsewhere, reload" }),
+          );
+        }
+
+        yield* Effect.sync(() => {
+          revalidatePublicProfilePages([dbUser.handle]);
+          notifyIndexNowForProfiles([dbUser.handle]);
+        });
+
+        return createSuccessResponse({
+          success: true,
+          updated_at: now,
+          privacy_settings: privacySettings,
+        });
+      }),
     "You must be logged in to update privacy settings",
   );
 }
