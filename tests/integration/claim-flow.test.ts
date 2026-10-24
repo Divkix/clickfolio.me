@@ -504,6 +504,37 @@ describe("POST /api/resume/claim", () => {
     });
   });
 
+  it("keeps the temp object when queuing the row throws, so a retry can still download it", async () => {
+    authedAs("user-1");
+    mockDbUpdateReturning.mockRejectedValueOnce(new Error("connection reset"));
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(500);
+    // The failed row still names the temp key (retry route downloads it).
+    expect(mockR2Delete).not.toHaveBeenCalledWith(expect.anything(), "temp/uuid/resume.pdf");
+  });
+
+  it("deletes the temp object only after the row is queued", async () => {
+    authedAs("user-1");
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(200);
+    expect(mockR2Delete).toHaveBeenCalledTimes(1);
+    expect(mockR2Delete).toHaveBeenCalledWith(expect.anything(), "temp/uuid/resume.pdf");
+    expect(mockR2Put.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDbUpdateReturning.mock.invocationCallOrder[0],
+    );
+    expect(mockDbUpdateReturning.mock.invocationCallOrder[0]).toBeLessThan(
+      mockR2Delete.mock.invocationCallOrder[0],
+    );
+  });
+
   it("returns already_claimed BEFORE rate limiting (double-claim does not burn a rate-limit slot)", async () => {
     authedAs("user-1");
     const { enforceRateLimit } = await import("@/lib/rate-limit/user");
