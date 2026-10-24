@@ -207,18 +207,7 @@ function loadStats(
       period,
     });
 
-    // A handle change landing during the fan-out invalidates the aggregate:
-    // never let the browser replay a response built for the old handle set.
-    const freshHandleSet = yield* loadHandleSet(dbUser.id, currentHandle);
-
-    const handleSetStable =
-      freshHandleSet.size === handleSet.size &&
-      [...handleSet].every((handle) => freshHandleSet.has(handle));
-
-    response.headers.set(
-      "Cache-Control",
-      handleSetStable ? "private, max-age=60, stale-while-revalidate=120" : "private, no-store",
-    );
+    response.headers.set("Cache-Control", "private, max-age=60");
 
     return response;
   });

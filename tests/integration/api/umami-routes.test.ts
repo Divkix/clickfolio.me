@@ -205,9 +205,7 @@ describe("GET /api/analytics/stats", () => {
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=7d"));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe(
-      "private, max-age=60, stale-while-revalidate=120",
-    );
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=60");
     expect(await response.json()).toMatchObject({
       totalViews: 15,
       uniqueVisitors: 3,
@@ -249,29 +247,16 @@ describe("GET /api/analytics/stats", () => {
     expect(new Set(paths)).toEqual(new Set(["/@alice"]));
   });
 
-  it("refuses to cache when the handle set changed during the fan-out", async () => {
-    let inserted = false;
-
-    stubUmami(async (endpoint, path) => {
-      if (!inserted) {
-        inserted = true;
-        await db.insert(handleChanges).values({
-          id: "change-2",
-          userId: "user-1",
-          oldHandle: "alice-older",
-          newHandle: "alice-old",
-          createdAt: new Date(Date.now() + 1000).toISOString(),
-        });
-      }
-
-      return json(umamiBody(endpoint, path));
-    });
+  it("loads the handle set once and uses a bounded private cache lifetime", async () => {
+    const select = vi.spyOn(db, "select");
+    stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
     const { GET } = await import("@/app/api/analytics/stats/route");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=60");
+    expect(select).toHaveBeenCalledTimes(1);
   });
 
   it("returns empty stats for a user without a handle", async () => {
