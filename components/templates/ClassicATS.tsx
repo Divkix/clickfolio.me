@@ -48,7 +48,7 @@ function Row({
   );
 }
 
-export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPreview, share }) => {
   const {
     full_name,
     headline,
@@ -83,7 +83,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             handle={profile.handle}
             title={`${full_name}'s Resume`}
             name={full_name}
-            variant="classic-ats"
+            styles={share}
           />
           {!isPreview && (
             <PrintButton className="inline-flex items-center gap-2 rounded-[3px] bg-[#22385C] px-3.5 py-2 text-[0.9375rem] text-white hover:bg-[#1A2B47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22385C]" />

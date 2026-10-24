@@ -1,17 +1,12 @@
 import { createHash } from "node:crypto";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { AttributionWidget } from "@/components/AttributionWidget";
+import { ShareBar } from "@/components/ShareBar";
+import { SharePopover } from "@/components/SharePopover";
 import { describe, expect, it } from "vite-plus/test";
 import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { THEME_IDS } from "@/lib/templates/theme-ids";
-import {
-  DEFAULT_SHARE_VARIANT,
-  SHARE_VARIANT_KEYS,
-  shareButtonStyles,
-  shareContainerStyles,
-  shareItemStyles,
-  sharePanelStyles,
-  shareTriggerStyles,
-} from "@/lib/templates/share-variants";
-import { getLinkedInIconVariant } from "@/lib/utils/share-actions";
 
 // Digests captured from the original component, share and background maps before migration.
 // Each covers every exact literal, without storing hundreds of duplicated style strings.
@@ -41,11 +36,29 @@ const whiteVariants = new Set([
 ]);
 
 describe("theme chrome", () => {
+  it.each(THEME_IDS)("renders resolved public chrome for %s", (id) => {
+    const chrome = THEME_CHROME[id];
+    const props = { handle: "example", name: "Example", title: "Resume", styles: chrome.share };
+    const bar = renderToStaticMarkup(createElement(ShareBar, props));
+    const popover = renderToStaticMarkup(createElement(SharePopover, props));
+
+    const attribution = renderToStaticMarkup(
+      createElement(AttributionWidget, { styles: chrome.attribution }),
+    );
+
+    expect(bar).toContain(chrome.share.button);
+    expect(bar).toContain(`/brand/linkedin/inbug-${chrome.share.linkedInIcon}.png`);
+    expect(popover).toContain(chrome.share.trigger);
+
+    for (const classes of Object.values(chrome.attribution)) {
+      expect(attribution).toContain(classes);
+    }
+  });
+
   it("covers every theme with one unique share alias", () => {
+    const aliases = Object.values(THEME_CHROME).map(({ share }) => share.variant);
     expect(Object.keys(THEME_CHROME).toSorted()).toEqual(THEME_IDS.toSorted());
-    expect(SHARE_VARIANT_KEYS).toHaveLength(THEME_IDS.length);
-    expect(new Set(SHARE_VARIANT_KEYS).size).toBe(THEME_IDS.length);
-    expect(DEFAULT_SHARE_VARIANT).toBe(THEME_CHROME.minimalist_editorial.share.variant);
+    expect(new Set(aliases).size).toBe(THEME_IDS.length);
 
     for (const id of THEME_IDS) {
       let expected = id.replaceAll("_", "-");
@@ -64,48 +77,10 @@ describe("theme chrome", () => {
     expect(digest).toBe(BASELINE_DIGESTS[group]);
   });
 
-  it("projects every public share map from the same theme entry", () => {
-    for (const styles of [
-      shareContainerStyles,
-      shareButtonStyles,
-      shareTriggerStyles,
-      sharePanelStyles,
-      shareItemStyles,
-    ]) {
-      expect(Object.keys(styles).toSorted()).toEqual(SHARE_VARIANT_KEYS.toSorted());
-    }
-
-    for (const id of THEME_IDS) {
-      const { share } = THEME_CHROME[id];
-      expect(shareContainerStyles[share.variant]).toBe("");
-      expect(shareButtonStyles[share.variant]).toBe(share.button);
-      expect(shareTriggerStyles[share.variant]).toBe(share.trigger);
-      expect(sharePanelStyles[share.variant]).toBe(share.panel);
-      expect(shareItemStyles[share.variant]).toBe(share.item);
-    }
-  });
-
-  it("preserves legacy LinkedIn icon colors for aliases and canonical ids", () => {
+  it("preserves legacy LinkedIn icon colors for share aliases", () => {
     for (const id of THEME_IDS) {
       const { share } = THEME_CHROME[id];
       expect(share.linkedInIcon).toBe(whiteVariants.has(share.variant) ? "white" : "black");
-      expect(getLinkedInIconVariant(share.variant)).toBe(
-        whiteVariants.has(share.variant) ? "white" : "black",
-      );
-      // Underscored ids were not switch cases, even when their kebab alias used white.
-      expect(getLinkedInIconVariant(id)).toBe(whiteVariants.has(id) ? "white" : "black");
-    }
-
-    for (const unknown of [
-      null,
-      undefined,
-      "",
-      "unknown",
-      "__proto__",
-      "constructor",
-      "toString",
-    ]) {
-      expect(getLinkedInIconVariant(unknown)).toBe("black");
     }
   });
 

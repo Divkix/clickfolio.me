@@ -22,7 +22,8 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
   const content = DEMO_RESUME_CONTENT[id];
 
   const Template = await getTemplate(id);
-  const bg = THEME_CHROME[id].background;
+  const chrome = THEME_CHROME[id];
+  const bg = chrome.background;
 
   const profile = {
     avatar_url: null,
@@ -34,7 +35,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
       id="main-content"
       className={cn("min-h-screen", bg?.bg ?? "bg-white", bg?.isDark ? "dark" : "")}
     >
-      <Template content={content} profile={profile} />
+      <Template content={content} profile={profile} share={chrome.share} />
     </main>
   );
 }

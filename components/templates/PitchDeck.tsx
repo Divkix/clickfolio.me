@@ -79,7 +79,7 @@ function summarySize(text: string): string {
   return "text-[clamp(1.75rem,4.4vw,3.25rem)] leading-[1.12]";
 }
 
-export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
+export const PitchDeck: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     summary,
@@ -449,7 +449,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="pitch-deck"
+              styles={share}
             />
           </footer>
         </div>

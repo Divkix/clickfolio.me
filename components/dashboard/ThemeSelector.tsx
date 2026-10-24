@@ -236,7 +236,11 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
             }}
             className="pointer-events-none"
           >
-            <SelectedTemplate content={initialContent} profile={profile} />
+            <SelectedTemplate
+              content={initialContent}
+              profile={profile}
+              share={THEME_CHROME[selectedTheme].share}
+            />
           </div>
         </div>
 

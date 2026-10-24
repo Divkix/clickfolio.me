@@ -102,7 +102,7 @@ function Outputs({ projects }: { projects: NonNullable<Content["projects"]> }) {
   );
 }
 
-export const AcademicCV: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+export const AcademicCV: React.FC<TemplateProps> = ({ content, profile, isPreview, share }) => {
   const {
     full_name,
     headline,
@@ -323,7 +323,7 @@ export const AcademicCV: React.FC<TemplateProps> = ({ content, profile, isPrevie
                   handle={profile.handle}
                   title={`${full_name}'s CV`}
                   name={full_name}
-                  variant="academic-cv"
+                  styles={share}
                 />
               </div>
             </footer>

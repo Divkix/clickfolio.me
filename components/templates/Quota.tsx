@@ -79,7 +79,7 @@ function SectionHeading({ children }: { children: React.ReactNode }): React.Reac
   );
 }
 
-export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Quota: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -358,7 +358,7 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="quota"
+              styles={share}
             />
           </footer>
         </div>

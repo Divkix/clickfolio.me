@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
 import { DEMO_RESUME_CONTENT } from "@/lib/templates/demo-data";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import type { ResumeContent } from "@/lib/types/database";
@@ -108,7 +109,10 @@ async function render(
   profile: (typeof PROFILES)[keyof typeof PROFILES],
 ) {
   const Template = await getTemplate(themeId);
-  const html = renderToStaticMarkup(createElement(Template, { content, profile }));
+
+  const html = renderToStaticMarkup(
+    createElement(Template, { content, profile, share: THEME_CHROME[themeId].share }),
+  );
 
   const visibleText = html
     .replace(/<(style|script)[\s\S]*?<\/\1>/g, "")

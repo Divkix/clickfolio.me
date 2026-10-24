@@ -3,6 +3,7 @@ import type * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 
 const { useSession } = vi.hoisted(() => ({
   useSession: vi.fn<() => { data: { user: { id: string } } | null }>(),
@@ -26,11 +27,24 @@ beforeEach(() => {
 
 function render() {
   return renderToStaticMarkup(
-    createElement(CreateYoursCTA, { handle: "someone", profileId: "owner-id" }),
+    createElement(CreateYoursCTA, {
+      handle: "someone",
+      profileId: "owner-id",
+      styles: THEME_CHROME.minimalist_editorial.cta,
+    }),
   );
 }
 
 describe("portfolio acquisition CTA", () => {
+  it.each(Object.values(THEME_CHROME))("renders server-resolved CTA classes", ({ cta: styles }) => {
+    const markup = renderToStaticMarkup(
+      createElement(CreateYoursCTA, { handle: "someone", profileId: "owner-id", styles }),
+    );
+
+    for (const classes of Object.values(styles)) {
+      expect(markup).toContain(classes);
+    }
+  });
   it("hides for the owner using the public profile identity, without a session handle", () => {
     useSession.mockReturnValue({ data: { user: { id: "owner-id" } } });
     expect(render()).toBe("");

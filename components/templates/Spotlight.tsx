@@ -342,7 +342,7 @@ function Certifications({ items }: { items: Content["certifications"] }) {
   );
 }
 
-export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview, share }) => {
   const name = content.full_name;
   const firstName = name.split(" ")[0] || name;
 
@@ -404,7 +404,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                   handle={profile.handle}
                   title={`${name}'s Portfolio`}
                   name={name}
-                  variant="spotlight"
+                  styles={share}
                 />
               </div>
               <p className="mt-8 text-[0.95rem] text-[#BFAE9F]" suppressHydrationWarning>

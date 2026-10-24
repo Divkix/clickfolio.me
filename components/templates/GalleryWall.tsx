@@ -58,7 +58,7 @@ function Frame({ project, index, name }: { project: Project; index: number; name
   );
 }
 
-export const GalleryWall: React.FC<TemplateProps> = ({ content, profile }) => {
+export const GalleryWall: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -291,7 +291,7 @@ export const GalleryWall: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="gallery-wall"
+              styles={share}
             />
           </div>
         </footer>

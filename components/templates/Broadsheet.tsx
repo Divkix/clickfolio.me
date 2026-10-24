@@ -70,7 +70,7 @@ function Box({ id, title, children }: { id: string; title: string; children: Rea
   );
 }
 
-export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Broadsheet: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, headline, summary, contact, experience, projects, education, certifications } =
     content;
 
@@ -255,7 +255,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="broadsheet"
+              styles={share}
             />
           </footer>
         </div>

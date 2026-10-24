@@ -364,7 +364,7 @@ const CONTACT_NAMES: Record<ContactLinkType, string> = {
   dribbble: "Dribbble",
 };
 
-export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Reel: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     summary,
@@ -791,7 +791,7 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="reel"
+              styles={share}
             />
           </footer>
         </div>

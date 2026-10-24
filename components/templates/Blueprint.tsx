@@ -67,7 +67,7 @@ function Jobs({ experience }: { experience: Content["experience"] }) {
   );
 }
 
-export const Blueprint: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Blueprint: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -319,7 +319,7 @@ export const Blueprint: React.FC<TemplateProps> = ({ content, profile }) => {
                     handle={profile.handle}
                     title={`${full_name}'s Portfolio`}
                     name={full_name}
-                    variant="blueprint"
+                    styles={share}
                   />
                 </div>
               </footer>

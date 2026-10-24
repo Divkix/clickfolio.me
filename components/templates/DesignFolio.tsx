@@ -335,7 +335,7 @@ function Credentials({
   );
 }
 
-export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
+export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, contact } = content;
   const links = getContactLinks(contact).filter((link) => link.href);
 
@@ -391,7 +391,7 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                 handle={profile.handle}
                 title={`${full_name}'s Portfolio`}
                 name={full_name}
-                variant="design-folio"
+                styles={share}
               />
             </div>
           </div>

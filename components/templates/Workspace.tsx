@@ -84,7 +84,7 @@ function Entries({ experience }: { experience: Content["experience"] }) {
   );
 }
 
-export const Workspace: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Workspace: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -313,7 +313,7 @@ export const Workspace: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="workspace"
+              styles={share}
             />
           </footer>
         </div>

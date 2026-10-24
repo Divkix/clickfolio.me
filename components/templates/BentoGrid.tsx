@@ -273,7 +273,7 @@ function ProjectTiles({ projects }: { projects: NonNullable<Content["projects"]>
   );
 }
 
-export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
+export const BentoGrid: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const contactLinks = getContactLinks(content.contact).filter((link) => link.type !== "location");
   const skills = content.skills?.filter((group) => group.items.length > 0) ?? [];
   const experience = content.experience ?? [];
@@ -496,7 +496,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             handle={profile.handle}
             title={`${content.full_name}'s Portfolio`}
             name={content.full_name}
-            variant="bento-grid"
+            styles={share}
           />
         </footer>
       </div>

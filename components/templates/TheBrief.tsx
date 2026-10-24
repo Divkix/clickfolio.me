@@ -62,7 +62,7 @@ function BriefSection({
   );
 }
 
-export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
+export const TheBrief: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -228,7 +228,7 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="the-brief"
+              styles={share}
             />
           </footer>
         </div>

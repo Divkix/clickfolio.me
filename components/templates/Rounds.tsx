@@ -55,7 +55,7 @@ function credentialAcronyms(
   return [...new Set([...licenses, ...degrees, ...others])];
 }
 
-export const Rounds: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Rounds: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -351,7 +351,7 @@ export const Rounds: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="rounds"
+              styles={share}
             />
           </div>
         </footer>

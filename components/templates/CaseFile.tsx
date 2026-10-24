@@ -265,7 +265,7 @@ function CertificationsExhibit({
   );
 }
 
-export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
+export const CaseFile: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, headline, summary, contact, experience, projects, education, certifications } =
     content;
 
@@ -418,7 +418,7 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
                     handle={profile.handle}
                     title={`${full_name}'s Portfolio`}
                     name={full_name}
-                    variant="case-file"
+                    styles={share}
                   />
                 </div>
               </footer>

@@ -89,7 +89,7 @@ function SheetHeading({ children }: { children: React.ReactNode }) {
 
 const LANE_NUMBERS = Array.from({ length: 24 }, (_, i) => i + 1);
 
-export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
+export const PersonalBest: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, summary, headline, contact, experience, education, skills, certifications } =
     content;
 
@@ -335,7 +335,7 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="personal-best"
+              styles={share}
             />
           </footer>
         </div>
