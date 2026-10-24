@@ -55,6 +55,7 @@ type BusinessEvent =
   | "resume_upload_failed"
   | "resume_parse_completed"
   | "resume_parse_failed"
+  | "resume_swept"
   | "ai_generation_completed"
   | "ai_generation_failed"
   | "cleanup_completed"

@@ -26,6 +26,20 @@ export const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 export const WAITING_FOR_CACHE_TIMEOUT_MESSAGE =
   "Parsing timed out while waiting for cached result. Please try uploading again.";
 
+/**
+ * The stranded-row sweeper (`lib/cron/stranded-resumes.ts`) fails rows that stopped moving.
+ * Both ages run from `COALESCE(queued_at, created_at)`: `queued_at` is stamped when the row is
+ * queued (again on every manual retry) and again when a parse claims it. A swept row carries no
+ * `last_attempt_error`, so `checkRetryEligibility` keeps it retryable.
+ */
+export const STRANDED_START_AFTER_MS = 15 * 60 * 1000;
+
+export const STRANDED_PROCESSING_AFTER_MS = 90 * 60 * 1000;
+
+export const STRANDED_START_MESSAGE = "Processing didn't start. Please try again.";
+
+export const STRANDED_PROCESSING_MESSAGE = "Processing took too long. Please try again.";
+
 export function hasExceededMaxAttempts(totalAttempts: number): boolean {
   return totalAttempts >= RETRY_LIMITS.TOTAL_MAX_ATTEMPTS;
 }
