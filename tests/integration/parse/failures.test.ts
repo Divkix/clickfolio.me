@@ -14,7 +14,11 @@ import {
   UnknownParseFailure,
   toParseErrorJson,
 } from "@/lib/parse/failures";
-import { isPermanentErrorType, parseLastAttemptError } from "@/lib/resume/lifecycle";
+import {
+  checkRetryEligibility,
+  isPermanentErrorType,
+  parseLastAttemptError,
+} from "@/lib/resume/lifecycle";
 
 const cause = new Error("original");
 
@@ -35,6 +39,20 @@ const cases = [
 ] as const;
 
 describe("stable parse failure wire format", () => {
+  it.each([ParseErrorType.MALFORMED_RESPONSE, ParseErrorType.PARSE_VALIDATION_ERROR])(
+    "allows a manual retry after nondeterministic %s output",
+    (type) => {
+      expect(
+        checkRetryEligibility({
+          status: "failed",
+          retryCount: 0,
+          totalAttempts: 1,
+          lastAttemptError: JSON.stringify({ type }),
+        }),
+      ).toEqual({ eligible: true, nextAttempt: 1 });
+    },
+  );
+
   it.each(cases)("serializes %s using its legacy wire type", (failure, type, retryable) => {
     expect(toParseErrorJson(failure)).toEqual({
       name: "ParseError",
