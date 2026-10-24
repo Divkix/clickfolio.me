@@ -1,10 +1,13 @@
-import { log, logEvent } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
-import { z } from "zod";
-import { getR2Binding, R2 } from "@/lib/r2";
-import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+import { Effect, Layer } from "effect";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
+import { InvalidInput } from "@/lib/effect/failures";
+import { R2Store } from "@/lib/effect/services/r2-store";
+import { checkIPRateLimitEffect, getClientIP } from "@/lib/rate-limit/ip";
 import { getOptionalEnvValue } from "@/lib/utils/env";
+import { errorFields } from "@/lib/utils/error-fields";
+import { log, logEvent } from "@/lib/utils/log";
 import {
   COOKIE_MAX_AGE,
   COOKIE_NAME,
@@ -19,6 +22,8 @@ import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/v
 
 const MIN_PDF_SIZE = 100;
 
+const FILE_TOO_LARGE = `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`;
+
 // The client percent-encodes X-Filename; an older client sends it raw.
 function decodeFilenameHeader(value: string | null): string | null {
   if (value === null) return null;
@@ -30,137 +35,155 @@ function decodeFilenameHeader(value: string | null): string | null {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv. X-Filename header is validated for length and sanitized before use.
-    const typedEnv = env as CloudflareEnv;
+type UploadHeaders = { contentLength: number; filename: string };
 
-    const r2Binding = getR2Binding(typedEnv);
+/** Everything the headers can refuse, before any dependency is touched. */
+function inspectHeaders(request: Request): UploadHeaders | Response {
+  const contentType = request.headers.get("content-type");
 
-    if (!r2Binding) {
-      return createErrorResponse(
-        "Storage service unavailable",
-        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        503,
-      );
+  if (!contentType?.includes("application/pdf")) {
+    return createErrorResponse(
+      "Content-Type must be application/pdf",
+      ERROR_CODES.BAD_REQUEST,
+      400,
+    );
+  }
+
+  const contentLengthHeader = request.headers.get("content-length");
+
+  if (!contentLengthHeader) {
+    return createErrorResponse("Content-Length header is required", ERROR_CODES.BAD_REQUEST, 411);
+  }
+
+  const contentLength = parseInt(contentLengthHeader, 10);
+
+  if (Number.isNaN(contentLength) || contentLength <= 0) {
+    return createErrorResponse("Invalid Content-Length header", ERROR_CODES.BAD_REQUEST, 400);
+  }
+
+  if (contentLength > MAX_FILE_SIZE) {
+    return createErrorResponse(FILE_TOO_LARGE, ERROR_CODES.BAD_REQUEST, 413);
+  }
+
+  if (contentLength < MIN_PDF_SIZE) {
+    return createErrorResponse(
+      "File appears to be empty or corrupted",
+      ERROR_CODES.BAD_REQUEST,
+      400,
+    );
+  }
+
+  const filename = decodeFilenameHeader(request.headers.get("x-filename"));
+
+  if (!filename || filename.trim().length === 0) {
+    return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
+  }
+
+  if (filename.length > 255) {
+    return createErrorResponse(
+      "Filename too long (max 255 characters)",
+      ERROR_CODES.BAD_REQUEST,
+      400,
+    );
+  }
+
+  return { contentLength, filename };
+}
+
+type UploadBody = { buffer: ArrayBuffer; totalBytes: number } | Response;
+
+/** Streams the body, stopping as soon as it passes the size limit. */
+async function readUploadBody(request: Request, contentLength: number): Promise<UploadBody> {
+  const reader = request.body?.getReader();
+
+  if (!reader) {
+    return createErrorResponse("Missing request body", ERROR_CODES.BAD_REQUEST, 400);
+  }
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) break;
+
+    if (!value) continue;
+    totalBytes += value.length;
+
+    if (totalBytes > MAX_FILE_SIZE) {
+      await reader.cancel().catch((error) => {
+        log("warn", "upload body cancel failed", { ...errorFields(error) });
+      });
+
+      return createErrorResponse(FILE_TOO_LARGE, ERROR_CODES.BAD_REQUEST, 413);
     }
 
-    const contentType = request.headers.get("content-type");
+    chunks.push(value);
+  }
 
-    if (!contentType?.includes("application/pdf")) {
-      return createErrorResponse(
-        "Content-Type must be application/pdf",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
+  const combined = new Uint8Array(totalBytes);
+  let offset = 0;
 
-    const contentLengthHeader = request.headers.get("content-length");
+  for (const ch of chunks) {
+    combined.set(ch, offset);
+    offset += ch.length;
+  }
 
-    if (!contentLengthHeader) {
-      return createErrorResponse("Content-Length header is required", ERROR_CODES.BAD_REQUEST, 411);
-    }
+  if (totalBytes !== contentLength) {
+    return createErrorResponse("Content-Length mismatch", ERROR_CODES.BAD_REQUEST, 400);
+  }
 
-    const contentLength = parseInt(contentLengthHeader, 10);
+  // SAFETY: combined is Uint8Array; slice produces ArrayBuffer for validatePDFBuffer/R2 put.
+  const buffer = combined.buffer.slice(
+    combined.byteOffset,
+    combined.byteOffset + combined.byteLength,
+  ) as ArrayBuffer;
 
-    if (Number.isNaN(contentLength) || contentLength <= 0) {
-      return createErrorResponse("Invalid Content-Length header", ERROR_CODES.BAD_REQUEST, 400);
-    }
+  return { buffer, totalBytes };
+}
 
-    if (contentLength > MAX_FILE_SIZE) {
-      return createErrorResponse(
-        `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`,
-        ERROR_CODES.BAD_REQUEST,
-        413,
-      );
-    }
+const COOKIE_UNSIGNED_WARNING =
+  "PENDING_UPLOAD_SECRET not configured - upload will not be claimable";
 
-    if (contentLength < MIN_PDF_SIZE) {
-      return createErrorResponse(
-        "File appears to be empty or corrupted",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
+// Signed cookie for claim verification (Issue #89); /api/upload/pending refreshes it
+// for the wizard flow, so both writers must use the same attributes and max-age.
+function pendingUploadCookieHeader(key: string): Effect.Effect<string | null> {
+  const secret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
 
-    const filename = decodeFilenameHeader(request.headers.get("x-filename"));
+  if (!secret) {
+    log("warn", COOKIE_UNSIGNED_WARNING);
 
-    if (!filename || !z.string().safeParse(filename).success || filename.trim().length === 0) {
-      return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
-    }
+    return Effect.succeed(null);
+  }
 
-    if (filename.length > 255) {
-      return createErrorResponse(
-        "Filename too long (max 255 characters)",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
+  return Effect.promise(() => createSignedCookieValue(key, secret)).pipe(
+    Effect.map((signed) => {
+      const header = `${COOKIE_NAME}=${signed}; HttpOnly; SameSite=Lax; Max-Age=${COOKIE_MAX_AGE}; Path=/`;
 
-    const clientIP = getClientIP(request);
+      return env.NODE_ENV === "production" ? `${header}; Secure` : header;
+    }),
+  );
+}
 
-    const rateLimit = await checkIPRateLimit(clientIP);
+function upload(request: Request) {
+  return Effect.gen(function* () {
+    const headers = inspectHeaders(request);
 
-    if (!rateLimit.allowed) {
-      return createErrorResponse(
-        rateLimit.message || "Rate limit exceeded",
-        ERROR_CODES.RATE_LIMIT_EXCEEDED,
-        429,
-        { remaining: rateLimit.remaining },
-      );
-    }
+    if (headers instanceof Response) return headers;
 
-    const reader = request.body?.getReader();
+    const rateLimit = yield* checkIPRateLimitEffect(getClientIP(request));
 
-    if (!reader) {
-      return createErrorResponse("Missing request body", ERROR_CODES.BAD_REQUEST, 400);
-    }
+    const body = yield* Effect.tryPromise({
+      try: () => readUploadBody(request, headers.contentLength),
+      // The client went away mid-upload.
+      catch: (cause) =>
+        new InvalidInput({ message: "Could not read the upload", details: errorFields(cause) }),
+    });
 
-    const chunks: Uint8Array[] = [];
-    let totalBytes = 0;
+    if (body instanceof Response) return body;
 
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) break;
-
-      if (!value) continue;
-      totalBytes += value.length;
-
-      if (totalBytes > MAX_FILE_SIZE) {
-        try {
-          await reader.cancel();
-        } catch {}
-
-        return createErrorResponse(
-          `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`,
-          ERROR_CODES.BAD_REQUEST,
-          413,
-        );
-      }
-
-      chunks.push(value);
-    }
-
-    const combined = new Uint8Array(totalBytes);
-    let offset = 0;
-
-    for (const ch of chunks) {
-      combined.set(ch, offset);
-      offset += ch.length;
-    }
-
-    // SAFETY: combined is Uint8Array; slice produces ArrayBuffer for validatePDFBuffer/R2 put.
-    const buffer = combined.buffer.slice(
-      combined.byteOffset,
-      combined.byteOffset + combined.byteLength,
-    ) as ArrayBuffer;
-
-    if (totalBytes !== contentLength) {
-      return createErrorResponse("Content-Length mismatch", ERROR_CODES.BAD_REQUEST, 400);
-    }
-
-    const pdfValidation = validatePDFBuffer(buffer);
+    const pdfValidation = validatePDFBuffer(body.buffer);
 
     if (!pdfValidation.valid) {
       return createErrorResponse(
@@ -170,44 +193,41 @@ export async function POST(request: Request) {
       );
     }
 
-    const key = generateTempKey(filename);
+    const key = generateTempKey(headers.filename);
     const startedAt = Date.now();
+    const store = yield* R2Store;
 
-    try {
-      await R2.put(r2Binding, key, buffer, {
+    // Never retried: a timed-out put may still land, and the temp/ lifecycle rule expires it.
+    yield* store
+      .put(key, body.buffer, {
         contentType: "application/pdf",
         customMetadata: {
-          originalFilename: filename,
+          originalFilename: headers.filename,
           uploadedAt: new Date().toISOString(),
         },
-      });
-    } catch (r2Error) {
-      logEvent(
-        "resume_upload_failed",
-        { size_bytes: totalBytes, duration_ms: Date.now() - startedAt, ...errorFields(r2Error) },
-        "error",
+      })
+      .pipe(
+        Effect.tapError((failure) =>
+          Effect.sync(() =>
+            logEvent(
+              "resume_upload_failed",
+              {
+                size_bytes: body.totalBytes,
+                duration_ms: Date.now() - startedAt,
+                ...errorFields(failure.cause ?? failure),
+              },
+              "error",
+            ),
+          ),
+        ),
       );
 
-      return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
-    }
+    logEvent("resume_uploaded", {
+      size_bytes: body.totalBytes,
+      duration_ms: Date.now() - startedAt,
+    });
 
-    logEvent("resume_uploaded", { size_bytes: totalBytes, duration_ms: Date.now() - startedAt });
-
-    // Signed cookie for claim verification (Issue #89); /api/upload/pending refreshes it
-    // for the wizard flow, so both writers must use the same attributes and max-age.
-    const cookieSecret = getOptionalEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
-    let setCookieHeader: string | undefined;
-
-    if (cookieSecret && z.string().safeParse(cookieSecret).success) {
-      const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
-      setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Lax; Max-Age=${COOKIE_MAX_AGE}; Path=/`;
-
-      if (typedEnv.NODE_ENV === "production") {
-        setCookieHeader += "; Secure";
-      }
-    } else {
-      log("warn", "PENDING_UPLOAD_SECRET not configured - upload will not be claimable");
-    }
+    const setCookieHeader = yield* pendingUploadCookieHeader(key);
 
     const response = createSuccessResponse({ key, remaining: rateLimit.remaining });
     response.headers.set("X-RateLimit-Remaining-Hourly", String(rateLimit.remaining.hourly));
@@ -218,9 +238,22 @@ export async function POST(request: Request) {
     }
 
     return response;
-  } catch (error) {
-    log("error", "Error uploading file:", { ...errorFields(error) });
+  });
+}
 
-    return createErrorResponse("Failed to upload file", ERROR_CODES.INTERNAL_ERROR, 500);
+export async function POST(request: Request) {
+  // Checked first so a missing bucket does not burn the visitor's upload quota.
+  if (!env.CLICKFOLIO_R2_BUCKET) {
+    return createErrorResponse(
+      "Storage service unavailable",
+      ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+      503,
+    );
   }
+
+  return runRoute(
+    request,
+    upload(request),
+    Layer.mergeAll(Db.layer(env.HYPERDRIVE), R2Store.layer(env)),
+  );
 }

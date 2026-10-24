@@ -1,5 +1,4 @@
 import { beforeEach } from "vite-plus/test";
-import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
 import {
   mockDigest,
   mockGetRandomValues,
@@ -31,5 +30,4 @@ beforeEach(() => {
   mockSign.mockClear();
   mockRandomUUID.mockClear();
   mockGetRandomValues.mockClear();
-  clearKeyCache();
 });

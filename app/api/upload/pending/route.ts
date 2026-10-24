@@ -1,10 +1,11 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
+import { Effect, Layer } from "effect";
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { getEnvValue } from "@/lib/utils/env";
-import { getR2Binding, R2 } from "@/lib/r2";
+import { runRoute } from "@/lib/effect/edges";
+import { R2Store } from "@/lib/effect/services/r2-store";
+import { getOptionalEnvValue } from "@/lib/utils/env";
+import { log } from "@/lib/utils/log";
 import {
   COOKIE_MAX_AGE,
   COOKIE_NAME,
@@ -18,11 +19,19 @@ import {
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
-export async function POST(request: Request) {
-  try {
-    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
-    const typedEnv = env as CloudflareEnv;
-    const secret = getEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
+const pendingUploadRequestSchema = z.object({ key: z.string().startsWith("temp/") });
+
+function missingSecret(): Response {
+  log("error", "PENDING_UPLOAD_SECRET is not configured; pending uploads cannot be signed");
+
+  return createErrorResponse("Failed to save upload", ERROR_CODES.INTERNAL_ERROR, 500);
+}
+
+function setPendingUpload(request: Request) {
+  return Effect.gen(function* () {
+    const secret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
+
+    if (!secret) return missingSecret();
 
     const sizeCheck = validateRequestSize(request);
 
@@ -34,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const rawBodyResult = await readJsonWithLimit(request);
+    const rawBodyResult = yield* Effect.promise(() => readJsonWithLimit(request));
 
     if (!rawBodyResult.ok) {
       return createErrorResponse(
@@ -44,76 +53,80 @@ export async function POST(request: Request) {
       );
     }
 
-    // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts optional key field.
-    const body = rawBodyResult.data as { key?: string };
-    const { key } = body ?? {};
+    const body = pendingUploadRequestSchema.safeParse(rawBodyResult.data);
 
-    if (!key || !z.string().safeParse(key).success || !key.startsWith("temp/")) {
+    if (!body.success) {
       return createErrorResponse("Invalid upload key", ERROR_CODES.BAD_REQUEST, 400);
     }
 
-    const r2 = getR2Binding(typedEnv);
-    const head = r2 ? await R2.head(r2, key) : null;
+    const { key } = body.data;
 
-    if (!head?.exists) {
+    const found = yield* R2Store.use((store) => store.head(key)).pipe(
+      Effect.as(true),
+      Effect.catchTag("R2ObjectMissing", () => Effect.succeed(false)),
+    );
+
+    if (!found) {
       return createErrorResponse("Upload not found", ERROR_CODES.NOT_FOUND, 404);
     }
 
-    const cookieValue = await createSignedCookieValue(key, secret);
-    const cookieStore = await cookies();
+    const cookieValue = yield* Effect.promise(() => createSignedCookieValue(key, secret));
 
-    cookieStore.set(COOKIE_NAME, cookieValue, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: COOKIE_MAX_AGE,
-      path: "/",
+    // cookies() signals "this render is dynamic" by throwing; inside the Effect that becomes a
+    // defect the edge rethrows untouched, and any other failure is logged as a 500.
+    yield* Effect.promise(async () => {
+      const cookieStore = await cookies();
+
+      cookieStore.set(COOKIE_NAME, cookieValue, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: COOKIE_MAX_AGE,
+        path: "/",
+      });
     });
 
     return createSuccessResponse({ success: true });
-  } catch (error) {
-    log("error", "Error setting pending upload cookie:", { ...errorFields(error) });
-
-    return createErrorResponse("Failed to save upload", ERROR_CODES.INTERNAL_ERROR, 500);
-  }
+  });
 }
 
-export async function GET() {
-  try {
-    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
-    const typedEnv = env as CloudflareEnv;
-    const secret = getEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
-
-    const cookieStore = await cookies();
-    const cookie = cookieStore.get(COOKIE_NAME);
-
-    if (!cookie?.value) {
-      return createSuccessResponse({ key: null });
-    }
-
-    const parsed = await parseSignedCookieValue(cookie.value, secret);
-
-    if (!parsed) {
-      return createSuccessResponse({ key: null });
-    }
-
-    return createSuccessResponse({ key: parsed.tempKey });
-  } catch (error) {
-    log("error", "Error reading pending upload cookie:", { ...errorFields(error) });
-
-    return createSuccessResponse({ key: null });
-  }
+export async function POST(request: Request) {
+  return runRoute(request, setPendingUpload(request), R2Store.layer(env));
 }
 
-export async function DELETE() {
-  try {
-    const cookieStore = await cookies();
-    cookieStore.delete(COOKIE_NAME);
+/** The temp key of a valid, unexpired cookie; a missing or forged cookie is simply "none". */
+function readPendingUpload() {
+  return Effect.gen(function* () {
+    const secret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
+
+    if (!secret) {
+      log("error", "PENDING_UPLOAD_SECRET is not configured; pending uploads cannot be verified");
+
+      return createErrorResponse("Failed to read pending upload", ERROR_CODES.INTERNAL_ERROR, 500);
+    }
+
+    const cookie = yield* Effect.promise(async () => (await cookies()).get(COOKIE_NAME));
+
+    if (!cookie?.value) return createSuccessResponse({ key: null });
+
+    const parsed = yield* Effect.promise(() => parseSignedCookieValue(cookie.value, secret));
+
+    return createSuccessResponse({ key: parsed?.tempKey ?? null });
+  });
+}
+
+export async function GET(request?: Request) {
+  return runRoute(request, readPendingUpload(), Layer.empty);
+}
+
+function clearPendingUpload() {
+  return Effect.promise(async () => {
+    (await cookies()).delete(COOKIE_NAME);
 
     return createSuccessResponse({ success: true });
-  } catch (error) {
-    log("error", "Error clearing pending upload cookie:", { ...errorFields(error) });
+  });
+}
 
-    return createSuccessResponse({ success: true });
-  }
+export async function DELETE(request?: Request) {
+  return runRoute(request, clearPendingUpload(), Layer.empty);
 }
