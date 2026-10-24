@@ -1,7 +1,7 @@
 import { isLocalEnvironment } from "@/lib/utils/environment";
 import { log } from "@/lib/utils/log";
 
-const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
+const LOCAL_IPS = new Set(["127.0.0.1", "::1", "0.0.0.0", "::ffff:127.0.0.1"]);
 
 /**
  * Limits only apply to a production deploy that serves real traffic. `DISABLE_RATE_LIMITS`
