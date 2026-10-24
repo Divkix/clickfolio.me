@@ -1,47 +1,91 @@
+import { z } from "zod";
+
+// Plain promise client for the Umami HTTP API. The Effect layer lives in
+// lib/effect/services/umami.ts, which adds the outer timeout and the tagged failure.
+// Rules for this file: no Effect imports (the admin dashboard page still calls it directly),
+// and a thrown error never carries the API host, a path, the website id or a token, because
+// `externalCall` copies the message into logs.
+
 const WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ?? "";
 
+/** One HTTP hop (a login or a GET). The caller's outer timeout bounds the whole chain. */
+const HOP_TIMEOUT_MS = 5_000;
+
+/**
+ * Per-isolate token cache: the one deliberate exception to "no module-scope token".
+ * Umami's login endpoint is slow (password hash) and every dashboard load fans out into many
+ * concurrent GETs; without sharing, each one would log in. Limits that keep it safe:
+ * - only a validated, non-empty token string is stored (plain data, no stream or client);
+ * - a failed login is never stored;
+ * - the entry expires after TOKEN_TTL_MS and is dropped on a 401, only if it is still the
+ *   token that was rejected;
+ * - the shared login runs on its own timer, never a caller's signal, so one aborted request
+ *   cannot fail the others; each caller is bounded by its own outer timeout;
+ * - a shared login older than its own timeout is treated as lost (a Workers request that
+ *   ended mid-login can leave its promise pending forever) and is not joined.
+ */
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
-const FETCH_TIMEOUT_MS = 5_000;
+const LOGIN_JOIN_WINDOW_MS = HOP_TIMEOUT_MS + 1_000;
 
-let cachedToken: string | null = null;
+let cachedToken: { value: string; expiresAt: number } | null = null;
 
-let tokenTimestamp = 0;
+let loginInFlight: { promise: Promise<string>; startedAt: number } | null = null;
 
-let tokenPromise: Promise<string> | null = null;
+const statSchema = z.number();
 
-export interface UmamiStats {
-  pageviews: number;
-  visitors: number;
-  visits: number;
-  bounces: number;
-  totaltime: number;
-  comparison: {
-    pageviews: number;
-    visitors: number;
-    visits: number;
-    bounces: number;
-    totaltime: number;
-  };
-}
+const comparisonSchema = z.looseObject({
+  pageviews: statSchema.optional(),
+  visitors: statSchema.optional(),
+  visits: statSchema.optional(),
+  bounces: statSchema.optional(),
+  totaltime: statSchema.optional(),
+});
 
-export interface UmamiPageviews {
-  pageviews: Array<{ x: string; y: number }>;
-  sessions: Array<{ x: string; y: number }>;
-}
+// Umami < 2.12 nests these as `{ value }` objects; a flat number is required on purpose so an
+// old server fails loudly instead of rendering zeros.
+const statsSchema = z.looseObject({
+  pageviews: statSchema,
+  visitors: statSchema,
+  visits: statSchema.optional(),
+  bounces: statSchema.optional(),
+  totaltime: statSchema.optional(),
+  comparison: comparisonSchema.optional(),
+});
 
-export interface UmamiMetric {
-  x: string;
-  y: number;
-}
+const pointSchema = z.looseObject({ x: z.string(), y: z.number() });
 
-interface StatsOptions {
+const pageviewsSchema = z.looseObject({
+  pageviews: z.array(pointSchema),
+  sessions: z.array(pointSchema),
+});
+
+// `x` is null for a direct referrer or an unknown device or country; callers treat "" the same.
+const metricSchema = z.looseObject({
+  x: z
+    .string()
+    .nullable()
+    .transform((x) => x ?? ""),
+  y: z.number(),
+});
+
+const metricsSchema = z.array(metricSchema);
+
+const loginSchema = z.looseObject({ token: z.string().min(1) });
+
+export type UmamiStats = z.infer<typeof statsSchema>;
+
+export type UmamiPageviews = z.infer<typeof pageviewsSchema>;
+
+export type UmamiMetric = z.infer<typeof metricSchema>;
+
+export interface StatsOptions {
   startAt: number;
   endAt: number;
   path?: string;
 }
 
-interface PageviewsOptions {
+export interface PageviewsOptions {
   startAt: number;
   endAt: number;
   unit: string;
@@ -49,7 +93,7 @@ interface PageviewsOptions {
   path?: string;
 }
 
-interface MetricsOptions {
+export interface MetricsOptions {
   startAt: number;
   endAt: number;
   type: string;
@@ -59,54 +103,108 @@ interface MetricsOptions {
   limit?: number;
 }
 
-function clearTokenCache() {
-  cachedToken = null;
-  tokenTimestamp = 0;
-  tokenPromise = null;
+/** `status` lets the shared upstream classifier tell a 5xx (retry later) from a 4xx (give up). */
+class UmamiHttpError extends Error {
+  readonly status: number;
+
+  constructor(operation: string, status: number) {
+    super(`Umami ${operation} responded ${status}`);
+    this.name = "UmamiHttpError";
+    this.status = status;
+  }
+}
+
+/** Unparseable JSON fails like a schema mismatch (ZodError), so both read as an invalid response. */
+function parseJson<T>(text: string, schema: z.ZodType<T>): T {
+  const json = z.string().transform((raw, ctx) => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      ctx.issues.push({ code: "custom", message: "Response is not valid JSON", input: raw });
+
+      return z.NEVER;
+    }
+  });
+
+  return json.pipe(schema).parse(text);
+}
+
+function hopSignal(caller?: AbortSignal): AbortSignal {
+  const timer = AbortSignal.timeout(HOP_TIMEOUT_MS);
+
+  return caller ? AbortSignal.any([caller, timer]) : timer;
+}
+
+/** A transport failure with the URL scrubbed out; aborts keep their name so they classify as timeouts. */
+async function send(
+  operation: string,
+  url: string,
+  init: RequestInit,
+  signal: AbortSignal,
+): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal });
+  } catch (cause) {
+    const failure = new Error(`Umami ${operation} request failed`);
+
+    if (cause instanceof Error && (cause.name === "AbortError" || cause.name === "TimeoutError")) {
+      failure.name = cause.name;
+    }
+
+    throw failure;
+  }
 }
 
 async function requestUmamiToken(env: CloudflareEnv): Promise<string> {
-  const apiUrl = env.UMAMI_API_URL;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(`${apiUrl}/api/auth/login`, {
+  const res = await send(
+    "login",
+    `${env.UMAMI_API_URL}/api/auth/login`,
+    {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: env.UMAMI_USERNAME,
         password: env.UMAMI_PASSWORD,
       }),
-      signal: controller.signal,
-    });
+    },
+    hopSignal(),
+  );
 
-    if (!res.ok) {
-      throw new Error(`Umami auth failed: ${res.status} ${res.statusText}`);
-    }
-
-    // SAFETY: Umami /api/auth/login returns { token: string } on 2xx; res.ok checked above, token validated by caller before use as Bearer.
-    const data = (await res.json()) as { token: string };
-    cachedToken = data.token;
-    tokenTimestamp = Date.now();
-
-    return cachedToken;
-  } finally {
-    clearTimeout(timeout);
+  if (!res.ok) {
+    throw new UmamiHttpError("login", res.status);
   }
+
+  const { token } = parseJson(await res.text(), loginSchema);
+
+  cachedToken = { value: token, expiresAt: Date.now() + TOKEN_TTL_MS };
+
+  return token;
 }
 
 export async function getUmamiToken(env: CloudflareEnv): Promise<string> {
-  if (cachedToken && Date.now() - tokenTimestamp < TOKEN_TTL_MS) {
-    return cachedToken;
+  const now = Date.now();
+
+  if (cachedToken && now < cachedToken.expiresAt) {
+    return cachedToken.value;
   }
 
   // Concurrent cold-isolate callers share one login instead of racing.
-  tokenPromise ??= requestUmamiToken(env).finally(() => {
-    tokenPromise = null;
+  if (loginInFlight && now - loginInFlight.startedAt < LOGIN_JOIN_WINDOW_MS) {
+    return loginInFlight.promise;
+  }
+
+  const promise = requestUmamiToken(env).finally(() => {
+    if (loginInFlight?.promise === promise) loginInFlight = null;
   });
 
-  return tokenPromise;
+  loginInFlight = { promise, startedAt: now };
+
+  return promise;
+}
+
+/** Drops the cache only if it still holds the rejected token; a newer login stays. */
+function forgetToken(rejected: string) {
+  if (cachedToken?.value === rejected) cachedToken = null;
 }
 
 function appendPathFilter(params: URLSearchParams, path?: string) {
@@ -117,40 +215,39 @@ function appendPathFilter(params: URLSearchParams, path?: string) {
 
 async function umamiGet<T>(
   env: CloudflareEnv,
-  path: string,
+  endpoint: string,
   params: URLSearchParams,
+  schema: z.ZodType<T>,
+  signal?: AbortSignal,
   retry = true,
 ): Promise<T> {
   const token = await getUmamiToken(env);
-  const apiUrl = env.UMAMI_API_URL;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  try {
-    const res = await fetch(`${apiUrl}${path}?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
+  const res = await send(
+    "request",
+    `${env.UMAMI_API_URL}/api/websites/${WEBSITE_ID}/${endpoint}?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+    hopSignal(signal),
+  );
 
-    if (res.status === 401 && retry) {
-      clearTokenCache();
-      clearTimeout(timeout);
+  if (res.status === 401 && retry) {
+    forgetToken(token);
 
-      return umamiGet<T>(env, path, params, false);
-    }
-
-    if (!res.ok) {
-      throw new Error(`Umami API error: ${res.status} ${res.statusText} for ${path}`);
-    }
-
-    // SAFETY: Umami API returns JSON matching generic T (caller's expected stats/pageviews type); caller specifies T via typed getStats/getPageviews wrappers and validates shape.
-    return (await res.json()) as T;
-  } finally {
-    clearTimeout(timeout);
+    return umamiGet(env, endpoint, params, schema, signal, false);
   }
+
+  if (!res.ok) {
+    throw new UmamiHttpError(endpoint, res.status);
+  }
+
+  return parseJson(await res.text(), schema);
 }
 
-export async function getStats(env: CloudflareEnv, opts: StatsOptions): Promise<UmamiStats> {
+export async function getStats(
+  env: CloudflareEnv,
+  opts: StatsOptions,
+  signal?: AbortSignal,
+): Promise<UmamiStats> {
   const params = new URLSearchParams({
     startAt: opts.startAt.toString(),
     endAt: opts.endAt.toString(),
@@ -158,12 +255,13 @@ export async function getStats(env: CloudflareEnv, opts: StatsOptions): Promise<
 
   appendPathFilter(params, opts.path);
 
-  return umamiGet<UmamiStats>(env, `/api/websites/${WEBSITE_ID}/stats`, params);
+  return umamiGet(env, "stats", params, statsSchema, signal);
 }
 
 export async function getPageviews(
   env: CloudflareEnv,
   opts: PageviewsOptions,
+  signal?: AbortSignal,
 ): Promise<UmamiPageviews> {
   const params = new URLSearchParams({
     startAt: opts.startAt.toString(),
@@ -174,10 +272,14 @@ export async function getPageviews(
 
   appendPathFilter(params, opts.path);
 
-  return umamiGet<UmamiPageviews>(env, `/api/websites/${WEBSITE_ID}/pageviews`, params);
+  return umamiGet(env, "pageviews", params, pageviewsSchema, signal);
 }
 
-export async function getMetrics(env: CloudflareEnv, opts: MetricsOptions): Promise<UmamiMetric[]> {
+export async function getMetrics(
+  env: CloudflareEnv,
+  opts: MetricsOptions,
+  signal?: AbortSignal,
+): Promise<UmamiMetric[]> {
   const params = new URLSearchParams({
     startAt: opts.startAt.toString(),
     endAt: opts.endAt.toString(),
@@ -192,5 +294,5 @@ export async function getMetrics(env: CloudflareEnv, opts: MetricsOptions): Prom
 
   appendPathFilter(params, opts.path);
 
-  return umamiGet<UmamiMetric[]>(env, `/api/websites/${WEBSITE_ID}/metrics`, params);
+  return umamiGet(env, "metrics", params, metricsSchema, signal);
 }
