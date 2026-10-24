@@ -8,14 +8,12 @@ import { defineConfig, type Plugin } from "vite-plus";
 /**
  * Vite plugin that stubs server-only modules for client environments.
  * - `cloudflare:workers` — Workers-only module imported by server code, absent in the browser
- * - `node:async_hooks` — vinext's headers.js shim imports AsyncLocalStorage,
- *   which Vite externalizes to a browser stub that lacks the named export
+ *
+ * `node:async_hooks` needs no entry: vinext's own `vinext:async-hooks-stub` serves the client one.
  */
 function clientModuleStubs(): Plugin {
   const stubs = {
     "cloudflare:workers": resolve("lib/stubs/cloudflare-workers-client-stub.mjs"),
-    "node:async_hooks": resolve("lib/stubs/async-hooks-client-stub.mjs"),
-    async_hooks: resolve("lib/stubs/async-hooks-client-stub.mjs"),
   } satisfies Record<string, string>;
 
   return {
