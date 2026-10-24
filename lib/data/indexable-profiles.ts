@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
 import type { UserRole } from "@/lib/config/roles";
 import type { PgQueryable } from "@/lib/db";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
@@ -154,4 +154,41 @@ export async function countIndexableProfiles(db: PgQueryable): Promise<number> {
     .where(and(isNotNull(user.handle), indexableProfileCondition()));
 
   return row?.total ?? 0;
+}
+
+/**
+ * The indexable, directory-listed profiles among a curated list of handles, in the list's order.
+ * A listed handle that is unpublished, hidden or thin is simply absent.
+ */
+export async function getGalleryProfiles(
+  db: PgQueryable,
+  handles: readonly string[],
+): Promise<DirectoryUser[]> {
+  const rows = await db
+    .select({
+      handle: user.handle,
+      role: user.role,
+      previewName: siteData.previewName,
+      previewHeadline: siteData.previewHeadline,
+      previewLocation: siteData.previewLocation,
+      previewExpCount: siteData.previewExpCount,
+      previewEduCount: siteData.previewEduCount,
+      previewSkills: siteData.previewSkills,
+      privacySettings: user.privacySettings,
+    })
+    .from(user)
+    .innerJoin(siteData, eq(user.id, siteData.userId))
+    .where(
+      and(
+        inArray(user.handle, [...handles]),
+        eq(user.showInDirectory, true),
+        eq(user.onboardingCompleted, true),
+        indexableProfileCondition(),
+      ),
+    );
+
+  return rows
+    .flatMap(({ handle, ...row }) => (handle === null ? [] : [{ ...row, handle }]))
+    .sort((a, b) => handles.indexOf(a.handle) - handles.indexOf(b.handle))
+    .map(toDirectoryUser);
 }

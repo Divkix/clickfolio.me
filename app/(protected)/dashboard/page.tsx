@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import { desc, eq } from "drizzle-orm";
 import {
   AlertCircle,
   Award,
@@ -22,8 +21,10 @@ import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusLis
 import { Button } from "@/components/ui/button";
 import { getServerSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
-import { getDb } from "@/lib/db";
-import { type Resume, resumes, type siteData, user } from "@/lib/db/schema";
+import { loadDashboard } from "@/lib/data/owner-pages";
+import { type Resume, type siteData } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import { resolveThemeId, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime } from "@/lib/utils/format";
@@ -324,38 +325,10 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const db = getDb(env.HYPERDRIVE);
-
-  const userData = await db.query.user.findFirst({
-    where: eq(user.id, session.user.id),
-    with: {
-      resumes: {
-        orderBy: [desc(resumes.createdAt)],
-        limit: 1,
-      },
-      siteData: {
-        columns: {
-          id: true,
-          content: true,
-          themeId: true,
-          lastPublishedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-    },
-    columns: {
-      id: true,
-      handle: true,
-      name: true,
-      email: true,
-      image: true,
-      headline: true,
-      privacySettings: true,
-      onboardingCompleted: true,
-      createdAt: true,
-    },
-  });
+  const { userData, content } = await runPage(
+    loadDashboard(session.user.id),
+    Db.layer(env.HYPERDRIVE),
+  );
 
   const profile = userData ?? null;
   // SAFETY: Drizzle query returns Resume shape for first resume; cast narrows optional relation to Resume | null for dashboard logic.
@@ -372,13 +345,6 @@ export default async function DashboardPage() {
   // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
   const hasPublishedSite = !!siteDataResult;
-  let content: ResumeContent | null = null;
-
-  if (siteDataResult?.content) {
-    // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
-    content = siteDataResult.content as ResumeContent;
-  }
-
   const completeness = content ? calculateCompleteness(content) : 0;
   const suggestions = content ? getProfileSuggestions(content) : [];
 
