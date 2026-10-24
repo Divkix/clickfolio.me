@@ -294,6 +294,7 @@ describe("parseResumePdf", () => {
     expect(parsed?.parsedContent.full_name).toBe(CONTENT.full_name);
     expect(parsed?.career).toEqual({ role: "mid_level", isFreelance: false });
     expect(mocks.classifyCareerEffect).toHaveBeenCalledWith(parsed?.parsedContent, ENV);
+    expect(mocks.parseResumeWithAi.mock.calls[0][0]).toBe(objects.get(JOB.r2Key));
     expect((await row(JOB.resumeId)).totalAttempts).toBe(1);
 
     await run(parseResumePdf(JOB, ENV));
