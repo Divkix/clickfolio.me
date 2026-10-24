@@ -151,10 +151,11 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
 
 interface CreateYoursCTAProps extends VariantProps<typeof ctaVariants> {
   handle: string;
+  profileId: string;
   className?: string;
 }
 
-export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAProps) {
+export function CreateYoursCTA({ handle, profileId, variant, className }: CreateYoursCTAProps) {
   const { data: session } = useSession();
   const [visible, setVisible] = useState(false);
   const [dismissed, dismiss] = useDismissable("cta_dismissed", 7 * 24 * 60 * 60 * 1000);
@@ -196,9 +197,7 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
     dismiss();
   }, [dismiss]);
 
-  // SAFETY: session.user is Better Auth user with additional handle field; cast bridges typed user to optional handle.
-  const userHandle = (session?.user as { handle?: string } | undefined)?.handle;
-  const isOwnResume = userHandle === handle;
+  const isOwnResume = session?.user?.id === profileId;
 
   if (dismissed || !visible || isOwnResume) {
     return null;
