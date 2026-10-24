@@ -1,11 +1,18 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
-import { env } from "cloudflare:workers";
+import { Effect } from "effect";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { getDb, type Database } from "@/lib/db";
+import { z } from "zod";
+import { Db } from "@/lib/effect/db";
+import {
+  RateLimited,
+  RateLimitUnavailable,
+  type DbConflict,
+  type DbFailed,
+} from "@/lib/effect/failures";
 import { uploadRateLimits } from "@/lib/db/schema";
-import { isLocalEnvironment } from "@/lib/utils/environment";
 import { sha256Hex } from "@/lib/utils/hash";
+import { limitsBypassed } from "./bypass";
+import { runLimiter } from "./legacy-edge";
+import { storeDown } from "./store-failure";
 
 const HOURLY_LIMIT = 10;
 
@@ -13,283 +20,289 @@ const DAILY_LIMIT = 50;
 
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
 
+const HOUR_MS = 60 * 60 * 1000;
+
+const DAY_MS = 24 * HOUR_MS;
+
+const UNKNOWN_IP = "unknown";
+
 const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
 
-const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
+const HANDLE_UNAVAILABLE_MESSAGE =
+  "Handle checks are temporarily unavailable. Please try again in a moment.";
+
+type ActionType = "upload" | "handle_check";
+
+type Remaining = { hourly: number; daily: number };
+
+/** What the limiter decided, as data; the `...Effect` variants turn a refusal into `RateLimited`. */
+type Decision =
+  | { allowed: true; remaining: Remaining }
+  | { allowed: false; remaining: Remaining; message: string; retryAfterSeconds: number };
 
 interface IPRateLimitResult {
   allowed: boolean;
-  remaining: {
-    hourly: number;
-    daily: number;
-  };
+  remaining: Remaining;
   message?: string;
+  /** The limit store could not be read or written; the request was refused (fail closed). */
+  unavailable?: boolean;
+  retryAfterSeconds?: number;
 }
+
+type Meter = {
+  actionType: ActionType;
+  hourlyLimit: number;
+  /** Absent for actions that only have an hourly window. */
+  dailyLimit?: number;
+  ttlMs: number;
+};
+
+type Metered =
+  | { kind: "recorded"; hourly: number; daily: number }
+  | { kind: "hourly-full"; daily: number }
+  | { kind: "daily-full"; hourly: number };
+
+const UPLOAD_METER: Meter = {
+  actionType: "upload",
+  hourlyLimit: HOURLY_LIMIT,
+  dailyLimit: DAILY_LIMIT,
+  ttlMs: DAY_MS,
+};
+
+const HANDLE_CHECK_METER: Meter = {
+  actionType: "handle_check",
+  hourlyLimit: HANDLE_CHECK_HOURLY_LIMIT,
+  ttlMs: HOUR_MS,
+};
 
 async function hashIP(ip: string): Promise<string> {
   return sha256Hex(new TextEncoder().encode(ip));
 }
 
-async function recordRateLimitAction(
-  db: Database,
+/**
+ * Counts this address's recent actions and records one more, in a single transaction. The
+ * advisory lock is held until commit, so concurrent requests from one address queue up: the
+ * count statement that follows takes a fresh snapshot after the lock is granted, and so sees
+ * every row a previous holder committed. A burst cannot read the same below-limit count.
+ */
+function meterAction(
   ipHash: string,
-  actionType: "upload" | "handle_check",
-  now: Date,
-  oneHourAgo: string,
-  limit: number,
-  ttlMs: number,
-  dailyCutoff?: string,
-  dailyLimit?: number,
-): Promise<boolean> {
-  const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
+  meter: Meter,
+): Effect.Effect<Metered, DbFailed | DbConflict, Db> {
+  return Db.use((service) =>
+    service.transaction(`rate-limit.ip.${meter.actionType}`, async (tx): Promise<Metered> => {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${meter.actionType}`}))`,
+      );
 
-  // Serialize same-IP check+insert: the advisory xact lock is held until commit,
-  // so concurrent requests cannot both read a below-limit count and insert.
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${actionType}`}))`);
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - HOUR_MS).toISOString();
 
-    const dailyGuard =
-      dailyCutoff !== undefined && dailyLimit !== undefined
-        ? sql` AND (SELECT COUNT(*) FROM upload_rate_limits
-         WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
-        : sql``;
+      const windowStart =
+        meter.dailyLimit === undefined
+          ? oneHourAgo
+          : new Date(now.getTime() - DAY_MS).toISOString();
 
-    const result = await tx.execute(sql`
-      INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
-      SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
-      WHERE (SELECT COUNT(*) FROM upload_rate_limits
-             WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${oneHourAgo}) < ${limit}${dailyGuard}`);
+      const [counts] = await tx
+        .select({
+          hourly:
+            sql<number>`(count(*) filter (where ${uploadRateLimits.createdAt} >= ${oneHourAgo}))::int`.mapWith(
+              Number,
+            ),
+          daily: sql<number>`count(*)::int`.mapWith(Number),
+        })
+        .from(uploadRateLimits)
+        .where(
+          and(
+            eq(uploadRateLimits.ipHash, ipHash),
+            eq(uploadRateLimits.actionType, meter.actionType),
+            gte(uploadRateLimits.createdAt, windowStart),
+          ),
+        );
 
-    return result.rowCount === 1;
-  });
+      const hourly = counts?.hourly ?? 0;
+      const daily = counts?.daily ?? 0;
+
+      if (hourly >= meter.hourlyLimit) return { kind: "hourly-full", daily };
+
+      if (meter.dailyLimit !== undefined && daily >= meter.dailyLimit) {
+        return { kind: "daily-full", hourly };
+      }
+
+      await tx.insert(uploadRateLimits).values({
+        id: crypto.randomUUID(),
+        ipHash,
+        actionType: meter.actionType,
+        createdAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + meter.ttlMs).toISOString(),
+      });
+
+      return { kind: "recorded", hourly: hourly + 1, daily: daily + 1 };
+    }),
+  );
+}
+
+function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailable, Db> {
+  if (limitsBypassed(ip)) {
+    return Effect.succeed({
+      allowed: true,
+      remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },
+    });
+  }
+
+  return Effect.promise(() => hashIP(ip)).pipe(
+    Effect.flatMap((ipHash) => meterAction(ipHash, UPLOAD_METER)),
+    Effect.mapError(storeDown("upload", UPLOAD_UNAVAILABLE_MESSAGE)),
+    Effect.map((metered): Decision => {
+      switch (metered.kind) {
+        case "recorded":
+          return {
+            allowed: true,
+            remaining: {
+              hourly: Math.max(0, HOURLY_LIMIT - metered.hourly),
+              daily: Math.max(0, DAILY_LIMIT - metered.daily),
+            },
+          };
+        case "hourly-full":
+          return {
+            allowed: false,
+            remaining: { hourly: 0, daily: Math.max(0, DAILY_LIMIT - metered.daily) },
+            message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
+            retryAfterSeconds: HOUR_MS / 1000,
+          };
+        case "daily-full":
+          return {
+            allowed: false,
+            remaining: { hourly: Math.max(0, HOURLY_LIMIT - metered.hourly), daily: 0 },
+            message: `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
+            retryAfterSeconds: DAY_MS / 1000,
+          };
+      }
+    }),
+  );
+}
+
+function handleCheckDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailable, Db> {
+  if (limitsBypassed(ip)) {
+    return Effect.succeed({
+      allowed: true,
+      remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
+    });
+  }
+
+  return Effect.promise(() => hashIP(ip)).pipe(
+    Effect.flatMap((ipHash) => meterAction(ipHash, HANDLE_CHECK_METER)),
+    Effect.mapError(storeDown("handle_check", HANDLE_UNAVAILABLE_MESSAGE)),
+    Effect.map((metered): Decision => {
+      if (metered.kind === "recorded") {
+        return {
+          allowed: true,
+          remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT - metered.hourly, daily: 1000 },
+        };
+      }
+
+      return {
+        allowed: false,
+        remaining: { hourly: 0, daily: 0 },
+        message: "Too many handle checks. Please try again later.",
+        retryAfterSeconds: HOUR_MS / 1000,
+      };
+    }),
+  );
+}
+
+/** Turns a refusal into the `RateLimited` failure; an allowance keeps its remaining counts. */
+function admit(
+  decision: Effect.Effect<Decision, RateLimitUnavailable, Db>,
+): Effect.Effect<{ remaining: Remaining }, RateLimited | RateLimitUnavailable, Db> {
+  return Effect.flatMap(decision, (result) =>
+    result.allowed
+      ? Effect.succeed({ remaining: result.remaining })
+      : Effect.fail(
+          new RateLimited({
+            message: result.message,
+            retryAfterSeconds: result.retryAfterSeconds,
+          }),
+        ),
+  );
+}
+
+/**
+ * Upload limiter per client address (10/hour, 50/day). Store outage: `RateLimitUnavailable`
+ * (503 + Retry-After), the upload is refused rather than let through unmetered.
+ */
+export function checkIPRateLimitEffect(ip: string) {
+  return admit(uploadDecision(ip));
+}
+
+/**
+ * Handle-availability limiter per client address (100/hour). Store outage: `RateLimitUnavailable`
+ * (503 + Retry-After). This limiter used to fail open; it now fails closed, like uploads.
+ */
+export function checkHandleRateLimitEffect(ip: string) {
+  return admit(handleCheckDecision(ip));
+}
+
+const clientIpSchema = z.union([z.ipv4(), z.ipv6()]);
+
+/** Header text is attacker-controlled: anything that is not an IP address shares one bucket. */
+function ipOrUnknown(raw: string): string {
+  const parsed = clientIpSchema.safeParse(raw.trim());
+
+  return parsed.success ? parsed.data : UNKNOWN_IP;
 }
 
 export function getClientIP(request: Request): string {
   const cfIP = request.headers.get("cf-connecting-ip");
 
-  if (cfIP) return cfIP;
+  if (cfIP) return ipOrUnknown(cfIP);
 
   const forwarded = request.headers.get("x-forwarded-for");
 
-  if (forwarded) return forwarded.split(",")[0].trim();
+  if (forwarded) return ipOrUnknown(forwarded.split(",")[0]);
 
-  return "unknown";
+  return UNKNOWN_IP;
 }
 
-export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
-  if (process.env.NODE_ENV !== "production") {
-    return {
-      allowed: true,
-      remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },
-    };
-  }
+function toResult(decision: Decision): IPRateLimitResult {
+  if (decision.allowed) return { allowed: true, remaining: decision.remaining };
 
-  if (process.env.DISABLE_RATE_LIMITS === "true") {
-    log("warn", "[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-  }
-
-  if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
-    return {
-      allowed: true,
-      remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },
-    };
-  }
-
-  const ipHash = await hashIP(ip);
-  const now = new Date();
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-
-  try {
-    const db = getDb(env.HYPERDRIVE);
-
-    const result = await db
-      .select({
-        hourly: sql<number>`SUM(CASE WHEN ${uploadRateLimits.createdAt} >= ${oneHourAgo} THEN 1 ELSE 0 END)`,
-        daily: sql<number>`COUNT(*)`,
-      })
-      .from(uploadRateLimits)
-      .where(
-        and(
-          eq(uploadRateLimits.ipHash, ipHash),
-          eq(uploadRateLimits.actionType, "upload"),
-          gte(uploadRateLimits.createdAt, oneDayAgo),
-        ),
-      );
-
-    const hourlyCount = result[0]?.hourly ?? 0;
-    const dailyCount = result[0]?.daily ?? 0;
-
-    const hourlyRemaining = Math.max(0, HOURLY_LIMIT - hourlyCount);
-    const dailyRemaining = Math.max(0, DAILY_LIMIT - dailyCount);
-
-    if (hourlyCount >= HOURLY_LIMIT) {
-      return {
-        allowed: false,
-        remaining: { hourly: 0, daily: dailyRemaining },
-        message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
-      };
-    }
-
-    if (dailyCount >= DAILY_LIMIT) {
-      return {
-        allowed: false,
-        remaining: { hourly: hourlyRemaining, daily: 0 },
-        message: `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
-      };
-    }
-
-    try {
-      const recorded = await recordRateLimitAction(
-        db,
-        ipHash,
-        "upload",
-        now,
-        oneHourAgo,
-        HOURLY_LIMIT,
-        24 * 60 * 60 * 1000,
-        oneDayAgo,
-        DAILY_LIMIT,
-      );
-
-      if (!recorded) {
-        return {
-          allowed: false,
-          remaining: { hourly: 0, daily: dailyRemaining },
-          message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
-        };
-      }
-    } catch (insertError) {
-      // Fail closed: dropping the increment would let every request in a
-      // DB-error window through unmetered.
-      log("error", "Failed to record rate limit", { ...errorFields(insertError) });
-
-      return {
-        allowed: false,
-        remaining: { hourly: 0, daily: dailyRemaining },
-        message: UPLOAD_UNAVAILABLE_MESSAGE,
-      };
-    }
-
-    return {
-      allowed: true,
-      remaining: {
-        hourly: hourlyRemaining - 1,
-        daily: dailyRemaining - 1,
-      },
-    };
-  } catch (error) {
-    log("error", "Rate limit check failed", { ...errorFields(error) });
-
-    return {
-      allowed: false,
-      remaining: { hourly: 0, daily: 0 },
-      message: UPLOAD_UNAVAILABLE_MESSAGE,
-    };
-  }
+  return { allowed: false, remaining: decision.remaining, message: decision.message };
 }
 
-export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
-  return checkHourlyActionLimit(ip, {
-    actionType: "handle_check",
-    limit: HANDLE_CHECK_HOURLY_LIMIT,
-    blockedMessage: "Too many handle checks. Please try again later.",
-    checkErrorLabel: "Handle rate limit check failed:",
-  });
+function unavailableResult(unavailable: RateLimitUnavailable): IPRateLimitResult {
+  return {
+    allowed: false,
+    remaining: { hourly: 0, daily: 0 },
+    message: unavailable.message,
+    unavailable: true,
+    retryAfterSeconds: unavailable.retryAfterSeconds,
+  };
 }
 
-async function checkHourlyActionLimit(
-  ip: string,
-  options: {
-    actionType: "handle_check";
-    limit: number;
-    blockedMessage: string;
-    checkErrorLabel: string;
-  },
-): Promise<IPRateLimitResult> {
-  const { actionType, limit, blockedMessage, checkErrorLabel } = options;
+/** Promise edge for routes not yet under `runRoute`; they move to `checkIPRateLimitEffect`. */
+export function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
+  return runLimiter(
+    uploadDecision(ip).pipe(
+      Effect.map(toResult),
+      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
+        Effect.succeed(unavailableResult(unavailable)),
+      ),
+    ),
+  );
+}
 
-  if (process.env.NODE_ENV !== "production") {
-    return {
-      allowed: true,
-      remaining: { hourly: limit, daily: 1000 },
-    };
-  }
-
-  if (process.env.DISABLE_RATE_LIMITS === "true") {
-    log("warn", "[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-  }
-
-  if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
-    return {
-      allowed: true,
-      remaining: { hourly: limit, daily: 1000 },
-    };
-  }
-
-  const ipHash = await hashIP(ip);
-  const now = new Date();
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-
-  try {
-    const db = getDb(env.HYPERDRIVE);
-
-    const result = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(uploadRateLimits)
-      .where(
-        and(
-          eq(uploadRateLimits.ipHash, ipHash),
-          eq(uploadRateLimits.actionType, actionType),
-          gte(uploadRateLimits.createdAt, oneHourAgo),
-        ),
-      );
-
-    const count = result[0]?.count ?? 0;
-
-    if (count >= limit) {
-      return {
-        allowed: false,
-        remaining: { hourly: 0, daily: 0 },
-        message: blockedMessage,
-      };
-    }
-
-    try {
-      const recorded = await recordRateLimitAction(
-        db,
-        ipHash,
-        actionType,
-        now,
-        oneHourAgo,
-        limit,
-        60 * 60 * 1000,
-      );
-
-      if (!recorded) {
-        return {
-          allowed: false,
-          remaining: { hourly: 0, daily: 0 },
-          message: blockedMessage,
-        };
-      }
-    } catch (insertError) {
-      log("error", `Failed to record rate limit: ${actionType}`, { ...errorFields(insertError) });
-    }
-
-    return {
-      allowed: true,
-      remaining: {
-        hourly: limit - count - 1,
-        daily: 1000,
-      },
-    };
-  } catch (error) {
-    log("error", checkErrorLabel, { ...errorFields(error) });
-
-    return {
-      allowed: true,
-      remaining: { hourly: 1, daily: 1 },
-    };
-  }
+/**
+ * Promise edge for routes not yet under `runRoute`; they move to `checkHandleRateLimitEffect`.
+ * A store outage refuses the check (`unavailable`): a handle probe must not run unmetered.
+ */
+export function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
+  return runLimiter(
+    handleCheckDecision(ip).pipe(
+      Effect.map(toResult),
+      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
+        Effect.succeed(unavailableResult(unavailable)),
+      ),
+    ),
+  );
 }
