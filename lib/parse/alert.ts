@@ -1,5 +1,9 @@
-import { log } from "../utils/log";
+import { Cause, Effect, Exit } from "effect";
+import { runBackground } from "../effect/edges";
+import { upstreamLogFields } from "../effect/failure-fields";
+import { AlertWebhook } from "../effect/services/alert-webhook";
 import { errorFields } from "../utils/error-fields";
+import { log } from "../utils/log";
 import type { UnknownRecord } from "../types/json";
 
 export type AlertChannel = "logpush" | "webhook";
@@ -24,47 +28,40 @@ export function getAlertChannel(channel: string | undefined): AlertChannel {
   return channel === "webhook" ? "webhook" : "logpush";
 }
 
+/**
+ * Raises a permanent parse failure on the chosen channel. `logpush` is a log line; `webhook`
+ * POSTs once, without retry, and fails with `HttpUpstreamFailed` (the URL is already stripped
+ * from it, since the URL is the webhook's secret).
+ */
+export function parseFailureAlert(payload: ParseFailureAlert, channel: AlertChannel) {
+  if (channel === "logpush") return Effect.sync(() => log("error", "PARSE_FAILURE_ALERT", payload));
+
+  return AlertWebhook.use((webhook) =>
+    webhook.post({ text: "Resume parsing permanently failed", ...payload }),
+  );
+}
+
+/** `parseFailureAlert` for callers that must not fail because of it: logs the failure and drops it. */
+export function parseFailureAlertBestEffort(payload: ParseFailureAlert, channel: AlertChannel) {
+  return parseFailureAlert(payload, channel).pipe(
+    Effect.catchTag("HttpUpstreamFailed", (failure) =>
+      Effect.sync(() => log("error", "webhook alert failed", upstreamLogFields(failure))),
+    ),
+  );
+}
+
 export async function sendAlert(
   payload: ParseFailureAlert,
   channel: AlertChannel,
   env: AlertEnv,
 ): Promise<void> {
-  switch (channel) {
-    case "logpush":
-      log("error", "PARSE_FAILURE_ALERT", payload);
-      break;
+  const exit = await runBackground(
+    parseFailureAlertBestEffort(payload, channel),
+    AlertWebhook.layer(env),
+  );
 
-    case "webhook": {
-      const webhookUrl = env.ALERT_WEBHOOK_URL;
-
-      if (webhookUrl) {
-        try {
-          const response = await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text: `Resume parsing permanently failed`,
-              ...payload,
-            }),
-          });
-
-          // The URL carries the webhook's secret, so only the status is logged.
-          if (!response.ok) {
-            log("error", "webhook alert rejected", { status: response.status });
-          }
-        } catch (error) {
-          const fields = errorFields(error);
-
-          // Fetch errors can quote the URL, which carries the webhook's secret.
-          log("error", "webhook alert failed", {
-            ...fields,
-            "error.message": fields["error.message"].replaceAll(webhookUrl, "[webhook]"),
-            stack: fields.stack?.replaceAll(webhookUrl, "[webhook]"),
-          });
-        }
-      }
-
-      break;
-    }
+  // Typed failures were logged above; what reaches here is a defect.
+  if (Exit.isFailure(exit)) {
+    log("error", "webhook alert failed", errorFields(Cause.squash(exit.cause)));
   }
 }
