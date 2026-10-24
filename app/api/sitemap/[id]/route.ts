@@ -1,6 +1,8 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
-import { buildSitemapXml, generateSitemapEntries } from "@/lib/seo/sitemap";
+import { env } from "cloudflare:workers";
+import { Effect } from "effect";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
+import { buildSitemapXml, generateSitemapEntries, sitemapUnavailable } from "@/lib/seo/sitemap";
 
 function parseSitemapId(rawId: string): number | null {
   if (!/^\d+$/.test(rawId)) return null;
@@ -10,37 +12,40 @@ function parseSitemapId(rawId: string): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+function shardProgram(id: number, path: string) {
+  const unavailable = sitemapUnavailable(path);
+
+  return generateSitemapEntries(id).pipe(
+    Effect.map((entries) => {
+      // Null means the shard fell outside the indexable-user snapshot (see generateSitemapEntries).
+      if (entries === null) return new Response("Sitemap shard not found", { status: 404 });
+
+      return new Response(buildSitemapXml(entries), {
+        headers: {
+          "Content-Type": "application/xml",
+          "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+          "CDN-Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        },
+      });
+    }),
+    Effect.catchTags({ DbFailed: unavailable, DbConflict: unavailable }),
+  );
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  try {
-    const { id: rawId } = await params;
-    const id = parseSitemapId(rawId);
+  const { id: rawId } = await params;
+  const id = parseSitemapId(rawId);
 
-    if (id === null) {
-      return new Response("Invalid sitemap id", { status: 400 });
-    }
-
-    // Null means the shard fell outside the indexable-user snapshot (see generateSitemapEntries).
-    const entries = await generateSitemapEntries(id);
-
-    if (entries === null) {
-      return new Response("Sitemap shard not found", { status: 404 });
-    }
-
-    const xml = buildSitemapXml(entries);
-
-    return new Response(xml, {
-      headers: {
-        "Content-Type": "application/xml",
-        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-        "CDN-Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      },
-    });
-  } catch (error) {
-    log("error", `[sitemap] Error generating sitemap shard:`, { ...errorFields(error) });
-
-    return new Response("Internal Server Error", { status: 500 });
+  if (id === null) {
+    return new Response("Invalid sitemap id", { status: 400 });
   }
+
+  return runRoute(
+    request,
+    shardProgram(id, new URL(request.url).pathname),
+    Db.layer(env.HYPERDRIVE),
+  );
 }

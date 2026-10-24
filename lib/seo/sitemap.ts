@@ -1,16 +1,17 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
-import { env } from "cloudflare:workers";
+import { Effect } from "effect";
 import type { MetadataRoute } from "next";
 import { z } from "zod";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
-import { getDb } from "@/lib/db";
 import { countIndexableProfiles, getIndexableProfileWindow } from "@/lib/data/indexable-profiles";
+import { Db } from "@/lib/effect/db";
+import { logFailure } from "@/lib/effect/edges";
+import type { DbConflict, DbFailed } from "@/lib/effect/failures";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { getStaticLastmod } from "@/lib/seo/lastmod";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
 import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
+import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
 
@@ -139,51 +140,88 @@ function buildStaticSitemapEntries(
   return entries;
 }
 
-export async function generateSitemapEntries(id: number): Promise<MetadataRoute.Sitemap | null> {
-  if (!Number.isInteger(id) || id < 0) {
-    return [];
-  }
+type UserWindow = Awaited<ReturnType<typeof getIndexableProfileWindow>>;
 
-  const baseUrl = getPublicSiteUrl();
+function userSitemapEntries(profiles: UserWindow["profiles"], baseUrl: string) {
   const userEntries: MetadataRoute.Sitemap = [];
-  let newestPortfolioPublish: Date | null = null;
 
-  try {
-    const { limit, offset } = getUserShardWindow(id);
+  for (const entry of profiles) {
+    if (!entry.handle) continue;
 
-    // Indexability, the total and the newest publish are computed in SQL over the whole filtered
-    // set (window aggregates), so the shard check and lastmods match one snapshot.
-    const shard = await getIndexableProfileWindow(getDb(env.HYPERDRIVE), { limit, offset });
+    const lastModified = entry.lastPublishedAt || entry.siteUpdatedAt || entry.userUpdatedAt;
+    const publishDate = entry.lastPublishedAt ? new Date(entry.lastPublishedAt) : null;
+    const isRecent = publishDate && Date.now() - publishDate.getTime() < 7 * 24 * 60 * 60 * 1000;
 
-    newestPortfolioPublish = parseTimestamp(shard.newestPublishedAt);
-
-    if (id >= getSitemapShardCount(shard.totalCount)) return null;
-
-    for (const entry of shard.profiles) {
-      if (!entry.handle) continue;
-
-      const lastModified = entry.lastPublishedAt || entry.siteUpdatedAt || entry.userUpdatedAt;
-      const publishDate = entry.lastPublishedAt ? new Date(entry.lastPublishedAt) : null;
-      const isRecent = publishDate && Date.now() - publishDate.getTime() < 7 * 24 * 60 * 60 * 1000;
-
-      userEntries.push({
-        url: `${baseUrl}/@${entry.handle}`,
-        lastModified: lastModified ? new Date(lastModified) : new Date(),
-        changeFrequency: isRecent ? "daily" : "weekly",
-        priority: 0.8,
-      });
-    }
-  } catch (error) {
-    log("error", `Failed to generate sitemap ${id}`, { ...errorFields(error) });
+    userEntries.push({
+      url: `${baseUrl}/@${entry.handle}`,
+      lastModified: lastModified ? new Date(lastModified) : new Date(),
+      changeFrequency: isRecent ? "daily" : "weekly",
+      priority: 0.8,
+    });
   }
 
-  if (id !== 0) return userEntries;
-
-  return [...buildStaticSitemapEntries(baseUrl, newestPortfolioPublish), ...userEntries];
+  return userEntries;
 }
 
-export async function getTotalIndexableUserCount(): Promise<number> {
-  return countIndexableProfiles(getDb(env.HYPERDRIVE));
+/**
+ * One shard of the sitemap. A database failure fails the program and is never a shorter
+ * sitemap: crawlers keep what they get, so the route answers 503 and they retry.
+ */
+export function generateSitemapEntries(
+  id: number,
+): Effect.Effect<MetadataRoute.Sitemap | null, DbFailed | DbConflict, Db> {
+  if (!Number.isInteger(id) || id < 0) {
+    return Effect.succeed([]);
+  }
+
+  const { limit, offset } = getUserShardWindow(id);
+
+  // Indexability, the total and the newest publish are computed in SQL over the whole filtered
+  // set (window aggregates), so the shard check and lastmods match one snapshot.
+  return Db.use((service) =>
+    service.query("sitemap.shard", (db) => getIndexableProfileWindow(db, { limit, offset })),
+  ).pipe(
+    Effect.map((shard) => {
+      if (id >= getSitemapShardCount(shard.totalCount)) return null;
+
+      const baseUrl = getPublicSiteUrl();
+      const userEntries = userSitemapEntries(shard.profiles, baseUrl);
+
+      if (id !== 0) return userEntries;
+
+      const newestPortfolioPublish = parseTimestamp(shard.newestPublishedAt);
+
+      return [...buildStaticSitemapEntries(baseUrl, newestPortfolioPublish), ...userEntries];
+    }),
+  );
+}
+
+export function getTotalIndexableUserCount(): Effect.Effect<number, DbFailed | DbConflict, Db> {
+  return Db.use((service) => service.query("sitemap.count", (db) => countIndexableProfiles(db)));
+}
+
+const SITEMAP_RETRY_AFTER_SECONDS = 300;
+
+/**
+ * The 503 for a sitemap request whose database read failed: crawlers retry later and no cache
+ * keeps it. Logs the cause, so route programs pipe every database failure through it.
+ */
+export function sitemapUnavailable(path: string) {
+  return (failure: DbFailed | DbConflict) =>
+    Effect.sync(() => {
+      logFailure(failure, { path, method: "GET" });
+
+      return new Response("Sitemap temporarily unavailable", {
+        status: 503,
+        headers: {
+          ...SECURITY_HEADERS,
+          "Content-Type": "text/plain",
+          "Retry-After": String(SITEMAP_RETRY_AFTER_SECONDS),
+          "Cache-Control": "no-store",
+          "CDN-Cache-Control": "no-store",
+        },
+      });
+    });
 }
 
 export function buildSitemapIndexXml(shardCount: number): string {
