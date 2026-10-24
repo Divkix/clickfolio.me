@@ -517,8 +517,12 @@ describe("POST /api/resume/claim: failures", () => {
     const response = await claim();
 
     expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: "EXTERNAL_SERVICE_ERROR" });
     expect(mocks.startResumeParse).not.toHaveBeenCalled();
-    expect((await readClaimed())[0]).toMatchObject({ status: "failed" });
+    expect((await readClaimed())[0]).toMatchObject({
+      status: "failed",
+      errorMessage: "Failed to start processing. Please try again.",
+    });
   });
 
   it("gives up with 504 after the Workflow timeout, fails the row and never starts twice", async () => {

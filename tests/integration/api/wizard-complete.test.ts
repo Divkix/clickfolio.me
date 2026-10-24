@@ -39,7 +39,8 @@ vi.mock("@/lib/utils/revalidate", () => ({
 }));
 
 vi.mock("@/lib/seo/indexnow-runtime", () => ({
-  notifyIndexNowForProfiles: (handles: unknown[]) => mocks.indexNow(handles),
+  notifyIndexNowForProfiles: (handles: unknown[], options?: { skipDebounce?: boolean }) =>
+    mocks.indexNow(handles, options),
 }));
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
@@ -132,7 +133,26 @@ describe("POST /api/wizard/complete", () => {
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({ oldHandle: null, newHandle: "alice-site" });
     expect(mocks.revalidate).toHaveBeenCalledWith([null, "alice-site"]);
-    expect(mocks.indexNow).toHaveBeenCalledWith([null, "alice-site"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith([null, "alice-site"], { skipDebounce: true });
+  });
+
+  it("renames an existing handle, audits it and refreshes both public pages", async () => {
+    await db.update(user).set({ handle: "old-handle" }).where(eq(user.id, "alice"));
+
+    const { POST } = await import("@/app/api/wizard/complete/route");
+    const response = await POST(complete(validBody()));
+
+    expect(response.status).toBe(200);
+    expect((await rowOf("alice")).handle).toBe("alice-site");
+
+    const audit = await auditOf("alice");
+
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({ oldHandle: "old-handle", newHandle: "alice-site" });
+    expect(mocks.revalidate).toHaveBeenCalledWith(["old-handle", "alice-site"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith(["old-handle", "alice-site"], {
+      skipDebounce: true,
+    });
   });
 
   it("keeps a published resume's content and only switches the theme", async () => {

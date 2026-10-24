@@ -50,9 +50,9 @@ const PROCESSING_TIMEOUT: SweepRule = {
 
 /**
  * One status-guarded `UPDATE ... RETURNING` per rule. The age is compared in SQL against the
- * database clock. The inner SELECT only picks the batch (oldest first); the outer UPDATE repeats
- * the status and age test, so a row that completed, failed or was retried after the SELECT is
- * not touched. `updated_at` is stamped so the three-day failed-row cleanup counts from now.
+ * database clock. The inner SELECT only picks the oldest batch; the outer UPDATE repeats the
+ * status and age test so only rows that are still stale are written. `updated_at` is stamped so
+ * the three-day failed-row cleanup counts from now.
  */
 function failStranded(rule: SweepRule, batchSize: number) {
   const ageStart = sql`COALESCE(${resumes.queuedAt}, ${resumes.createdAt})`;

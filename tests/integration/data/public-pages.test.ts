@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { getGalleryProfiles } from "@/lib/data/indexable-profiles";
@@ -99,8 +100,10 @@ describe("getGalleryProfiles", () => {
     await seedListed("zed");
     await seedListed("amy");
     await seedListed("thin", true);
+    await seedListed("hidden");
+    await db.update(user).set({ showInDirectory: false }).where(eq(user.id, "id-hidden"));
 
-    const profiles = await getGalleryProfiles(db, ["zed", "ghost", "thin", "amy"]);
+    const profiles = await getGalleryProfiles(db, ["zed", "ghost", "thin", "hidden", "amy"]);
 
     expect(profiles.map((profile) => profile.handle)).toEqual(["zed", "amy"]);
     expect(profiles[0]?.previewLocation).toBe("Portland, OR");

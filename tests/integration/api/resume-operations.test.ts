@@ -237,29 +237,6 @@ const mockDb = {
 
 const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
 
-async function createSignedCookieValue(
-  tempKey: string,
-  secret: string,
-  expiresAt?: number,
-): Promise<string> {
-  const encoder = new TextEncoder();
-  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000;
-  const payload = `${tempKey}|${actualExpiresAt}`;
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
-
-  return `${payload}|${signatureBase64}`;
-}
-
 type AuthedUser = {
   id: string;
   email: string;
@@ -511,32 +488,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
   });
 
   describe("POST /api/resume/claim", () => {
-    it("queues a new resume for parsing on valid claim (test 3)", async () => {
-      startResumeParse.mockResolvedValue(undefined);
-
-      authedAs("user-123");
-
-      mockLimit.mockResolvedValue([]);
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const tempKey = "temp/uuid/resume.pdf";
-      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
-
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `pending_upload=${cookieValue}`,
-        },
-        body: JSON.stringify({ key: tempKey }),
-      });
-
-      const response = await POST(request);
-
-      expect([200, 400, 500]).toContain(response.status);
-    });
-
     it("returns 400 when key is missing (validation error)", async () => {
       authedAs("user-123");
 
@@ -1188,50 +1139,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(404);
       const body: { error: string } = await response.json();
       expect(body.error).toContain("not found");
-    });
-
-    it("handles queue trigger failure gracefully (test 25)", async () => {
-      mockedAuth.mockResolvedValue({
-        user: {
-          id: "user-123",
-          email: "user-123@test.com",
-          name: "Test User",
-          image: null,
-          handle: "testuser",
-          headline: null,
-          privacySettings: {},
-          onboardingCompleted: true,
-          role: "mid_level",
-        },
-        db: mockDb,
-        dbUser: { id: "user-123", handle: "testuser", clerkId: "user_clerk_1" },
-        env: {
-          HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-          CLICKFOLIO_PARSE_WORKFLOW: undefined,
-          PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
-        },
-        error: null,
-      });
-
-      mockLimit.mockResolvedValue([]);
-
-      const tempKey = "temp/uuid/resume.pdf";
-      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `pending_upload=${cookieValue}`,
-        },
-        body: JSON.stringify({ key: tempKey }),
-      });
-
-      const response = await POST(request);
-
-      expect([400, 500]).toContain(response.status);
     });
   });
 

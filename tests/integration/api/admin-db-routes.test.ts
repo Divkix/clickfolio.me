@@ -9,7 +9,7 @@ import {
   it,
   vi,
 } from "vite-plus/test";
-import { resumes, user } from "@/lib/db/schema";
+import { resumes, user, type ResumeStatus } from "@/lib/db/schema";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
@@ -70,7 +70,7 @@ async function insertUser(id: string, name: string, handle: string | null) {
   });
 }
 
-async function insertResume(id: string, userId: string, status: "failed" | "completed") {
+async function insertResume(id: string, userId: string, status: ResumeStatus) {
   await db.insert(resumes).values({
     id,
     userId,
@@ -102,9 +102,32 @@ describe("GET /api/admin/users", () => {
     const body: { users: { id: string; status: string }[]; total: number } = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.total).toBe(2);
+    expect(body).toMatchObject({ total: 2, page: 1, pageSize: 25 });
     expect(body.users.find((u) => u.id === "u2")?.status).toBe("failed");
     expect(body.users.find((u) => u.id === "u1")?.status).toBe("no_resume");
+  });
+
+  it("answers an empty page and an unmatched search with an empty list and zero total", async () => {
+    await insertUser("u1", "Ada", "ada");
+
+    const { GET } = await import("@/app/api/admin/users/route");
+
+    const pageResponse = await GET(new Request("https://clickfolio.me/api/admin/users?page=2"));
+
+    const pageBody: { users: unknown[]; total: number; page: number; pageSize: number } =
+      await pageResponse.json();
+
+    expect(pageResponse.status).toBe(200);
+    expect(pageBody).toEqual({ users: [], total: 1, page: 2, pageSize: 25 });
+
+    const searchResponse = await GET(
+      new Request("https://clickfolio.me/api/admin/users?search=nobody"),
+    );
+
+    const searchBody: { users: unknown[]; total: number } = await searchResponse.json();
+
+    expect(searchResponse.status).toBe(200);
+    expect(searchBody).toMatchObject({ users: [], total: 0 });
   });
 
   it("treats LIKE wildcards in the search as literal characters", async () => {
@@ -153,6 +176,34 @@ describe("GET /api/admin/resumes", () => {
     expect(body.stats).toEqual({ completed: 1, processing: 0, queued: 0, failed: 1 });
     expect(body.resumes.map((r) => r.id)).toEqual(["r1"]);
     expect(body.total).toBe(1);
+  });
+
+  it("groups waiting_for_cache under completed and pending_claim under queued", async () => {
+    await insertUser("u1", "Ada", "ada");
+    await insertResume("r-completed", "u1", "completed");
+    await insertResume("r-cached", "u1", "waiting_for_cache");
+    await insertResume("r-queued", "u1", "queued");
+    await insertResume("r-pending", "u1", "pending_claim");
+    await insertResume("r-processing", "u1", "processing");
+
+    const { GET } = await import("@/app/api/admin/resumes/route");
+
+    const ids = async (status: string) => {
+      const response = await GET(
+        new Request(`https://clickfolio.me/api/admin/resumes?status=${status}`),
+      );
+
+      const body: { resumes: { id: string }[] } = await response.json();
+
+      expect(response.status).toBe(200);
+
+      return body.resumes.map((r) => r.id).sort();
+    };
+
+    expect(await ids("completed")).toEqual(["r-cached", "r-completed"]);
+    expect(await ids("queued")).toEqual(["r-pending", "r-queued"]);
+    expect(await ids("processing")).toEqual(["r-processing"]);
+    expect(await ids("failed")).toEqual([]);
   });
 
   it("answers 400 for an unknown status filter", async () => {
