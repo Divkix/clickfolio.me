@@ -1,10 +1,10 @@
 import { Cause, Effect, Exit } from "effect";
 import { NonRetryableError } from "cloudflare:workflows";
+import { failureDetailFields } from "@/lib/effect/failure-fields";
 import { describeFailure } from "@/lib/effect/failure-map";
 import type { ServerFailure } from "@/lib/effect/failures";
 import type { UnknownRecord } from "@/lib/types/json";
 import { isParseFailure, toParseErrorJson, type ParseFailure } from "@/lib/parse/failures";
-import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 
 /**
@@ -15,7 +15,8 @@ import { log } from "@/lib/utils/log";
  *
  * A ParseFailure keeps its wire metadata in `cause` (`toParseErrorJson`), which the parse
  * workflow's failure handler reads back to store the error type; it is not logged here because
- * that handler logs the outcome once. Any other failure is logged and its `cause` names it.
+ * that handler logs the outcome once. Any other failure is logged through the same detail
+ * fields as the route edge.
  */
 export async function runWorkflowStep<A>(
   effect: Effect.Effect<A, ServerFailure | ParseFailure>,
@@ -45,17 +46,8 @@ export async function runWorkflowStep<A>(
 
     const { retryable, logLevel } = describeFailure(failure);
     const fields = { failure: failure._tag, retryable };
-    const entry: UnknownRecord = { ...fields };
+    const entry: UnknownRecord = { ...fields, ...failureDetailFields(failure) };
 
-    if ("operation" in failure) {
-      entry.operation = failure.operation;
-      entry.kind = failure.kind;
-    }
-
-    Object.assign(
-      entry,
-      errorFields("cause" in failure && failure.cause ? failure.cause : failure),
-    );
     log(logLevel, "workflow step failed", entry);
 
     const error = retryable

@@ -93,6 +93,33 @@ describe("runRoute", () => {
       level: "warn",
       failure: "InvalidInput",
       path: "/api/thing",
+      "error.message": "Bad body",
+    });
+  });
+
+  it("logs a timed-out call's message and flags that its outcome is unknown", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await runRoute(
+      request,
+      Effect.fail(
+        new DbFailed({
+          operation: "email.send",
+          kind: "timeout",
+          message: "email.send timed out after 8000ms",
+        }),
+      ),
+      Layer.empty,
+    );
+
+    expect(response.status).toBe(504);
+    expect(logLines(error)[0]).toMatchObject({
+      failure: "DbFailed",
+      operation: "email.send",
+      kind: "timeout",
+      retryable: true,
+      outcome_unknown: true,
+      "error.message": "email.send timed out after 8000ms",
     });
   });
 

@@ -58,12 +58,35 @@ describe("runWorkflowStep", () => {
     },
   );
 
+  it("logs a timed-out step's message and flags that its outcome is unknown", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const failure = new R2Failed({
+      operation: "r2.delete_many",
+      kind: "timeout",
+      message: "r2.delete_many timed out after 30000ms",
+    });
+
+    await expect(runWorkflowStep(Effect.fail(failure))).rejects.toMatchObject({ name: "Error" });
+
+    expect(logLines(error)[0]).toMatchObject({
+      msg: "workflow step failed",
+      failure: "R2Failed",
+      operation: "r2.delete_many",
+      kind: "timeout",
+      outcome_unknown: true,
+      "error.message": "r2.delete_many timed out after 30000ms",
+    });
+  });
+
   it("treats a client failure as permanent", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     await expect(
       runWorkflowStep(Effect.fail(new InvalidInput({ message: "bad params" }))),
     ).rejects.toMatchObject({ name: "NonRetryableError", message: "InvalidInput: bad params" });
+
+    expect(logLines(warn)[0]).toMatchObject({ "error.message": "bad params" });
   });
 
   it.each([new Error("defect"), "non-Error defect"])(

@@ -433,7 +433,7 @@ describe("Authentication Middleware Security", () => {
   });
 
   describe("Fail-Closed Behavior", () => {
-    it("fails closed with a 503, not a sign-out, when Clerk credentials are unconfigured", async () => {
+    it("fails closed with a 500, not a sign-out, when Clerk credentials are unconfigured", async () => {
       vi.spyOn(console, "error").mockImplementation(() => {});
       Reflect.deleteProperty(env, "CLERK_SECRET_KEY");
 
@@ -443,7 +443,7 @@ describe("Authentication Middleware Security", () => {
 
         const result = await requireAuth();
 
-        expect(result.response.status).toBe(503);
+        expect(result.response.status).toBe(500);
         expect(result.user).toBeNull();
         expect(mockVerifyToken).not.toHaveBeenCalled();
         expect(mockDb.select).not.toHaveBeenCalled();

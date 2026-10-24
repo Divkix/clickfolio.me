@@ -4,11 +4,13 @@ import type { UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { describeFailure } from "./failure-map";
+import { failureDetailFields } from "./failure-fields";
 import { isFrameworkSignal } from "./external";
 import type { ServerFailure } from "./failures";
 
-// The only places that run an Effect. Everything else yields services and returns Effects.
-// Layers are built here, once per invocation, so no pool, client or token outlives its request.
+// The request, page and background edges. Everything else yields services and returns Effects;
+// a Workflow step runs its own Effect in `runWorkflowStep`. Layers are built here, once per
+// invocation, so no pool, client or token outlives its request.
 
 const UNEXPECTED_MESSAGE = "An unexpected error occurred. Please try again.";
 
@@ -29,14 +31,7 @@ export function logFailure(failure: ServerFailure, fields: EdgeLogFields = {}): 
   const { logLevel, status, retryable } = describeFailure(failure);
   const entry: UnknownRecord = { failure: failure._tag, status, retryable, ...fields };
 
-  if ("operation" in failure) {
-    entry.operation = failure.operation;
-    entry.kind = failure.kind;
-  }
-
-  if ("cause" in failure && failure.cause !== undefined) {
-    Object.assign(entry, errorFields(failure.cause));
-  }
+  Object.assign(entry, failureDetailFields(failure));
 
   log(logLevel, "request failed", entry);
 }

@@ -48,7 +48,8 @@ lib/parse/public-refresh  after a parse rewrites a profile: edge-purge enqueue +
 lib/worker/resume-status-socket  WS /ws/resume-status upgrade as an Effect (Clerk/DB outage → 503 via runRoute)
 lib/effect/            server Effect kit: failures (tagged errors) + failure-map (status/code/retryable/log level),
                        externalCall (timeout + tagged error + span), TIMEOUT_MS, Db service/layer, edges
-                       (runRoute / runPage / runBackground — the only places that run an Effect)
+                       (runRoute / runPage / runBackground — the request, page and cron/queue/DO edges;
+                       a Workflow step runs its own Effect through runWorkflowStep in lib/workflows)
 lib/effect/retry-later  no-store 503 + Retry-After for crawler-facing routes (sitemaps, OG) when a read fails
 lib/effect/json-body    oversizedBodyResponse (413 before auth) + readJsonBody (limit, JSON, Zod → InvalidInput / PayloadTooLarge)
 lib/effect/layers.ts    appLayer(env) = Db + Clerk, built per request by the route helpers

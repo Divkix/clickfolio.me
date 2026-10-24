@@ -1,6 +1,6 @@
 import type { UnknownRecord } from "@/lib/types/json";
 import { errorFields } from "@/lib/utils/error-fields";
-import type { UpstreamFailure } from "./failures";
+import type { ServerFailure, UpstreamFailure } from "./failures";
 
 /**
  * Log fields for a failure that best-effort code recovered from: which dependency, which
@@ -20,4 +20,17 @@ export function upstreamLogFields(failure: UpstreamFailure): UnknownRecord {
   else fields["error.message"] = failure.message;
 
   return fields;
+}
+
+/**
+ * The scrubbed detail every logger adds to a typed failure: an upstream failure carries its
+ * operation, kind and timeout flag; anything else carries its cause, or its own message when
+ * there is none. `Data.TaggedError` only creates a `cause` key when one was given.
+ */
+export function failureDetailFields(failure: ServerFailure): UnknownRecord {
+  if ("operation" in failure) return upstreamLogFields(failure);
+
+  if ("cause" in failure && failure.cause !== undefined) return errorFields(failure.cause);
+
+  return { "error.message": failure.message };
 }
