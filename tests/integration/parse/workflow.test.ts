@@ -226,7 +226,7 @@ describe("resume failure email workflow step", () => {
   });
 
   it("skips emails for a cached parse", async () => {
-    mocks.claim.mockReturnValue(Effect.succeed("cached"));
+    mocks.claim.mockReturnValue(Effect.succeed({ kind: "cached", handles: [] }));
     const workflow = await runWorkflow();
     await expect(workflow.run()).resolves.toBe("cached");
     expect(mocks.email).not.toHaveBeenCalled();
@@ -416,6 +416,19 @@ describe("public page refresh step", () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it("refreshes the handles a cached claim rewrote, and not a previous deploy's bare journal", async () => {
+    mocks.claim.mockReturnValue(Effect.succeed({ kind: "cached", handles: ["ada"] }));
+    await expect((await runWorkflow()).run()).resolves.toBe("cached");
+
+    expect(mocks.refresh).toHaveBeenCalledWith(["ada"], "https://clickfolio.me");
+    expect(mocks.parse).not.toHaveBeenCalled();
+
+    mocks.claim.mockReturnValue(Effect.succeed("cached"));
+    await expect((await runWorkflow()).run()).resolves.toBe("cached");
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("treats a journaled completion without an output as nothing to refresh", async () => {

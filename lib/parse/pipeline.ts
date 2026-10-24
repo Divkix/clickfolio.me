@@ -101,8 +101,9 @@ function logAndDrop(message: string, fields: UnknownRecord) {
 }
 
 /**
- * Moves the row to `processing`, or completes it from an identical earlier parse.
- * `skipped` means the row is gone, already completed, or not in a parseable state.
+ * Moves the row to `processing`, or completes it from an identical earlier parse (`cached`, with
+ * the handles that completion rewrote). `skipped` means the row is gone, completed without an
+ * identical earlier parse, or not in a parseable state.
  */
 export function claimResumeForParse(job: ResumeParseJob) {
   return Effect.gen(function* () {
@@ -138,7 +139,24 @@ export function claimResumeForParse(job: ResumeParseJob) {
       { concurrency: 2 },
     );
 
-    if (!currentResume[0] || currentResume[0].status === "completed") {
+    const status = currentResume[0]?.status;
+    // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
+    const cachedContent = cached[0]?.parsedContent as ResumeContent | null | undefined;
+
+    // Same user + same file: career was already classified on the original parse. A retry of this
+    // step after its cache completion committed finds the row completed: completeResumes writes
+    // nothing then and resolves to the owner's handle while this run still owns the row, so the
+    // run still refreshes the pages the first attempt rewrote.
+    const completeFromCache = (content: ResumeContent) =>
+      completeResumes({
+        items: [{ resumeId: job.resumeId, userId: job.userId }],
+        parsedContent: content,
+        retryCount: job.retryCount,
+      }).pipe(Effect.map((handles) => ({ kind: "cached" as const, handles })));
+
+    if (status === "completed" && cachedContent) return yield* completeFromCache(cachedContent);
+
+    if (!status || status === "completed") {
       log("info", "resume missing or already completed, skipping parse", {
         resumeId: job.resumeId,
       });
@@ -168,17 +186,7 @@ export function claimResumeForParse(job: ResumeParseJob) {
       return "skipped" as const;
     }
 
-    if (cached[0]?.parsedContent) {
-      // Same user + same file: career was already classified on the original parse.
-      yield* completeResumes({
-        items: [{ resumeId: job.resumeId, userId: job.userId }],
-        // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
-        parsedContent: cached[0].parsedContent as ResumeContent,
-        retryCount: job.retryCount,
-      });
-
-      return "cached" as const;
-    }
+    if (cachedContent) return yield* completeFromCache(cachedContent);
 
     yield* notifyStatusBestEffort({ resumeId: job.resumeId, status: "processing" });
 

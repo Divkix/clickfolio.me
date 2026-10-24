@@ -1,17 +1,19 @@
 import { and, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { Effect } from "effect";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
-import { resumes, user } from "@/lib/db/schema";
+import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
 import { readQuotaIn, requireQuota } from "@/lib/rate-limit/user";
 import { shouldSyncDisplayName } from "@/lib/resume/completion";
+import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import type { ResumeContent } from "@/lib/types/database";
 import { sha256Hex } from "@/lib/utils/hash";
 import { ERROR_CODES } from "@/lib/utils/security-headers";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
+import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, tempUploadId } from "@/lib/utils/validation";
 import { purgeR2Keys } from "@/lib/workflows/r2-purge";
 import { parseInstanceId } from "@/lib/workflows/resume-parse";
@@ -23,7 +25,12 @@ import { parseInstanceId } from "@/lib/workflows/resume-parse";
 
 export type ClaimIntakeOutcome =
   | { kind: "already_claimed"; resumeId: string; status: string }
-  | { kind: "cached"; resumeId: string }
+  | {
+      kind: "cached";
+      resumeId: string;
+      /** The published profile this claim rewrote, for the route to refresh; null if none. */
+      rewritten: { handle: string; indexable: boolean } | null;
+    }
   | { kind: "waiting_for_cache"; resumeId: string }
   | { kind: "queued"; resumeId: string }
   | {
@@ -34,6 +41,8 @@ export type ClaimIntakeOutcome =
     };
 
 type ClaimError = Extract<ClaimIntakeOutcome, { kind: "error" }>;
+
+type CachedOutcome = Extract<ClaimIntakeOutcome, { kind: "cached" }>;
 
 function claimError(message: string, code: ClaimError["code"], httpStatus: number): ClaimError {
   return { kind: "error", message, code, httpStatus };
@@ -183,8 +192,11 @@ function discardObjectsIfRowGone(claim: Claim) {
 
 // Shared by the cache-hit branch and the post-move recheck: the arbitration row
 // becomes the completed copy of an identical earlier file. A database failure here is logged
-// and answers false, so the claim falls back to a normal parse.
-function completeFromCachedContent(claim: Claim, content: ResumeContent) {
+// and answers null, so the claim falls back to a normal parse.
+function completeFromCachedContent(
+  claim: Claim,
+  content: ResumeContent,
+): Effect.Effect<CachedOutcome | null, never, Db> {
   const { userId, resumeId, newKey, fileHash, now } = claim;
 
   const notCompleted = (failure: { message: string; cause?: unknown }) =>
@@ -193,28 +205,27 @@ function completeFromCachedContent(claim: Claim, content: ResumeContent) {
         ...errorFields(failure.cause ?? failure),
       });
 
-      return false;
+      return null;
     });
 
   return Effect.gen(function* () {
-    const userRow = yield* Db.use((service) =>
+    const [owner] = yield* Db.use((service) =>
       service.query("claim.cache.user", (db) =>
         db
-          .select({ handle: user.handle, name: user.name })
+          .select({ handle: user.handle, name: user.name, privacySettings: user.privacySettings })
           .from(user)
           .where(eq(user.id, userId))
           .limit(1),
       ),
     );
 
-    const hasHandle = !!userRow[0]?.handle;
-    const currentName = userRow[0]?.name;
+    const currentName = owner?.name;
     const cachedName = content.full_name?.trim();
     // Same name rule as fresh parses (single owner: shouldSyncDisplayName). Career is
     // classified once per fresh parse, so a cache hit leaves it untouched.
     const shouldUpdateName = shouldSyncDisplayName(cachedName, currentName);
 
-    return yield* Db.use((service) =>
+    const completed = yield* Db.use((service) =>
       service.transaction("claim.cache.complete", async (tx) => {
         const updated = await tx
           .update(resumes)
@@ -229,14 +240,15 @@ function completeFromCachedContent(claim: Claim, content: ResumeContent) {
           .returning({ id: resumes.id });
 
         // Row gone (account deletion cascade): skip the site-data and user writes.
-        if (updated.length === 0) return false;
+        if (updated.length === 0) return null;
 
-        await buildSiteDataUpsert(tx, userId, resumeId, content, {
-          publish: hasHandle,
+        // No row back means the guard kept a newer site_data row: nothing public changed.
+        const written = await buildSiteDataUpsert(tx, userId, resumeId, content, {
+          publish: !!owner?.handle,
           // Same snapshot as this row's createdAt: a site_data row written after
           // the claim started is newer content and must win.
           onlyIfUpdatedAtLte: now,
-        });
+        }).returning({ id: siteData.id });
 
         if (shouldUpdateName) {
           await tx
@@ -245,9 +257,21 @@ function completeFromCachedContent(claim: Claim, content: ResumeContent) {
             .where(eq(user.id, userId));
         }
 
-        return true;
+        return { siteRewritten: written.length > 0 };
       }),
     );
+
+    if (!completed) return null;
+
+    const rewritten =
+      completed.siteRewritten && owner?.handle
+        ? {
+            handle: owner.handle,
+            indexable: isIndexableProfile(content, normalizePrivacySettings(owner.privacySettings)),
+          }
+        : null;
+
+    return { kind: "cached", resumeId, rewritten } satisfies CachedOutcome;
   }).pipe(Effect.catchTags({ DbFailed: notCompleted, DbConflict: notCompleted }));
 }
 
@@ -425,9 +449,11 @@ function waitForCache(claim: Claim) {
     // for a fan-out that already ran.
     const completedContent = yield* findCompletedContent(claim);
 
-    if (completedContent && (yield* completeFromCachedContent(claim, completedContent))) {
-      return { kind: "cached" as const, resumeId };
-    }
+    const cached = completedContent
+      ? yield* completeFromCachedContent(claim, completedContent)
+      : null;
+
+    if (cached) return cached;
 
     // The row itself may have been deleted mid-move (account deletion cascade):
     // the sweep may already have run, so drop the copy instead of orphaning it.
@@ -541,9 +567,9 @@ export function runClaimIntake(input: { readonly userId: string; readonly tempKe
     if (cachedContent) {
       yield* guardStore(claim, "R2 operations failed for cached resume", moveTempFile(claim));
 
-      if (yield* completeFromCachedContent(claim, cachedContent)) {
-        return { kind: "cached" as const, resumeId };
-      }
+      const cached = yield* completeFromCachedContent(claim, cachedContent);
+
+      if (cached) return cached;
     }
 
     const processing = yield* Db.use((service) =>
