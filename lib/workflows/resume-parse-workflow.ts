@@ -9,7 +9,7 @@ import {
 } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import { getAlertChannel } from "../parse/alert";
-import { classifyParseError, decodeParseError } from "../parse/errors";
+import { classifyParseError, decodeParseError, storedErrorSchema } from "../parse/errors";
 import { toParseErrorJson, type ParseFailure } from "../parse/failures";
 import type { ServerFailure } from "../effect/failures";
 import { runWorkflowStep } from "./run-workflow-step";
@@ -20,12 +20,15 @@ import {
   type ParseWorkflowServices,
 } from "../parse/layers";
 import {
+  announceResumeParseFailure,
   claimResumeForParse,
   completeParsedResume,
   expireWaitingForCache,
   markResumeParseFailed,
   parseResumePdf,
   readLastParseFailure,
+  type ParseFailureNotice,
+  type ResumeParseJob,
 } from "../parse/pipeline";
 import { refreshPublicProfiles } from "../parse/public-refresh";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
@@ -49,6 +52,22 @@ const journaledClaim = z.union([
   z.object({ kind: z.literal("cached"), handles: z.array(z.string()) }),
   z.enum(["skipped", "parse", "cached"]).transform((kind) => ({ kind, handles: [] })),
 ]);
+
+// A run started by the previous deploy journaled `mark failed` before it returned a notice, and a
+// run whose row was already gone journals null: neither has anything to announce (the old step
+// sent its alert itself).
+const journaledNotice = z
+  .object({
+    // The step always writes `originalError`; the schema keeps it optional for older rows.
+    failure: storedErrorSchema.transform((failure): ParseErrorJson => ({
+      ...failure,
+      originalError: failure.originalError,
+    })),
+    totalAttempts: z.number(),
+    waitingIds: z.array(z.string()),
+  })
+  .nullish()
+  .catch(null);
 
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
@@ -139,6 +158,31 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
     } catch (error) {
       // Not rethrown: a failed email must not fail the run after the row is final.
       log("error", "resume failure email step failed", { resumeId, ...errorFields(error) });
+    }
+  }
+
+  private async announceFailure(
+    job: ResumeParseJob,
+    notice: ParseFailureNotice,
+    tracedStep: TracedStep,
+  ): Promise<void> {
+    try {
+      // The status pushes and the alert webhook have no idempotency key, so they get a journaled
+      // step of their own with no retries: a retry of `mark failed` cannot send them twice.
+      await tracedStep(
+        "announce parse failure",
+        { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
+        () =>
+          this.exec(
+            announceResumeParseFailure(job, notice, getAlertChannel(this.env.ALERT_CHANNEL)),
+          ),
+      );
+    } catch (error) {
+      // Not rethrown: a failed announcement must not fail the run after the row is final.
+      log("error", "resume failure announce step failed", {
+        resumeId: job.resumeId,
+        ...errorFields(error),
+      });
     }
   }
 
@@ -248,41 +292,46 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
 
       return "completed";
     } catch (error) {
-      await tracedStep("mark failed", DB_STEP, async () => {
-        // The Workflow engine may serialize thrown Errors. The row retains the
-        // original failure metadata even when Error.cause is lost on replay.
-        const fallback = toParseErrorJson(classifyParseError(error));
+      const notice = journaledNotice.parse(
+        await tracedStep("mark failed", DB_STEP, () =>
+          this.exec(
+            Effect.gen(function* () {
+              // The Workflow engine may serialize thrown Errors. The row retains the
+              // original failure metadata even when Error.cause is lost on replay.
+              const fallback = toParseErrorJson(classifyParseError(error));
 
-        const currentDatabaseFailure =
-          fallback.type === "db_connection_error" || fallback.type === "parse_validation_error"
-            ? fallback
-            : null;
+              const currentDatabaseFailure =
+                fallback.type === "db_connection_error" ||
+                fallback.type === "parse_validation_error"
+                  ? fallback
+                  : null;
 
-        const carried =
-          currentFailure ?? (error instanceof Error ? decodeParseError(error.cause) : null);
+              const carried =
+                currentFailure ?? (error instanceof Error ? decodeParseError(error.cause) : null);
 
-        const needsStored = failedDuringParse && !carried && !currentDatabaseFailure;
-        const alertChannel = getAlertChannel(this.env.ALERT_CHANNEL);
+              const needsStored = failedDuringParse && !carried && !currentDatabaseFailure;
+              const stored = needsStored ? yield* readLastParseFailure(job) : null;
+              const resolved = carried ?? currentDatabaseFailure ?? stored ?? fallback;
 
-        const failure = await this.exec(
-          Effect.gen(function* () {
-            const stored = needsStored ? yield* readLastParseFailure(job) : null;
-            const resolved = carried ?? currentDatabaseFailure ?? stored ?? fallback;
+              const marked = yield* markResumeParseFailed(job, resolved);
 
-            yield* markResumeParseFailed(job, resolved, alertChannel);
+              // After the write, inside the step body: once per run, not once per
+              // step retry or per replay of `run`.
+              logEvent(
+                "resume_parse_failed",
+                { ...outcome(), errorType: resolved.type, ...errorFields(error) },
+                "error",
+              );
 
-            return resolved;
-          }),
-        );
+              return marked;
+            }),
+          ),
+        ),
+      );
 
-        // After the write, inside the step body: once per run, not once per
-        // step retry or per replay of `run`.
-        logEvent(
-          "resume_parse_failed",
-          { ...outcome(), errorType: failure.type, ...errorFields(error) },
-          "error",
-        );
-      });
+      // Nothing to announce when the row was already gone, and for a run journaled before this
+      // step returned a notice (its alert already went out inside `mark failed`).
+      if (notice) await this.announceFailure(job, notice, tracedStep);
 
       await this.emailFailure(job.resumeId, tracedStep);
 

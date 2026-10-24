@@ -337,15 +337,20 @@ export function completeParsedResume(job: ResumeParseJob, parsed: ParsedResume) 
   }).pipe(asParseFailure);
 }
 
+/** What `announceResumeParseFailure` needs from the terminal DB step; a step output, so JSON only. */
+export type ParseFailureNotice = {
+  failure: ParseErrorJson;
+  totalAttempts: number;
+  waitingIds: string[];
+};
+
 /**
- * Terminal failure: every retry is spent or the error is permanent. The status pushes and the
- * alert are best effort, so only a database failure fails the step (and Workflows retries it).
+ * Terminal failure: every retry is spent or the error is permanent. Database work only, so the
+ * retryable step that runs it cannot repeat a notification; those go through
+ * `announceResumeParseFailure` in a step of their own. Resolves to null when there is nothing to
+ * announce (row gone or completed elsewhere).
  */
-export function markResumeParseFailed(
-  job: ResumeParseJob,
-  storedError: ParseErrorJson,
-  alertChannel: AlertChannel,
-) {
+export function markResumeParseFailed(job: ResumeParseJob, storedError: ParseErrorJson) {
   return Effect.gen(function* () {
     const failed = yield* Db.use((db) =>
       db.query("parse.mark_failed", (handle) =>
@@ -366,13 +371,7 @@ export function markResumeParseFailed(
     );
 
     // Row gone (account deletion cascade) or completed elsewhere: nothing to report.
-    if (failed.length === 0) return;
-
-    yield* notifyStatusBestEffort({
-      resumeId: job.resumeId,
-      status: "failed",
-      error: storedError.message,
-    });
+    if (failed.length === 0) return null;
 
     // Identical uploads waiting on this parse would otherwise sit until their
     // waiting_for_cache timer and report a misleading timeout.
@@ -397,11 +396,38 @@ export function markResumeParseFailed(
       ),
     );
 
+    return {
+      failure: storedError,
+      totalAttempts: failed[0].totalAttempts ?? 0,
+      waitingIds: waitingFailed.map((row) => row.id),
+    };
+  }).pipe(asParseFailure);
+}
+
+/**
+ * Pushes the failed status to the row and its waiting rows, then sends the ops alert. Not
+ * replay-safe by design: the Workflow runs it as a step with no retries, so neither the pushes nor
+ * the alert repeat when `markResumeParseFailed` retries.
+ */
+export function announceResumeParseFailure(
+  job: ResumeParseJob,
+  notice: ParseFailureNotice,
+  alertChannel: AlertChannel,
+) {
+  const storedError = notice.failure;
+
+  return Effect.gen(function* () {
+    yield* notifyStatusBestEffort({
+      resumeId: job.resumeId,
+      status: "failed",
+      error: storedError.message,
+    });
+
     yield* Effect.forEach(
-      waitingFailed,
-      (row) =>
+      notice.waitingIds,
+      (resumeId) =>
         notifyStatusBestEffort({
-          resumeId: row.id,
+          resumeId,
           status: "failed",
           error: storedError.message,
         }),
@@ -414,7 +440,7 @@ export function markResumeParseFailed(
         userId: job.userId,
         failureReason: storedError.message,
         errorType: storedError.type,
-        totalAttempts: failed[0].totalAttempts ?? 0,
+        totalAttempts: notice.totalAttempts,
         timestamp: new Date().toISOString(),
       },
       alertChannel,
