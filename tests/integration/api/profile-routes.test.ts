@@ -461,3 +461,71 @@ describe("PUT /api/profile/role", () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe("profile routes when the database fails", () => {
+  const unavailable = () => Object.assign(new Error("connection terminated"), { code: "08006" });
+
+  it("answers 503, not a bare 500, when the privacy write fails, and does not purge", async () => {
+    vi.spyOn(db, "update").mockImplementation(() => {
+      throw unavailable();
+    });
+
+    const { PUT } = await import("@/app/api/profile/privacy/route");
+
+    const response = await PUT(
+      put("privacy", {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: "DATABASE_ERROR" });
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.indexNow).not.toHaveBeenCalled();
+  });
+
+  it("answers 503 when the role write fails", async () => {
+    vi.spyOn(db, "update").mockImplementation(() => {
+      throw unavailable();
+    });
+
+    const { PUT } = await import("@/app/api/profile/role/route");
+    const response = await PUT(put("role", { role: "senior" }));
+
+    expect(response.status).toBe(503);
+  });
+
+  it("answers 503 when the handle transaction fails, and records nothing", async () => {
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(unavailable());
+
+    const { PUT } = await import("@/app/api/profile/handle/route");
+    const response = await PUT(put("handle", { handle: "alice-new" }));
+
+    expect(response.status).toBe(503);
+    expect((await rowOf("alice")).handle).toBe("handle-alice");
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+
+  it("tells a rate-limited client when to come back", async () => {
+    const recent = new Date().toISOString();
+
+    await db.insert(handleChanges).values(
+      ["one", "two", "three"].map((name) => ({
+        id: `hc-${name}`,
+        userId: "alice",
+        oldHandle: null,
+        newHandle: name,
+        createdAt: recent,
+      })),
+    );
+
+    const { PUT } = await import("@/app/api/profile/handle/route");
+    const response = await PUT(put("handle", { handle: "alice-fourth" }));
+
+    expect(response.status).toBe(429);
+    expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(0);
+  });
+});

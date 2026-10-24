@@ -1,20 +1,21 @@
+import { Effect } from "effect";
 import { eq } from "drizzle-orm";
-import { withUser } from "@/lib/auth/with-auth";
-import { logEvent } from "@/lib/utils/log";
-
-import { isUniqueViolation } from "@/lib/db/pg-errors";
+import { withUserEffect } from "@/lib/auth/with-auth";
 import { handleChanges, user } from "@/lib/db/schema";
-import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
+import { Db } from "@/lib/effect/db";
+import { Conflict, InvalidInput, RateLimited } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
+import { isHandleTakenEffect, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow, RATE_LIMITS } from "@/lib/rate-limit/user";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
-import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { logEvent } from "@/lib/utils/log";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 type HandleUpdateOutcome =
   | { kind: "ok"; oldHandle: string | null }
@@ -22,101 +23,86 @@ type HandleUpdateOutcome =
   | { kind: "unchanged" }
   | { kind: "rate_limited" };
 
+const HANDLE_TAKEN_MESSAGE = "This handle is already taken. Please choose a different one.";
+
+const HANDLE_JUST_TAKEN_MESSAGE = "This handle was just taken. Please choose a different one.";
+
 export async function PUT(request: Request) {
-  const sizeCheck = validateRequestSize(request);
+  const oversized = oversizedBodyResponse(request);
 
-  if (!sizeCheck.valid) {
-    return createErrorResponse(
-      sizeCheck.error || "Request body too large",
-      ERROR_CODES.BAD_REQUEST,
-      413,
-    );
-  }
+  if (oversized) return oversized;
 
-  return withUser(
+  return withUserEffect(
     request,
-    async ({ user: authUser, db }) => {
-      const rawBodyResult = await readJsonWithLimit(request);
-
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
-        );
-      }
-
-      const validation = handleUpdateSchema.safeParse(rawBodyResult.data);
-
-      if (!validation.success) {
-        return createErrorResponse(
+    ({ user: authUser }) =>
+      Effect.gen(function* () {
+        const { handle: newHandle } = yield* readJsonBody(
+          request,
+          handleUpdateSchema,
           "Invalid handle format",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          validation.error.issues,
         );
-      }
 
-      const { handle: newHandle } = validation.data;
+        if (!isValidHandleFormat(newHandle)) {
+          return yield* Effect.fail(
+            new InvalidInput({
+              message: "This handle is reserved. Please choose a different one.",
+            }),
+          );
+        }
 
-      if (!isValidHandleFormat(newHandle)) {
-        return createErrorResponse(
-          "This handle is reserved. Please choose a different one.",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
+        const handleTaken = yield* isHandleTakenEffect(authUser.id, newHandle);
+
+        if (handleTaken) {
+          return yield* Effect.fail(new Conflict({ message: HANDLE_TAKEN_MESSAGE }));
+        }
+
+        const now = new Date().toISOString();
+
+        // The unique index is the arbiter: a rival that took the handle after the check above
+        // makes the transaction fail with a conflict, answered as 409.
+        const outcome = yield* Db.use((db) =>
+          db.transaction("profile.handle.change", async (tx): Promise<HandleUpdateOutcome> => {
+            // Row lock serializes quota counting, audit insert, and the write for this user.
+            const locked = await tx
+              .select({ handle: user.handle })
+              .from(user)
+              .where(eq(user.id, authUser.id))
+              .limit(1)
+              .for("update");
+
+            if (!locked.length) return { kind: "missing_user" };
+
+            const oldHandle = locked[0].handle;
+
+            if (oldHandle === newHandle) return { kind: "unchanged" };
+
+            const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
+
+            if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
+
+            await tx
+              .update(user)
+              .set({
+                handle: newHandle,
+                updatedAt: now,
+              })
+              .where(eq(user.id, authUser.id));
+
+            await tx.insert(handleChanges).values({
+              id: crypto.randomUUID(),
+              userId: authUser.id,
+              oldHandle,
+              newHandle,
+              createdAt: now,
+            });
+
+            return { kind: "ok", oldHandle };
+          }),
+        ).pipe(
+          Effect.catchTag("DbConflict", () =>
+            Effect.fail(new Conflict({ message: HANDLE_JUST_TAKEN_MESSAGE })),
+          ),
         );
-      }
-
-      const handleTaken = await isHandleTaken(db, authUser.id, newHandle);
-
-      if (handleTaken) {
-        return createErrorResponse(
-          "This handle is already taken. Please choose a different one.",
-          ERROR_CODES.CONFLICT,
-          409,
-        );
-      }
-
-      const now = new Date().toISOString();
-
-      try {
-        const outcome = await db.transaction(async (tx): Promise<HandleUpdateOutcome> => {
-          // Row lock serializes quota counting, audit insert, and the write for this user.
-          const locked = await tx
-            .select({ handle: user.handle })
-            .from(user)
-            .where(eq(user.id, authUser.id))
-            .limit(1)
-            .for("update");
-
-          if (!locked.length) return { kind: "missing_user" };
-
-          const oldHandle = locked[0].handle;
-
-          if (oldHandle === newHandle) return { kind: "unchanged" };
-
-          const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
-
-          if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
-
-          await tx
-            .update(user)
-            .set({
-              handle: newHandle,
-              updatedAt: now,
-            })
-            .where(eq(user.id, authUser.id));
-
-          await tx.insert(handleChanges).values({
-            id: crypto.randomUUID(),
-            userId: authUser.id,
-            oldHandle,
-            newHandle,
-            createdAt: now,
-          });
-
-          return { kind: "ok", oldHandle };
-        });
 
         if (outcome.kind === "missing_user") {
           return createErrorResponse(
@@ -127,44 +113,34 @@ export async function PUT(request: Request) {
         }
 
         if (outcome.kind === "unchanged") {
-          return createErrorResponse(
-            "Handle is already set to this value",
-            ERROR_CODES.VALIDATION_ERROR,
-            400,
+          return yield* Effect.fail(
+            new InvalidInput({ message: "Handle is already set to this value" }),
           );
         }
 
         if (outcome.kind === "rate_limited") {
-          return createErrorResponse(
-            `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
-            ERROR_CODES.RATE_LIMIT_EXCEEDED,
-            429,
+          return yield* Effect.fail(
+            new RateLimited({
+              message: `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
+              // Upper bound: the oldest change in the window frees a slot sooner than this.
+              retryAfterSeconds: RATE_LIMITS.handle_change.windowHours * 60 * 60,
+            }),
           );
         }
 
-        revalidatePublicProfilePages([outcome.oldHandle, newHandle]);
-        notifyIndexNowForProfiles([outcome.oldHandle, newHandle]);
+        yield* Effect.sync(() => {
+          revalidatePublicProfilePages([outcome.oldHandle, newHandle]);
+          notifyIndexNowForProfiles([outcome.oldHandle, newHandle]);
 
-        logEvent("handle_changed", { userId: authUser.id });
+          logEvent("handle_changed", { userId: authUser.id });
+        });
 
         return createSuccessResponse({
           success: true,
           handle: newHandle,
           old_handle: outcome.oldHandle,
         });
-      } catch (error) {
-        // Unique constraint violation (race condition): Postgres SQLSTATE 23505 → 409.
-        if (error instanceof Error && isUniqueViolation(error)) {
-          return createErrorResponse(
-            "This handle was just taken. Please choose a different one.",
-            ERROR_CODES.CONFLICT,
-            409,
-          );
-        }
-
-        throw error;
-      }
-    },
+      }),
     "You must be logged in to update your handle",
   );
 }
