@@ -30,42 +30,6 @@ function clientModuleStubs(): Plugin {
   };
 }
 
-/**
- * Vite plugin that extends vinext's client manualChunks to split heavy vendor
- * deps into their own chunks — keeps the main client bundle under 500 KB.
- *
- * vinext intentionally only splits React/scheduler into "framework" and its own
- * shims into "vinext", leaving all other vendor code to Rollup's default splitting.
- * This works well for most apps, but ours pulls radix-ui and react-hook-form
- * into a single mega-chunk. We wrap vinext's function to split those specific
- * packages out while preserving all other vinext chunking decisions.
- */
-function clientVendorSplit(): Plugin {
-  return {
-    name: "client-vendor-split",
-    configResolved(config) {
-      const clientEnv = config.environments?.client;
-      const output = clientEnv?.build?.rollupOptions?.output;
-
-      if (output && output instanceof Object && !Array.isArray(output)) {
-        const original = output.manualChunks;
-        output.manualChunks = (id: string, cause: unknown) => {
-          if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
-
-          if (id.includes("node_modules/react-hook-form")) return "vendor-forms";
-
-          if (original instanceof Function) {
-            // SAFETY: original is Rollup manualChunks from vinext; signature (id: string, cause: unknown) => string | undefined matches our wrapper — cast bridges untyped config.
-            return (original as (id: string, cause: unknown) => string | undefined)(id, cause);
-          }
-
-          return undefined;
-        };
-      }
-    },
-  };
-}
-
 // Files inside the effect package or an @effect/* package (flat or pnpm layout).
 const EFFECT_MODULE = /[\\/]node_modules[\\/](?:effect|@effect[\\/][^\\/]+)[\\/]/;
 
@@ -283,7 +247,6 @@ export default defineConfig(() => {
             viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
           }),
           clientModuleStubs(),
-          clientVendorSplit(),
           clientEffectGuard(),
         ],
     optimizeDeps: {
