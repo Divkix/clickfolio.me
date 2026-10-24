@@ -1,6 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 import { z } from "zod";
 import { isValidResumeStatus } from "@/lib/realtime/constants";
+import { annotateActiveSpan } from "@/lib/telemetry/spans";
 import { externalCall } from "../external";
 import { DurableObjectFailed } from "../failures";
 import { TIMEOUT_MS } from "../timeouts";
@@ -59,6 +60,8 @@ function service<Id>(
         operation: "status.notify",
         timeoutMs,
         run: async (signal) => {
+          annotateActiveSpan({ "resume.id": resumeId, "resume.status": notice.status });
+
           const stub = namespace.get(namespace.idFromName(resumeId));
 
           const response = await stub.fetch("https://do-internal/notify", {
