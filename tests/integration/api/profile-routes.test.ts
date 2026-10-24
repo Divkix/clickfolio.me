@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   afterAll,
   afterEach,
@@ -66,7 +66,8 @@ beforeEach(async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await db.execute(sql`DROP TRIGGER IF EXISTS skip_user_update ON "user"`);
   vi.restoreAllMocks();
   mocks.revalidate.mockClear();
   mocks.indexNow.mockClear();
@@ -88,6 +89,22 @@ async function rowOf(id: string) {
   const [row] = await db.select().from(user).where(eq(user.id, id));
 
   return row;
+}
+
+/**
+ * Makes every `UPDATE "user"` touch zero rows, the way a row that disappears between the auth
+ * read and the write does. Dropped again in `afterEach`; `OR REPLACE` keeps repeat calls cheap.
+ */
+async function skipUserUpdates() {
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION skip_user_update() RETURNS trigger AS $$
+      BEGIN RETURN NULL; END;
+    $$ LANGUAGE plpgsql
+  `);
+  await db.execute(sql`
+    CREATE TRIGGER skip_user_update BEFORE UPDATE ON "user"
+      FOR EACH ROW EXECUTE FUNCTION skip_user_update()
+  `);
 }
 
 describe("GET /api/profile/me", () => {
@@ -365,6 +382,20 @@ describe("PUT /api/profile/privacy", () => {
     });
     expect((await rowOf("alice")).showInDirectory).toBe(true);
     expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+
+  it("answers 404 and revalidates nothing when the unguarded write matches no row", async () => {
+    await skipUserUpdates();
+
+    const { PUT } = await import("@/app/api/profile/privacy/route");
+
+    const response = await PUT(put("privacy", settings));
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: "User not found", code: "NOT_FOUND" });
+    expect((await rowOf("alice")).privacySettings.hide_from_search).toBe(false);
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.indexNow).not.toHaveBeenCalled();
   });
 
   it("answers 500, not 409, for an If-Unmodified-Since that is not a timestamp", async () => {
