@@ -282,27 +282,22 @@ describe("completeParsedResume", () => {
 });
 
 describe("markResumeParseFailed", () => {
-  it("fails the row, notifies, and alerts with the attempt count", async () => {
+  it("fails the row and reports the attempt count without notifying or alerting", async () => {
     const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
-    mocks.state.updateReturning.push([{ totalAttempts: 4 }]);
+    mocks.state.updateReturning.push([{ totalAttempts: 4 }], []);
 
-    await markResumeParseFailed(
-      JOB,
-      toParseErrorJson(new R2ObjectMissing({ message: "Failed to fetch PDF from R2" })),
-      ENV,
+    const stored = toParseErrorJson(
+      new R2ObjectMissing({ message: "Failed to fetch PDF from R2" }),
     );
+
+    const notice = await markResumeParseFailed(JOB, stored, ENV);
 
     expect(mocks.state.updateSets[0]).toMatchObject({ status: "failed" });
     // COALESCE keeps a friendlier message written by the parse step.
     expect(mocks.state.updateSets[0].errorMessage).toHaveProperty("queryChunks");
-    expect(mocks.notifyStatusChange).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "failed" }),
-    );
-    expect(mocks.sendAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ resumeId: JOB.resumeId, totalAttempts: 4 }),
-      "logpush",
-      ENV,
-    );
+    expect(notice).toEqual({ failure: stored, totalAttempts: 4, waitingIds: [] });
+    expect(mocks.notifyStatusChange).not.toHaveBeenCalled();
+    expect(mocks.sendAlert).not.toHaveBeenCalled();
   });
 
   it("fails identical uploads waiting on this parse with the same message", async () => {
@@ -316,7 +311,7 @@ describe("markResumeParseFailed", () => {
       [{ id: "waiting-1" }, { id: "waiting-2" }],
     );
 
-    await markResumeParseFailed(
+    const notice = await markResumeParseFailed(
       JOB,
       toParseErrorJson(new PdfInvalid({ message: friendly, reason: "scanned-empty" })),
       ENV,
@@ -326,28 +321,67 @@ describe("markResumeParseFailed", () => {
     expect(JSON.parse(String(mocks.state.updateSets[1].lastAttemptError))).toMatchObject({
       type: ParseErrorType.INVALID_PDF,
     });
+    expect(notice).toMatchObject({ waitingIds: ["waiting-1", "waiting-2"] });
+  });
 
-    for (const resumeId of ["waiting-1", "waiting-2"]) {
+  it("returns nothing to announce when the row is gone or already completed", async () => {
+    const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
+    mocks.state.updateReturning.push([]);
+
+    await expect(
+      markResumeParseFailed(
+        JOB,
+        toParseErrorJson(new UnknownParseFailure({ message: "boom" })),
+        ENV,
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(mocks.state.updateSets).toHaveLength(1);
+  });
+});
+
+describe("announceResumeParseFailure", () => {
+  const failure = toParseErrorJson(new UnknownParseFailure({ message: "failure" }));
+
+  it("notifies the row and its waiting rows, then alerts with the attempt count", async () => {
+    const { announceResumeParseFailure } = await import("@/lib/parse/pipeline");
+
+    await announceResumeParseFailure(
+      JOB,
+      { failure, totalAttempts: 4, waitingIds: ["waiting-1", "waiting-2"] },
+      ENV,
+    );
+
+    for (const resumeId of [JOB.resumeId, "waiting-1", "waiting-2"]) {
       expect(mocks.notifyStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({ resumeId, status: "failed" }),
       );
     }
 
     expect(mocks.sendAlert).toHaveBeenCalledTimes(1);
-  });
-
-  it("does nothing more when the row is gone or already completed", async () => {
-    const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
-    mocks.state.updateReturning.push([]);
-
-    await markResumeParseFailed(
-      JOB,
-      toParseErrorJson(new UnknownParseFailure({ message: "boom" })),
+    expect(mocks.sendAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ resumeId: JOB.resumeId, totalAttempts: 4 }),
+      "logpush",
       ENV,
     );
+  });
 
-    expect(mocks.notifyStatusChange).not.toHaveBeenCalled();
-    expect(mocks.sendAlert).not.toHaveBeenCalled();
+  it("still alerts when notifications reject, and resolves when alerting rejects", async () => {
+    const { announceResumeParseFailure } = await import("@/lib/parse/pipeline");
+    mocks.notifyStatusChange
+      .mockRejectedValueOnce(new Error("DO unavailable"))
+      .mockRejectedValueOnce(new Error("DO unavailable"));
+    mocks.sendAlert.mockRejectedValueOnce(new Error("webhook unavailable"));
+
+    await expect(
+      announceResumeParseFailure(
+        JOB,
+        { failure, totalAttempts: 4, waitingIds: ["waiting-1"] },
+        ENV,
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(mocks.sendAlert).toHaveBeenCalled();
   });
 });
 
@@ -413,23 +447,5 @@ describe("typed parse failure boundaries", () => {
       return Effect.fail(failure);
     });
     await expect(Effect.runPromise(parseResumePdf(JOB, ENV))).rejects.toBe(failure);
-  });
-
-  it("finishes terminal updates even when notifications and alerting reject", async () => {
-    const { markResumeParseFailed } = await import("@/lib/parse/pipeline");
-    mocks.state.updateReturning.push([{ totalAttempts: 4 }], [{ id: "waiting-1" }]);
-    mocks.notifyStatusChange
-      .mockRejectedValueOnce(new Error("DO unavailable"))
-      .mockRejectedValueOnce(new Error("DO unavailable"));
-    mocks.sendAlert.mockRejectedValueOnce(new Error("webhook unavailable"));
-    await expect(
-      markResumeParseFailed(
-        JOB,
-        toParseErrorJson(new UnknownParseFailure({ message: "failure" })),
-        ENV,
-      ),
-    ).resolves.toBeUndefined();
-    expect(mocks.state.updateSets).toHaveLength(2);
-    expect(mocks.sendAlert).toHaveBeenCalled();
   });
 });

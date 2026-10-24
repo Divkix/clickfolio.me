@@ -2,6 +2,9 @@ import { log } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
 import type { UnknownRecord } from "../types/json";
 
+// The webhook is best-effort and runs in its own at-most-once step; a hung receiver must not hold it.
+const WEBHOOK_TIMEOUT_MS = 5_000;
+
 export type AlertChannel = "logpush" | "webhook";
 
 export interface ParseFailureAlert extends UnknownRecord {
@@ -41,6 +44,8 @@ export async function sendAlert(
         try {
           const response = await fetch(webhookUrl, {
             method: "POST",
+            // A hung webhook must not outlive the workflow step that sent it.
+            signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               text: `Resume parsing permanently failed`,
