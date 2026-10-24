@@ -141,6 +141,7 @@ describe("Effect AI boundaries", () => {
     expect(failure.retryable).toBe(true);
     expect(signal?.aborted).toBe(true);
     expect(generateText).toHaveBeenCalledTimes(1);
+    expect(generateText).toHaveBeenCalledWith(expect.objectContaining({ maxRetries: 0 }));
     expect(mocks.logEvent).toHaveBeenCalledWith(
       "ai_generation_failed",
       { model: "test", errorType: "AiTimedOut", duration_ms: expect.any(Number) },
