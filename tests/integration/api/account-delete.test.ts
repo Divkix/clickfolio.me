@@ -73,7 +73,8 @@ vi.mock("@/lib/utils/revalidate", () => ({
 }));
 
 vi.mock("@/lib/seo/indexnow-runtime", () => ({
-  notifyIndexNowForProfiles: (handles: unknown[]) => mocks.indexNow(handles),
+  notifyIndexNowForProfiles: (handles: unknown[], options?: { skipDebounce?: boolean }) =>
+    mocks.indexNow(handles, options),
 }));
 
 function fakeBucket() {
@@ -223,7 +224,7 @@ describe("POST /api/account/delete", () => {
     expect(bucket.objects.has("users/bob/r-bob/cv.pdf")).toBe(true);
     expect(mocks.workflowCreate).not.toHaveBeenCalled();
     expect(mocks.revalidate).toHaveBeenCalledWith(["handle-alice"]);
-    expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice"], { skipDebounce: true });
   });
 
   it("keeps the local account and its files when Clerk deletion fails, so a retry works", async () => {
