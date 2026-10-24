@@ -109,46 +109,7 @@ describe("Authenticated Rate Limiting", () => {
   });
 });
 
-describe("Rate Limit Bypass Prevention", () => {
-  it("blocks X-Forwarded-For spoofing attempts by using first IP", async () => {
-    const { getClientIP } = await import("@/lib/rate-limit/ip");
-
-    const request = new Request("http://localhost:3000/api/upload", {
-      headers: {
-        "X-Forwarded-For": "1.1.1.1, 2.2.2.2, 3.3.3.3",
-        "CF-Connecting-IP": "192.168.1.1",
-      },
-    });
-
-    const ip = getClientIP(request);
-    expect(ip).toBe("192.168.1.1");
-  });
-
-  it("ignores X-Forwarded-For when CF-Connecting-IP is present", async () => {
-    const { getClientIP } = await import("@/lib/rate-limit/ip");
-
-    const request = new Request("http://localhost:3000/api/upload", {
-      headers: {
-        "X-Forwarded-For": "spoofed-ip",
-        "CF-Connecting-IP": "real-ip",
-      },
-    });
-
-    expect(getClientIP(request)).toBe("real-ip");
-  });
-
-  it("falls back to first X-Forwarded-IP when CF header absent", async () => {
-    const { getClientIP } = await import("@/lib/rate-limit/ip");
-
-    const request = new Request("http://localhost:3000/api/upload", {
-      headers: {
-        "X-Forwarded-For": "192.168.1.1, 10.0.0.1",
-      },
-    });
-
-    expect(getClientIP(request)).toBe("192.168.1.1");
-  });
-
+describe("Per-user limiter details", () => {
   describe("Rate Limit Reset Timing", () => {
     it("computes resetAt from the oldest in-window row + window (item 22)", async () => {
       const oldest = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();

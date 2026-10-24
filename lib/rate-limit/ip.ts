@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { and, eq, gte, sql } from "drizzle-orm";
+import { z } from "zod";
 import { Db } from "@/lib/effect/db";
 import {
   RateLimited,
@@ -25,6 +26,8 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 const UNAVAILABLE_RETRY_SECONDS = 60;
+
+const UNKNOWN_IP = "unknown";
 
 const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
 
@@ -255,16 +258,25 @@ export function checkHandleRateLimitEffect(ip: string) {
   return admit(handleCheckDecision(ip));
 }
 
+const clientIpSchema = z.union([z.ipv4(), z.ipv6()]);
+
+/** Header text is attacker-controlled: anything that is not an IP address shares one bucket. */
+function ipOrUnknown(raw: string): string {
+  const parsed = clientIpSchema.safeParse(raw.trim());
+
+  return parsed.success ? parsed.data : UNKNOWN_IP;
+}
+
 export function getClientIP(request: Request): string {
   const cfIP = request.headers.get("cf-connecting-ip");
 
-  if (cfIP) return cfIP;
+  if (cfIP) return ipOrUnknown(cfIP);
 
   const forwarded = request.headers.get("x-forwarded-for");
 
-  if (forwarded) return forwarded.split(",")[0].trim();
+  if (forwarded) return ipOrUnknown(forwarded.split(",")[0]);
 
-  return "unknown";
+  return UNKNOWN_IP;
 }
 
 function toResult(decision: Decision): IPRateLimitResult {
