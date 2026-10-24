@@ -1,3 +1,4 @@
+import { publicProfileTargets } from "@/lib/cache/public-profile-paths";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { revalidatePath } from "next/cache";
@@ -17,15 +18,10 @@ export function revalidatePublicProfilePages(
   handles: ReadonlyArray<string | null | undefined>,
 ): void {
   try {
-    revalidatePath("/explore");
-
-    for (const handle of handles) {
-      if (handle) revalidatePath(`/@${handle}`);
+    for (const { path, type } of publicProfileTargets(handles)) {
+      if (type) revalidatePath(path, type);
+      else revalidatePath(path);
     }
-
-    // Every /examples/<slug> page lists directory profiles.
-    revalidatePath("/examples/[slug]", "page");
-    revalidatePath("/sitemap.xml");
   } catch (error) {
     log("error", "Failed to revalidate public profile pages", { ...errorFields(error) });
   }
