@@ -173,7 +173,7 @@ describe("POST /api/upload", () => {
   });
 
   it("answers 400 when the client drops the body mid-upload", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const body = new ReadableStream<Uint8Array>({
       pull(controller) {
@@ -195,8 +195,13 @@ describe("POST /api/upload", () => {
 
     const { POST } = await import("@/app/api/upload/route");
     const response = await POST(request);
+    const responseBody = JSON.stringify(await response.json());
 
     expect(response.status).toBe(400);
+    expect(responseBody).not.toContain("client went away");
+    expect(logLines(warn)).toContainEqual(
+      expect.objectContaining({ failure: "InvalidInput", "error.message": "client went away" }),
+    );
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
 });
