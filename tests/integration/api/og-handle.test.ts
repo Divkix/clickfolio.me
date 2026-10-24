@@ -132,8 +132,13 @@ describe("GET /api/og/[handle]", () => {
     expect(mocks.log).toHaveBeenCalledWith(
       "error",
       "request failed",
-      expect.objectContaining({ failure: "DbFailed", operation: "og.profile" }),
+      expect.objectContaining({
+        failure: "DbFailed",
+        operation: "og.profile",
+        path: "/api/og/[handle]",
+      }),
     );
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("/api/og/live");
   });
 
   it("answers 503 when the database never answers", async () => {

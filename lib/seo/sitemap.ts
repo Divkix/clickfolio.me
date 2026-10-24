@@ -202,8 +202,8 @@ export function getTotalIndexableUserCount(): Effect.Effect<number, DbFailed | D
 const SITEMAP_RETRY_AFTER_SECONDS = 300;
 
 /** The 503 for a sitemap request whose database read failed; route programs pipe failures here. */
-export function sitemapUnavailable(path: string) {
-  return retryLater(path, "Sitemap temporarily unavailable", SITEMAP_RETRY_AFTER_SECONDS);
+export function sitemapUnavailable(route: string) {
+  return retryLater(route, "Sitemap temporarily unavailable", SITEMAP_RETRY_AFTER_SECONDS);
 }
 
 export function buildSitemapIndexXml(shardCount: number): string {
