@@ -169,8 +169,12 @@ function deleteAccount(request: Request, { user: authUser, dbUser }: Authenticat
       // Failed keys retry in R2DeleteWorkflow; the warning tells the caller they are not gone yet.
       const failedKeys = yield* deleteInline([...knownKeys]);
 
-      for (const key of failedKeys) {
-        warnings.push({ type: "r2", message: `Failed to delete file: ${key}` });
+      // A count, not the keys: they end in the uploaded file name.
+      if (failedKeys.length > 0) {
+        warnings.push({
+          type: "r2",
+          message: `${failedKeys.length} stored ${failedKeys.length === 1 ? "file" : "files"} could not be deleted yet and will be retried.`,
+        });
       }
     }
 

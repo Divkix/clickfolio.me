@@ -327,6 +327,25 @@ describe("POST /api/account/delete", () => {
     expect(params.keys).toContain("users/alice/r-alice/cv.pdf");
   });
 
+  it("reports files that could not be deleted yet by count, never by key", async () => {
+    await seedAliceFiles();
+    bucket.failDeletes = true;
+
+    const { POST } = await import("@/app/api/account/delete/route");
+    const response = await POST(deletion());
+    const text = await response.text();
+
+    expect(response.status).toBe(200);
+    // Keys end in the uploaded file name: they must not leave the server.
+    expect(text).not.toContain("users/alice");
+    expect(text).not.toContain("cv.pdf");
+    expect(JSON.parse(text)).toMatchObject({
+      warnings: [
+        { type: "r2", message: "2 stored files could not be deleted yet and will be retried." },
+      ],
+    });
+  });
+
   it("sweeps the prefix in the workflow when listing the bucket fails", async () => {
     await seedAliceFiles();
     bucket.failList = true;
