@@ -246,6 +246,35 @@ describe("Worker fetch handler", () => {
     expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("tampered-or-expired-jwt");
   });
 
+  it("treats an undecodable __session cookie as no session instead of throwing", async () => {
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "theme=dark; __session=%E0%A4%A" }),
+      makeEnv(),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized: Invalid session");
+    expect(vi.mocked(verifyClerkToken)).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the Authorization header when the __session cookie is undecodable", async () => {
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
+
+    const response = await worker.fetch(
+      makeWsRequest({
+        Cookie: "__session=%E0%A4%A",
+        Authorization: "Bearer jwt.for.clerk-user-1",
+      }),
+      makeEnv(),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1");
+  });
+
   it("authenticates via the Authorization Bearer header", async () => {
     const env = makeEnv();
     mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
