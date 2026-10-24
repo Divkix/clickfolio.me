@@ -90,7 +90,7 @@ function primaryEmailOf(payload: ClerkUserPayload): {
 
   return {
     email: primary.email_address,
-    verified: primary.verification?.status === "complete",
+    verified: primary.verification?.status === "verified",
   };
 }
 
