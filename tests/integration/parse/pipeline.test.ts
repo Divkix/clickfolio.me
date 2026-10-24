@@ -242,10 +242,14 @@ describe("claimResumeForParse", () => {
   });
 
   it("completes from an identical earlier parse without calling the AI", async () => {
+    await db.update(user).set({ handle: "ada" }).where(eq(user.id, JOB.userId));
     await seed("earlier", { status: "completed", parsedContent: CONTENT });
     await seed(JOB.resumeId, { status: "queued" });
 
-    await expect(run(claimResumeForParse(JOB))).resolves.toBe("cached");
+    await expect(run(claimResumeForParse(JOB))).resolves.toEqual({
+      kind: "cached",
+      handles: ["ada"],
+    });
 
     expect(await row(JOB.resumeId)).toMatchObject({
       status: "completed",

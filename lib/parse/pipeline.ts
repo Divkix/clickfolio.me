@@ -101,8 +101,9 @@ function logAndDrop(message: string, fields: UnknownRecord) {
 }
 
 /**
- * Moves the row to `processing`, or completes it from an identical earlier parse.
- * `skipped` means the row is gone, already completed, or not in a parseable state.
+ * Moves the row to `processing`, or completes it from an identical earlier parse (`cached`, with
+ * the handles that completion rewrote). `skipped` means the row is gone, already completed, or
+ * not in a parseable state.
  */
 export function claimResumeForParse(job: ResumeParseJob) {
   return Effect.gen(function* () {
@@ -170,14 +171,14 @@ export function claimResumeForParse(job: ResumeParseJob) {
 
     if (cached[0]?.parsedContent) {
       // Same user + same file: career was already classified on the original parse.
-      yield* completeResumes({
+      const handles = yield* completeResumes({
         items: [{ resumeId: job.resumeId, userId: job.userId }],
         // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
         parsedContent: cached[0].parsedContent as ResumeContent,
         retryCount: job.retryCount,
       });
 
-      return "cached" as const;
+      return { kind: "cached" as const, handles };
     }
 
     yield* notifyStatusBestEffort({ resumeId: job.resumeId, status: "processing" });

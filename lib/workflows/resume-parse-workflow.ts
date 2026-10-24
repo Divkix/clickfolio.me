@@ -43,6 +43,13 @@ import { withSpan } from "../telemetry/spans";
 // An instance started by the previous deploy journaled `complete` with no output; it replays as [].
 const journaledHandles = z.array(z.string()).catch([]);
 
+// A cache hit completes the row inside the claim step and carries the handles it rewrote. An
+// instance started by the previous deploy journaled it as the bare string "cached", without them.
+const journaledClaim = z.union([
+  z.object({ kind: z.literal("cached"), handles: z.array(z.string()) }),
+  z.enum(["skipped", "parse", "cached"]).transform((kind) => ({ kind, handles: [] })),
+]);
+
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
   timeout: "1 minute",
@@ -172,9 +179,17 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
       retryCount: params.retryCount,
     };
 
-    const claim = await tracedStep("claim", DB_STEP, () => this.exec(claimResumeForParse(job)));
+    const claim = journaledClaim.parse(
+      await tracedStep("claim", DB_STEP, () => this.exec(claimResumeForParse(job))),
+    );
 
-    if (claim !== "parse") return claim;
+    if (claim.kind === "cached") {
+      await this.refreshPublicPages(claim.handles, tracedStep);
+
+      return "cached";
+    }
+
+    if (claim.kind !== "parse") return claim.kind;
 
     let failedDuringParse = true;
     let currentFailure: ParseErrorJson | null = null;
