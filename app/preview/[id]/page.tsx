@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DEMO_RESUME_CONTENT } from "@/lib/templates/demo-data";
-import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-profiles";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { isValidThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { cn } from "@/lib/utils/cn";
@@ -22,7 +22,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
   const content = DEMO_RESUME_CONTENT[id];
 
   const Template = await getTemplate(id);
-  const bg = TEMPLATE_BACKGROUNDS[id];
+  const bg = THEME_CHROME[id].background;
 
   const profile = {
     avatar_url: null,

@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-profiles";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { THEME_IDS, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import type { ApiErrorBody } from "@/lib/types/api";
@@ -98,7 +98,7 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
   }
 
   const SelectedTemplate = DYNAMIC_TEMPLATES[selectedTheme];
-  const bgConfig = TEMPLATE_BACKGROUNDS[selectedTheme];
+  const bgConfig = THEME_CHROME[selectedTheme].background;
   const hasChanges = selectedTheme !== savedTheme;
 
   return (
