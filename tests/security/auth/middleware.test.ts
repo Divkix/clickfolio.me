@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { env } from "cloudflare:workers";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { user as userTable } from "@/lib/db/schema";
+import { ClerkFailed } from "@/lib/effect/failures";
 import { CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
@@ -95,6 +96,11 @@ beforeEach(() => {
     iat: Math.floor(Date.now() / 1000),
   });
 });
+
+// What @clerk/backend throws for a token it rejects: a TokenVerificationError with a `reason`.
+function tokenError(reason: string): Error {
+  return Object.assign(new Error(`Clerk rejected the token (${reason})`), { reason });
+}
 
 interface PgRow {
   id: string;
@@ -239,7 +245,7 @@ describe("Authentication Middleware Security", () => {
 
     it("rejects tampered cookies instead of falling back to DB data", async () => {
       sessionCookieValue = "tampered-jwt-payload";
-      mockVerifyToken.mockRejectedValue(new Error("JWT signature verification failed"));
+      mockVerifyToken.mockRejectedValue(tokenError("token-invalid-signature"));
       mockDb.setRows([pgRow({ email: "attacker@test.com" })]);
 
       const result = await requireAuthWithUserValidation("You must be logged in");
@@ -252,7 +258,7 @@ describe("Authentication Middleware Security", () => {
   describe("Session Expiration Handling", () => {
     it("rejects an expired Clerk session JWT", async () => {
       sessionCookieValue = "expired-clerk-jwt";
-      mockVerifyToken.mockRejectedValue(new Error("JWT has expired"));
+      mockVerifyToken.mockRejectedValue(tokenError("token-expired"));
 
       const result = await requireAuthWithMessage("You must be logged in");
 
@@ -335,7 +341,7 @@ describe("Authentication Middleware Security", () => {
   describe("Session Token Format Validation", () => {
     it("rejects non-JWT garbage in the __session cookie", async () => {
       sessionCookieValue = "valid-token-format-12345";
-      mockVerifyToken.mockRejectedValue(new Error("Invalid session token format"));
+      mockVerifyToken.mockRejectedValue(tokenError("token-invalid"));
 
       const result = await requireAuthWithMessage("You must be logged in");
 
@@ -355,7 +361,7 @@ describe("Authentication Middleware Security", () => {
 
     it("blocks malformed session tokens", async () => {
       sessionCookieValue = "invalid-token";
-      mockVerifyToken.mockRejectedValue(new Error("Invalid token"));
+      mockVerifyToken.mockRejectedValue(tokenError("token-invalid"));
 
       const result = await requireAuthWithMessage("You must be logged in");
 
@@ -374,7 +380,7 @@ describe("Authentication Middleware Security", () => {
   describe("JWT Signature Validation", () => {
     it("rejects tampered JWT signatures", async () => {
       sessionCookieValue = "jwt-with-modified-payload";
-      mockVerifyToken.mockRejectedValue(new Error("Invalid signature"));
+      mockVerifyToken.mockRejectedValue(tokenError("token-invalid-signature"));
 
       const result = await requireAuthWithMessage("You must be logged in");
 
@@ -383,7 +389,7 @@ describe("Authentication Middleware Security", () => {
 
     it("rejects JWTs signed with an unexpected algorithm", async () => {
       sessionCookieValue = "jwt-with-alg-none";
-      mockVerifyToken.mockRejectedValue(new Error("Invalid algorithm"));
+      mockVerifyToken.mockRejectedValue(tokenError("token-invalid-algorithm"));
 
       const result = await requireAuthWithMessage("You must be logged in");
 
@@ -404,17 +410,18 @@ describe("Authentication Middleware Security", () => {
   });
 
   describe("Fail-Closed Behavior", () => {
-    it("fails closed with 401 when Clerk credentials are unconfigured (auth service throws)", async () => {
+    it("fails closed with a ClerkFailed, not a sign-out, when Clerk credentials are unconfigured", async () => {
       Reflect.deleteProperty(env, "CLERK_SECRET_KEY");
 
       try {
         sessionCookieValue = "otherwise-valid-jwt";
         mockDb.setRows([pgRow()]);
 
-        const result = await requireAuthWithMessage("You must be logged in");
-
-        expect(result.error?.status).toBe(401);
-        expect(result.user).toBeNull();
+        await expect(requireAuthWithMessage("You must be logged in")).rejects.toBeInstanceOf(
+          ClerkFailed,
+        );
+        expect(mockVerifyToken).not.toHaveBeenCalled();
+        expect(mockDb.select).not.toHaveBeenCalled();
       } finally {
         env.CLERK_SECRET_KEY = "sk_test_clickfolio_secret";
       }

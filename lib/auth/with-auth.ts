@@ -4,10 +4,16 @@
  * Next.js) has unproven route detection for const-exported handlers.
  */
 
+import { env } from "cloudflare:workers";
+import { Effect } from "effect";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
-import { requireAdminAuthForApi } from "@/lib/auth/admin";
+import { authenticateAdmin, requireAdminAuthForApi, type AdminUser } from "@/lib/auth/admin";
+import { authenticate, type AuthenticatedUser } from "@/lib/auth/clerk";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { runRoute } from "@/lib/effect/edges";
+import type { ServerFailure } from "@/lib/effect/failures";
+import { appLayer, type AppServices } from "@/lib/effect/layers";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
 type AuthedUserContext = Omit<
@@ -83,4 +89,28 @@ export async function withAdmin(
 
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }
+}
+
+// --- Effect entry points -----------------------------------------------------------------
+// The handler is an Effect: it reads Postgres through the `Db` service and fails with a tagged
+// error instead of building a Response for each failure. `withUser` / `withAdmin` above stay for
+// routes that have not moved yet. Services a route needs beyond these join `appLayer`.
+
+export function withUserEffect(
+  request: Request | undefined,
+  handler: (context: AuthenticatedUser) => Effect.Effect<Response, ServerFailure, AppServices>,
+  unauthorizedMessage: string = DEFAULT_UNAUTHORIZED_MESSAGE,
+): Promise<Response> {
+  const program = authenticate({ unauthorizedMessage }).pipe(Effect.flatMap(handler));
+
+  return runRoute(request, program, appLayer(env));
+}
+
+export function withAdminEffect(
+  request: Request | undefined,
+  handler: (context: { user: AdminUser }) => Effect.Effect<Response, ServerFailure, AppServices>,
+): Promise<Response> {
+  const program = authenticateAdmin().pipe(Effect.flatMap((user) => handler({ user })));
+
+  return runRoute(request, program, appLayer(env));
 }
