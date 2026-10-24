@@ -399,7 +399,7 @@ function EducationSection({
   );
 }
 
-export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
+export const DevTerminal: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, summary, experience, education, skills, projects, certifications } = content;
   const tabs = buildTabs(content);
 
@@ -456,7 +456,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 handle={profile.handle}
                 title={`${full_name}'s Portfolio`}
                 name={full_name}
-                variant="dev-terminal"
+                styles={share}
               />
             </footer>
           </div>

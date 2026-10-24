@@ -406,7 +406,7 @@ function GlassEducation({
   );
 }
 
-export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPreview, share }) => {
   const visible = {
     about: true,
     experience: Boolean(content.experience?.length),
@@ -531,7 +531,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
               handle={profile.handle}
               title={`${content.full_name}'s portfolio`}
               name={content.full_name}
-              variant="glass-morphic"
+              styles={share}
             />
             <p suppressHydrationWarning>
               &copy; {currentYear()} {content.full_name}

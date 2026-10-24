@@ -387,7 +387,7 @@ function CredentialsWindow({
   );
 }
 
-export const RetroOS: React.FC<TemplateProps> = ({ content, profile }) => {
+export const RetroOS: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, experience, projects, education, skills, certifications } = content;
   const skillGroups = skills?.filter((group) => group.items.some(Boolean)) ?? [];
   const hasExperience = experience.length > 0;
@@ -495,7 +495,7 @@ export const RetroOS: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="retro-os"
+              styles={share}
             />
           </div>
           <p

@@ -58,7 +58,7 @@ function TopBar({ content, handle }: { content: Content; handle: string }) {
   );
 }
 
-function Hero({ content, profile }: TemplateProps) {
+function Hero({ content, profile }: Pick<TemplateProps, "content" | "profile">) {
   const links = getContactLinks(content.contact).filter((link) => link.type !== "location");
 
   return (
@@ -368,7 +368,7 @@ function EducationAndCerts({
   );
 }
 
-export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
+export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const flatSkills = flattenSkills(content.skills);
   const education = content.education ?? [];
   const certifications = content.certifications ?? [];
@@ -403,7 +403,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
             handle={profile.handle}
             title={`${content.full_name}'s Portfolio`}
             name={content.full_name}
-            variant="neo-brutalist"
+            styles={share}
           />
         </footer>
 

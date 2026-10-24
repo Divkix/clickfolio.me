@@ -1,63 +1,27 @@
 "use client";
 
-import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
-import {
-  DEFAULT_SHARE_VARIANT,
-  shareItemStyles,
-  sharePanelStyles,
-  shareTriggerStyles,
-} from "@/lib/templates/share-variants";
+import type { ThemeChrome } from "@/lib/templates/theme-chrome";
 import { cn } from "@/lib/utils/cn";
 import { isWebShareSupported } from "@/lib/utils/share";
-import { getLinkedInIconVariant, useShareActions } from "@/lib/utils/share-actions";
+import { useShareActions } from "@/lib/utils/share-actions";
 
-const triggerVariants = cva(
-  "inline-flex items-center gap-2 px-3 py-2 rounded-full border shadow-lg transition-colors duration-200",
-  {
-    variants: {
-      variant: shareTriggerStyles,
-    },
-    defaultVariants: {
-      variant: DEFAULT_SHARE_VARIANT,
-    },
-  },
-);
-
-const panelVariants = cva(
-  "absolute left-full bottom-0 ml-3 w-56 p-2 rounded-xl border shadow-xl animate-fade-in-up",
-  {
-    variants: {
-      variant: sharePanelStyles,
-    },
-    defaultVariants: {
-      variant: DEFAULT_SHARE_VARIANT,
-    },
-  },
-);
-
-const itemVariants = cva(
-  "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-  {
-    variants: {
-      variant: shareItemStyles,
-    },
-    defaultVariants: {
-      variant: DEFAULT_SHARE_VARIANT,
-    },
-  },
-);
-
-interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
+interface SharePopoverProps {
+  styles: ThemeChrome["share"];
   handle?: string;
   title: string;
   name: string;
   className?: string;
 }
 
-export function SharePopover({ handle, title, name, variant, className }: SharePopoverProps) {
+export function SharePopover({ handle, title, name, styles, className }: SharePopoverProps) {
+  const itemClassName = cn(
+    "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+    styles.item,
+  );
+
   const [open, setOpen] = useState(false);
   const popoverId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -117,7 +81,10 @@ export function SharePopover({ handle, title, name, variant, className }: ShareP
       <button
         type="button"
         onClick={handleToggle}
-        className={cn(triggerVariants({ variant }))}
+        className={cn(
+          "inline-flex items-center gap-2 px-3 py-2 rounded-full border shadow-lg transition-colors duration-200",
+          styles.trigger,
+        )}
         aria-label="Share this portfolio"
         aria-expanded={open}
         aria-controls={popoverId}
@@ -133,14 +100,17 @@ export function SharePopover({ handle, title, name, variant, className }: ShareP
           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom popover; dialog element would require different focus management
           role="dialog"
           aria-label="Share options"
-          className={cn(panelVariants({ variant }))}
+          className={cn(
+            "absolute left-full bottom-0 ml-3 w-56 p-2 rounded-xl border shadow-xl animate-fade-in-up",
+            styles.panel,
+          )}
         >
           <div className="flex flex-col gap-2">
             {hasWebShare && (
               <button
                 type="button"
                 onClick={handleNativeShare}
-                className={cn(itemVariants({ variant }))}
+                className={itemClassName}
                 aria-label="Share this page"
               >
                 <Share2 className="size-4" aria-hidden="true" />
@@ -150,7 +120,7 @@ export function SharePopover({ handle, title, name, variant, className }: ShareP
             <button
               type="button"
               onClick={handleTwitterShare}
-              className={cn(itemVariants({ variant }))}
+              className={itemClassName}
               aria-label="Share on X (Twitter)"
             >
               <XIcon className="size-4" aria-hidden="true" />
@@ -159,20 +129,16 @@ export function SharePopover({ handle, title, name, variant, className }: ShareP
             <button
               type="button"
               onClick={handleLinkedInShare}
-              className={cn(itemVariants({ variant }))}
+              className={itemClassName}
               aria-label="Share on LinkedIn"
             >
-              <LinkedInIcon
-                variant={getLinkedInIconVariant(variant)}
-                className="size-4"
-                aria-hidden={true}
-              />
+              <LinkedInIcon variant={styles.linkedInIcon} className="size-4" aria-hidden={true} />
               <span>LinkedIn</span>
             </button>
             <button
               type="button"
               onClick={handleWhatsAppShare}
-              className={cn(itemVariants({ variant }))}
+              className={itemClassName}
               aria-label="Share on WhatsApp"
             >
               <WhatsAppIcon className="size-4" aria-hidden="true" />
@@ -181,7 +147,7 @@ export function SharePopover({ handle, title, name, variant, className }: ShareP
             <button
               type="button"
               onClick={handleCopyLink}
-              className={cn(itemVariants({ variant }))}
+              className={itemClassName}
               aria-label={copied ? "Link copied" : "Copy link"}
             >
               {copied ? (

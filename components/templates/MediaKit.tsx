@@ -71,7 +71,7 @@ function Section({
   );
 }
 
-export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
+export const MediaKit: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -466,7 +466,7 @@ export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
                 handle={profile.handle}
                 title={`${full_name}'s Portfolio`}
                 name={full_name}
-                variant="media-kit"
+                styles={share}
               />
             </div>
           </div>

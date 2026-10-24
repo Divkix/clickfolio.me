@@ -14,7 +14,7 @@ function Heading({ children }: { children: React.ReactNode }) {
   return <h2 className="sb-h2">{children}</h2>;
 }
 
-export const Scrapbook: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Scrapbook: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -311,7 +311,7 @@ export const Scrapbook: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="scrapbook"
+              styles={share}
             />
           </footer>
         </div>

@@ -1,17 +1,12 @@
-"use client";
-
 import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
-import { THEME_CHROME } from "@/lib/templates/theme-chrome";
-import type { ThemeId } from "@/lib/templates/theme-ids";
+import type { ThemeChrome } from "@/lib/templates/theme-chrome";
 
 interface AttributionWidgetProps {
-  theme: ThemeId;
+  styles: ThemeChrome["attribution"];
 }
 
-export function AttributionWidget({ theme }: AttributionWidgetProps) {
-  const currentTheme = THEME_CHROME[theme].attribution;
-
+export function AttributionWidget({ styles: currentTheme }: AttributionWidgetProps) {
   return (
     <Link
       href="/"

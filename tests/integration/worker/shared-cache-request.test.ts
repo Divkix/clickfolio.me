@@ -50,7 +50,7 @@ describe("withoutProfileCredentials", () => {
     expect(stripped.headers.get("cookie")).toBeNull();
   });
 
-  it.each(["/dashboard", "/api/profile/me", "/themes", "/ws/resume-status", "/alice"])(
+  it.each(["/dashboard", "/api/site-data", "/themes", "/ws/resume-status", "/alice"])(
     "keeps the session on %s",
     (path) => {
       const request = new Request(`https://clickfolio.me${path}`, { headers: signedIn });

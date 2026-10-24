@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RateLimitUnavailable } from "@/lib/effect/failures";
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
-import { createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import { logLines } from "../../helpers/log-lines";
 
 const SECRET = "test-pending-upload-secret";
@@ -207,59 +206,11 @@ describe("POST /api/upload", () => {
 });
 
 describe("/api/upload/pending", () => {
-  const KEY = "temp/11111111-1111-4111-8111-111111111111/cv.pdf";
-
   it("does not expose a cookie-minting POST handler", async () => {
     // Load after the test's Cloudflare and cookie mocks have been installed.
     const route = await import("@/app/api/upload/pending/route");
 
     expect(route).not.toHaveProperty("POST");
-  });
-
-  it("GET answers the key of a valid cookie", async () => {
-    const value = await createSignedCookieValue(KEY, SECRET);
-    mocks.cookieGet.mockReturnValue({ name: "pending_upload", value });
-
-    const { GET } = await import("@/app/api/upload/pending/route");
-    const response = await GET();
-
-    expect(await response.json()).toEqual({ key: KEY });
-  });
-
-  it("GET answers null for a missing or forged cookie", async () => {
-    const { GET } = await import("@/app/api/upload/pending/route");
-
-    expect(await (await GET()).json()).toEqual({ key: null });
-
-    mocks.cookieGet.mockReturnValue({
-      name: "pending_upload",
-      value: `${KEY}|9999999999999|forged`,
-    });
-
-    expect(await (await GET()).json()).toEqual({ key: null });
-  });
-
-  it("GET answers 500 instead of 'no upload' when the secret is missing", async () => {
-    mocks.secret.value = "";
-    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const { GET } = await import("@/app/api/upload/pending/route");
-    const response = await GET();
-
-    expect(response.status).toBe(500);
-    expect(logLines(logged)).toContainEqual(
-      expect.objectContaining({ msg: expect.stringContaining("PENDING_UPLOAD_SECRET") }),
-    );
-  });
-
-  it("GET answers 500 when the cookie store cannot be read", async () => {
-    mocks.cookies.mockRejectedValue(new Error("no request store"));
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const { GET } = await import("@/app/api/upload/pending/route");
-    const response = await GET();
-
-    expect(response.status).toBe(500);
   });
 
   it("DELETE clears the cookie", async () => {

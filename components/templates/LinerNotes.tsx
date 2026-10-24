@@ -25,7 +25,7 @@ function coverTypeSize(name: string): string {
   return "clamp(1.25rem, 2.75vw, 2.125rem)";
 }
 
-export const LinerNotes: React.FC<TemplateProps> = ({ content, profile }) => {
+export const LinerNotes: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -283,7 +283,7 @@ export const LinerNotes: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="liner-notes"
+              styles={share}
             />
           </div>
         </footer>

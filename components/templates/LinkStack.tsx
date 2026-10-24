@@ -139,7 +139,7 @@ function Bar({ bar, color }: { bar: BarSpec; color: { bg: string; fg: string } }
   );
 }
 
-export const LinkStack: React.FC<TemplateProps> = ({ content, profile }) => {
+export const LinkStack: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     summary,
@@ -356,7 +356,7 @@ export const LinkStack: React.FC<TemplateProps> = ({ content, profile }) => {
             handle={profile.handle}
             title={`${full_name}'s Portfolio`}
             name={full_name}
-            variant="link-stack"
+            styles={share}
           />
         </footer>
       </div>

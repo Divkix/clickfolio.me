@@ -1,6 +1,6 @@
 import type { ThemeId } from "@/lib/templates/theme-ids";
 
-interface ThemeChrome {
+export interface ThemeChrome {
   cta: { container: string; button: string; closeButton: string };
   attribution: { container: string; accent: string; shimmer: string; shadow: string };
   share: {

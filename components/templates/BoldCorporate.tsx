@@ -266,7 +266,7 @@ function CertificationsSection({
   );
 }
 
-export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
+export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const experience = content.experience ?? [];
   const projects = content.projects ?? [];
   const education = content.education ?? [];
@@ -296,7 +296,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
                   handle={profile.handle}
                   title={`${content.full_name}'s Portfolio`}
                   name={content.full_name}
-                  variant="bold-corporate"
+                  styles={share}
                 />
               </div>
             </div>

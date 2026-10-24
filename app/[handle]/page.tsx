@@ -155,7 +155,7 @@ export default async function HandlePage({ params }: PageProps) {
 
   const Template = await getTemplate(theme_id);
 
-  const shareVariant = THEME_CHROME[theme_id].share.variant;
+  const chrome = THEME_CHROME[theme_id];
   const pageTitle = `${content.full_name}'s Resume`;
 
   return (
@@ -185,6 +185,7 @@ export default async function HandlePage({ params }: PageProps) {
       <main id="main-content">
         <Template
           content={content}
+          share={chrome.share}
           profile={{
             avatar_url: profile.avatar_url,
             handle: profile.handle || handle,
@@ -193,15 +194,15 @@ export default async function HandlePage({ params }: PageProps) {
       </main>
       <OwnerDetector profileId={profile.id} />
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
-        <CreateYoursCTA handle={handle} profileId={profile.id} variant={theme_id} />
+        <CreateYoursCTA handle={handle} profileId={profile.id} styles={chrome.cta} />
       </div>
       <SharePopover
         handle={handle}
         name={content.full_name}
         title={pageTitle}
-        variant={shareVariant}
+        styles={chrome.share}
       />
-      <AttributionWidget theme={theme_id} />
+      <AttributionWidget styles={chrome.attribution} />
     </>
   );
 }

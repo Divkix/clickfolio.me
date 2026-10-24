@@ -4,8 +4,7 @@ import { Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/client";
-import { THEME_CHROME } from "@/lib/templates/theme-chrome";
-import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
+import type { ThemeChrome } from "@/lib/templates/theme-chrome";
 import { cn } from "@/lib/utils/cn";
 import { useDismissable } from "@/hooks/useDismissable";
 
@@ -16,10 +15,10 @@ const SCROLL_THRESHOLD = 0.3;
 interface CreateYoursCTAProps {
   handle: string;
   profileId: string;
-  variant?: ThemeId;
+  styles: ThemeChrome["cta"];
 }
 
-export function CreateYoursCTA({ handle, profileId, variant }: CreateYoursCTAProps) {
+export function CreateYoursCTA({ handle, profileId, styles }: CreateYoursCTAProps) {
   const { data: session } = useSession();
   const [visible, setVisible] = useState(false);
   const [dismissed, dismiss] = useDismissable("cta_dismissed", 7 * 24 * 60 * 60 * 1000);
@@ -68,7 +67,6 @@ export function CreateYoursCTA({ handle, profileId, variant }: CreateYoursCTAPro
   }
 
   const ctaUrl = `/?utm_source=resume&utm_medium=cta&utm_campaign=${encodeURIComponent(handle)}`;
-  const styles = THEME_CHROME[variant ?? DEFAULT_THEME].cta;
 
   return (
     <div

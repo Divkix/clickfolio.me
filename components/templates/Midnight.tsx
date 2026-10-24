@@ -83,7 +83,7 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
   );
 }
 
-function Header({ content, profile }: TemplateProps) {
+function Header({ content, profile }: Pick<TemplateProps, "content" | "profile">) {
   const links = getContactLinks(content.contact).filter((l) => l.type !== "location");
 
   return (
@@ -342,7 +342,7 @@ function Credentials({
   );
 }
 
-export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Midnight: React.FC<TemplateProps> = ({ content, profile, share }) => {
   return (
     <>
       <TemplateFontLinks href={FONT_URL} />
@@ -395,7 +395,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${content.full_name}'s portfolio`}
               name={content.full_name}
-              variant="midnight"
+              styles={share}
             />
             <p suppressHydrationWarning>
               &copy; {currentYear()} {content.full_name}

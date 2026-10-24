@@ -144,7 +144,7 @@ function CertificationsSection({
   );
 }
 
-export const Boardroom: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Boardroom: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const { full_name, headline, summary, contact, experience, projects, education, certifications } =
     content;
 
@@ -260,7 +260,7 @@ export const Boardroom: React.FC<TemplateProps> = ({ content, profile }) => {
                 handle={profile.handle}
                 title={`${full_name}'s Portfolio`}
                 name={full_name}
-                variant="boardroom"
+                styles={share}
               />
             </footer>
           </div>

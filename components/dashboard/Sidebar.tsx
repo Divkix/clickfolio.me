@@ -3,84 +3,22 @@
 import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, Shield, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { useClerk, useSession } from "@/lib/auth/client";
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
 
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
-}
-
-interface UserProfile {
   handle: string | null;
   isAdmin: boolean;
 }
 
-interface ProfileResponse {
-  handle?: string | null;
-  isAdmin?: boolean;
-}
-
-export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
+export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const clerk = useClerk();
 
-  const { data: session, isPending } = useSession();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const lastFetchedRef = useRef<number>(0);
-
-  const STALE_TIME_MS = 30_000;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadProfile() {
-      if (!session?.user?.id) {
-        if (cancelled) return;
-        setProfileLoading(false);
-
-        return;
-      }
-
-      if (profile && Date.now() - lastFetchedRef.current < STALE_TIME_MS) {
-        if (cancelled) return;
-        setProfileLoading(false);
-
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/profile/me");
-
-        if (response.ok) {
-          // SAFETY: ProfileResponse is from our /api/profile/me endpoint; shape validated server-side before use.
-          const data = (await response.json()) as ProfileResponse;
-
-          if (cancelled) return;
-          setProfile({ handle: data.handle ?? null, isAdmin: data.isAdmin ?? false });
-          lastFetchedRef.current = Date.now();
-        }
-      } catch (error) {
-        log("error", "Error loading profile", { ...errorFields(error) });
-      } finally {
-        if (!cancelled) setProfileLoading(false);
-      }
-    }
-
-    if (!isPending) {
-      void loadProfile();
-    }
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- profile intentionally omitted to prevent infinite refetch loop
-  }, [session?.user, isPending, pathname]);
+  const { data: session } = useSession();
 
   const handleLogout = async () => {
     await clerk.signOut();
@@ -99,7 +37,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     return names[0][0].toUpperCase();
   };
 
-  const loading = isPending || profileLoading;
   const user = session?.user;
 
   const navItems = [
@@ -200,11 +137,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             );
           })}
 
-          {(profile?.handle || profile?.isAdmin) && <div className="h-px bg-border mx-3 my-3" />}
+          {(handle || isAdmin) && <div className="h-px bg-border mx-3 my-3" />}
 
-          {profile?.handle && (
+          {handle && (
             <a
-              href={`/@${profile.handle}`}
+              href={`/@${handle}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
@@ -215,7 +152,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </a>
           )}
 
-          {profile?.isAdmin && (
+          {isAdmin && (
             <Link
               href="/admin"
               onClick={() => onClose?.()}
@@ -228,12 +165,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </nav>
 
         <div className="p-3 border-t border-border">
-          {loading ? (
-            <div className="flex items-center gap-3 px-2 py-1.5 animate-pulse">
-              <div className="w-8 h-8 bg-muted rounded-full" />
-              <div className="h-3.5 bg-muted rounded w-24" />
-            </div>
-          ) : user ? (
+          {user ? (
             <div className="flex items-center gap-3 px-2 py-1.5">
               {user.image ? (
                 <img

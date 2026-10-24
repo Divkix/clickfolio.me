@@ -20,7 +20,7 @@ interface Chapter {
   body: React.ReactNode;
 }
 
-export const Manuscript: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Manuscript: React.FC<TemplateProps> = ({ content, profile, share }) => {
   const {
     full_name,
     headline,
@@ -390,7 +390,7 @@ export const Manuscript: React.FC<TemplateProps> = ({ content, profile }) => {
               handle={profile.handle}
               title={`${full_name}'s Portfolio`}
               name={full_name}
-              variant="manuscript"
+              styles={share}
             />
           </div>
         </footer>
