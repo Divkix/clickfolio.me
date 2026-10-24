@@ -1,8 +1,11 @@
+import { Effect } from "effect";
 import { env } from "cloudflare:workers";
 import { count, or, sql } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
-import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
+import type { ServerFailure } from "@/lib/effect/failures";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 import { safePageParam } from "@/lib/utils/pagination";
 
@@ -18,15 +21,12 @@ function escapeLikePattern(input: string): string {
   return input.replace(/[%_!]/g, (char) => `!${char}`);
 }
 
-// react-doctor-disable-next-line nextjs-no-side-effect-in-get-handler -- request-local map built from this query, discarded with the response
-export async function GET(request: Request) {
-  return withAdmin(request, async () => {
+function listUsers(request: Request): Effect.Effect<Response, ServerFailure, Db> {
+  return Effect.gen(function* () {
     const url = new URL(request.url);
     const page = safePageParam(url.searchParams.get("page"));
     const search = url.searchParams.get("search")?.trim() || "";
     const offset = (page - 1) * PAGE_SIZE;
-
-    const db = getDb(env.HYPERDRIVE);
 
     const escapedSearch = escapeLikePattern(search);
 
@@ -42,22 +42,33 @@ export async function GET(request: Request) {
         )
       : undefined;
 
-    const [[totalResult], users] = await Promise.all([
-      db.select({ count: count() }).from(user).where(searchCondition),
-      db
-        .select({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          handle: user.handle,
-          createdAt: user.createdAt,
-        })
-        .from(user)
-        .where(searchCondition)
-        .orderBy(sql`${user.createdAt} DESC`)
-        .limit(PAGE_SIZE)
-        .offset(offset),
-    ]);
+    const [[totalResult], users] = yield* Effect.all(
+      [
+        Db.use((db) =>
+          db.query("admin.users.count", (handle) =>
+            handle.select({ count: count() }).from(user).where(searchCondition),
+          ),
+        ),
+        Db.use((db) =>
+          db.query("admin.users.list", (handle) =>
+            handle
+              .select({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                handle: user.handle,
+                createdAt: user.createdAt,
+              })
+              .from(user)
+              .where(searchCondition)
+              .orderBy(sql`${user.createdAt} DESC`)
+              .limit(PAGE_SIZE)
+              .offset(offset),
+          ),
+        ),
+      ],
+      { concurrency: "unbounded" },
+    );
 
     const userIds = users.map((u) => u.id);
 
@@ -70,34 +81,44 @@ export async function GET(request: Request) {
       });
     }
 
-    const [resumeStatuses, hasSiteData] = await Promise.all([
-      db
-        .select({
-          userId: resumes.userId,
-          status: resumes.status,
-        })
-        .from(resumes)
-        .where(
-          sql`${resumes.userId} IN (${sql.join(
-            userIds.map((id) => sql`${id}`),
-            sql`, `,
-          )})`,
+    const [resumeStatuses, hasSiteData] = yield* Effect.all(
+      [
+        Db.use((db) =>
+          db.query("admin.users.resume-statuses", (handle) =>
+            handle
+              .select({
+                userId: resumes.userId,
+                status: resumes.status,
+              })
+              .from(resumes)
+              .where(
+                sql`${resumes.userId} IN (${sql.join(
+                  userIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`,
+              ),
+          ),
         ),
-
-      db
-        .select({
-          userId: siteData.userId,
-          lastPublishedAt: siteData.lastPublishedAt,
-          previewName: siteData.previewName,
-        })
-        .from(siteData)
-        .where(
-          sql`${siteData.userId} IN (${sql.join(
-            userIds.map((id) => sql`${id}`),
-            sql`, `,
-          )})`,
+        Db.use((db) =>
+          db.query("admin.users.site-data", (handle) =>
+            handle
+              .select({
+                userId: siteData.userId,
+                lastPublishedAt: siteData.lastPublishedAt,
+                previewName: siteData.previewName,
+              })
+              .from(siteData)
+              .where(
+                sql`${siteData.userId} IN (${sql.join(
+                  userIds.map((id) => sql`${id}`),
+                  sql`, `,
+                )})`,
+              ),
+          ),
         ),
-    ]);
+      ],
+      { concurrency: "unbounded" },
+    );
 
     const resumeStatusMap = new Map<string, string>();
 
@@ -164,4 +185,9 @@ export async function GET(request: Request) {
       pageSize: PAGE_SIZE,
     });
   });
+}
+
+// react-doctor-disable-next-line nextjs-no-side-effect-in-get-handler -- request-local map built from this query, discarded with the response
+export async function GET(request: Request) {
+  return withAdmin(request, () => runRoute(request, listUsers(request), Db.layer(env.HYPERDRIVE)));
 }
