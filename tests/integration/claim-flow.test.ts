@@ -678,13 +678,21 @@ describe("POST /api/resume/claim: cookie security", () => {
     expect((await claim({ key: TEMP_KEY }, { cookie })).status).toBe(403);
   });
 
-  it("answers 403 when the cookie key does not match the body key", async () => {
-    const cookie = await createSignedCookieValue("temp/uuid-456/other.pdf", TEST_SECRET);
+  it("answers 403 without echoing either key when the cookie key does not match", async () => {
+    const cookieBoundKey = "temp/uuid-456/other.pdf";
+    const cookie = await createSignedCookieValue(cookieBoundKey, TEST_SECRET);
 
     const response = await claim({ key: TEMP_KEY }, { cookie });
+    const text = await response.text();
 
     expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ error: expect.stringContaining("key mismatch") });
+    expect(JSON.parse(text)).toMatchObject({
+      error: expect.stringContaining("key mismatch"),
+      code: "FORBIDDEN",
+    });
+    // Keys end in the uploader's file name and gate claiming (Issue #89): never echo either.
+    expect(text).not.toContain(cookieBoundKey);
+    expect(text).not.toContain(TEMP_KEY);
   });
 
   it("answers 403 when the cookie is malformed", async () => {
