@@ -11,8 +11,7 @@ import { revalidatePath } from "next/cache";
  * (lib/cache/queued-cdn-adapter.ts); vinext sends them once per request.
  *
  * Best-effort by design: a cache purge must never fail the write that triggered
- * it, and `revalidatePath` throws when no Next request store is active (unit
- * tests, scripts).
+ * it.
  */
 export function revalidatePublicProfilePages(
   handles: ReadonlyArray<string | null | undefined>,
