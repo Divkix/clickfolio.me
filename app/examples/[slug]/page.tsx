@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import { and, eq, inArray } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,8 +10,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
-import { getDb } from "@/lib/db";
-import { siteData, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import { EXAMPLE_GALLERIES, type ExampleGallery } from "@/lib/examples/galleries";
 import {
   buildRolePageMetadata,
@@ -20,11 +19,7 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
-import {
-  indexableProfileCondition,
-  toDirectoryUser,
-  type DirectoryUser,
-} from "@/lib/data/indexable-profiles";
+import { getGalleryProfiles, type DirectoryUser } from "@/lib/data/indexable-profiles";
 import { THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export const revalidate = 3600;
@@ -108,37 +103,14 @@ function getGallery(slug: string): ExampleGallery {
   return gallery;
 }
 
-const loadGalleryProfiles = cache(async (gallery: ExampleGallery): Promise<DirectoryUser[]> => {
-  const db = getDb(env.HYPERDRIVE);
-
-  const rows = await db
-    .select({
-      handle: user.handle,
-      role: user.role,
-      previewName: siteData.previewName,
-      previewHeadline: siteData.previewHeadline,
-      previewLocation: siteData.previewLocation,
-      previewExpCount: siteData.previewExpCount,
-      previewEduCount: siteData.previewEduCount,
-      previewSkills: siteData.previewSkills,
-      privacySettings: user.privacySettings,
-    })
-    .from(user)
-    .innerJoin(siteData, eq(user.id, siteData.userId))
-    .where(
-      and(
-        inArray(user.handle, [...gallery.handles]),
-        eq(user.showInDirectory, true),
-        eq(user.onboardingCompleted, true),
-        indexableProfileCondition(),
-      ),
-    );
-
-  return rows
-    .filter((u): u is typeof u & { handle: string } => u.handle !== null)
-    .sort((a, b) => gallery.handles.indexOf(a.handle) - gallery.handles.indexOf(b.handle))
-    .map(toDirectoryUser);
-});
+const loadGalleryProfiles = cache((gallery: ExampleGallery): Promise<DirectoryUser[]> =>
+  runPage(
+    Db.use((service) =>
+      service.query("examples.gallery", (db) => getGalleryProfiles(db, gallery.handles)),
+    ),
+    Db.layer(env.HYPERDRIVE),
+  ),
+);
 
 export function generateStaticParams() {
   return EXAMPLE_GALLERIES.map((gallery) => ({ slug: gallery.slug }));

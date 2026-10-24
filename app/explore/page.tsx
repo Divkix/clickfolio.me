@@ -12,7 +12,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
-import { getDb } from "@/lib/db";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import {
   getDirectoryPage,
   toDirectoryUser,
@@ -75,11 +76,14 @@ export default async function ExplorePage({
   const roleFilter = getRoleFilter(params.role);
 
   // Indexability (content flag + hide_from_search), the count and the page window all run in SQL.
-  const { users: pageUsers, totalCount } = await getDirectoryPage(getDb(env.HYPERDRIVE), {
-    roleFilter,
-    page: currentPage,
-    pageSize: ITEMS_PER_PAGE,
-  });
+  const { users: pageUsers, totalCount } = await runPage(
+    Db.use((service) =>
+      service.query("explore.page", (db) =>
+        getDirectoryPage(db, { roleFilter, page: currentPage, pageSize: ITEMS_PER_PAGE }),
+      ),
+    ),
+    Db.layer(env.HYPERDRIVE),
+  );
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
