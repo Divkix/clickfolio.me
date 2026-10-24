@@ -291,7 +291,7 @@ function handleDelivery(request: Request) {
       }
 
       yield* Effect.sync(() => {
-        notifyIndexNowForProfiles([mapped?.handle]);
+        notifyIndexNowForProfiles([mapped?.handle], { skipDebounce: true });
         revalidatePublicProfilePages([mapped?.handle]);
       });
 

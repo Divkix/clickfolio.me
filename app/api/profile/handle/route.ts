@@ -130,7 +130,7 @@ export async function PUT(request: Request) {
 
         yield* Effect.sync(() => {
           revalidatePublicProfilePages([outcome.oldHandle, newHandle]);
-          notifyIndexNowForProfiles([outcome.oldHandle, newHandle]);
+          notifyIndexNowForProfiles([outcome.oldHandle, newHandle], { skipDebounce: true });
 
           logEvent("handle_changed", { userId: authUser.id });
         });

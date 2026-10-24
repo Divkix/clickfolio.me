@@ -39,7 +39,8 @@ vi.mock("@/lib/utils/revalidate", () => ({
 }));
 
 vi.mock("@/lib/seo/indexnow-runtime", () => ({
-  notifyIndexNowForProfiles: (handles: unknown[]) => mocks.indexNow(handles),
+  notifyIndexNowForProfiles: (handles: unknown[], options?: { skipDebounce?: boolean }) =>
+    mocks.indexNow(handles, options),
 }));
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
@@ -153,7 +154,9 @@ describe("PUT /api/profile/handle", () => {
     expect(audit).toHaveLength(1);
     expect(audit[0]).toMatchObject({ oldHandle: "handle-alice", newHandle: "alice-new" });
     expect(mocks.revalidate).toHaveBeenCalledWith(["handle-alice", "alice-new"]);
-    expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice", "alice-new"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice", "alice-new"], {
+      skipDebounce: true,
+    });
   });
 
   it("only ever writes the caller's own row, whatever the body says", async () => {
@@ -322,7 +325,7 @@ describe("PUT /api/profile/privacy", () => {
     expect(row.privacySettings).toEqual(settings);
     expect(row.showInDirectory).toBe(false);
     expect(mocks.revalidate).toHaveBeenCalledWith(["handle-alice"]);
-    expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice"], { skipDebounce: true });
   });
 
   it("never touches another user's settings", async () => {

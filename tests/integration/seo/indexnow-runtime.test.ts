@@ -42,9 +42,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function notify(handles: string[]): Promise<void> {
+async function notify(
+  handles: string[],
+  options?: Parameters<typeof notifyIndexNowForProfiles>[1],
+): Promise<void> {
   pending = undefined;
-  notifyIndexNowForProfiles(handles);
+  notifyIndexNowForProfiles(handles, options);
 
   const submission = pending;
 
@@ -72,6 +75,26 @@ describe("IndexNow runtime debounce", () => {
     await notify(["alice"]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("submits a change that must not be dropped even when the URL was just pinged", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await notify(["erin"]);
+    await notify(["erin"], { skipDebounce: true });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(submittedUrls(1)).toEqual([`${siteConfig.url}/@erin`]);
+  });
+
+  it("still marks a forced ping so an ordinary publish right after it is coalesced", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await notify(["frank"], { skipDebounce: true });
+    await notify(["frank"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(cache.put).toHaveBeenCalledTimes(1);
   });
 
   it("retries a URL whose submission was rejected", async () => {
