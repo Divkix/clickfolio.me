@@ -198,7 +198,7 @@ describe("GET /api/handle/check", () => {
         id: `seed-${i}`,
         ipHash,
         actionType: "handle_check" as const,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(Date.now() - 5 * 60_000).toISOString(),
         expiresAt,
       })),
     );
@@ -207,7 +207,9 @@ describe("GET /api/handle/check", () => {
 
     expect(response.status).toBe(429);
     expect(body.error).toBe("Too many handle checks. Please try again later.");
-    expect(response.headers.get("Retry-After")).toBe("3600");
+    // Five minutes into the window: a slot frees in 55 minutes, not the whole hour.
+    expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(3200);
+    expect(Number(response.headers.get("Retry-After"))).toBeLessThanOrEqual(3300);
   });
 
   it("answers 503 with Retry-After when the limit store is down", async () => {

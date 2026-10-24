@@ -96,30 +96,28 @@ describe("upload limiter (Effect)", () => {
     expect(await rowCount(IP, "upload")).toBe(1);
   });
 
-  it("refuses the 11th request in an hour with RateLimited and an hour Retry-After", async () => {
+  it("refuses the 11th request in an hour until the oldest of the ten expires", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
     await seed(IP, "upload", 5 * 60 * 1000, 10);
     const refusal = await fail(checkIPRateLimitEffect(IP));
 
     expect(refusal).toBeInstanceOf(RateLimited);
-    expect(refusal).toMatchObject({
-      message: expect.stringContaining("Limit: 10/hour"),
-      retryAfterSeconds: 3600,
-    });
+    expect(refusal).toMatchObject({ message: expect.stringContaining("Limit: 10/hour") });
+    // 5 minutes into the window, so a slot frees in 55 minutes — not the full hour.
+    expect(Math.abs(refusal.retryAfterSeconds - 55 * 60)).toBeLessThan(5);
     expect(await rowCount(IP, "upload")).toBe(10);
   });
 
-  it("refuses at 50 a day even when the hour is clear, with a day Retry-After", async () => {
+  it("refuses at 50 a day until the oldest daily row expires, even when the hour is clear", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
     await seed(IP, "upload", 5 * HOUR_MS, 50);
     const refusal = await fail(checkIPRateLimitEffect(IP));
 
-    expect(refusal).toMatchObject({
-      message: expect.stringContaining("Limit: 50/day"),
-      retryAfterSeconds: 86_400,
-    });
+    expect(refusal).toMatchObject({ message: expect.stringContaining("Limit: 50/day") });
+    // 5 hours into the day window, so a slot frees in 19 hours — not the full day.
+    expect(Math.abs(refusal.retryAfterSeconds - 19 * 3600)).toBeLessThan(5);
   });
 
   it("ignores rows older than the windows", async () => {
@@ -275,7 +273,7 @@ describe("handle-check limiter (Effect)", () => {
   it("admits 100 an hour and refuses the 101st", async () => {
     const { checkHandleRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
-    await seed(IP, "handle_check", 1000, 99);
+    await seed(IP, "handle_check", 30 * 60 * 1000, 99);
 
     const last = await run(checkHandleRateLimitEffect(IP));
 
@@ -285,8 +283,9 @@ describe("handle-check limiter (Effect)", () => {
 
     expect(refusal).toMatchObject({
       message: "Too many handle checks. Please try again later.",
-      retryAfterSeconds: 3600,
     });
+    // The 99 seeded rows are 30 minutes old, so the next slot frees in 30 minutes, not an hour.
+    expect(Math.abs(refusal.retryAfterSeconds - 30 * 60)).toBeLessThan(5);
     expect(await rowCount(IP, "handle_check")).toBe(100);
   });
 

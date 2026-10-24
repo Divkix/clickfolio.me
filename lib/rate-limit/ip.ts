@@ -52,8 +52,9 @@ type Meter = {
 
 type Metered =
   | { kind: "recorded"; hourly: number; daily: number }
-  | { kind: "hourly-full"; daily: number }
-  | { kind: "daily-full"; hourly: number };
+  /** `oldest` is the oldest row of the full window: when it expires, a slot frees. */
+  | { kind: "hourly-full"; daily: number; oldest: string | null }
+  | { kind: "daily-full"; hourly: number; oldest: string | null };
 
 const UPLOAD_METER: Meter = {
   actionType: "upload",
@@ -118,6 +119,10 @@ function meterAction(
               Number,
             ),
           daily: sql<number>`count(*)::int`.mapWith(Number),
+          oldestHourly: sql<
+            string | null
+          >`MIN(${uploadRateLimits.createdAt}) filter (where ${uploadRateLimits.createdAt} >= ${oneHourAgo})`,
+          oldestDaily: sql<string | null>`MIN(${uploadRateLimits.createdAt})`,
         })
         .from(uploadRateLimits)
         .where(
@@ -131,10 +136,12 @@ function meterAction(
       const hourly = counts?.hourly ?? 0;
       const daily = counts?.daily ?? 0;
 
-      if (hourly >= meter.hourlyLimit) return { kind: "hourly-full", daily };
+      if (hourly >= meter.hourlyLimit) {
+        return { kind: "hourly-full", daily, oldest: counts?.oldestHourly ?? null };
+      }
 
       if (meter.dailyLimit !== undefined && daily >= meter.dailyLimit) {
-        return { kind: "daily-full", hourly };
+        return { kind: "daily-full", hourly, oldest: counts?.oldestDaily ?? null };
       }
 
       await tx.insert(uploadRateLimits).values({
@@ -148,6 +155,13 @@ function meterAction(
       return { kind: "recorded", hourly: hourly + 1, daily: daily + 1 };
     }),
   );
+}
+
+/** Seconds until the oldest in-window row leaves it; the full window if there is none. */
+function retryAfterSeconds(oldest: string | null, windowMs: number): number {
+  if (oldest === null) return windowMs / 1000;
+
+  return Math.max(1, Math.ceil((new Date(oldest).getTime() + windowMs - Date.now()) / 1000));
 }
 
 function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailable, Db> {
@@ -176,14 +190,14 @@ function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailabl
             allowed: false,
             remaining: { hourly: 0, daily: Math.max(0, DAILY_LIMIT - metered.daily) },
             message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
-            retryAfterSeconds: HOUR_MS / 1000,
+            retryAfterSeconds: retryAfterSeconds(metered.oldest, HOUR_MS),
           };
         case "daily-full":
           return {
             allowed: false,
             remaining: { hourly: Math.max(0, HOURLY_LIMIT - metered.hourly), daily: 0 },
             message: `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
-            retryAfterSeconds: DAY_MS / 1000,
+            retryAfterSeconds: retryAfterSeconds(metered.oldest, DAY_MS),
           };
       }
     }),
@@ -213,7 +227,7 @@ function handleCheckDecision(ip: string): Effect.Effect<Decision, RateLimitUnava
         allowed: false,
         remaining: { hourly: 0, daily: 0 },
         message: "Too many handle checks. Please try again later.",
-        retryAfterSeconds: HOUR_MS / 1000,
+        retryAfterSeconds: retryAfterSeconds(metered.oldest, HOUR_MS),
       };
     }),
   );
