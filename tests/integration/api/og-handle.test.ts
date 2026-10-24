@@ -148,13 +148,15 @@ describe("GET /api/og/[handle]", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
-  it("logs a render failure and falls back to the not-found card", async () => {
+  it("answers 503, not the not-found card, when the render traps", async () => {
     mocks.render.mockRejectedValue(new Error("wasm trapped"));
 
     const response = await ask("live");
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Content-Type")).toBe("text/plain");
 
     expect(mocks.log).toHaveBeenCalledWith(
       "error",

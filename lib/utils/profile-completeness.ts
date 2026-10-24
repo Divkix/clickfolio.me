@@ -54,11 +54,11 @@ export function getProfileSuggestions(content: ResumeContent): string[] {
     suggestions.push("Add certifications to stand out");
   }
 
-  if (content.experience.length < 2) {
+  if ((content.experience?.length ?? 0) < 2) {
     suggestions.push("Add more work experience entries");
   }
 
-  if (!content.contact.linkedin && !content.contact.github) {
+  if (!content.contact?.linkedin && !content.contact?.github) {
     suggestions.push("Link your professional social profiles");
   }
 

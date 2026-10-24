@@ -60,7 +60,11 @@ type R2StoreService = {
   ) => Effect.Effect<R2ObjectInfo, R2Failed>;
   /** No-op for a key that is already gone, so a repeated delete is harmless. */
   readonly delete: (key: string) => Effect.Effect<void, R2Failed>;
-  /** Deletes in batches of {@link R2_DELETE_BATCH_LIMIT}; stops at the first failed batch. */
+  /**
+   * Deletes exactly the keys it is given, in one R2 call. Callers own chunking to
+   * {@link R2_DELETE_BATCH_LIMIT}: a batch is their journaled step (delete workflow) or their
+   * failure unit (account deletion).
+   */
   readonly deleteMany: (keys: readonly string[]) => Effect.Effect<void, R2Failed>;
   readonly head: (key: string) => Effect.Effect<R2ObjectInfo, R2Failed | R2ObjectMissing>;
   /** One page of keys under `prefix`; pass the returned cursor for the next page. */
@@ -125,14 +129,7 @@ function service(bucket: R2BucketLike | undefined): R2StoreService {
         return { size: stored.size, etag: stored.etag };
       }),
     delete: (key) => call("r2.delete", bucket, (b) => b.delete(key)),
-    deleteMany: (keys) =>
-      Effect.forEach(
-        Array.from({ length: Math.ceil(keys.length / R2_DELETE_BATCH_LIMIT) }, (_, index) =>
-          keys.slice(index * R2_DELETE_BATCH_LIMIT, (index + 1) * R2_DELETE_BATCH_LIMIT),
-        ),
-        (batch) => call("r2.delete_many", bucket, (b) => b.delete([...batch])),
-        { discard: true },
-      ),
+    deleteMany: (keys) => call("r2.delete_many", bucket, (b) => b.delete([...keys])),
     head: (key) =>
       call("r2.head", bucket, async (b) => {
         const object = await b.head(key);

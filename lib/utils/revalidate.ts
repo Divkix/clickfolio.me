@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 /**
  * Flushes the public surfaces a profile change can affect: the directory, the
- * profile pages, the example galleries, and the sitemap index.
+ * profile pages and the example galleries.
  *
  * Each call queues an edge purge of the matching Workers Cache tags
  * (lib/cache/queued-cdn-adapter.ts); vinext sends them once per request.

@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { R2Failed } from "@/lib/effect/failures";
-import { R2_DELETE_BATCH_LIMIT, R2ObjectMissing, R2Store } from "@/lib/effect/services/r2-store";
+import { R2ObjectMissing, R2Store } from "@/lib/effect/services/r2-store";
 
 type FakeBucket = Parameters<typeof R2Store.layerFrom>[0];
 
@@ -116,38 +116,6 @@ describe("R2Store", () => {
       httpMetadata: { contentType: "application/pdf" },
       customMetadata: { userId: "u" },
     });
-  });
-
-  it("deletes many keys in batches of the R2 limit", async () => {
-    const del = vi.fn<FakeBucket["delete"]>(async () => {});
-    const layer = R2Store.layerFrom(bucket({ delete: del }));
-    const keys = Array.from({ length: R2_DELETE_BATCH_LIMIT + 5 }, (_, index) => `k${index}`);
-
-    await run(
-      R2Store.use((store) => store.deleteMany(keys)),
-      layer,
-    );
-
-    expect(del).toHaveBeenCalledTimes(2);
-    expect(del.mock.calls[0][0]).toHaveLength(R2_DELETE_BATCH_LIMIT);
-    expect(del.mock.calls[1][0]).toHaveLength(5);
-  });
-
-  it("stops deleting at the first failed batch", async () => {
-    const del = vi.fn<FakeBucket["delete"]>(async () => {
-      throw new Error("R2 down");
-    });
-
-    const layer = R2Store.layerFrom(bucket({ delete: del }));
-    const keys = Array.from({ length: R2_DELETE_BATCH_LIMIT + 5 }, (_, index) => `k${index}`);
-
-    const failure = await fail(
-      R2Store.use((store) => store.deleteMany(keys)),
-      layer,
-    );
-
-    expect(failure).toBeInstanceOf(R2Failed);
-    expect(del).toHaveBeenCalledTimes(1);
   });
 
   it("lists every page of a prefix", async () => {

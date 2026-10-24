@@ -4,9 +4,14 @@ import { encodeCloudflareCacheTag } from "@vinext/cloudflare/cache/cdn-adapter.r
 export type RevalidateTarget = { readonly path: string; readonly type?: "page" };
 
 /**
- * The public surfaces a profile change can affect: the directory, each profile page, the example
- * galleries and the sitemap index. The single list behind `revalidatePublicProfilePages` (request
- * context) and `publicProfileTags` (Workflow, which has no request store to call it from).
+ * The public surfaces a profile change can affect: the directory, each profile page and the
+ * example galleries. The single list behind `revalidatePublicProfilePages` (request context) and
+ * `publicProfileTags` (Workflow, which has no request store to call it from).
+ *
+ * The sitemaps are deliberately absent: their routes set `Cache-Control` themselves, and vinext
+ * only stamps `_N_T_` tags on a route handler that leaves the policy to the framework
+ * (`shouldApplyAppRouteHandlerRevalidateHeader`), so a sitemap target would purge nothing and
+ * still spend a tag slot from the per-batch purge budget. Their own `max-age` bounds staleness.
  */
 export function publicProfileTargets(
   handles: ReadonlyArray<string | null | undefined>,
@@ -18,7 +23,7 @@ export function publicProfileTargets(
   }
 
   // Every /examples/<slug> page lists directory profiles.
-  targets.push({ path: "/examples/[slug]", type: "page" }, { path: "/sitemap.xml" });
+  targets.push({ path: "/examples/[slug]", type: "page" });
 
   return targets;
 }

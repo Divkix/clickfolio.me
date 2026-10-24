@@ -1,8 +1,13 @@
 import { sql } from "drizzle-orm";
+import { Effect } from "effect";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { AppSession } from "@/lib/auth/session";
+import { loadDashboard } from "@/lib/data/owner-pages";
 import { resumes, siteData, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
 import { DbFailed } from "@/lib/effect/failures";
+import type { ResumeContent } from "@/lib/types/database";
+import { getProfileSuggestions } from "@/lib/utils/profile-completeness";
 import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
 
 interface Holder {
@@ -238,6 +243,37 @@ describe("/dashboard", () => {
     const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
 
     expect(await DashboardPage()).toBeTruthy();
+  });
+
+  it("keeps a legacy resume whose contact and experience are null renderable", async () => {
+    const legacy: ResumeContent = JSON.parse(
+      '{"full_name":"Old Row","headline":"H","summary":"S","contact":null,"experience":null}',
+    );
+
+    await seedOwner("owner");
+    await seedResume("owner");
+    await db.insert(siteData).values({
+      id: "site-owner",
+      userId: "owner",
+      content: legacy,
+      themeId: "minimalist_editorial",
+      createdAt: NOW,
+      updatedAt: NOW,
+    });
+
+    const dashboard = await Effect.runPromise(
+      Effect.provide(loadDashboard("owner"), Db.layerFrom(db)),
+    );
+
+    if (!dashboard.content) throw new Error("legacy content should load");
+
+    expect(getProfileSuggestions(dashboard.content)).toEqual([
+      "Add your education background",
+      "List your technical skills",
+      "Add certifications to stand out",
+      "Add more work experience entries",
+      "Link your professional social profiles",
+    ]);
   });
 
   it("sends an owner who has not finished onboarding to the wizard", async () => {

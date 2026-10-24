@@ -143,7 +143,7 @@ describe("readStoredContent", () => {
 
   it("accepts the nulls and omissions older rows carry", async () => {
     const content: ResumeContent = JSON.parse(
-      '{"full_name":"Old Row","headline":"H","summary":"S","contact":null,"experience":[],"education":null,"projects":null}',
+      '{"full_name":"Old Row","headline":"H","summary":"S","contact":null,"experience":null,"education":null,"projects":null}',
     );
 
     expect(await Effect.runPromise(readStoredContent(content, "test.read"))).toBe(content);

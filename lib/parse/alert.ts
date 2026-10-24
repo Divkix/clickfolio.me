@@ -16,8 +16,6 @@ export interface ParseFailureAlert extends UnknownRecord {
 }
 
 export interface AlertEnv {
-  HYPERDRIVE: CloudflareEnv["HYPERDRIVE"];
-  CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
   ALERT_WEBHOOK_URL?: string;
   ALERT_CHANNEL?: string;
 }
