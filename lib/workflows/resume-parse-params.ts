@@ -6,8 +6,6 @@ import { z } from "zod";
 // `workflows[].name` in wrangler.jsonc.
 export const PARSE_WORKFLOW_NAME = "clickfolio-resume-parse";
 
-// As loose as the TypeScript type this replaced: a run started by an older deploy may still be in
-// flight, and a payload this schema refused would leave its row stuck in `processing`.
 export const resumeParseParamsSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("parse"),
@@ -15,8 +13,8 @@ export const resumeParseParamsSchema = z.discriminatedUnion("kind", [
     userId: z.string(),
     r2Key: z.string(),
     fileHash: z.string(),
-    // The row's `retry_count` when the run was started. Absent on runs started by an older deploy.
-    retryCount: z.number().int().optional(),
+    // The row's `retry_count` when the run was started.
+    retryCount: z.number().int(),
   }),
   /** Durable timer for a `waiting_for_cache` row: fails it if no identical parse completes it. */
   z.object({ kind: z.literal("await-cache"), resumeId: z.string() }),

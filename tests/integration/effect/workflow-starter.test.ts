@@ -13,6 +13,7 @@ const PARSE: ResumeParseParams = {
   userId: "u1",
   r2Key: "users/u1/r1/cv.pdf",
   fileHash: "abc",
+  retryCount: 0,
 };
 
 const AWAIT_CACHE: ResumeParseParams = { kind: "await-cache", resumeId: "r1" };
@@ -122,6 +123,15 @@ describe("WorkflowStarter.startResumeParse", () => {
 
     expect(failure).toBeInstanceOf(WorkflowFailed);
     expect(failure).toMatchObject({ kind: "unavailable" });
+  });
+
+  it("refuses a parse payload without a retry count", async () => {
+    const create = vi.fn<Binding["create"]>(async () => ({ id: "r1" }));
+    // SAFETY: missing retryCount deliberately exercises runtime payload validation.
+    const malformed = { ...PARSE, retryCount: undefined as never };
+    const failure = await start(binding({ create }), malformed);
+    expect(failure).toBeInstanceOf(InvalidInput);
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("refuses a malformed payload without calling the workflow", async () => {

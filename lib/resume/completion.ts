@@ -15,14 +15,7 @@ export type ResumeCompletionInput = {
   parsedContent: ResumeContent;
   career?: CareerProfile | null;
   totalAttempts?: number;
-  fanOut?: boolean;
-  /**
-   * The completing run's `retry_count` (single-row path only; a run carries the row's count).
-   * A run whose count no longer matches was superseded by a sweep and a manual retry and must
-   * not complete the row. Absent on runs started before the field existed: skip the check.
-   */
-  retryCount?: number;
-};
+} & ({ fanOut: true; retryCount?: never } | { fanOut?: false; retryCount: number });
 
 // Single name-sync rule: display name updates iff the parsed name is real and
 // the current name is missing. Callers pass the trimmed parsed name.
@@ -129,7 +122,7 @@ export function completeResumes(input: ResumeCompletionInput) {
               : and(
                   inArray(resumes.id, resumeIds),
                   ne(resumes.status, "completed"),
-                  retryCount === undefined ? undefined : eq(resumes.retryCount, retryCount),
+                  eq(resumes.retryCount, retryCount),
                 ),
           )
           .returning({ id: resumes.id });
@@ -145,8 +138,7 @@ export function completeResumes(input: ResumeCompletionInput) {
             : createdRows.find((row) => row.id === items[0].resumeId);
 
           const replaysOwnCompletion =
-            owned?.status === "completed" &&
-            (retryCount === undefined || owned.retryCount === retryCount);
+            owned?.status === "completed" && owned.retryCount === retryCount;
 
           return replaysOwnCompletion && singleRow?.handle
             ? { ids: [], handles: [singleRow.handle] }

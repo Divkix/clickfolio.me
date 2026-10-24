@@ -75,6 +75,7 @@ const JOB: ResumeParseParams = {
   userId: "user-1",
   r2Key: "resume.pdf",
   fileHash: "hash",
+  retryCount: 0,
 };
 
 async function runWorkflow(
@@ -83,13 +84,9 @@ async function runWorkflow(
   replayedParseError?: Error,
   retryParseOnce = false,
   retryMarkFailedOnce = false,
-  journaledMarkFailed = false,
 ) {
   const { ResumeParseWorkflow } = await import("@/lib/workflows/resume-parse-workflow");
   const results = new Map<string, JsonValue | void>();
-
-  // A run started by the previous deploy journaled `mark failed` without an output.
-  if (journaledMarkFailed) results.set("mark failed", undefined);
 
   const doStep = vi.fn();
 
@@ -158,7 +155,7 @@ beforeEach(() => {
   );
   mocks.readFailure.mockReturnValue(Effect.succeed(null));
   mocks.expire.mockReturnValue(Effect.succeed(true));
-  mocks.complete.mockReturnValue(Effect.void);
+  mocks.complete.mockReturnValue(Effect.succeed([]));
   mocks.fail.mockReturnValue(
     Effect.succeed({
       failure: toParseErrorJson(new UnknownParseFailure({ message: "Original parse failure" })),
@@ -276,16 +273,6 @@ describe("resume failure email workflow step", () => {
     expect(mocks.email).toHaveBeenCalledTimes(1);
   });
 
-  it("finishes a run journaled before the notice existed without announcing", async () => {
-    const workflow = await runWorkflow(JOB, false, undefined, false, false, true);
-
-    await expect(workflow.run()).rejects.toThrow("Original parse failure");
-
-    expect(mocks.fail).not.toHaveBeenCalled();
-    expect(mocks.announce).not.toHaveBeenCalled();
-    expect(mocks.email).not.toHaveBeenCalled();
-  });
-
   it("logs each failed attempt and the terminal failure with its type and stack", async () => {
     const workflow = await runWorkflow();
     await expect(workflow.run()).rejects.toThrow("Original parse failure");
@@ -347,14 +334,14 @@ describe("resume failure email workflow step", () => {
     expect(mocks.email).not.toHaveBeenCalled();
   });
 
-  it("hands the run's retry count to the claim, and tolerates a payload without one", async () => {
+  it("hands the run's required retry count to the claim", async () => {
     mocks.claim.mockReturnValue(Effect.succeed("skipped"));
     await expect((await runWorkflow({ ...JOB, retryCount: 2 })).run()).resolves.toBe("skipped");
     expect(mocks.claim).toHaveBeenLastCalledWith(expect.objectContaining({ retryCount: 2 }));
 
     await expect((await runWorkflow()).run()).resolves.toBe("skipped");
     expect(mocks.claim).toHaveBeenLastCalledWith(
-      expect.objectContaining({ resumeId: "resume-1", retryCount: undefined }),
+      expect.objectContaining({ resumeId: "resume-1", retryCount: 0 }),
     );
   });
 });
@@ -532,27 +519,12 @@ describe("public page refresh step", () => {
     );
   });
 
-  it("refreshes the handles a cached claim rewrote, and not a previous deploy's bare journal", async () => {
+  it("refreshes the handles a cached claim rewrote", async () => {
     mocks.claim.mockReturnValue(Effect.succeed({ kind: "cached", handles: ["ada"] }));
     await expect((await runWorkflow()).run()).resolves.toBe("cached");
 
     expect(mocks.refresh).toHaveBeenCalledWith(["ada"], "https://clickfolio.me");
     expect(mocks.parse).not.toHaveBeenCalled();
-
-    mocks.claim.mockReturnValue(Effect.succeed("cached"));
-    await expect((await runWorkflow()).run()).resolves.toBe("cached");
-
-    expect(mocks.refresh).toHaveBeenCalledTimes(1);
-  });
-
-  it("treats a journaled completion without an output as nothing to refresh", async () => {
-    mocks.parse.mockReturnValue(Effect.succeed(parsed));
-    mocks.complete.mockReturnValue(Effect.void);
-    const workflow = await runWorkflow();
-
-    await expect(workflow.run()).resolves.toBe("completed");
-
-    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
   it("logs a failed refresh and still completes the run", async () => {

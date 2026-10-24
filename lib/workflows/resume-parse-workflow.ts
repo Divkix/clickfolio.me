@@ -9,7 +9,7 @@ import {
 } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import { getAlertChannel } from "../parse/alert";
-import { classifyParseError, decodeParseError, storedErrorSchema } from "../parse/errors";
+import { classifyParseError, decodeParseError } from "../parse/errors";
 import { toParseErrorJson, type ParseFailure } from "../parse/failures";
 import type { ServerFailure } from "../effect/failures";
 import { runWorkflowStep } from "./run-workflow-step";
@@ -37,37 +37,10 @@ import {
   resumeParseParamsSchema,
   type ResumeParseParams,
 } from "./resume-parse-params";
-import { z } from "zod";
 import { resolveAiModel } from "../ai/prompt-config";
 import { log, logEvent } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
 import { withSpan } from "../telemetry/spans";
-
-// An instance started by the previous deploy journaled `complete` with no output; it replays as [].
-const journaledHandles = z.array(z.string()).catch([]);
-
-// A cache hit completes the row inside the claim step and carries the handles it rewrote. An
-// instance started by the previous deploy journaled it as the bare string "cached", without them.
-const journaledClaim = z.union([
-  z.object({ kind: z.literal("cached"), handles: z.array(z.string()) }),
-  z.enum(["skipped", "parse", "cached"]).transform((kind) => ({ kind, handles: [] })),
-]);
-
-// A run started by the previous deploy journaled `mark failed` before it returned a notice, and a
-// run whose row was already gone journals null: neither has anything to announce (the old step
-// sent its alert itself).
-const journaledNotice = z
-  .object({
-    // The step always writes `originalError`; the schema keeps it optional for older rows.
-    failure: storedErrorSchema.transform((failure): ParseErrorJson => ({
-      ...failure,
-      originalError: failure.originalError,
-    })),
-    totalAttempts: z.number(),
-    waitingIds: z.array(z.string()),
-  })
-  .nullish()
-  .catch(null);
 
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
@@ -191,8 +164,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
   }
 
   async run(event: WorkflowEvent<ResumeParseParams>, step: WorkflowStep): Promise<string> {
-    // Instances started by an older deploy may still be in flight, so the schema is as loose as
-    // the type it replaced. A payload that fails it has no row this run could mark failed.
+    // A payload that fails validation has no row this run can safely mark failed.
     const checked = resumeParseParamsSchema.safeParse(event.payload);
 
     if (!checked.success) {
@@ -227,17 +199,15 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
       retryCount: params.retryCount,
     };
 
-    const claim = journaledClaim.parse(
-      await tracedStep("claim", DB_STEP, () => this.exec(claimResumeForParse(job))),
-    );
+    const claim = await tracedStep("claim", DB_STEP, () => this.exec(claimResumeForParse(job)));
 
-    if (claim.kind === "cached") {
+    if (claim !== "parse" && claim !== "skipped") {
       await this.refreshPublicPages(claim.handles, tracedStep);
 
       return "cached";
     }
 
-    if (claim.kind !== "parse") return claim.kind;
+    if (claim !== "parse") return claim;
 
     let failedDuringParse = true;
     let currentFailure: ParseErrorJson | null = null;
@@ -292,49 +262,45 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
         return handles;
       });
 
-      await this.refreshPublicPages(journaledHandles.parse(rewritten), tracedStep);
+      await this.refreshPublicPages(rewritten, tracedStep);
 
       return "completed";
     } catch (error) {
-      const notice = journaledNotice.parse(
-        await tracedStep("mark failed", DB_STEP, () =>
-          this.exec(
-            Effect.gen(function* () {
-              // The Workflow engine may serialize thrown Errors. The row retains the
-              // original failure metadata even when Error.cause is lost on replay.
-              const fallback = toParseErrorJson(classifyParseError(error));
+      const notice = await tracedStep("mark failed", DB_STEP, () =>
+        this.exec(
+          Effect.gen(function* () {
+            // The Workflow engine may serialize thrown Errors. The row retains the
+            // original failure metadata even when Error.cause is lost on replay.
+            const fallback = toParseErrorJson(classifyParseError(error));
 
-              const currentDatabaseFailure =
-                fallback.type === "db_connection_error" ||
-                fallback.type === "parse_validation_error"
-                  ? fallback
-                  : null;
+            const currentDatabaseFailure =
+              fallback.type === "db_connection_error" || fallback.type === "parse_validation_error"
+                ? fallback
+                : null;
 
-              const carried =
-                currentFailure ?? (error instanceof Error ? decodeParseError(error.cause) : null);
+            const carried =
+              currentFailure ?? (error instanceof Error ? decodeParseError(error.cause) : null);
 
-              const needsStored = failedDuringParse && !carried && !currentDatabaseFailure;
-              const stored = needsStored ? yield* readLastParseFailure(job) : null;
-              const resolved = carried ?? currentDatabaseFailure ?? stored ?? fallback;
+            const needsStored = failedDuringParse && !carried && !currentDatabaseFailure;
+            const stored = needsStored ? yield* readLastParseFailure(job) : null;
+            const resolved = carried ?? currentDatabaseFailure ?? stored ?? fallback;
 
-              const marked = yield* markResumeParseFailed(job, resolved);
+            const marked = yield* markResumeParseFailed(job, resolved);
 
-              // After the write, inside the step body: once per run, not once per
-              // step retry or per replay of `run`.
-              logEvent(
-                "resume_parse_failed",
-                { ...outcome(), errorType: resolved.type, ...errorFields(error) },
-                "error",
-              );
+            // After the write, inside the step body: once per run, not once per
+            // step retry or per replay of `run`.
+            logEvent(
+              "resume_parse_failed",
+              { ...outcome(), errorType: resolved.type, ...errorFields(error) },
+              "error",
+            );
 
-              return marked;
-            }),
-          ),
+            return marked;
+          }),
         ),
       );
 
-      // Nothing to announce when the row was already gone, and for a run journaled before this
-      // step returned a notice (its alert already went out inside `mark failed`).
+      // A superseded or deleted row has no failure owned by this run.
       if (notice) {
         await this.announceFailure(job, notice, tracedStep);
         await this.emailFailure(job.resumeId, tracedStep);
