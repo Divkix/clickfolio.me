@@ -457,97 +457,6 @@ describe("Admin API Integration Tests", () => {
   });
 
   describe("GET /api/admin/users", () => {
-    it("returns paginated user list for admin (test 5)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValueOnce([{ count: 100 }]);
-
-      mockLimit.mockResolvedValueOnce([
-        {
-          id: "user-1",
-          name: "User One",
-          email: "user1@test.com",
-          handle: "userone",
-          createdAt: new Date().toISOString(),
-          isPro: false,
-        },
-        {
-          id: "user-2",
-          name: "User Two",
-          email: "user2@test.com",
-          handle: "usertwo",
-          createdAt: new Date().toISOString(),
-          isPro: true,
-        },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/users/route");
-      const request = makeRequest("http://localhost:3000/api/admin/users?page=1");
-      const response = await GET(request);
-
-      expect([200, 500, 503]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: {
-          users: JsonValue[];
-          total: number;
-          page: number;
-          pageSize: number;
-        } = await response.json();
-
-        expect(body.users).toBeDefined();
-        expect(body.total).toBeDefined();
-        expect(body.page).toBe(1);
-      }
-    });
-
-    it("searches users by query (test 10)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValueOnce([{ count: 5 }]);
-      mockLimit.mockResolvedValueOnce([
-        {
-          id: "user-1",
-          name: "John Doe",
-          email: "john@example.com",
-          handle: "johndoe",
-          createdAt: new Date().toISOString(),
-          isPro: false,
-        },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/users/route");
-      const request = makeRequest("http://localhost:3000/api/admin/users?page=1&search=john");
-      const response = await GET(request);
-
-      expect([200, 500, 503]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: { users: JsonValue[] } = await response.json();
-        expect(body.users).toBeDefined();
-      }
-    });
-
-    it("returns pagination metadata (test 11)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValueOnce([{ count: 50 }]);
-      mockLimit.mockResolvedValueOnce([]);
-
-      const { GET } = await import("@/app/api/admin/users/route");
-      const request = makeRequest("http://localhost:3000/api/admin/users?page=2");
-      const response = await GET(request);
-
-      expect([200, 500, 503]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: { page: number; pageSize: number; total: number } = await response.json();
-        expect(body.page).toBe(2);
-        expect(body.pageSize).toBe(25);
-        expect(body.total).toBe(50);
-      }
-    });
-
     it("returns 403 for non-admin users (test 6)", async () => {
       regularUserAuthed();
 
@@ -566,25 +475,6 @@ describe("Admin API Integration Tests", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(401);
-    });
-
-    it("returns empty list when no users found (test 11)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValueOnce([{ count: 0 }]);
-      mockLimit.mockResolvedValueOnce([]);
-
-      const { GET } = await import("@/app/api/admin/users/route");
-      const request = makeRequest("http://localhost:3000/api/admin/users?page=1");
-      const response = await GET(request);
-
-      expect([200, 500, 503]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: { users: JsonValue[]; total: number } = await response.json();
-        expect(body.users).toEqual([]);
-        expect(body.total).toBe(0);
-      }
     });
   });
 

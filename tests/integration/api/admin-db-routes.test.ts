@@ -102,9 +102,32 @@ describe("GET /api/admin/users", () => {
     const body: { users: { id: string; status: string }[]; total: number } = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.total).toBe(2);
+    expect(body).toMatchObject({ total: 2, page: 1, pageSize: 25 });
     expect(body.users.find((u) => u.id === "u2")?.status).toBe("failed");
     expect(body.users.find((u) => u.id === "u1")?.status).toBe("no_resume");
+  });
+
+  it("answers an empty page and an unmatched search with an empty list and zero total", async () => {
+    await insertUser("u1", "Ada", "ada");
+
+    const { GET } = await import("@/app/api/admin/users/route");
+
+    const pageResponse = await GET(new Request("https://clickfolio.me/api/admin/users?page=2"));
+
+    const pageBody: { users: unknown[]; total: number; page: number; pageSize: number } =
+      await pageResponse.json();
+
+    expect(pageResponse.status).toBe(200);
+    expect(pageBody).toEqual({ users: [], total: 1, page: 2, pageSize: 25 });
+
+    const searchResponse = await GET(
+      new Request("https://clickfolio.me/api/admin/users?search=nobody"),
+    );
+
+    const searchBody: { users: unknown[]; total: number } = await searchResponse.json();
+
+    expect(searchResponse.status).toBe(200);
+    expect(searchBody).toMatchObject({ users: [], total: 0 });
   });
 
   it("treats LIKE wildcards in the search as literal characters", async () => {
