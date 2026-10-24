@@ -1,27 +1,32 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
+import { env } from "cloudflare:workers";
+import { Effect } from "effect";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
 import {
   buildSitemapIndexXml,
   getSitemapShardCount,
   getTotalIndexableUserCount,
+  sitemapUnavailable,
 } from "@/lib/seo/sitemap";
 
-export async function GET(): Promise<Response> {
-  try {
-    const count = await getTotalIndexableUserCount();
-    const shardCount = getSitemapShardCount(count);
-    const xml = buildSitemapIndexXml(shardCount);
+function indexProgram(path: string) {
+  const unavailable = sitemapUnavailable(path);
 
-    return new Response(xml, {
-      headers: {
-        "Content-Type": "application/xml",
-        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-        "CDN-Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      },
-    });
-  } catch (error) {
-    log("error", "[sitemap-index] Error generating sitemap index:", { ...errorFields(error) });
+  return getTotalIndexableUserCount().pipe(
+    Effect.map(
+      (count) =>
+        new Response(buildSitemapIndexXml(getSitemapShardCount(count)), {
+          headers: {
+            "Content-Type": "application/xml",
+            "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+            "CDN-Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+          },
+        }),
+    ),
+    Effect.catchTags({ DbFailed: unavailable, DbConflict: unavailable }),
+  );
+}
 
-    return new Response("Internal Server Error", { status: 500 });
-  }
+export async function GET(request: Request): Promise<Response> {
+  return runRoute(request, indexProgram(new URL(request.url).pathname), Db.layer(env.HYPERDRIVE));
 }
