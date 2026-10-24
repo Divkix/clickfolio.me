@@ -98,13 +98,14 @@ function deleteTempObject(tempKey: string) {
   );
 }
 
-// Unified R2 failure policy: the object write must succeed or the intake fails;
-// temp-cleanup failure is left to the lifecycle rule and the intake proceeds. A timed-out put
-// is not retried: the claim fails and the visitor starts over.
-function moveTempFile(claim: Claim) {
+// Unified R2 failure policy: the object write must succeed or the intake fails. The temp copy
+// is deleted only after the row names newKey (deleteTempObject at each commit point): until
+// then the row still names tempKey, and a failed update must leave the retry route a file to
+// download. A timed-out put is not retried: the claim fails and the visitor starts over.
+function putFinalObject(claim: Claim) {
   return R2Store.use((store) =>
     store.put(claim.newKey, claim.bytes, { contentType: "application/pdf" }),
-  ).pipe(Effect.andThen(deleteTempObject(claim.tempKey)));
+  );
 }
 
 // Hands the copies to R2DeleteWorkflow after a failed inline delete. If that cannot be reached
@@ -480,10 +481,10 @@ function waitForCache(claim: Claim) {
 
 // Nothing identical is in flight: store the copy, queue the row and start the parse.
 function queueParse(claim: Claim) {
-  const { userId, resumeId, newKey, fileHash, now } = claim;
+  const { userId, resumeId, tempKey, newKey, fileHash, now } = claim;
 
   return Effect.gen(function* () {
-    yield* guardStore(claim, "R2 put error", moveTempFile(claim));
+    yield* guardStore(claim, "R2 put error", putFinalObject(claim));
 
     const queued = yield* Db.use((service) =>
       service.query("claim.queue", (db) =>
@@ -510,6 +511,9 @@ function queueParse(claim: Claim) {
 
       return yield* failClaim(claim, "Failed to update resume status", "DATABASE_ERROR");
     }
+
+    // The row now names newKey, so the temp copy is no longer needed.
+    yield* deleteTempObject(tempKey);
 
     // `failed` with no lastAttemptError stays manually retryable. A timed-out start is given
     // up on the same way: the pipeline's status-guarded steps make a late-starting run a no-op.
@@ -565,11 +569,16 @@ export function runClaimIntake(input: { readonly userId: string; readonly tempKe
     const cachedContent = yield* findCompletedContent(claim);
 
     if (cachedContent) {
-      yield* guardStore(claim, "R2 operations failed for cached resume", moveTempFile(claim));
+      yield* guardStore(claim, "R2 operations failed for cached resume", putFinalObject(claim));
 
       const cached = yield* completeFromCachedContent(claim, cachedContent);
 
-      if (cached) return cached;
+      if (cached) {
+        // The row now names newKey, so the temp copy is no longer needed.
+        yield* deleteTempObject(tempKey);
+
+        return cached;
+      }
     }
 
     const processing = yield* Db.use((service) =>
