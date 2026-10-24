@@ -64,6 +64,17 @@ const USER_NOT_FOUND_MESSAGE = "User account not found. Please re-authenticate."
 
 const DEFAULT_UNAUTHORIZED_MESSAGE = "You must be logged in";
 
+/** A client controls this header: an undecodable value is no value, not a thrown URIError. */
+function decodeCookieValue(raw: string): string | null {
+  try {
+    return decodeURIComponent(raw);
+  } catch (error) {
+    if (error instanceof URIError) return null;
+
+    throw error;
+  }
+}
+
 function readCookieFromHeader(cookieHeader: string, name: string): string | null {
   for (const part of cookieHeader.split(";")) {
     const idx = part.indexOf("=");
@@ -71,7 +82,7 @@ function readCookieFromHeader(cookieHeader: string, name: string): string | null
     if (idx === -1) continue;
 
     if (part.slice(0, idx).trim() === name) {
-      return decodeURIComponent(part.slice(idx + 1).trim());
+      return decodeCookieValue(part.slice(idx + 1).trim());
     }
   }
 
