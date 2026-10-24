@@ -8,7 +8,7 @@ import { R2Store } from "@/lib/effect/services/r2-store";
 import { handleChanges, resumes, uploadRateLimits } from "@/lib/db/schema";
 import { purgeR2Keys } from "@/lib/workflows/r2-purge";
 import type { UnknownRecord } from "../types/json";
-import { log, logEvent } from "../utils/log";
+import { logEvent } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
 
 const FAILED_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -101,8 +101,8 @@ const purgeStaleFailedResumes = Effect.gen(function* () {
 
   const r2Keys = deletedRows.flatMap((row) => (row.r2Key ? [row.r2Key] : []));
 
-  // purgeR2Keys has already logged why; the rows are gone either way, so the count stands.
-  if (r2Keys.length > 0) yield* purgeR2Keys(r2Keys).pipe(Effect.catch(() => Effect.void));
+  // Fails when R2 and the workflow are both down: the rows are gone, so the run must say so.
+  if (r2Keys.length > 0) yield* purgeR2Keys(r2Keys);
 
   return deletedRows.length;
 });
@@ -112,15 +112,7 @@ const cleanup = Effect.gen(function* () {
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const deleted = yield* deleteExpiredRows(nowIso, ninetyDaysAgo);
 
-  const failedResumes = yield* purgeStaleFailedResumes.pipe(
-    Effect.catch((error) =>
-      Effect.sync(() => {
-        log("error", "failed-resume auto-purge failed", { ...errorFields(error) });
-
-        return 0;
-      }),
-    ),
-  );
+  const failedResumes = yield* purgeStaleFailedResumes;
 
   const result: CleanupResult = {
     ok: true,

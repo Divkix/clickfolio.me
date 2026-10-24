@@ -232,6 +232,45 @@ describe("Cron Scheduled Tasks", () => {
       warn.mockRestore();
     });
 
+    it("fails the run when the stale-failed lookup fails instead of reporting ok", async () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      mockDb.select.mockImplementationOnce(() => {
+        throw new Error("Hyperdrive unavailable");
+      });
+
+      await expect(performCleanup(asDb(mockDb))).rejects.toThrow("Hyperdrive unavailable");
+      expect(JSON.parse(String(warn.mock.calls[0][0]))).toMatchObject({
+        event: "cleanup_failed",
+      });
+      error.mockRestore();
+      warn.mockRestore();
+    });
+
+    it("fails the run when purged rows lose their objects to an R2 and workflow outage", async () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const staleFailed = { id: "resume-failed", r2Key: "uploads/failed.pdf" };
+
+      mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
+      mockDb.delete
+        .mockReturnValueOnce(deleteChain(0))
+        .mockReturnValueOnce(deleteChain(0))
+        .mockReturnValueOnce(deleteChain(1, [staleFailed]));
+      mockBucket.delete.mockRejectedValueOnce(new Error("R2 unavailable"));
+      mockR2DeleteWorkflow.create.mockRejectedValueOnce(new Error("Workflows unavailable"));
+
+      await expect(performCleanup(asDb(mockDb))).rejects.toThrow("Workflows unavailable");
+
+      const lines = error.mock.calls.map(([line]) => JSON.parse(String(line)));
+      expect(lines).toContainEqual(
+        expect.objectContaining({ msg: "failed to schedule R2 deletion", keyCount: 1 }),
+      );
+      expect(JSON.stringify(lines)).not.toContain("failed.pdf");
+      error.mockRestore();
+      warn.mockRestore();
+    });
+
     it("handles concurrent cron jobs without conflicts", async () => {
       const cleanup1 = performCleanup(asDb(mockDb));
       const cleanup2 = performCleanup(asDb(mockDb));
