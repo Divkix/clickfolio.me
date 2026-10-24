@@ -27,16 +27,21 @@ import {
   parseResumePdf,
   readLastParseFailure,
 } from "../parse/pipeline";
+import { refreshPublicProfiles } from "../parse/public-refresh";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import {
   parseRunAttributes,
   resumeParseParamsSchema,
   type ResumeParseParams,
 } from "./resume-parse-params";
+import { z } from "zod";
 import { resolveAiModel } from "../ai/prompt-config";
 import { log, logEvent } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
 import { withSpan } from "../telemetry/spans";
+
+// An instance started by the previous deploy journaled `complete` with no output; it replays as [].
+const journaledHandles = z.array(z.string()).catch([]);
 
 const DB_STEP = {
   retries: { limit: 5, delay: "5 seconds", backoff: "exponential" },
@@ -87,6 +92,23 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
     program: Effect.Effect<A, E, ParseWorkflowServices>,
   ): Promise<A> {
     return runWorkflowStep(Effect.provide(program, parseWorkflowLayer(this.env)));
+  }
+
+  private async refreshPublicPages(handles: string[], tracedStep: TracedStep): Promise<void> {
+    if (handles.length === 0) return;
+
+    try {
+      // Its own journaled step, after the row is final: the purge enqueue and the IndexNow ping
+      // are not idempotent for the rate budget, so an ambiguous step is not retried.
+      await tracedStep(
+        "refresh public pages",
+        { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
+        () => this.exec(refreshPublicProfiles(handles, this.env.APP_URL)),
+      );
+    } catch (error) {
+      // Not rethrown: stale pages age out with the page TTL, and the parse already succeeded.
+      log("error", "public page refresh step failed", errorFields(error));
+    }
   }
 
   private async emailFailure(resumeId: string, tracedStep: TracedStep): Promise<void> {
@@ -199,10 +221,15 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
 
       if (!parsed) return "skipped";
 
-      await tracedStep("complete", DB_STEP, async () => {
-        await this.exec(completeParsedResume(job, parsed));
+      const rewritten = await tracedStep("complete", DB_STEP, async () => {
+        const handles = await this.exec(completeParsedResume(job, parsed));
+
         logEvent("resume_parse_completed", outcome());
+
+        return handles;
       });
+
+      await this.refreshPublicPages(journaledHandles.parse(rewritten), tracedStep);
 
       return "completed";
     } catch (error) {

@@ -280,17 +280,22 @@ export function readLastParseFailure(job: ResumeParseJob) {
   );
 }
 
-/** Marks the row completed and fans the result out to identical uploads waiting on it. */
+/**
+ * Marks the row completed and fans the result out to identical uploads waiting on it. Resolves to
+ * the handles whose public site-data was rewritten, so the run can refresh their public pages.
+ */
 export function completeParsedResume(job: ResumeParseJob, parsed: ParsedResume) {
   return Effect.gen(function* () {
     // `?? null`: results persisted by a workflow step from before `career` existed.
     const career = parsed.career ?? null;
 
-    yield* completeResumes({
-      items: [{ resumeId: job.resumeId, userId: job.userId }],
-      parsedContent: parsed.parsedContent,
-      career,
-    });
+    const handles = new Set(
+      yield* completeResumes({
+        items: [{ resumeId: job.resumeId, userId: job.userId }],
+        parsedContent: parsed.parsedContent,
+        career,
+      }),
+    );
 
     const waitingResumes = yield* Db.use((db) =>
       db.query("parse.complete.waiting", (handle) =>
@@ -308,13 +313,17 @@ export function completeParsedResume(job: ResumeParseJob, parsed: ParsedResume) 
     );
 
     if (waitingResumes.length > 0) {
-      yield* completeResumes({
+      const fanned = yield* completeResumes({
         items: waitingResumes.map((w) => ({ resumeId: w.id, userId: w.userId })),
         parsedContent: parsed.parsedContent,
         career,
         fanOut: true,
       });
+
+      for (const handle of fanned) handles.add(handle);
     }
+
+    return [...handles];
   }).pipe(asParseFailure);
 }
 
