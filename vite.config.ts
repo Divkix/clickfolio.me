@@ -1,4 +1,3 @@
-import { mkdirSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
@@ -117,27 +116,6 @@ function clientEffectGuard(): Plugin {
           `effect must not reach the client bundle (AGENTS.md, "No Effect in client-reachable code"):\n  ${offenders.join("\n  ")}`,
         );
       }
-    },
-  };
-}
-
-/**
- * Workaround for vinext cloudflare-build bug: the plugin writes
- * dist/client/_headers via writeFileSync without creating the directory first.
- * This plugin ensures the output directory exists before writeBundle hooks fire.
- * Remove once vinext fixes this upstream.
- */
-function ensureClientDir(): Plugin {
-  return {
-    name: "ensure-client-dir",
-    enforce: "pre",
-    writeBundle: {
-      order: "pre",
-      handler() {
-        if (this.environment?.name === "client") {
-          mkdirSync("dist/client", { recursive: true });
-        }
-      },
     },
   };
 }
@@ -293,7 +271,6 @@ export default defineConfig(() => {
     plugins: isTest
       ? []
       : [
-          ensureClientDir(),
           vinext({
             // Edge-cached ISR on Workers Cache; purges go through a queue
             // (lib/cache/queued-cdn-adapter.ts, worker/index.ts `queue`).
