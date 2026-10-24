@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
-import { logEvent } from "@/lib/utils/log";
+import { log, logEvent } from "@/lib/utils/log";
 import { runClaimIntake } from "@/lib/resume/claim-intake";
 import { getR2Binding } from "@/lib/r2";
 import { claimRequestSchema } from "@/lib/schemas/resume";
@@ -108,9 +108,14 @@ export async function POST(request: Request) {
 
       if (parsedCookie.tempKey !== key) {
         // Never clear the cookie on mismatch: it may belong to a newer upload than
-        // the key in this request, and clearing it would orphan that upload.
+        // the key in this request, and clearing it would orphan that upload. Temp
+        // keys end in the uploaded file name, so neither goes in the response or logs.
+        log("warn", "Claim rejected: upload key does not match the pending upload cookie", {
+          userId,
+        });
+
         return createErrorResponse(
-          `Unauthorized upload attempt. Upload key mismatch (expected ${parsedCookie.tempKey}, received ${key}).`,
+          "Unauthorized upload attempt. Upload key mismatch.",
           ERROR_CODES.FORBIDDEN,
           403,
         );

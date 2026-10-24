@@ -605,6 +605,35 @@ describe("POST /api/resume/claim", () => {
     expect(response.status).toBe(400);
   });
 
+  it("rejects a key that does not match the upload cookie without echoing either key", async () => {
+    const cookieKey = "temp/aaaaaaaa-1111/alex-morgan-resume.pdf";
+    const requestedKey = "temp/bbbbbbbb-2222/jordan-lee-cv.pdf";
+    const cookieValue = await createSignedCookieValue(cookieKey, TEST_COOKIE_SECRET);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    setMockAuthUser("user-1");
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const response = await POST(makeClaimRequest(requestedKey, cookieValue));
+    const text = await response.text();
+    const logged = JSON.stringify(warn.mock.calls);
+
+    warn.mockRestore();
+
+    expect(response.status).toBe(403);
+    expect(JSON.parse(text)).toEqual({
+      error: "Unauthorized upload attempt. Upload key mismatch.",
+    });
+
+    for (const leaked of [text, logged]) {
+      expect(leaked).not.toContain("alex-morgan");
+      expect(leaked).not.toContain("jordan-lee");
+    }
+
+    expect(logged).toContain("upload key does not match");
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
   it("20. Claim with rate limit exceeded → 429 error", async () => {
     const { enforceRateLimit } = await import("@/lib/rate-limit/user");
     vi.mocked(enforceRateLimit).mockResolvedValueOnce(
