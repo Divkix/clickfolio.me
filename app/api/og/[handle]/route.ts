@@ -64,7 +64,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
         previewSkills: siteData.previewSkills,
       })
       .from(user)
-      .leftJoin(siteData, eq(user.id, siteData.userId))
+      .innerJoin(siteData, eq(user.id, siteData.userId))
       .where(eq(user.handle, handle))
       .limit(1);
 
