@@ -44,6 +44,8 @@ export class R2DeleteWorkflow extends WorkflowEntrypoint<CloudflareEnv, R2Delete
 
     const allKeys = [...new Set([...keys, ...listed])];
 
+    // One step per batch, because a batch is the journaled and retried unit; `deleteMany` deletes
+    // exactly the keys it is given.
     for (let start = 0; start < allKeys.length; start += R2_DELETE_BATCH_LIMIT) {
       const batch = allKeys.slice(start, start + R2_DELETE_BATCH_LIMIT);
 

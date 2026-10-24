@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { R2_DELETE_BATCH_LIMIT } from "@/lib/effect/services/r2-store";
 import type { R2DeleteParams } from "@/lib/workflows/r2-delete-params";
 import type {
   WorkflowEvent,
@@ -35,16 +36,20 @@ type Page = Awaited<ReturnType<R2Bucket["list"]>>;
 async function setup(bucket: Pick<R2Bucket, "delete" | "list">) {
   const { R2DeleteWorkflow } = await import("@/lib/workflows/r2-delete-workflow");
   const names: string[] = [];
+  const configs: (WorkflowStepConfig | undefined)[] = [];
 
   async function journal<T extends Rpc.Serializable<T>>(
     name: string,
     configOrCallback: WorkflowStepConfig | ((context: WorkflowStepContext) => Promise<T>),
     callback?: ((context: WorkflowStepContext) => Promise<T>) | WorkflowStepRollbackOptions<T>,
   ): Promise<T> {
-    names.push(name);
     const execute = callback ?? configOrCallback;
 
     if (!(execute instanceof Function)) throw new Error("Missing workflow callback");
+
+    names.push(name);
+    // SAFETY: only the three-argument `step.do(name, config, callback)` form carries a config.
+    configs.push(callback ? (configOrCallback as WorkflowStepConfig) : undefined);
 
     return execute({ step: { name, count: 1 }, attempt: 1, config: {} });
   }
@@ -66,6 +71,7 @@ async function setup(bucket: Pick<R2Bucket, "delete" | "list">) {
 
   return {
     names,
+    configs,
     run: (payload: R2DeleteParams) =>
       // SAFETY: run only reads the payload.
       workflow.run({ payload } as WorkflowEvent<R2DeleteParams>, step),
@@ -87,11 +93,27 @@ function bucket(overrides: Partial<Pick<R2Bucket, "delete" | "list">> = {}) {
 describe("R2DeleteWorkflow", () => {
   it("deletes explicit keys in one journaled batch step", async () => {
     const r2 = bucket();
-    const { run, names } = await setup(r2);
+    const { run, names, configs } = await setup(r2);
 
     expect(await run({ keys: ["a", "b", "a"] })).toBe(2);
     expect(names).toEqual(["delete batch 0"]);
     expect(r2.delete).toHaveBeenCalledWith(["a", "b"]);
+    expect(configs).toEqual([
+      { retries: { limit: 8, delay: "1 minute", backoff: "exponential" }, timeout: "5 minutes" },
+    ]);
+  });
+
+  it("journals one distinctly named step per batch of the R2 limit", async () => {
+    const r2 = bucket();
+    const { run, names, configs } = await setup(r2);
+    const keys = Array.from({ length: R2_DELETE_BATCH_LIMIT + 1 }, (_, index) => `k${index}`);
+
+    expect(await run({ keys })).toBe(R2_DELETE_BATCH_LIMIT + 1);
+    expect(names).toEqual(["delete batch 0", `delete batch ${R2_DELETE_BATCH_LIMIT}`]);
+    expect(r2.delete).toHaveBeenCalledTimes(2);
+    expect(r2.delete).toHaveBeenNthCalledWith(1, keys.slice(0, R2_DELETE_BATCH_LIMIT));
+    expect(r2.delete).toHaveBeenNthCalledWith(2, [keys[R2_DELETE_BATCH_LIMIT]]);
+    expect(configs[1]).toEqual(configs[0]);
   });
 
   it("lists the prefix in a step and merges its keys with the explicit ones", async () => {
