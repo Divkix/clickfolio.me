@@ -179,6 +179,7 @@ describe("GET /api/resume/status", () => {
   it("answers the parsed content of a completed resume", async () => {
     await insertUsers();
     await insertResume("resume_1", "user_1", "completed");
+    const findFirst = vi.spyOn(testDb.db.query.resumes, "findFirst");
 
     const { GET } = await import("@/app/api/resume/status/route");
     const response = await GET(new Request(url("resume_1")));
@@ -188,6 +189,7 @@ describe("GET /api/resume/status", () => {
 
     expect(body).toMatchObject({ status: "completed", progress_pct: 100 });
     expect(body.parsed_content.full_name).toBe("Avery Johnson");
+    expect(findFirst).toHaveBeenCalledTimes(1);
   });
 
   it("answers 503 DATABASE_ERROR, not an unhandled 500, when the read loses its connection", async () => {
