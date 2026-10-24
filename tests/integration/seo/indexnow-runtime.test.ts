@@ -87,6 +87,15 @@ describe("IndexNow runtime debounce", () => {
     expect(submittedUrls(1)).toEqual([`${siteConfig.url}/@erin`]);
   });
 
+  it("dedupes a forced ping so a handle that did not change is sent once", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await notify(["erin", "erin"], { skipDebounce: true });
+
+    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@erin`]);
+    expect(cache.put).toHaveBeenCalledTimes(1);
+  });
+
   it("still marks a forced ping so an ordinary publish right after it is coalesced", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
 

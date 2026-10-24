@@ -16,8 +16,14 @@ export function submitProfiles(
     const indexNow = yield* IndexNow;
 
     // A change that takes a page out of search (hide, delete, rename) must reach the engines even
-    // right after a publish ping, so it skips the read. It still marks the URL afterwards.
-    const fresh = yield* (skipDebounce ? Effect.succeed(urls) : indexNow.undebounced(urls)).pipe(
+    // right after a publish ping, so it skips the read. It still marks the URL afterwards. Dedupe
+    // first: a forced ping can carry the same handle twice (a theme-only wizard run), and the
+    // endpoint must not receive the URL twice.
+    const unique = [...new Set(urls)];
+
+    const fresh = yield* (
+      skipDebounce ? Effect.succeed(unique) : indexNow.undebounced(unique)
+    ).pipe(
       Effect.catchTag("IndexNowDebounceFailed", (failure) =>
         Effect.sync(() => {
           log("warn", "indexnow debounce unavailable", {
