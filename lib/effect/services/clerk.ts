@@ -57,6 +57,16 @@ type Verification =
 const httpStatusSchema = z.object({ status: z.number() });
 
 const DELETE_USER_OPERATION = "clerk.delete-user";
+const VERIFY_TOKEN_OPERATION = "clerk.verify-token";
+
+/** A missing key is a deployment fault: retrying the same call cannot fix it. */
+function missingSecret(operation: string): ClerkFailed {
+  return new ClerkFailed({
+    operation,
+    kind: "rejected",
+    message: "CLERK_SECRET_KEY is not configured",
+  });
+}
 
 type ClerkService = {
   /**
@@ -79,13 +89,7 @@ type ClerkService = {
 function deleteUserWith(secretKey: string | undefined): ClerkService["deleteUser"] {
   return (clerkId) => {
     if (!secretKey) {
-      return Effect.fail(
-        new ClerkFailed({
-          operation: DELETE_USER_OPERATION,
-          kind: "rejected",
-          message: "CLERK_SECRET_KEY is not configured",
-        }),
-      );
+      return Effect.fail(missingSecret(DELETE_USER_OPERATION));
     }
 
     return externalCall({
@@ -114,16 +118,12 @@ function service(secretKey: string | undefined): ClerkService {
     verifyToken: (token) => {
       if (!token) return Effect.succeed(null);
 
+      if (!secretKey) return Effect.fail(missingSecret(VERIFY_TOKEN_OPERATION));
+
       return externalCall({
-        operation: "clerk.verify-token",
+        operation: VERIFY_TOKEN_OPERATION,
         timeoutMs: TIMEOUT_MS.clerk,
         run: async (): Promise<Verification> => {
-          if (!secretKey) {
-            throw new Error(
-              "CLERK_SECRET_KEY is not configured. Set it via `wrangler secret put CLERK_SECRET_KEY` (prod) or .dev.vars (dev).",
-            );
-          }
-
           try {
             const payload = payloadSchema.safeParse(await verifyToken(token, { secretKey }));
 
