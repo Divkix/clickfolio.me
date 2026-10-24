@@ -77,7 +77,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
           .ats-entry { break-inside: avoid; }
         }
       `}</style>
-      <main className="font-ats min-h-screen bg-[#D9DBDE] print:bg-white text-[#16181D] text-[1.0625rem] leading-[1.45] selection:bg-[#22385C] selection:text-white overflow-x-hidden print:overflow-visible px-3 py-6 sm:px-6 sm:py-10 print:p-0">
+      <div className="font-ats min-h-screen bg-[#D9DBDE] print:bg-white text-[#16181D] text-[1.0625rem] leading-[1.45] selection:bg-[#22385C] selection:text-white overflow-x-hidden print:overflow-visible px-3 py-6 sm:px-6 sm:py-10 print:p-0">
         <div className="mx-auto max-w-[8.5in] mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
           <ShareBar
             handle={profile.handle}
@@ -279,7 +279,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </SheetSection>
           )}
         </article>
-      </main>
+      </div>
     </>
   );
 };

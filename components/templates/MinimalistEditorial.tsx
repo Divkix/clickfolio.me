@@ -72,7 +72,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
         .font-serif-me, .font-serif-me :is(h1, h2, h3, p, li, dt, dd, a) { font-family: 'Source Serif 4', Georgia, serif; font-optical-sizing: auto; }
       `}</style>
       <div className="font-serif-me min-h-screen bg-white text-[#1B1B1F] text-[1.0625rem] md:text-lg leading-[1.7] selection:bg-[#1F5C4A] selection:text-white overflow-x-hidden">
-        <main className="mx-auto max-w-[40rem] lg:max-w-[54rem] px-5 sm:px-8 pt-16 md:pt-28 pb-24">
+        <div className="mx-auto max-w-[40rem] lg:max-w-[54rem] px-5 sm:px-8 pt-16 md:pt-28 pb-24">
           <header className="grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,40rem)] lg:gap-x-12">
             {(profile.avatar_url || contact.location) && (
               <div>
@@ -263,7 +263,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
               />
             </div>
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

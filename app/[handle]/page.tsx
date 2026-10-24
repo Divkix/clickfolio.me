@@ -182,7 +182,7 @@ export default async function HandlePage({ params }: PageProps) {
           ]}
         />
       )}
-      <div id="main-content">
+      <main id="main-content">
         <Template
           content={content}
           profile={{
@@ -190,7 +190,7 @@ export default async function HandlePage({ params }: PageProps) {
             handle: profile.handle || handle,
           }}
         />
-      </div>
+      </main>
       <OwnerDetector profileId={profile.id} />
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
         <CreateYoursCTA handle={handle} profileId={profile.id} variant={theme_id} />

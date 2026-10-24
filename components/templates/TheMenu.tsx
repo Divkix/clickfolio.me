@@ -297,7 +297,7 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
         className="tm-root tm-cloth min-h-screen w-full overflow-x-hidden px-3 py-8 sm:px-6 sm:py-16"
         style={{ color: INK }}
       >
-        <main className="tm-card mx-auto max-w-[44rem] p-2.5 sm:p-3.5">
+        <div className="tm-card mx-auto max-w-[44rem] p-2.5 sm:p-3.5">
           <div className="border-[3px] border-double border-[#7A1E22]/70 px-5 pb-8 pt-10 sm:px-12 sm:pb-12 sm:pt-14">
             <header className="text-center">
               <h1
@@ -395,7 +395,7 @@ export const TheMenu: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
             </footer>
           </div>
-        </main>
+        </div>
       </div>
     </>
   );

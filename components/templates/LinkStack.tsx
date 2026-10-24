@@ -328,7 +328,7 @@ export const LinkStack: React.FC<TemplateProps> = ({ content, profile }) => {
           </div>
         </header>
 
-        <main>
+        <div>
           {groups.map((group, groupIndex) => (
             <section key={group.label ?? "links"} aria-label={group.label ?? "Links"}>
               {group.label && (
@@ -346,7 +346,7 @@ export const LinkStack: React.FC<TemplateProps> = ({ content, profile }) => {
               })}
             </section>
           ))}
-        </main>
+        </div>
 
         <footer className="ls-wrap flex flex-col items-start gap-4 pt-14 pb-20 md:flex-row md:items-center md:justify-between">
           <p className="ls-display text-base font-medium text-white/75 break-all">

@@ -364,7 +364,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
         />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6">
-          <main>
+          <div>
             <Header content={content} profile={profile} />
 
             {content.summary && (
@@ -379,7 +379,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               <Skills skills={content.skills} />
               <Credentials education={content.education} certifications={content.certifications} />
             </div>
-          </main>
+          </div>
 
           <footer className="mt-28 py-14 border-t border-[#D4B26A]/15 flex flex-col items-center gap-6 text-sm text-[#9AA0BE]">
             {content.contact.email && (

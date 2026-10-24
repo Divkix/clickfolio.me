@@ -462,7 +462,7 @@ export const RetroOS: React.FC<TemplateProps> = ({ content, profile }) => {
             </ul>
           </nav>
 
-          <main className="grid min-w-0 flex-1 grid-cols-1 content-start gap-5 lg:grid-cols-12">
+          <div className="grid min-w-0 flex-1 grid-cols-1 content-start gap-5 lg:grid-cols-12">
             <AboutWindow content={content} avatarUrl={profile.avatar_url} />
             {hasExperience && <ExperienceWindow experience={experience} />}
             {skillGroups.length > 0 && <SkillsWindow skills={skillGroups} />}
@@ -473,7 +473,7 @@ export const RetroOS: React.FC<TemplateProps> = ({ content, profile }) => {
                 certifications={certifications ?? []}
               />
             )}
-          </main>
+          </div>
         </div>
 
         <footer className="ros-raised flex flex-wrap items-center gap-2 bg-[#C0C0C0] px-2 py-1.5 sm:flex-nowrap">

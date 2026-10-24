@@ -350,13 +350,13 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
           .df-root { font-family: 'Schibsted Grotesk', system-ui, sans-serif; font-size: 17px; }
         `}</style>
 
-        <main className="max-w-[88rem] mx-auto px-5 md:px-10">
+        <div className="max-w-[88rem] mx-auto px-5 md:px-10">
           <Hero content={content} profile={profile} />
           <Projects items={content.projects} />
           <Experience items={content.experience} />
           <Skills groups={content.skills} />
           <Credentials education={content.education} certifications={content.certifications} />
-        </main>
+        </div>
 
         <footer className="text-white" style={{ backgroundColor: COBALT }}>
           <div className="max-w-[88rem] mx-auto px-5 md:px-10 pt-16 md:pt-24 pb-10 grid gap-14">

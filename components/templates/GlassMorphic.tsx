@@ -518,7 +518,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
           <GlassBar name={content.full_name} sections={navSections} email={content.contact.email} />
         )}
 
-        <main className="relative z-10 mx-auto max-w-5xl space-y-16 px-4 pt-8 pb-16 sm:px-6 md:space-y-20 md:pt-14">
+        <div className="relative z-10 mx-auto max-w-5xl space-y-16 px-4 pt-8 pb-16 sm:px-6 md:space-y-20 md:pt-14">
           <GlassHero content={content} profile={profile} />
           <GlassExperience experience={content.experience} />
           <GlassProjects projects={content.projects} />
@@ -536,7 +536,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
               &copy; {new Date().getFullYear()} {content.full_name}
             </p>
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

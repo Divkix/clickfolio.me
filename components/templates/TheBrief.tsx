@@ -87,7 +87,7 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
         .tb-root :is(h1, h2, h3) { font-family: 'Playfair Display', Georgia, serif; }
       `}</style>
       <div className="tb-root min-h-screen bg-[#FBF8F0] text-[#1C1A16] overflow-x-hidden">
-        <main className="mx-auto max-w-[40rem] px-5 sm:px-8 pt-16 pb-24">
+        <div className="mx-auto max-w-[40rem] px-5 sm:px-8 pt-16 pb-24">
           <header className="border-2 px-6 py-7 text-center" style={{ borderColor: NAVY }}>
             <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: GOLD }}>
               Professional Profile
@@ -231,7 +231,7 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="the-brief"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

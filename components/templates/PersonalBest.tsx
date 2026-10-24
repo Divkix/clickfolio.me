@@ -211,7 +211,7 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
           </section>
         )}
 
-        <main className="pb-sheet mx-auto max-w-[60rem] px-4 sm:px-8 pt-10 pb-20">
+        <div className="pb-sheet mx-auto max-w-[60rem] px-4 sm:px-8 pt-10 pb-20">
           {summary && (
             <p className="max-w-[40rem] text-[1.1875rem] leading-[1.6] break-words">{summary}</p>
           )}
@@ -338,7 +338,7 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="personal-best"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

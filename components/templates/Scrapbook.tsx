@@ -158,7 +158,7 @@ export const Scrapbook: React.FC<TemplateProps> = ({ content, profile }) => {
             {summary && <p className="sb-notebook">{summary}</p>}
           </header>
 
-          <main>
+          <div>
             {education && education.length > 0 && (
               <section className="sb-section" aria-labelledby="sb-edu">
                 <Heading>
@@ -303,7 +303,7 @@ export const Scrapbook: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
               </section>
             )}
-          </main>
+          </div>
 
           <footer className="sb-foot">
             <span className="sb-sign">— {full_name}</span>

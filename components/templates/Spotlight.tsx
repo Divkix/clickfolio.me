@@ -377,14 +377,14 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           <Valance />
           <Hero content={content} />
 
-          <main className="max-w-3xl mx-auto px-5 md:px-10">
+          <div className="max-w-3xl mx-auto px-5 md:px-10">
             <WhosWho summary={content.summary} avatarUrl={profile.avatar_url} name={name} />
             <Credits items={content.experience} />
             <Productions items={content.projects} />
             <Featuring groups={content.skills} />
             <Training items={content.education} />
             <Certifications items={content.certifications} />
-          </main>
+          </div>
 
           <footer className="max-w-3xl mx-auto px-5 md:px-10 pt-20 md:pt-28 pb-14">
             <div className="border-t border-[#E8A93B]/50 pt-12 md:pt-14 text-center">
