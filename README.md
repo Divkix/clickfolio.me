@@ -450,7 +450,7 @@ components/
 lib/
 ├── auth/                # Clerk integration (server JWKS verification, session, client seam)
 ├── ai/                  # AI parsing (OpenRouter via CF AI Gateway)
-├── cron/                # Daily DB cleanup cron
+├── cron/                # Daily DB cleanup, 15-minute stranded-resume sweep
 ├── db/                  # Drizzle PG schema + getDb(env.HYPERDRIVE)
 ├── durable-objects/     # WebSocket Durable Object
 ├── parse/               # Parse step bodies, error classification, alerts, DO notify
@@ -528,9 +528,10 @@ Durable resume parsing with per-step retries:
 
 ### Scheduled Tasks (Cron)
 
-| Cron        | Time (UTC) | Task                                                   |
-| ----------- | ---------- | ------------------------------------------------------ |
-| `0 3 * * *` | 3:00 AM    | Database cleanup (expired rate limits, handle history) |
+| Cron           | Time (UTC)       | Task                                                                                                                                    |
+| -------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `0 3 * * *`    | 3:00 AM          | Database cleanup (expired rate limits, handle history)                                                                                  |
+| `*/15 * * * *` | Every 15 minutes | Fails resumes stuck in `pending_claim`/`queued` (over 15 min) or `processing` (over 90 min); the user can retry them from the dashboard |
 
 Runs via `worker/index.ts` without self-fetch (avoids double billing).
 
