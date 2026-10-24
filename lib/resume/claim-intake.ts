@@ -278,7 +278,7 @@ function loadTempFile(userId: string, tempKey: string) {
       return claimError("Invalid PDF format", "VALIDATION_ERROR", 400);
     }
 
-    const fileHash = yield* Effect.promise(() => sha256Hex(bytes.slice()));
+    const fileHash = yield* Effect.promise(() => sha256Hex(bytes));
 
     return { kind: "loaded" as const, bytes, fileHash };
   });

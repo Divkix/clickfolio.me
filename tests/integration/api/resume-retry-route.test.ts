@@ -356,7 +356,8 @@ describe("POST /api/resume/retry when the workflow cannot start", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: "DATABASE_ERROR" });
 
-    // Nothing recovers a queued row without a workflow run, so the log must say so.
+    // Nothing runs the queued row until the 15-minute sweep fails it, so the loud log (with the
+    // 503 above) is the only timely signal that the retry was lost.
     expect(mocks.log).toHaveBeenCalledWith(
       "error",
       "Retry rollback failed; resume left queued without a workflow run",

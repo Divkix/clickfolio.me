@@ -34,8 +34,9 @@ type RollbackTarget = {
  * Puts the row back the way this request found it, so the visitor can retry again. Compare-and-set
  * on (status, retryCount): it undoes only this request's own increment, never a concurrent retry
  * that has since taken over the row. If this write fails the row stays `queued` with no workflow
- * run, which nothing recovers and the retry route refuses (it needs `failed`): that is logged
- * loudly and surfaced as the route's failure instead of being hidden behind the start failure.
+ * run until the 15-minute sweep fails it (the retry route only accepts `failed`), which is why the
+ * failure is logged loudly and surfaced as the route's failure instead of being hidden behind the
+ * start failure.
  */
 function rollbackRetry(target: RollbackTarget) {
   return Db.use((service) =>
@@ -251,7 +252,7 @@ export async function POST(request: Request) {
 /** Hash of the uploaded PDF, for rows parsed before the upload recorded one. */
 function hashStoredFile(r2Key: string) {
   return R2Store.use((store) => store.get(r2Key)).pipe(
-    Effect.flatMap((bytes) => Effect.promise(() => sha256Hex(bytes.slice()))),
+    Effect.flatMap((bytes) => Effect.promise(() => sha256Hex(bytes))),
     // The row points at a file the bucket no longer has: retrying can never succeed, so this is
     // a 500, not an outage the visitor should wait out.
     Effect.catchTag("R2ObjectMissing", (missing) =>
