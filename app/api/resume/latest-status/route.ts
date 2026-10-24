@@ -2,7 +2,6 @@ import { desc, eq } from "drizzle-orm";
 import { Effect } from "effect";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
-import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { Db } from "@/lib/effect/db";
 import { getStatusView, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
@@ -40,13 +39,12 @@ export async function GET(request?: Request) {
 
         const resume = latestResume[0];
 
-        // SAFETY: drizzle row fields are nullable; cast narrows to lifecycle helper type
         const view = getStatusView({
-          status: resume.status as ResumeStatus,
-          createdAt: resume.createdAt as string | null,
-          retryCount: resume.retryCount as number,
-          totalAttempts: resume.totalAttempts as number,
-          lastAttemptError: resume.lastAttemptError as string | null,
+          status: resume.status,
+          createdAt: resume.createdAt,
+          retryCount: resume.retryCount,
+          totalAttempts: resume.totalAttempts,
+          lastAttemptError: resume.lastAttemptError,
         });
 
         // SAFETY: errorMessage is a nullable string column; cast bridges Drizzle type.
