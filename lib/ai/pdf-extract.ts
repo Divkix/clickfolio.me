@@ -2,6 +2,8 @@ import { Effect } from "effect";
 import { extractText, getDocumentProxy } from "unpdf";
 import { z } from "zod";
 import { PdfInvalid } from "../parse/failures";
+import { errorFields } from "../utils/error-fields";
+import { log } from "../utils/log";
 import { detectResumeSource, type PdfInfo, type ResumeSource } from "./linkedin";
 
 export function isValidPdf(buffer: ArrayBuffer): boolean {
@@ -27,7 +29,7 @@ const pdfInfoSchema = z.object({
 function readPdfInfo(pdf: PdfDocument): Effect.Effect<PdfInfo> {
   return Effect.tryPromise({
     try: () => pdf.getMetadata(),
-    catch: () => null,
+    catch: (cause) => cause,
   }).pipe(
     Effect.map(({ info }) => {
       const parsed = pdfInfoSchema.safeParse(info);
@@ -35,7 +37,15 @@ function readPdfInfo(pdf: PdfDocument): Effect.Effect<PdfInfo> {
       return parsed.success ? { author: parsed.data.Author, subject: parsed.data.Subject } : {};
     }),
     // Metadata is only a detection hint; text detection still runs without it.
-    Effect.catch(() => Effect.succeed({})),
+    Effect.catch((cause) =>
+      Effect.sync((): PdfInfo => {
+        log("warn", "pdf metadata unreadable; detecting the source from text only", {
+          ...errorFields(cause),
+        });
+
+        return {};
+      }),
+    ),
   );
 }
 

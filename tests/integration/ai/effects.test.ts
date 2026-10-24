@@ -116,6 +116,11 @@ describe("Effect PDF failures", () => {
       pageCount: 1,
       source: "generic",
     });
+    expect(mocks.log).toHaveBeenCalledWith(
+      "warn",
+      "pdf metadata unreadable; detecting the source from text only",
+      expect.objectContaining({ "error.message": "metadata unavailable" }),
+    );
   });
 });
 
