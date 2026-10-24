@@ -12,12 +12,15 @@ import { toParseErrorJson } from "../parse/failures";
 import { runStep } from "./run-step";
 import { sendResumeFailureEmail } from "../parse/email";
 import {
+  announceResumeParseFailure,
   claimResumeForParse,
   completeParsedResume,
   expireWaitingForCache,
   markResumeParseFailed,
   parseResumePdf,
   readLastParseFailure,
+  type ParseFailureNotice,
+  type ResumeParseJob,
 } from "../parse/pipeline";
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "../resume/lifecycle";
 import { parseRunAttributes, type ResumeParseParams } from "./resume-parse";
@@ -79,6 +82,28 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
     } catch (error) {
       // Not rethrown: a failed email must not fail the run after the row is final.
       log("error", "resume failure email step failed", { resumeId, ...errorFields(error) });
+    }
+  }
+
+  private async announceFailure(
+    job: ResumeParseJob,
+    notice: ParseFailureNotice,
+    tracedStep: TracedStep,
+  ): Promise<void> {
+    try {
+      // The alert webhook and status push have no idempotency key, so they get a journaled
+      // step of their own with no retries: a retry of `mark failed` cannot send them twice.
+      await tracedStep(
+        "announce parse failure",
+        { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
+        () => announceResumeParseFailure(job, notice, this.env),
+      );
+    } catch (error) {
+      // Not rethrown: a failed announcement must not fail the run after the row is final.
+      log("error", "resume failure announce step failed", {
+        resumeId: job.resumeId,
+        ...errorFields(error),
+      });
     }
   }
 
@@ -161,7 +186,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
 
       return "completed";
     } catch (error) {
-      await tracedStep("mark failed", DB_STEP, async () => {
+      const notice = await tracedStep("mark failed", DB_STEP, async () => {
         // The Workflow engine may serialize thrown Errors. The row retains the
         // original failure metadata even when Error.cause is lost on replay.
         const fallback = toParseErrorJson(classifyParseError(error));
@@ -180,7 +205,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
             : null;
 
         const failure = carried ?? currentDatabaseFailure ?? stored ?? fallback;
-        await markResumeParseFailed(job, failure, this.env);
+        const marked = await markResumeParseFailed(job, failure, this.env);
 
         // After the write, inside the step body: once per run, not once per
         // step retry or per replay of `run`.
@@ -189,7 +214,13 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
           { ...outcome(), errorType: failure.type, ...errorFields(error) },
           "error",
         );
+
+        return marked;
       });
+
+      // `notice` is undefined when nothing was marked failed, and for a run journaled before
+      // this step existed (its alert already went out inside `mark failed`).
+      if (notice) await this.announceFailure(job, notice, tracedStep);
 
       await this.emailFailure(job.resumeId, tracedStep);
 

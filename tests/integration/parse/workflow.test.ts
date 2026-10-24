@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   readFailure: vi.fn(),
   complete: vi.fn(),
   fail: vi.fn(),
+  announce: vi.fn(),
   expire: vi.fn(async () => true),
   email: vi.fn(),
   log: vi.fn(),
@@ -53,6 +54,7 @@ vi.mock("@/lib/parse/pipeline", () => ({
   readLastParseFailure: mocks.readFailure,
   completeParsedResume: mocks.complete,
   markResumeParseFailed: mocks.fail,
+  announceResumeParseFailure: mocks.announce,
   expireWaitingForCache: mocks.expire,
 }));
 
@@ -155,6 +157,43 @@ describe("resume failure email workflow step", () => {
     );
     await expect(workflow.run()).rejects.toThrow("Original parse failure");
     expect(mocks.email).toHaveBeenCalledTimes(1);
+  });
+
+  it("announces the failure in its own no-retry step between the DB write and the email", async () => {
+    const notice = { failure: toParseErrorJson(new UnknownParseFailure({ message: "x" })) };
+    mocks.fail.mockResolvedValueOnce({ ...notice, totalAttempts: 2, waitingIds: [] });
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toThrow("Original parse failure");
+    expect(workflow.doStep).toHaveBeenCalledWith(
+      "announce parse failure",
+      expect.objectContaining({ retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" }),
+      expect.any(Function),
+    );
+    expect(mocks.announce).toHaveBeenCalledWith(
+      expect.objectContaining({ resumeId: "resume-1" }),
+      expect.objectContaining({ totalAttempts: 2, waitingIds: [] }),
+      expect.any(Object),
+    );
+    expect(mocks.fail.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.announce.mock.invocationCallOrder[0],
+    );
+    expect(mocks.announce.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.email.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("does not announce when the row was already gone, and survives a failed announcement", async () => {
+    const workflow = await runWorkflow();
+    await expect(workflow.run()).rejects.toThrow("Original parse failure");
+    expect(mocks.announce).not.toHaveBeenCalled();
+
+    mocks.fail.mockResolvedValueOnce({ failure: {}, totalAttempts: 1, waitingIds: [] });
+    mocks.announce.mockRejectedValueOnce(new Error("announce exploded"));
+    const second = await runWorkflow();
+    await expect(second.run()).rejects.toThrow("Original parse failure");
+    expect(mocks.announce).toHaveBeenCalledTimes(1);
+    // Once per run: the failed announcement did not stop the second run's email.
+    expect(mocks.email).toHaveBeenCalledTimes(2);
   });
 
   it("logs each failed attempt and the terminal failure with its type and stack", async () => {

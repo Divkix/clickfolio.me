@@ -291,12 +291,24 @@ export async function completeParsedResume(
   }
 }
 
-/** Terminal failure: every retry is spent or the error is permanent. */
+/** What `announceResumeParseFailure` needs from the terminal DB step; a step output, so JSON only. */
+export type ParseFailureNotice = {
+  failure: ParseErrorJson;
+  totalAttempts: number;
+  waitingIds: string[];
+};
+
+/**
+ * Terminal failure: every retry is spent or the error is permanent. Database work only, so the
+ * retryable step that runs it cannot repeat a notification; those go through
+ * `announceResumeParseFailure` in a step of their own. Returns undefined when there is nothing
+ * to announce (row gone or completed elsewhere).
+ */
 export async function markResumeParseFailed(
   job: ResumeParseJob,
   storedError: ParseErrorJson,
   env: CloudflareEnv,
-): Promise<void> {
+): Promise<ParseFailureNotice | undefined> {
   const db = getDb(env.HYPERDRIVE);
 
   const failed = await db
@@ -311,18 +323,7 @@ export async function markResumeParseFailed(
     .returning({ totalAttempts: resumes.totalAttempts, errorMessage: resumes.errorMessage });
 
   // Row gone (account deletion cascade) or completed elsewhere: nothing to report.
-  if (failed.length === 0) return;
-
-  await ignoreAndLog(
-    () =>
-      notifyStatusChange({
-        resumeId: job.resumeId,
-        status: "failed",
-        error: storedError.message,
-        env,
-      }),
-    "failed to notify parse status",
-  );
+  if (failed.length === 0) return undefined;
 
   // Identical uploads waiting on this parse would otherwise sit until their
   // waiting_for_cache timer and report a misleading timeout.
@@ -343,12 +344,42 @@ export async function markResumeParseFailed(
     )
     .returning({ id: resumes.id });
 
+  return {
+    failure: storedError,
+    totalAttempts: failed[0].totalAttempts ?? 0,
+    waitingIds: waitingFailed.map((row) => row.id),
+  };
+}
+
+/**
+ * Pushes the failed status and sends the ops alert. Not replay-safe by design: the Workflow runs
+ * it as a step with no retries, so neither the alert nor the pushes repeat when
+ * `markResumeParseFailed` retries.
+ */
+export async function announceResumeParseFailure(
+  job: ResumeParseJob,
+  notice: ParseFailureNotice,
+  env: CloudflareEnv,
+): Promise<void> {
+  const storedError = notice.failure;
+
+  await ignoreAndLog(
+    () =>
+      notifyStatusChange({
+        resumeId: job.resumeId,
+        status: "failed",
+        error: storedError.message,
+        env,
+      }),
+    "failed to notify parse status",
+  );
+
   await Promise.all(
-    waitingFailed.map((row) =>
+    notice.waitingIds.map((id) =>
       ignoreAndLog(
         () =>
           notifyStatusChange({
-            resumeId: row.id,
+            resumeId: id,
             status: "failed",
             error: storedError.message,
             env,
@@ -368,7 +399,7 @@ export async function markResumeParseFailed(
           userId: job.userId,
           failureReason: storedError.message,
           errorType: storedError.type,
-          totalAttempts: failed[0].totalAttempts ?? 0,
+          totalAttempts: notice.totalAttempts,
           timestamp: new Date().toISOString(),
         },
         getAlertChannel(alertEnv.ALERT_CHANNEL),
