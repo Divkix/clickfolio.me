@@ -1,3 +1,4 @@
+import type { Effect } from "effect";
 import {
   afterAll,
   afterEach,
@@ -9,17 +10,26 @@ import {
   vi,
 } from "vite-plus/test";
 import { siteData, user } from "@/lib/db/schema";
+import type { Db } from "@/lib/effect/db";
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { createTestDb, INDEXABLE_CONTENT } from "@/tests/helpers/pglite-db";
 
 const mocks = vi.hoisted(() => ({ db: vi.fn(), log: vi.fn() }));
 
-vi.mock("@/lib/auth/with-auth", () => ({
-  withUser: (
-    _request: Request | undefined,
-    handler: (context: { user: { id: string }; db: unknown }) => Promise<Response>,
-  ) => handler({ user: { id: "user_1" }, db: mocks.db() }),
-}));
+// The real wrapper authenticates through Clerk on the same Db (tests/integration/effect/auth.test.ts);
+// this stand-in signs user_1 in and hands the route the per-test database, so a broken or hanging
+// one reaches the route's own query.
+vi.mock("@/lib/auth/with-auth", async () => {
+  const { runRoute } = await import("@/lib/effect/edges");
+  const { Db: DbService } = await import("@/lib/effect/db");
+
+  return {
+    withUserEffect: (
+      request: Request | undefined,
+      handler: (context: { user: { id: string } }) => Effect.Effect<Response, never, Db>,
+    ) => runRoute(request, handler({ user: { id: "user_1" } }), DbService.layerFrom(mocks.db())),
+  };
+});
 
 vi.mock("@/lib/utils/log", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/utils/log")>()),

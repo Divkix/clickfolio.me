@@ -1,17 +1,15 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
-import { count, eq, sql } from "drizzle-orm";
+import { Layer } from "effect";
 import { AlertTriangle, Eye, FileText, Loader2, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminSparkline } from "@/components/admin/AdminSparkline";
 import { StatCard } from "@/components/admin/StatCard";
 import { requireAdminAuth } from "@/lib/auth/admin";
-import { getDb } from "@/lib/db";
-import { resumes, siteData, user } from "@/lib/db/schema";
-import { getPageviews, getStats } from "@/lib/umami/client";
-import { lastNUtcDays } from "@/lib/utils/date-axis";
+import { loadAdminStats } from "@/lib/data/admin-overview";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
+import { Umami } from "@/lib/effect/services/umami";
 import { formatRelativeTime } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
@@ -20,78 +18,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-async function getAdminStats() {
-  const db = getDb(env.HYPERDRIVE);
-
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  const [userCount, siteDataCount, resumeStats, recentSignups] = await Promise.all([
-    db.select({ count: count() }).from(user),
-    db.select({ count: count() }).from(siteData),
-    db.select({ status: resumes.status, count: count() }).from(resumes).groupBy(resumes.status),
-    db
-      .select({
-        email: user.email,
-        name: user.name,
-        previewName: siteData.previewName,
-        createdAt: user.createdAt,
-      })
-      .from(user)
-      .leftJoin(siteData, eq(user.id, siteData.userId))
-      .orderBy(sql`${user.createdAt} DESC`)
-      .limit(10),
-  ]);
-
-  let umamiStats: Awaited<ReturnType<typeof getStats>> | null = null;
-  let umamiPageviews: Awaited<ReturnType<typeof getPageviews>> | null = null;
-
-  try {
-    [umamiStats, umamiPageviews] = await Promise.all([
-      getStats(env, { startAt: todayStart.getTime(), endAt: now.getTime() }),
-      getPageviews(env, {
-        startAt: sevenDaysAgo.getTime(),
-        endAt: now.getTime(),
-        unit: "day",
-        timezone: "UTC",
-      }),
-    ]);
-  } catch (err) {
-    log("error", "[admin] Umami API unavailable:", { ...errorFields(err) });
-  }
-
-  // SAFETY: status is a validated string column; cast initializes typed map for counting.
-  const statusMap = resumeStats.reduce(
-    (acc, r) => {
-      acc[r.status || "unknown"] = r.count;
-
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  const umamiMap = new Map(umamiPageviews?.pageviews.map((p) => [p.x.slice(0, 10), p.y]) ?? []);
-
-  const filledDaily: Array<{ date: string; views: number }> = lastNUtcDays(7).map((date) => ({
-    date,
-    views: umamiMap.get(date) ?? 0,
-  }));
-
-  return {
-    totalUsers: userCount[0]?.count ?? 0,
-    publishedResumes: siteDataCount[0]?.count ?? 0,
-    processingResumes: (statusMap.processing || 0) + (statusMap.queued || 0),
-    failedResumes: statusMap.failed || 0,
-    viewsToday: umamiStats?.pageviews ?? 0,
-    recentSignups,
-    dailyViews: filledDaily,
-  };
-}
-
 export default async function AdminOverviewPage() {
   await requireAdminAuth();
-  const stats = await getAdminStats();
+
+  const stats = await runPage(
+    loadAdminStats(),
+    Layer.mergeAll(Db.layer(env.HYPERDRIVE), Umami.layer(env)),
+  );
 
   return (
     <div className="space-y-6">

@@ -1,13 +1,12 @@
 import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { getServerSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { siteData } from "@/lib/db/schema";
+import { loadThemeChoice } from "@/lib/data/owner-pages";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import { resolveThemeId } from "@/lib/templates/theme-ids";
-import type { ResumeContent } from "@/lib/types/database";
 
 export const metadata: Metadata = {
   title: "Themes",
@@ -21,21 +20,13 @@ export default async function ThemesPage() {
     redirect("/");
   }
 
-  const db = getDb(env.HYPERDRIVE);
+  const choice = await runPage(loadThemeChoice(session.user.id), Db.layer(env.HYPERDRIVE));
 
-  const userSiteData = await db.query.siteData.findFirst({
-    where: eq(siteData.userId, session.user.id),
-    columns: { themeId: true, content: true },
-  });
-
-  if (!userSiteData?.content) {
+  if (!choice) {
     redirect("/dashboard");
   }
 
-  const currentThemeId = resolveThemeId(userSiteData.themeId);
-
-  // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
-  const parsedContent = userSiteData.content as ResumeContent;
+  const currentThemeId = resolveThemeId(choice.themeId);
 
   const profile = {
     handle: session.user.handle || session.user.name || "user",
@@ -47,7 +38,7 @@ export default async function ThemesPage() {
       <div className="max-w-6xl mx-auto">
         <ThemeSelector
           initialThemeId={currentThemeId}
-          initialContent={parsedContent}
+          initialContent={choice.content}
           profile={profile}
         />
       </div>

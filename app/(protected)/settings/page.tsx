@@ -1,6 +1,5 @@
 import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
-import { count, desc, eq } from "drizzle-orm";
 import { User } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -11,8 +10,9 @@ import { ResumeManagementCard } from "@/components/settings/ResumeManagementCard
 import { RoleSelectorCard } from "@/components/settings/RoleSelectorCard";
 import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { resumes, user } from "@/lib/db/schema";
+import { loadSettings } from "@/lib/data/owner-pages";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
 
 export const dynamic = "force-dynamic";
@@ -79,41 +79,11 @@ export default async function SettingsPage() {
     redirect("/");
   }
 
-  const db = getDb(env.HYPERDRIVE);
-
-  const [profile, resumeData, latestResume] = await Promise.all([
-    db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
-      columns: {
-        id: true,
-        email: true,
-        handle: true,
-        headline: true,
-        image: true,
-        privacySettings: true,
-        role: true,
-        roleSource: true,
-        isFreelance: true,
-        updatedAt: true,
-      },
-    }),
-    db
-      .select({
-        count: count(),
-      })
-      .from(resumes)
-      .where(eq(resumes.userId, session.user.id)),
-    db.query.resumes.findFirst({
-      where: eq(resumes.userId, session.user.id),
-      orderBy: [desc(resumes.createdAt)],
-      columns: {
-        id: true,
-        createdAt: true,
-        status: true,
-        errorMessage: true,
-      },
-    }),
-  ]);
+  const {
+    profile,
+    resumeCount: resumeData,
+    latestResume,
+  } = await runPage(loadSettings(session.user.id), Db.layer(env.HYPERDRIVE));
 
   if (!profile) {
     log("error", "Failed to fetch profile for user:", { userId: session.user.id });

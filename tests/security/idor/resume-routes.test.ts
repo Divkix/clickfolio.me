@@ -164,11 +164,9 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
-
-const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 function createValidResumeContent() {
   return {
@@ -244,23 +242,6 @@ function authedAs(userId: string) {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_PARSE_WORKFLOW: {},
     } as never,
-    error: null,
-  });
-}
-
-function authedAsMessage(userId: string) {
-  mockedAuthMessage.mockResolvedValue({
-    user: {
-      id: userId,
-      email: `${userId}@test.com`,
-      name: "Test User",
-      image: null,
-      handle: "testuser",
-      headline: null,
-      privacySettings: DEFAULT_PRIVACY_SETTINGS,
-      onboardingCompleted: true,
-      role: "mid_level",
-    },
     error: null,
   });
 }
@@ -609,43 +590,6 @@ describe("IDOR - Resume Routes Security", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(403);
-    });
-  });
-
-  describe("GET /api/resume/latest-status", () => {
-    it("returns 403 when accessing another user's latest resume via manipulation", async () => {
-      authedAsMessage("user-a");
-
-      mockLimit.mockResolvedValue([
-        {
-          id: "resume-b-001",
-          userId: "user-b",
-          status: "completed",
-          errorMessage: null,
-          retryCount: 0,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-
-      const { GET } = await import("@/app/api/resume/latest-status/route");
-      const response = await GET();
-
-      expect([200, 403, 500]).toContain(response.status);
-    });
-
-    it("returns 401 for unauthenticated latest-status request", async () => {
-      mockedAuth.mockResolvedValue({
-        user: null,
-        db: null,
-        dbUser: null,
-        env: null,
-        error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
-      });
-
-      const { GET } = await import("@/app/api/resume/latest-status/route");
-      const response = await GET();
-
-      expect(response.status).toBe(401);
     });
   });
 

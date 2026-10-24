@@ -1,13 +1,11 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
+import { Effect } from "effect";
 import type { ZodError } from "zod";
-import { getServerSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { user } from "@/lib/db/schema";
-import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
-import { checkHandleRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+import { findSession } from "@/lib/auth/session";
+import { runRoute } from "@/lib/effect/edges";
+import { appLayer } from "@/lib/effect/layers";
+import { isHandleTakenEffect, RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
+import { checkHandleRateLimitEffect, getClientIP } from "@/lib/rate-limit/ip";
 import { handleSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
@@ -43,73 +41,53 @@ function handleFormatErrorMessage(error: ZodError): string {
   return "Handle cannot contain consecutive hyphens";
 }
 
+// `isHandleTakenEffect` excludes one user id; no row has this one, so it asks "does anyone own it".
+const NO_USER_ID = "";
+
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const handle = searchParams.get("handle");
+  const { searchParams } = new URL(request.url);
+  const handle = searchParams.get("handle");
 
-    if (!handle) {
-      return createErrorResponse("handle parameter is required", ERROR_CODES.BAD_REQUEST, 400);
-    }
+  if (!handle) {
+    return createErrorResponse("handle parameter is required", ERROR_CODES.BAD_REQUEST, 400);
+  }
 
-    const normalizedHandle = handle.toLowerCase().trim();
+  const normalizedHandle = handle.toLowerCase().trim();
 
-    const parsedHandle = handleSchema.safeParse(normalizedHandle);
+  const parsedHandle = handleSchema.safeParse(normalizedHandle);
 
-    if (!parsedHandle.success) {
-      return createErrorResponse(
-        handleFormatErrorMessage(parsedHandle.error),
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
+  if (!parsedHandle.success) {
+    return createErrorResponse(
+      handleFormatErrorMessage(parsedHandle.error),
+      ERROR_CODES.BAD_REQUEST,
+      400,
+    );
+  }
 
-    if (RESERVED_HANDLES.has(normalizedHandle)) {
-      return createSuccessResponse({ available: false, reason: "reserved" });
-    }
+  if (RESERVED_HANDLES.has(normalizedHandle)) {
+    return createSuccessResponse({ available: false, reason: "reserved" });
+  }
 
-    const clientIP = getClientIP(request);
-    const rateLimitResult = await checkHandleRateLimit(clientIP);
+  const program = Effect.gen(function* () {
+    yield* checkHandleRateLimitEffect(getClientIP(request));
 
-    if (!rateLimitResult.allowed) {
-      return createErrorResponse(
-        rateLimitResult.message || "Too many requests. Please try again later.",
-        ERROR_CODES.RATE_LIMIT_EXCEEDED,
-        429,
-      );
-    }
+    const taken = yield* isHandleTakenEffect(NO_USER_ID, normalizedHandle);
 
-    const db = getDb(env.HYPERDRIVE);
-
-    const existingUser = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.handle, normalizedHandle))
-      .limit(1);
-
-    if (existingUser.length === 0) {
+    if (!taken) {
       return createSuccessResponse({ available: true });
     }
 
-    let currentUserId: string | null = null;
+    // Only a taken handle needs the session, so typing a free one never reaches Clerk. An expired
+    // token reads as signed out; Clerk or Postgres being down fails the check (503/504) instead
+    // of answering "taken".
+    const session = yield* findSession(request);
 
-    try {
-      const session = await getServerSession();
-      currentUserId = session?.user?.id ?? null;
-    } catch {}
-
-    if (currentUserId && existingUser[0].id === currentUserId) {
+    if (session?.user.handle === normalizedHandle) {
       return createSuccessResponse({ available: true, isCurrentHandle: true });
     }
 
     return createSuccessResponse({ available: false });
-  } catch (err) {
-    log("error", "Error checking handle availability:", { ...errorFields(err) });
+  });
 
-    return createErrorResponse(
-      "An unexpected error occurred. Please try again.",
-      ERROR_CODES.INTERNAL_ERROR,
-      500,
-    );
-  }
+  return runRoute(request, program, appLayer(env));
 }
