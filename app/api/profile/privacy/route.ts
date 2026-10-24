@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { Conflict } from "@/lib/effect/failures";
+import { Conflict, NotFound } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
@@ -58,10 +58,15 @@ export async function PUT(request: Request) {
           ),
         );
 
-        if (expectedUpdatedAt && updated.length === 0) {
-          return yield* Effect.fail(
-            new Conflict({ message: "Settings changed elsewhere, reload" }),
-          );
+        if (updated.length === 0) {
+          if (expectedUpdatedAt) {
+            return yield* Effect.fail(
+              new Conflict({ message: "Settings changed elsewhere, reload" }),
+            );
+          }
+
+          // No row written: never report success or revalidate on stale privacy state.
+          return yield* Effect.fail(new NotFound({ message: "User not found" }));
         }
 
         yield* Effect.sync(() => {
