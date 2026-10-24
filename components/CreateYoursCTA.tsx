@@ -1,10 +1,11 @@
 "use client";
 
-import { cva, type VariantProps } from "class-variance-authority";
 import { Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/client";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
+import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import { cn } from "@/lib/utils/cn";
 import { useDismissable } from "@/hooks/useDismissable";
 
@@ -12,146 +13,10 @@ const SHOW_DELAY_MS = 3000;
 
 const SCROLL_THRESHOLD = 0.3;
 
-const ctaVariants = cva(
-  "flex items-center gap-3 px-4 py-3 rounded-full shadow-lg animate-fade-in-up",
-  {
-    variants: {
-      variant: {
-        liner_notes: "bg-[#1D2A33] text-[#EEF2EF] border border-[#1D2A33]",
-        rounds: "bg-[#123B4A] text-[#E7EFF3] border border-[#123B4A]",
-        lesson_plan: "bg-[#24303A] text-[#FCFCF8] border border-[#24303A]",
-        manuscript: "bg-[#22201C] text-[#FBFAF7] border border-[#7A1F2B]/40",
-        gallery_wall: "bg-[#2A2A2A] text-[#F1F0EC] border border-[#2A2A2A]",
-        media_kit: "bg-[#2A0B22] text-[#FBEAEE] border border-[#FF9EC1]/40",
-        scrapbook:
-          "bg-[#FFD84D] text-[#2B2622] border-2 border-[#2B2622] shadow-[3px_3px_0_0_#2B2622]",
-        blueprint: "bg-[#0B3158] text-[#EAF3FF] border border-[#EAF3FF]/60",
-        workspace: "bg-[#37352F] text-white border border-[#37352F]",
-        contact_sheet: "bg-[#1A1A1C] text-[#ECE8DF] border border-[#FF6B2C]/50",
-        academic_cv: "bg-[#14202F] text-white border border-[#14202F]",
-        minimalist_editorial: "bg-[#1B1B1F] text-white border border-[#1B1B1F]",
-        neo_brutalist: "bg-white text-black border-[3px] border-black shadow-[4px_4px_0_0_#000]",
-        glass: "bg-[#141A2E]/80 backdrop-blur-md border border-white/15 text-white",
-        bento: "bg-[#1F4E3D] text-[#F4F5F1] border border-[#1F4E3D]",
-        spotlight: "bg-[#170E10] text-[#F3E9D8] border border-[#E8A93B]/50",
-        midnight: "bg-[#0F1633] text-[#EDE6D6] border border-[#D4B26A]/30",
-        bold_corporate: "bg-[#0E2A47] text-white border border-[#0E2A47]",
-        dev_terminal: "bg-[#2d333b] text-[#adbac7] border border-[#444c56]",
-        classic_ats: "bg-white text-[#1F2328] border border-[#B9BCC2]",
-        design_folio: "bg-[#2D3BFF] text-white border border-[#2D3BFF]",
-        case_file: "bg-[#2F2A26] text-[#FBF7EE] border border-[#D9BF83]/40",
-        boardroom: "bg-[#161B22] text-[#ECE6D8] border border-[#C4A971]/40",
-        broadsheet: "bg-[#1B1613] text-[#F3E5D9] border border-[#1B1613]",
-        retro_os:
-          "bg-[#C0C0C0] text-black rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
-        quota: "bg-[#1F1C19] text-white border border-[#E8491D]/40",
-        the_brief: "bg-[#1B2A4A] text-white border border-[#B08D3D]/40",
-        open_house: "bg-[#1F4D3A] text-white border border-[#1F4D3A]",
-        the_menu: "bg-[#7A1E22] text-[#FCF8F0] border border-[#FCF8F0]/30",
-        personal_best: "bg-black text-white border border-[#FFB01F]/40",
-        pitch_deck: "bg-[#2F5CFF] text-white border border-[#2F5CFF]",
-        reel: "bg-[#0C0C0E] text-[#E7E6E2] border border-[#E5342B]/40",
-        link_stack: "bg-[#160F3D] text-white border border-white/15",
-      },
-    },
-    defaultVariants: {
-      variant: "minimalist_editorial",
-    },
-  },
-);
-
-const buttonVariants = cva(
-  "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200",
-  {
-    variants: {
-      variant: {
-        liner_notes: "bg-[#C8412F] text-[#EEF2EF] hover:bg-[#D9584A]",
-        rounds: "bg-[#E06D5A] text-white hover:bg-[#E88473]",
-        lesson_plan: "bg-[#FFE37A] text-[#24303A] hover:bg-[#FFEC9E]",
-        manuscript: "bg-[#7A1F2B] text-[#FBFAF7] hover:bg-[#8F2836]",
-        gallery_wall: "bg-[#B8875A] text-white hover:bg-[#C79868]",
-        media_kit: "bg-[#FF9EC1] text-[#2A0B22] hover:bg-white",
-        scrapbook: "bg-[#2B2622] text-[#FFFDF8] hover:bg-[#443C35]",
-        blueprint: "bg-[#FFD966] text-[#0E3A66] hover:bg-[#FFE38A]",
-        workspace: "bg-white text-[#37352F] hover:bg-[#F7F7F5]",
-        contact_sheet: "bg-[#FF6B2C] text-[#0F0F10] hover:bg-[#FF8451]",
-        academic_cv: "bg-white text-[#14202F] hover:bg-[#EEF1F5]",
-        minimalist_editorial: "bg-white text-[#1B1B1F] hover:bg-[#F4F4F5]",
-        neo_brutalist: "bg-[#FFD400] text-black hover:bg-[#FFE14D] font-bold",
-        glass: "bg-white/20 text-white hover:bg-white/30",
-        bento: "bg-[#F4D35E] text-[#1A1C20] hover:bg-[#F7DD7E]",
-        spotlight: "bg-[#FFF1CF] text-[#170E10] hover:bg-[#FFE3A6]",
-        midnight: "bg-[#D4B26A] text-[#0B1026] hover:bg-[#E0C487]",
-        bold_corporate: "bg-white text-[#0E2A47] hover:bg-[#EEF2F6]",
-        dev_terminal: "bg-[#347d39] text-white hover:bg-[#46954a]",
-        classic_ats: "bg-[#22385C] text-white hover:bg-[#2D4874]",
-        design_folio: "bg-white text-black hover:bg-[#EDEEF0]",
-        case_file: "bg-[#D9BF83] text-[#2F2A26] hover:bg-[#E4CD97]",
-        boardroom: "bg-[#C4A971] text-[#0F1318] hover:bg-[#D3BC8A]",
-        broadsheet: "bg-[#F3E5D9] text-[#1B1613] hover:bg-white",
-        retro_os: "bg-[#000080] text-white rounded-none hover:bg-[#1084D0]",
-        quota: "bg-[#E8491D] text-white hover:bg-[#F15F34]",
-        the_brief: "bg-[#B08D3D] text-[#1B2A4A] hover:bg-[#C19E52]",
-        open_house: "bg-white text-[#1F4D3A] hover:bg-[#E1E7E2]",
-        the_menu: "bg-[#FCF8F0] text-[#7A1E22] hover:bg-[#F1E7D8]",
-        personal_best: "bg-[#B0372A] text-white hover:bg-[#C4463A]",
-        pitch_deck: "bg-white text-[#2F5CFF] hover:bg-[#EEF1FF]",
-        reel: "bg-[#E5342B] text-white hover:bg-[#EF5048]",
-        link_stack: "bg-[#FF9A74] text-[#160F3D] hover:bg-[#FFBE8F]",
-      },
-    },
-    defaultVariants: {
-      variant: "minimalist_editorial",
-    },
-  },
-);
-
-const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
-  variants: {
-    variant: {
-      liner_notes: "hover:bg-white/10 text-[#EEF2EF]/70",
-      rounds: "hover:bg-white/10 text-[#E7EFF3]/70",
-      lesson_plan: "hover:bg-white/10 text-[#FCFCF8]/70",
-      manuscript: "hover:bg-white/10 text-[#FBFAF7]/70",
-      gallery_wall: "hover:bg-white/10 text-[#F1F0EC]/70",
-      media_kit: "hover:bg-white/10 text-[#FBEAEE]/70",
-      scrapbook: "hover:bg-black/10 text-[#2B2622]",
-      blueprint: "hover:bg-white/10 text-[#EAF3FF]/70",
-      workspace: "hover:bg-white/10 text-white/60",
-      contact_sheet: "hover:bg-white/10 text-[#ECE8DF]/70",
-      academic_cv: "hover:bg-white/10 text-white/60",
-      minimalist_editorial: "hover:bg-white/10 text-white/60",
-      neo_brutalist: "hover:bg-black/10 text-black",
-      glass: "hover:bg-white/10 text-white/60",
-      bento: "hover:bg-white/10 text-[#F4F5F1]/70",
-      spotlight: "hover:bg-white/10 text-[#F3E9D8]/70",
-      midnight: "hover:bg-[#D4B26A]/15 text-[#D4B26A]",
-      bold_corporate: "hover:bg-white/10 text-white/60",
-      dev_terminal: "hover:bg-[#444c56] text-[#768390]",
-      classic_ats: "hover:bg-gray-100 text-gray-500",
-      design_folio: "hover:bg-white/10 text-white/70",
-      case_file: "hover:bg-white/10 text-[#FBF7EE]/70",
-      boardroom: "hover:bg-white/10 text-[#ECE6D8]/70",
-      broadsheet: "hover:bg-white/10 text-[#F3E5D9]/70",
-      retro_os: "hover:bg-black/10 text-black rounded-none",
-      quota: "hover:bg-white/10 text-white/70",
-      the_brief: "hover:bg-white/10 text-white/70",
-      open_house: "hover:bg-white/10 text-white/70",
-      the_menu: "hover:bg-white/10 text-[#FCF8F0]/75",
-      personal_best: "hover:bg-white/10 text-white/70",
-      pitch_deck: "hover:bg-white/10 text-white/70",
-      reel: "hover:bg-[#E5342B]/15 text-[#E5342B]",
-      link_stack: "hover:bg-white/10 text-white/70",
-    },
-  },
-  defaultVariants: {
-    variant: "minimalist_editorial",
-  },
-});
-
-interface CreateYoursCTAProps extends VariantProps<typeof ctaVariants> {
+interface CreateYoursCTAProps {
   handle: string;
   profileId: string;
+  variant?: ThemeId;
   className?: string;
 }
 
@@ -204,19 +69,32 @@ export function CreateYoursCTA({ handle, profileId, variant, className }: Create
   }
 
   const ctaUrl = `/?utm_source=resume&utm_medium=cta&utm_campaign=${encodeURIComponent(handle)}`;
+  const styles = THEME_CHROME[variant ?? DEFAULT_THEME].cta;
 
   return (
-    <div className={cn(ctaVariants({ variant }), className)}>
+    <div
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-full shadow-lg animate-fade-in-up",
+        styles.container,
+        className,
+      )}
+    >
       <Sparkles className="size-4 shrink-0" aria-hidden="true" />
       <span className="text-sm font-medium hidden sm:inline">Like this resume?</span>
-      <Link href={ctaUrl} className={cn(buttonVariants({ variant }))}>
+      <Link
+        href={ctaUrl}
+        className={cn(
+          "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200",
+          styles.button,
+        )}
+      >
         Create yours free
         <span aria-hidden="true">→</span>
       </Link>
       <button
         type="button"
         onClick={handleDismiss}
-        className={cn(closeButtonVariants({ variant }))}
+        className={cn("p-1 rounded-full transition-colors", styles.closeButton)}
         aria-label="Dismiss"
       >
         <X className="size-4" aria-hidden="true" />

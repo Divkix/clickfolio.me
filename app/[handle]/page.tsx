@@ -9,7 +9,7 @@ import { siteConfig } from "@/lib/config/site";
 import { getResume } from "@/lib/data/resume";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { buildProfileTitle, fitTitle } from "@/lib/seo/page-metadata";
-import { themeToShareVariant } from "@/lib/templates/theme-ids";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { getTemplate } from "@/lib/templates/theme-registry";
 
 export const dynamicParams = true;
@@ -155,7 +155,7 @@ export default async function HandlePage({ params }: PageProps) {
 
   const Template = await getTemplate(theme_id);
 
-  const shareVariant = themeToShareVariant[theme_id];
+  const shareVariant = THEME_CHROME[theme_id].share.variant;
   const pageTitle = `${content.full_name}'s Resume`;
 
   return (

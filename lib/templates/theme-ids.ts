@@ -1,5 +1,3 @@
-import type { SharePopoverVariant } from "@/lib/templates/share-variants";
-
 export const THEME_IDS = [
   "academic_cv",
   "bento",
@@ -314,39 +312,3 @@ export const THEME_METADATA = {
     readonly preview: string;
   }
 >;
-
-export const themeToShareVariant = {
-  minimalist_editorial: "minimalist-editorial",
-  neo_brutalist: "neo-brutalist",
-  glass: "glass-morphic",
-  bento: "bento-grid",
-  spotlight: "spotlight",
-  midnight: "midnight",
-  boardroom: "boardroom",
-  bold_corporate: "bold-corporate",
-  classic_ats: "classic-ats",
-  design_folio: "design-folio",
-  dev_terminal: "dev-terminal",
-  broadsheet: "broadsheet",
-  case_file: "case-file",
-  retro_os: "retro-os",
-  academic_cv: "academic-cv",
-  contact_sheet: "contact-sheet",
-  workspace: "workspace",
-  blueprint: "blueprint",
-  scrapbook: "scrapbook",
-  media_kit: "media-kit",
-  liner_notes: "liner-notes",
-  rounds: "rounds",
-  lesson_plan: "lesson-plan",
-  manuscript: "manuscript",
-  gallery_wall: "gallery-wall",
-  quota: "quota",
-  the_brief: "the-brief",
-  open_house: "open-house",
-  the_menu: "the-menu",
-  personal_best: "personal-best",
-  pitch_deck: "pitch-deck",
-  reel: "reel",
-  link_stack: "link-stack",
-} as const satisfies Record<ThemeId, SharePopoverVariant>;

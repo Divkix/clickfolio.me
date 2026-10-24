@@ -5,6 +5,7 @@ import { errorFields } from "@/lib/utils/error-fields";
 import { useCallback, useMemo } from "react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { siteConfig } from "@/lib/config/site";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import type { ThemeId } from "@/lib/templates/theme-ids";
 import {
   generateLinkedInShareUrl,
@@ -23,27 +24,14 @@ export function getShareUrl(handle: string | undefined): string {
   return `${siteConfig.url}/@${handle ?? ""}`;
 }
 
+const linkedInIconVariants = new Map<string, BrandIconVariant>(
+  Object.values(THEME_CHROME).map(({ share }) => [share.variant, share.linkedInIcon]),
+);
+
 export function getLinkedInIconVariant(
   themeId: ThemeId | (string & {}) | null | undefined,
 ): BrandIconVariant {
-  switch (themeId) {
-    case "boardroom":
-    case "glass-morphic":
-    case "midnight":
-    case "dev-terminal":
-    case "media-kit":
-    case "blueprint":
-    case "contact-sheet":
-    case "liner-notes":
-    case "lesson-plan":
-    case "manuscript":
-    case "reel":
-    case "spotlight":
-    case "link-stack":
-      return "white";
-    default:
-      return "black";
-  }
+  return linkedInIconVariants.get(themeId ?? "") ?? "black";
 }
 
 function handleTwitterShare(text: string, url: string): void {
