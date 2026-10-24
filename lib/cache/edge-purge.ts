@@ -1,4 +1,10 @@
+import { Cause, Effect, Exit, type Layer } from "effect";
 import * as z from "zod";
+import { runBackground } from "@/lib/effect/edges";
+import { describeFailure } from "@/lib/effect/failure-map";
+import { type HttpUpstreamFailed, InvalidInput, type QueueFailed } from "@/lib/effect/failures";
+import { CachePurge, type PurgeResult } from "@/lib/effect/services/cache-purge";
+import { EdgePurgeQueue } from "@/lib/effect/services/edge-purge-queue";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 
@@ -38,17 +44,7 @@ const edgePurgeMessageSchema = z.object({
 
 export type EdgePurgeMessage = z.infer<typeof edgePurgeMessageSchema>;
 
-/** What `ctx.cache.purge()` resolves to; parsed because it crosses an RPC boundary. */
-export const purgeResultSchema = z.object({
-  success: z.boolean(),
-  errors: z
-    .array(z.object({ code: z.number().optional(), message: z.string().optional() }))
-    .default([]),
-});
-
-export type PurgeResult = z.infer<typeof purgeResultSchema>;
-
-/** Purges tags from the cache-bearing entrypoint; `undefined` when it has no cache. */
+/** The RPC behind `CachePurge`; `undefined` when the entrypoint has no cache. */
 export type PurgeTags = (tags: string[]) => Promise<PurgeResult | undefined>;
 
 type Wait = (ms: number) => Promise<void>;
@@ -62,9 +58,40 @@ export function retryDelaySeconds(attempts: number): number {
   return Math.min(FIRST_RETRY_DELAY_SECONDS * 2 ** exponent, MAX_RETRY_DELAY_SECONDS);
 }
 
+/** Producer-side message check: a tag the consumer would drop as malformed never gets sent. */
+function validatedMessages(
+  tags: string[],
+): Effect.Effect<Array<MessageSendRequest<EdgePurgeMessage>>, InvalidInput> {
+  const messages: Array<MessageSendRequest<EdgePurgeMessage>> = [];
+
+  for (let start = 0; start < tags.length; start += MAX_TAGS_PER_PURGE) {
+    const parsed = edgePurgeMessageSchema.safeParse({
+      tags: tags.slice(start, start + MAX_TAGS_PER_PURGE),
+    });
+
+    if (!parsed.success) {
+      return Effect.fail(new InvalidInput({ message: "edge purge tags are not encoded digests" }));
+    }
+
+    messages.push({ body: parsed.data, contentType: "json" });
+  }
+
+  return Effect.succeed(messages);
+}
+
+/** Queues the purge messages for already-deduplicated tags. */
+function sendPurgeMessages(
+  tags: string[],
+): Effect.Effect<void, InvalidInput | QueueFailed, EdgePurgeQueue> {
+  return validatedMessages(tags).pipe(
+    Effect.flatMap((messages) => EdgePurgeQueue.use((queue) => queue.sendBatch(messages))),
+  );
+}
+
 /**
- * Enqueue a purge of encoded tags. Never throws: a purge must not fail the
- * write that triggered it. The short page TTL bounds staleness if this fails.
+ * Enqueue a purge of encoded tags. Never throws: a purge must not fail the write that triggered
+ * it, and the short page TTL bounds staleness if this fails. Every failure is logged with the
+ * tags (digests, not handles). A timed-out send is not retried: it may have landed.
  */
 export async function enqueueEdgePurge(
   queue: Queue<EdgePurgeMessage> | undefined,
@@ -80,22 +107,37 @@ export async function enqueueEdgePurge(
     return;
   }
 
-  const messages: Array<MessageSendRequest<EdgePurgeMessage>> = [];
+  const exit = await runBackground(
+    sendPurgeMessages(unique).pipe(
+      Effect.catchTags({
+        InvalidInput: (failure) =>
+          Effect.sync(() => {
+            log("error", "edge purge enqueue failed", {
+              tags: unique,
+              tag_count: unique.length,
+              ...errorFields(failure),
+            });
+          }),
+        QueueFailed: (failure) =>
+          Effect.sync(() => {
+            log("error", "edge purge enqueue failed", {
+              tags: unique,
+              tag_count: unique.length,
+              operation: failure.operation,
+              kind: failure.kind,
+              ...errorFields(failure.cause ?? failure),
+            });
+          }),
+      }),
+    ),
+    EdgePurgeQueue.layer(queue),
+  );
 
-  for (let start = 0; start < unique.length; start += MAX_TAGS_PER_PURGE) {
-    messages.push({
-      body: { tags: unique.slice(start, start + MAX_TAGS_PER_PURGE) },
-      contentType: "json",
-    });
-  }
-
-  try {
-    await queue.sendBatch(messages);
-  } catch (error) {
+  if (Exit.isFailure(exit)) {
     log("error", "edge purge enqueue failed", {
       tags: unique,
       tag_count: unique.length,
-      ...errorFields(error),
+      ...errorFields(Cause.squash(exit.cause)),
     });
   }
 }
@@ -136,14 +178,6 @@ function planPurge(messages: readonly Message[]): PurgePlan {
   return plan;
 }
 
-function describeFailure(result: PurgeResult): string {
-  return (
-    result.errors
-      .map(({ code, message }) => [code, message].filter(Boolean).join(": "))
-      .join(", ") || "unknown"
-  );
-}
-
 /**
  * Retry with a growing delay. Every retry counts toward `max_retries`, after
  * which the queue moves the message to the dead-letter queue; log that here,
@@ -164,16 +198,33 @@ function retryWithBackoff(messages: readonly Message[], tags: string[]): void {
   }
 }
 
+/** What the consumer does next: nothing to settle on success, else the typed failure to judge. */
+type PurgeOutcome = { readonly failure: HttpUpstreamFailed | undefined };
+
+function purgeTags(tags: string[]): Effect.Effect<PurgeOutcome, never, CachePurge> {
+  return CachePurge.use((cache) => cache.purge(tags)).pipe(
+    Effect.match({
+      onSuccess: (): PurgeOutcome => ({ failure: undefined }),
+      onFailure: (failure): PurgeOutcome => ({ failure }),
+    }),
+  );
+}
+
 /**
  * Queue consumer: one deduplicated purge per batch. Messages whose tags would
  * push the purge past 100 tags go back on the queue for the next batch (a
  * retry, so it counts toward `max_retries`; `max_batch_size` keeps a batch
- * well under 100 tags). A failed or rate-limited purge retries its messages
- * with a growing delay until the queue dead-letters them.
+ * well under 100 tags).
+ *
+ * A failed purge is settled by the typed failure's `retryable` flag: a timeout,
+ * an outage or a rate limit retries its messages with a growing delay until the
+ * queue dead-letters them; a response that can never succeed (rejected, or not
+ * the documented shape) is acked and logged, because retrying it would only
+ * delay the same outcome. Staleness is bounded by the page TTL.
  */
 export async function processEdgePurgeBatch(
   batch: MessageBatch,
-  purge: PurgeTags,
+  purge: Layer.Layer<CachePurge>,
   pause: Wait = wait,
 ): Promise<void> {
   const { included, overflow, malformed, tags } = planPurge(batch.messages);
@@ -195,18 +246,24 @@ export async function processEdgePurgeBatch(
   if (tags.length === 0) return;
 
   const startedAt = Date.now();
-  let failure: string | undefined;
+  const exit = await runBackground(purgeTags(tags), purge);
 
-  try {
-    const result = await purge(tags);
+  const failureFields = {
+    tags,
+    tag_count: tags.length,
+    message_count: included.length,
+    messageIds: included.map(({ id }) => id),
+    max_attempts: Math.max(...included.map(({ attempts }) => attempts)),
+  };
 
-    if (!result) failure = "Workers Cache unavailable on the cached entrypoint";
-    else if (!result.success) failure = describeFailure(result);
-  } catch (error) {
-    failure = errorFields(error)["error.message"];
-  }
-
-  if (failure === undefined) {
+  if (Exit.isFailure(exit)) {
+    // A defect (a bug, never a typed failure): the purge's outcome is unknown, so try again.
+    log("error", "edge purge failed", {
+      ...failureFields,
+      reason: errorFields(Cause.squash(exit.cause))["error.message"],
+    });
+    retryWithBackoff(included, tags);
+  } else if (exit.value.failure === undefined) {
     for (const message of included) message.ack();
     log("info", "edge purge completed", {
       tags,
@@ -215,15 +272,21 @@ export async function processEdgePurgeBatch(
       duration_ms: Date.now() - startedAt,
     });
   } else {
+    const { failure } = exit.value;
+    const { retryable } = describeFailure(failure);
+
     log("error", "edge purge failed", {
-      tags,
-      tag_count: tags.length,
-      message_count: included.length,
-      messageIds: included.map(({ id }) => id),
-      max_attempts: Math.max(...included.map(({ attempts }) => attempts)),
-      reason: failure,
+      ...failureFields,
+      reason: failure.message,
+      kind: failure.kind,
+      retryable,
     });
-    retryWithBackoff(included, tags);
+
+    if (retryable) {
+      retryWithBackoff(included, tags);
+    } else {
+      for (const message of included) message.ack();
+    }
   }
 
   // A failed purge still spends rate budget, so pace either way.

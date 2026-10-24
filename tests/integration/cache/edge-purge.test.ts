@@ -9,9 +9,10 @@ import {
   enqueueEdgePurge,
   processEdgePurgeBatch,
   retryDelaySeconds,
-  type PurgeResult,
   type PurgeTags,
 } from "@/lib/cache/edge-purge";
+import { CachePurge, type PurgeResult } from "@/lib/effect/services/cache-purge";
+import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { logLines } from "@/tests/helpers/log-lines";
 import { fakeBatch, fakeMessage, fakeQueue } from "@/tests/helpers/queue";
 
@@ -39,7 +40,7 @@ describe("processEdgePurgeBatch", () => {
 
     const purge = vi.fn<PurgeTags>(async () => ok);
 
-    await processEdgePurgeBatch(fakeBatch(messages), purge, noPause);
+    await processEdgePurgeBatch(fakeBatch(messages), CachePurge.layerFrom(purge), noPause);
 
     expect(purge).toHaveBeenCalledTimes(1);
     expect(purge.mock.calls[0]?.[0]).toEqual([tag("_N_T_/@alice"), explore, tag("_N_T_/@bob")]);
@@ -59,7 +60,7 @@ describe("processEdgePurgeBatch", () => {
 
     const purge = vi.fn<PurgeTags>(async () => ok);
 
-    await processEdgePurgeBatch(fakeBatch(messages), purge, noPause);
+    await processEdgePurgeBatch(fakeBatch(messages), CachePurge.layerFrom(purge), noPause);
 
     expect(purge).toHaveBeenCalledTimes(1);
     expect(purge.mock.calls[0]?.[0]).toHaveLength(MAX_TAGS_PER_PURGE);
@@ -82,7 +83,7 @@ describe("processEdgePurgeBatch", () => {
       errors: [{ code: 1015, message: "rate limited" }],
     }));
 
-    await processEdgePurgeBatch(fakeBatch([first, third]), purge, noPause);
+    await processEdgePurgeBatch(fakeBatch([first, third]), CachePurge.layerFrom(purge), noPause);
 
     expect(first.ack).not.toHaveBeenCalled();
     expect(first.retry).toHaveBeenCalledWith({ delaySeconds: 30 });
@@ -105,12 +106,12 @@ describe("processEdgePurgeBatch", () => {
 
     await processEdgePurgeBatch(
       fakeBatch([thrown]),
-      vi.fn<PurgeTags>(async () => Promise.reject(new Error("rpc down"))),
+      CachePurge.layerFrom(vi.fn<PurgeTags>(async () => Promise.reject(new Error("rpc down")))),
       noPause,
     );
     await processEdgePurgeBatch(
       fakeBatch([missing]),
-      vi.fn<PurgeTags>(async () => undefined),
+      CachePurge.layerFrom(vi.fn<PurgeTags>(async () => undefined)),
       noPause,
     );
 
@@ -120,6 +121,53 @@ describe("processEdgePurgeBatch", () => {
     expect(missing.ack).not.toHaveBeenCalled();
   });
 
+  it("retries a purge that outlives its timeout, then paces the next one", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const stuck = fakeMessage("a", { tags: [tag("_N_T_/@alice")] });
+      const purge = vi.fn<PurgeTags>(() => new Promise<never>(() => {}));
+
+      const done = processEdgePurgeBatch(fakeBatch([stuck]), CachePurge.layerFrom(purge), noPause);
+      await vi.advanceTimersByTimeAsync(TIMEOUT_MS.upstream + 1);
+      await done;
+
+      expect(purge).toHaveBeenCalledTimes(1);
+      expect(stuck.retry).toHaveBeenCalledWith({ delaySeconds: 30 });
+      expect(stuck.ack).not.toHaveBeenCalled();
+      expect(logLines(error)[0]).toMatchObject({
+        msg: "edge purge failed",
+        kind: "timeout",
+        retryable: true,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("acks and logs a purge result it cannot read, since a retry cannot fix it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const unreadable = fakeMessage("a", { tags: [tag("_N_T_/@alice")] });
+    // An RPC that answered outside the documented contract; parsed JSON is the untyped input.
+    const garbage: PurgeResult = JSON.parse('{"ok":"yes"}');
+
+    await processEdgePurgeBatch(
+      fakeBatch([unreadable]),
+      CachePurge.layerFrom(vi.fn<PurgeTags>(async () => garbage)),
+      noPause,
+    );
+
+    expect(unreadable.ack).toHaveBeenCalledTimes(1);
+    expect(unreadable.retry).not.toHaveBeenCalled();
+    expect(logLines(error)[0]).toMatchObject({
+      msg: "edge purge failed",
+      kind: "invalid-response",
+      retryable: false,
+      reason: "unrecognized purge result",
+    });
+  });
+
   it("logs the dead-letter on the last attempt, leaving the move to the queue", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const tags = [tag("_N_T_/@alice")];
@@ -127,7 +175,7 @@ describe("processEdgePurgeBatch", () => {
 
     await processEdgePurgeBatch(
       fakeBatch([last]),
-      vi.fn<PurgeTags>(async () => undefined),
+      CachePurge.layerFrom(vi.fn<PurgeTags>(async () => undefined)),
       noPause,
     );
 
@@ -148,7 +196,7 @@ describe("processEdgePurgeBatch", () => {
     const unencoded = fakeMessage("unencoded", { tags: ["_N_T_/@alice"] });
     const purge = vi.fn<PurgeTags>(async () => ok);
 
-    await processEdgePurgeBatch(fakeBatch([raw, unencoded]), purge, noPause);
+    await processEdgePurgeBatch(fakeBatch([raw, unencoded]), CachePurge.layerFrom(purge), noPause);
 
     expect(purge).not.toHaveBeenCalled();
     expect(raw.ack).toHaveBeenCalledTimes(1);
@@ -164,7 +212,7 @@ describe("processEdgePurgeBatch", () => {
 
     await processEdgePurgeBatch(
       fakeBatch([fakeMessage("a", { tags: [tag("x")] })]),
-      vi.fn<PurgeTags>(async () => ok),
+      CachePurge.layerFrom(vi.fn<PurgeTags>(async () => ok)),
       pause,
     );
 
@@ -219,6 +267,42 @@ describe("enqueueEdgePurge", () => {
       msg: "edge purge enqueue failed",
       tags,
     });
+  });
+
+  it("logs a timed-out send with its kind and never resends it", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const queue = fakeQueue(vi.fn(() => new Promise<never>(() => {})));
+      const tags = [tag("_N_T_/@alice")];
+
+      const pending = enqueueEdgePurge(queue, tags);
+      await vi.advanceTimersByTimeAsync(TIMEOUT_MS.queue + 1);
+      await pending;
+
+      // The first send may still land, so a second one would only duplicate it.
+      expect(queue.sendBatch).toHaveBeenCalledTimes(1);
+      expect(logLines(error)[0]).toMatchObject({
+        level: "error",
+        msg: "edge purge enqueue failed",
+        kind: "timeout",
+        operation: "queue.edge_purge.send",
+        tags,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("refuses to send a tag the consumer would drop as malformed", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const queue = fakeQueue();
+
+    await expect(enqueueEdgePurge(queue, ["_N_T_/@alice"])).resolves.toBeUndefined();
+
+    expect(queue.sendBatch).not.toHaveBeenCalled();
+    expect(logLines(error)[0]).toMatchObject({ msg: "edge purge enqueue failed" });
   });
 
   it("logs a missing binding instead of throwing", async () => {
