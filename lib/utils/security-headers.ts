@@ -12,21 +12,13 @@ export function createErrorResponse<T>(
   code: string,
   status: number,
   details?: T,
+  retryAfterSeconds?: number,
 ): Response {
-  return new Response(
-    JSON.stringify({
-      error,
-      code,
-      details,
-    }),
-    {
-      status,
-      headers: {
-        "Content-Type": "application/json",
-        ...SECURITY_HEADERS,
-      },
-    },
-  );
+  const headers = new Headers({ "Content-Type": "application/json", ...SECURITY_HEADERS });
+
+  if (retryAfterSeconds !== undefined) headers.set("Retry-After", String(retryAfterSeconds));
+
+  return new Response(JSON.stringify({ error, code, details }), { status, headers });
 }
 
 export function createSuccessResponse<T>(data: T, status = 200): Response {
