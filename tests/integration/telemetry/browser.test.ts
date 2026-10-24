@@ -92,13 +92,20 @@ describe("browser telemetry", () => {
     vi.doMock("@hyperdx/browser", () => {
       throw new Error("blocked by an extension");
     });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fresh = await import("@/lib/telemetry/browser");
 
     fresh.initBrowserTelemetry();
     fresh.trackEvent("landing_cta_clicked", { location: "footer_cta" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await vi.waitFor(() => expect(warn).toHaveBeenCalled());
 
     expect(hyperdx.addAction).not.toHaveBeenCalled();
+    expect(JSON.parse(String(warn.mock.calls[0][0]))).toMatchObject({
+      level: "warn",
+      msg: "telemetry SDK failed to load",
+      "error.name": "Error",
+    });
+    warn.mockRestore();
     vi.doUnmock("@hyperdx/browser");
   });
 });
