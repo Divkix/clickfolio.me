@@ -10,8 +10,6 @@ import {
 } from "./failures";
 import { ParseErrorType } from "./error-types";
 
-export { ParseErrorType } from "./error-types";
-
 export type { ParseErrorJson } from "./failures";
 
 /** The wire shape of a stored parse failure: a jsonb column, a step output and an error cause. */

@@ -9,7 +9,7 @@ import { DbFailed, R2Failed } from "@/lib/effect/failures";
 import { AlertWebhook } from "@/lib/effect/services/alert-webhook";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { StatusChannel } from "@/lib/effect/services/status-channel";
-import { ParseErrorType } from "@/lib/parse/errors";
+import { ParseErrorType } from "@/lib/parse/error-types";
 import {
   AiProviderFailed,
   PdfInvalid,

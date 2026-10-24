@@ -18,7 +18,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { parseInstanceId } from "@/lib/workflows/resume-parse";
+import { parseInstanceId } from "@/lib/workflows/resume-parse-params";
 
 const retryRequestSchema = z.object({ resume_id: z.string().min(1) });
 
