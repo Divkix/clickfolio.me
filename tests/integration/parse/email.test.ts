@@ -120,4 +120,56 @@ describe("sendResumeFailureEmail", () => {
       expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("account@example.com");
     },
   );
+  it("logs a send that hangs as a timeout with an unknown outcome, and never sends again", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { sendResumeFailureEmail } = await import("@/lib/parse/email");
+      mocks.send.mockReturnValue(new Promise<EmailSendResult>(() => {}));
+
+      const pending = sendResumeFailureEmail("resume-1", ENV);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await pending;
+
+      expect(mocks.send).toHaveBeenCalledTimes(1);
+      expect(mocks.log).toHaveBeenCalledWith(
+        "error",
+        "resume failure email failed",
+        expect.objectContaining({
+          resumeId: "resume-1",
+          failure: "EmailFailed",
+          operation: "email.send",
+          kind: "timeout",
+          outcome_unknown: true,
+        }),
+      );
+      expect(JSON.stringify(mocks.log.mock.calls)).not.toContain("account@example.com");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends once even when the provider rejects", async () => {
+    const { sendResumeFailureEmail } = await import("@/lib/parse/email");
+    mocks.send.mockRejectedValue(new Error("provider down"));
+
+    await sendResumeFailureEmail("resume-1", ENV);
+
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs a bad APP_URL instead of dropping it", async () => {
+    const { sendResumeFailureEmail } = await import("@/lib/parse/email");
+
+    await expect(
+      sendResumeFailureEmail("resume-1", { ...ENV, APP_URL: "not a url" }),
+    ).resolves.toBeUndefined();
+
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "resume failure email failed",
+      expect.objectContaining({ resumeId: "resume-1" }),
+    );
+  });
 });
