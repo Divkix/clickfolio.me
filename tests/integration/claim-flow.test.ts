@@ -24,6 +24,8 @@ const NOW = "2026-01-01T00:00:00.000Z";
 const mocks = vi.hoisted(() => ({
   db: vi.fn(),
   startResumeParse: vi.fn(),
+  revalidate: vi.fn(),
+  indexNow: vi.fn(),
   bound: { workflow: true },
   auth: { signedIn: true },
   bucket: {
@@ -60,6 +62,14 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({ getDb: () => mocks.db() }));
+
+vi.mock("@/lib/utils/revalidate", () => ({
+  revalidatePublicProfilePages: (handles: unknown[]) => mocks.revalidate(handles),
+}));
+
+vi.mock("@/lib/seo/indexnow-runtime", () => ({
+  notifyIndexNowForProfiles: (handles: unknown[]) => mocks.indexNow(handles),
+}));
 
 vi.mock("@/lib/auth/clerk", async (importOriginal) => {
   const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
@@ -207,6 +217,8 @@ beforeEach(async () => {
   mocks.db.mockReset().mockImplementation(() => db);
   mocks.bound.workflow = true;
   mocks.startResumeParse.mockReset().mockResolvedValue(undefined);
+  mocks.revalidate.mockReset();
+  mocks.indexNow.mockReset();
   mocks.bucket.objects.clear();
   mocks.bucket.objects.set(TEMP_KEY, pdfBytes);
   mocks.bucket.get.mockReset().mockImplementation(async (key: string) => {
@@ -389,6 +401,48 @@ describe("POST /api/resume/claim: dedup against the same file", () => {
 
     expect(site?.resumeId).toBe(row.id);
     expect(site?.lastPublishedAt).not.toBeNull();
+    expect(mocks.revalidate).toHaveBeenCalledWith(["avery"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith(["avery"]);
+  });
+
+  it("refreshes the page but pings no search engine for a profile hidden from search", async () => {
+    await db
+      .update(user)
+      .set({ privacySettings: { ...DEFAULT_PRIVACY_SETTINGS, hide_from_search: true } })
+      .where(eq(user.id, "user_1"));
+    await insertResume({
+      fileHash: pdfHash,
+      status: "completed",
+      parsedContent: INDEXABLE_CONTENT,
+    });
+
+    expect((await claim()).status).toBe(200);
+
+    expect(mocks.revalidate).toHaveBeenCalledWith(["avery"]);
+    expect(mocks.indexNow).not.toHaveBeenCalled();
+  });
+
+  it("keeps a site edit made after the claim started and refreshes nothing", async () => {
+    await insertResume({
+      fileHash: pdfHash,
+      status: "completed",
+      parsedContent: INDEXABLE_CONTENT,
+    });
+    await db.insert(siteData).values({
+      id: "site_1",
+      userId: "user_1",
+      content: { ...INDEXABLE_CONTENT, full_name: "Edited" },
+      createdAt: NOW,
+      updatedAt: "2999-01-01T00:00:00.000Z",
+    });
+
+    expect((await claim()).status).toBe(200);
+
+    const [site] = await db.select().from(siteData).where(eq(siteData.userId, "user_1"));
+
+    expect(site?.resumeId).toBeNull();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.indexNow).not.toHaveBeenCalled();
   });
 
   it("completes without publishing when the user has no handle yet", async () => {
@@ -407,6 +461,8 @@ describe("POST /api/resume/claim: dedup against the same file", () => {
 
     expect(site).toBeDefined();
     expect(site?.lastPublishedAt).toBeNull();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(mocks.indexNow).not.toHaveBeenCalled();
   });
 
   it("waits for an identical parse that is still running and starts the cache timer", async () => {

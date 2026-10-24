@@ -8,8 +8,10 @@ import { R2Store } from "@/lib/effect/services/r2-store";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
 import { runClaimIntake } from "@/lib/resume/claim-intake";
 import { claimRequestSchema } from "@/lib/schemas/resume";
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import { logEvent } from "@/lib/utils/log";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   COOKIE_NAME,
   decodePendingUploadCookie,
@@ -103,6 +105,14 @@ export async function POST(request: Request) {
             });
           case "cached":
             logEvent("resume_claim_cached", { userId, resumeId: outcome.resumeId });
+
+            // The cache hit rewrote the published site: refresh it the way an edit does.
+            if (outcome.rewritten) {
+              revalidatePublicProfilePages([outcome.rewritten.handle]);
+
+              if (outcome.rewritten.indexable)
+                notifyIndexNowForProfiles([outcome.rewritten.handle]);
+            }
 
             return createSuccessResponse({
               resume_id: outcome.resumeId,
