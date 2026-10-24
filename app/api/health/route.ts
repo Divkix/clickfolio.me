@@ -1,14 +1,13 @@
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
+import { Effect } from "effect";
+import { HealthCheckFailed } from "@/lib/api/errors";
+import { runRoute } from "@/lib/api/route";
 import { getR2Binding } from "@/lib/r2";
 import { getDb } from "@/lib/db";
 import { sql } from "drizzle-orm";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -35,51 +34,40 @@ type AiProviderEnv = Pick<
   "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN"
 >;
 
-async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
-  const start = Date.now();
+// Public endpoint: a probe reports a fixed string and the real error goes to the logs.
+const UNREACHABLE = "unreachable";
 
-  try {
-    const db = getDb(hyperdrive);
-    await db.execute(sql`SELECT 1`);
+const NOT_CONFIGURED = "not configured";
 
-    return { status: "healthy", latencyMs: Date.now() - start };
-  } catch (error) {
-    return {
-      status: "unhealthy",
-      latencyMs: Date.now() - start,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
+function probe<A>(service: "pg" | "r2", check: () => Promise<A>): Effect.Effect<ServiceHealth> {
+  return Effect.suspend(() => {
+    const start = Date.now();
 
-async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
-  const start = Date.now();
+    return Effect.tryPromise(check).pipe(
+      Effect.map((): ServiceHealth => ({ status: "healthy", latencyMs: Date.now() - start })),
+      Effect.catch((error) => {
+        const latencyMs = Date.now() - start;
 
-  try {
-    await r2.list({ limit: 1 });
+        log("error", "Health probe failed", {
+          service,
+          duration_ms: latencyMs,
+          ...errorFields(error.cause),
+        });
 
-    return { status: "healthy", latencyMs: Date.now() - start };
-  } catch (error) {
-    return {
-      status: "unhealthy",
-      latencyMs: Date.now() - start,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
+        return Effect.succeed<ServiceHealth>({
+          status: "unhealthy",
+          latencyMs,
+          error: UNREACHABLE,
+        });
+      }),
+    );
+  });
 }
 
 function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
 
-  if (hasGateway) {
-    return { status: "healthy", error: "Using Cloudflare AI Gateway" };
-  }
-
-  return {
-    status: "unhealthy",
-    error:
-      "Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
-  };
+  return hasGateway ? { status: "healthy" } : { status: "unhealthy", error: NOT_CONFIGURED };
 }
 
 function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
@@ -92,44 +80,42 @@ function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
   return "degraded";
 }
 
-export async function GET() {
-  try {
-    // SAFETY: env is CloudflareEnv in Workers runtime; bindings verified by getR2Binding and health checks — cast bridges missing CloudflareEnv augmentation.
-    const typedEnv = env as CloudflareEnv;
+export async function GET(request: Request) {
+  return runRoute(
+    request,
+    Effect.gen(function* () {
+      // SAFETY: env is CloudflareEnv in Workers runtime; bindings verified by getR2Binding and health checks — cast bridges missing CloudflareEnv augmentation.
+      const typedEnv = env as CloudflareEnv;
 
-    const r2Binding = getR2Binding(typedEnv);
+      const r2Binding = getR2Binding(typedEnv);
 
-    const [r2Health, pgHealth] = await Promise.all([
-      r2Binding
-        ? checkR2(r2Binding)
-        : Promise.resolve({ status: "unhealthy" as const, error: "R2 binding not available" }),
-      checkPg(typedEnv.HYPERDRIVE),
-    ]);
+      const [r2Health, pgHealth] = yield* Effect.all(
+        [
+          r2Binding
+            ? probe("r2", () => r2Binding.list({ limit: 1 }))
+            : Effect.succeed<ServiceHealth>({ status: "unhealthy", error: NOT_CONFIGURED }),
+          probe("pg", () => getDb(typedEnv.HYPERDRIVE).execute(sql`SELECT 1`)),
+        ],
+        { concurrency: "unbounded" },
+      );
 
-    const aiHealth = checkAiProviderConfig(typedEnv);
+      const services = {
+        r2: r2Health,
+        pg: pgHealth,
+        aiProvider: checkAiProviderConfig(typedEnv),
+      };
 
-    const services = {
-      r2: r2Health,
-      pg: pgHealth,
-      aiProvider: aiHealth,
-    };
+      const response: HealthResponse = {
+        status: aggregateStatus(services),
+        timestamp: new Date().toISOString(),
+        services,
+      };
 
-    const response: HealthResponse = {
-      status: aggregateStatus(services),
-      timestamp: new Date().toISOString(),
-      services,
-    };
-
-    const httpStatus = response.status === "unhealthy" ? 503 : 200;
-
-    return createSuccessResponse(response, httpStatus);
-  } catch (error) {
-    log("error", "Health check error:", { ...errorFields(error) });
-
-    return createErrorResponse(
-      error instanceof Error ? error.message : "Unknown error",
-      ERROR_CODES.INTERNAL_ERROR,
-      503,
-    );
-  }
+      return createSuccessResponse(response, response.status === "unhealthy" ? 503 : 200);
+    }).pipe(
+      Effect.catchDefect((cause) =>
+        Effect.fail(new HealthCheckFailed({ message: "Health check failed", cause })),
+      ),
+    ),
+  );
 }

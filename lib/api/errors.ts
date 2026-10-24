@@ -119,3 +119,19 @@ export class RateLimitUnavailable
     return this.message;
   }
 }
+
+/**
+ * The health check itself broke, not one of its probes. `/api/health` raises it from any defect
+ * (its old catch-all), so the answer stays 503 and uptime monitors read it as down;
+ * `INTERNAL_ERROR` is the code that endpoint has always sent here.
+ */
+export class HealthCheckFailed
+  extends Data.TaggedError("HealthCheckFailed")<FailureArgs>
+  implements HttpFailure
+{
+  readonly httpStatus = 503;
+  readonly code: ErrorCode = "INTERNAL_ERROR";
+  readonly retryable = true;
+  readonly logLevel: LogLevel = "error";
+  readonly userMessage = "Health check failed";
+}

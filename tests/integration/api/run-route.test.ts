@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { z } from "zod";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
+  HealthCheckFailed,
   InvalidInput,
   PayloadTooLarge,
   RateLimited,
@@ -223,8 +224,16 @@ describe("decodeWith", () => {
 });
 
 describe("HttpFailure classes", () => {
-  const cases: Array<[string, HttpFailure, number, string, boolean, string]> = [
-    ["InvalidInput", new InvalidInput({ message: "m" }), 400, "VALIDATION_ERROR", false, "info"],
+  const cases: Array<[string, HttpFailure, number, string, boolean, string, string]> = [
+    [
+      "InvalidInput",
+      new InvalidInput({ message: "m" }),
+      400,
+      "VALIDATION_ERROR",
+      false,
+      "info",
+      "m",
+    ],
     [
       "InvalidInput (BAD_REQUEST)",
       new InvalidInput({ message: "m", errorCode: "BAD_REQUEST" }),
@@ -232,9 +241,26 @@ describe("HttpFailure classes", () => {
       "BAD_REQUEST",
       false,
       "info",
+      "m",
     ],
-    ["PayloadTooLarge", new PayloadTooLarge({ message: "m" }), 413, "BAD_REQUEST", false, "info"],
-    ["RateLimited", new RateLimited({ message: "m" }), 429, "RATE_LIMIT_EXCEEDED", true, "info"],
+    [
+      "PayloadTooLarge",
+      new PayloadTooLarge({ message: "m" }),
+      413,
+      "BAD_REQUEST",
+      false,
+      "info",
+      "m",
+    ],
+    [
+      "RateLimited",
+      new RateLimited({ message: "m" }),
+      429,
+      "RATE_LIMIT_EXCEEDED",
+      true,
+      "info",
+      "m",
+    ],
     [
       "RateLimitUnavailable",
       new RateLimitUnavailable({ message: "m" }),
@@ -242,14 +268,23 @@ describe("HttpFailure classes", () => {
       "RATE_LIMIT_UNAVAILABLE",
       true,
       "warn",
+      "m",
+    ],
+    [
+      "HealthCheckFailed",
+      new HealthCheckFailed({ message: "m" }),
+      503,
+      "INTERNAL_ERROR",
+      true,
+      "error",
+      "Health check failed",
     ],
   ];
 
-  it.each(cases)("%s maps to status, code, retryable and log level", (...row) => {
-    const [, failure, status, code, retryable, logLevel] = row;
+  it.each(cases)("%s maps to status, code, retryable, log level and message", (...row) => {
+    const [, failure, status, code, retryable, logLevel, userMessage] = row;
 
-    expect(failure).toMatchObject({ httpStatus: status, code, retryable, logLevel });
-    expect(failure.userMessage).toBe("m");
+    expect(failure).toMatchObject({ httpStatus: status, code, retryable, logLevel, userMessage });
   });
 });
 
