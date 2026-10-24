@@ -374,3 +374,8 @@ export const themeUpdateRequestSchema = z.object({
 export const retryRequestSchema = z.object({
   resume_id: z.string().min(1),
 });
+
+/** `content` is validated separately with resumeContentSchemaStrict so issue paths stay unprefixed. */
+export const resumeUpdateRequestSchema = z.object({
+  content: z.unknown(),
+});

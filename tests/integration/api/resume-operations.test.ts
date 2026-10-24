@@ -1224,6 +1224,31 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: "Validation failed. Please check your input.",
+        // Issue paths stay relative to `content`, as before the envelope schema.
+        details: expect.arrayContaining([expect.objectContaining({ path: ["full_name"] })]),
+      });
+    });
+
+    it.each([
+      ["no body", undefined],
+      ["a JSON null body", "null"],
+      ["a body without content", "{}"],
+    ])("returns 400, not 500, for %s", async (_label, body) => {
+      authedAs("user-123");
+
+      const { PUT } = await import("@/app/api/resume/update/route");
+
+      const response = await PUT(
+        new Request("http://localhost:3000/api/resume/update", { method: "PUT", body }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: "Validation failed. Please check your input.",
+      });
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     it("returns 413 when request body too large (test 21)", async () => {
