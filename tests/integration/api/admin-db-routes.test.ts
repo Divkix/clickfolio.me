@@ -15,27 +15,31 @@ import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
-  deleteR2Objects: vi.fn(),
-  bucket: { bound: true },
+  deleteKey: vi.fn(),
+  createWorkflow: vi.fn(),
+  bucket: { bound: true, delete: (key: string) => mocks.deleteKey(key) },
 }));
 
 vi.mock("@/lib/db", () => ({ getDb: () => mocks.getDb() }));
 
-vi.mock("@/lib/auth/admin", () => ({
-  requireAdminAuthForApi: async () => ({ user: { id: "admin-1", isAdmin: true }, error: null }),
-}));
-
-vi.mock("@/lib/workflows/r2-delete", () => ({
-  deleteR2Objects: (...args: string[][]) => mocks.deleteR2Objects(...args),
+vi.mock("@/lib/auth/admin", async () => ({
+  authenticateAdmin: (await import("../../helpers/authenticate-stub")).authenticateAdminStub(
+    async () => ({
+      error: null,
+      user: { id: "admin-1", email: "admin@example.com", name: "Admin", isAdmin: true },
+    }),
+  ),
 }));
 
 vi.mock("cloudflare:workers", () => ({
   env: {
     HYPERDRIVE: {},
     get CLICKFOLIO_R2_BUCKET() {
-      return mocks.bucket.bound ? "bucket" : undefined;
+      return mocks.bucket.bound ? mocks.bucket : undefined;
     },
-    CLICKFOLIO_R2_DELETE_WORKFLOW: {},
+    CLICKFOLIO_R2_DELETE_WORKFLOW: {
+      create: (options: { params: { keys: string[] } }) => mocks.createWorkflow(options),
+    },
   },
 }));
 
@@ -78,7 +82,8 @@ async function insertResume(id: string, userId: string, status: "failed" | "comp
 
 beforeEach(async () => {
   await testDb.reset();
-  mocks.deleteR2Objects.mockReset().mockResolvedValue([]);
+  mocks.deleteKey.mockReset().mockResolvedValue(undefined);
+  mocks.createWorkflow.mockReset().mockResolvedValue({ id: "wf-1" });
   mocks.bucket.bound = true;
 });
 
@@ -186,7 +191,8 @@ describe("DELETE /api/admin/resumes/[id]", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, id: "r1" });
     expect(await db.select().from(resumes).where(eq(resumes.id, "r1"))).toEqual([]);
-    expect(mocks.deleteR2Objects.mock.calls[0][2]).toEqual(["key-r1"]);
+    expect(mocks.deleteKey).toHaveBeenCalledWith("key-r1");
+    expect(mocks.createWorkflow).not.toHaveBeenCalled();
   });
 
   it("keeps a resume that is not failed and answers 409", async () => {
@@ -200,7 +206,8 @@ describe("DELETE /api/admin/resumes/[id]", () => {
       code: "CONFLICT",
     });
     expect(await db.select().from(resumes).where(eq(resumes.id, "r1"))).toHaveLength(1);
-    expect(mocks.deleteR2Objects).not.toHaveBeenCalled();
+    expect(mocks.deleteKey).not.toHaveBeenCalled();
+    expect(mocks.createWorkflow).not.toHaveBeenCalled();
   });
 
   it("answers 404 for an unknown resume", async () => {
@@ -210,11 +217,27 @@ describe("DELETE /api/admin/resumes/[id]", () => {
     expect(await response.json()).toEqual({ error: "Resume not found", code: "NOT_FOUND" });
   });
 
-  it("still answers 200 and logs when the R2 cleanup fails after the row is gone", async () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("hands the file to R2DeleteWorkflow when the inline delete fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     await insertResume("r1", "u1", "failed");
-    mocks.deleteR2Objects.mockRejectedValue(new Error("r2 unavailable"));
+    mocks.deleteKey.mockRejectedValue(new Error("r2 unavailable"));
+
+    const response = await dismiss("r1");
+
+    expect(response.status).toBe(200);
+    expect(await db.select().from(resumes).where(eq(resumes.id, "r1"))).toEqual([]);
+    expect(mocks.createWorkflow).toHaveBeenCalledWith({ params: { keys: ["key-r1"] } });
+    expect(JSON.stringify(logLines(warn))).not.toContain("key-r1");
+  });
+
+  it("still answers 200 and logs when R2 and the workflow are both unreachable", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await insertResume("r1", "u1", "failed");
+    mocks.deleteKey.mockRejectedValue(new Error("r2 unavailable"));
+    mocks.createWorkflow.mockRejectedValue(new Error("workflow unavailable"));
 
     const response = await dismiss("r1");
 
@@ -223,22 +246,23 @@ describe("DELETE /api/admin/resumes/[id]", () => {
 
     const logged = logLines(error);
 
-    expect(logged).toHaveLength(1);
-    expect(logged[0]).toMatchObject({
-      msg: "admin resume dismiss: R2 cleanup failed",
-      operation: "admin.resume.r2-delete",
-      kind: "unavailable",
-    });
+    expect(logged.map((line) => line.msg)).toEqual([
+      "failed to schedule R2 deletion",
+      "admin resume dismiss: R2 cleanup failed",
+    ]);
+    expect(logged[1]).toMatchObject({ operation: "workflow.r2_delete.create" });
     expect(JSON.stringify(logged)).not.toContain("key-r1");
   });
 
-  it("skips the cleanup when no bucket is bound", async () => {
+  it("leaves the cleanup to R2DeleteWorkflow when no bucket is bound", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     await insertResume("r1", "u1", "failed");
     mocks.bucket.bound = false;
 
     const response = await dismiss("r1");
 
     expect(response.status).toBe(200);
-    expect(mocks.deleteR2Objects).not.toHaveBeenCalled();
+    expect(mocks.deleteKey).not.toHaveBeenCalled();
+    expect(mocks.createWorkflow).toHaveBeenCalledWith({ params: { keys: ["key-r1"] } });
   });
 });

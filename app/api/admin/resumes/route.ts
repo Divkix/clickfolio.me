@@ -1,10 +1,8 @@
 import { Effect } from "effect";
-import { env } from "cloudflare:workers";
 import { count, eq, sql, type SQL } from "drizzle-orm";
-import { withAdmin } from "@/lib/auth/with-auth";
+import { withAdminEffect } from "@/lib/auth/with-auth";
 import { resumes, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { runRoute } from "@/lib/effect/edges";
 import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 import { safePageParam } from "@/lib/utils/pagination";
@@ -122,7 +120,5 @@ function listResumes(request: Request): Effect.Effect<Response, ServerFailure, D
 }
 
 export async function GET(request: Request) {
-  return withAdmin(request, () =>
-    runRoute(request, listResumes(request), Db.layer(env.HYPERDRIVE)),
-  );
+  return withAdminEffect(request, () => listResumes(request));
 }

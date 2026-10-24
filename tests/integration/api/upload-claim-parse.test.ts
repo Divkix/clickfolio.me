@@ -89,7 +89,7 @@ const mockDb = {
 
 const mockR2Store = new Map<string, ArrayBuffer>();
 
-// The bucket the real R2Store talks to; it shares its contents with the legacy `R2` mock below.
+// The bucket the real R2Store talks to;
 const mockR2Binding = {
   head: vi.fn(async (key: string) => {
     const buf = mockR2Store.get(key);
@@ -110,25 +110,6 @@ const mockR2Binding = {
     mockR2Store.delete(key);
   }),
   list: vi.fn(),
-};
-
-const mockR2 = {
-  getAsArrayBuffer: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
-    return mockR2Store.get(key) ?? null;
-  }),
-  put: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string, data: ArrayBuffer) => {
-    mockR2Store.set(key, data);
-  }),
-  delete: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
-    mockR2Store.delete(key);
-  }),
-  head: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
-    const buf = mockR2Store.get(key);
-
-    if (!buf) return { exists: false };
-
-    return { exists: true, size: buf.byteLength };
-  }),
 };
 
 type StartedParseRun = {
@@ -155,72 +136,12 @@ const mockWorkflow = {
 
 const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
 
-let mockAuthUser: {
-  id: string;
-  email: string;
-  name: string;
-  image: string | null;
-  handle: string | null;
-  headline: string | null;
-  privacySettings: Record<string, boolean>;
-  onboardingCompleted: boolean;
-} | null = null;
-
-const setMockAuthUser = (userId: string | null) => {
-  if (userId) {
-    mockAuthUser = {
-      id: userId,
-      email: `${userId}@test.com`,
-      name: "Test User",
-      image: null,
-      handle: "testuser",
-      headline: null,
-      privacySettings: {},
-      onboardingCompleted: true,
-    };
-  } else {
-    mockAuthUser = null;
-  }
-};
-
 vi.mock("cloudflare:workers", () => ({
   env: {
     CLICKFOLIO_R2_BUCKET: mockR2Binding,
     CLICKFOLIO_PARSE_WORKFLOW: mockWorkflow,
     PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
   },
-}));
-
-vi.mock("@/lib/auth/middleware", () => ({
-  requireAuthWithUserValidation: vi.fn().mockImplementation(async (message: string) => {
-    if (!mockAuthUser) {
-      return {
-        user: null,
-        db: null,
-        dbUser: null,
-        env: null,
-        error: new Response(JSON.stringify({ error: message || "Unauthorized" }), { status: 401 }),
-      };
-    }
-
-    return {
-      user: mockAuthUser,
-      db: mockDb,
-      dbUser: { id: mockAuthUser.id, handle: mockAuthUser.handle, clerkId: "user_clerk_1" },
-      env: {
-        HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-        CLICKFOLIO_R2_BUCKET: mockR2Binding,
-        CLICKFOLIO_PARSE_WORKFLOW: mockWorkflow,
-        PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
-      },
-      error: null,
-    };
-  }),
-}));
-
-vi.mock("@/lib/r2", () => ({
-  getR2Binding: vi.fn().mockReturnValue(mockR2Binding),
-  R2: mockR2,
 }));
 
 vi.mock("next/headers", () => ({
@@ -318,7 +239,6 @@ function resetAll() {
   vi.clearAllMocks();
   mockR2Store.clear();
   mockWorkflowRuns.length = 0;
-  setMockAuthUser(null);
   resetMockDbChains();
 }
 
@@ -519,7 +439,6 @@ describe("POST /api/resume/claim", () => {
   beforeEach(resetAll);
 
   it("12. Claim without auth → 401 unauthorized", async () => {
-    setMockAuthUser(null);
     const { POST } = await import("@/app/api/resume/claim/route");
     const response = await POST(makeClaimRequest("temp/test/file.pdf"));
 

@@ -9,20 +9,11 @@ const { mockedAuth, mockedRevalidate, mockedIndexNow } = vi.hoisted(() => ({
   mockedIndexNow: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/middleware", () => ({
-  requireAuthWithUserValidation: mockedAuth,
-  requireAuthWithMessage: vi.fn(),
-}));
-
 vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
   authenticate: (await import("@/tests/helpers/authenticate-stub")).authenticateStub(() =>
     mockedAuth(),
   ),
-}));
-
-vi.mock("@/lib/auth/admin", () => ({
-  requireAdminAuthForApi: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -68,20 +59,6 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
-}));
-
-vi.mock("@/lib/r2", () => ({
-  getR2Binding: vi.fn(() => ({
-    get: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  })),
-  R2: {
-    getAsArrayBuffer: vi.fn(),
-    getAsUint8Array: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
 }));
 
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
@@ -189,13 +166,10 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { DEFAULT_PRIVACY_SETTINGS, type PrivacySettings } from "@/lib/utils/privacy";
 import { validateRequestSize } from "@/lib/utils/validation";
 
 type ErrorBody = { error: string; details?: JsonValue };
-
-const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 const mockedValidateRequestSize = vi.mocked(validateRequestSize);
 
@@ -337,7 +311,6 @@ function authedAs(userId: string, isAdmin = false): AuthedAsResult {
   };
 
   mockedAuth.mockResolvedValue(authResult);
-  mockedAuthMessage.mockResolvedValue({ user: authResult.user, error: null });
 
   return authResult;
 }
@@ -351,7 +324,6 @@ function unauthenticated() {
     env: null,
     error,
   });
-  mockedAuthMessage.mockResolvedValue({ user: null, error });
 
   return error;
 }
@@ -544,10 +516,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
   describe("POST /api/resume/claim", () => {
     it("queues a new resume for parsing on valid claim (test 3)", async () => {
-      const { R2 } = await import("@/lib/r2");
-      const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
-      mockedR2.mockResolvedValue(new ArrayBuffer(8));
-
       startResumeParse.mockResolvedValue(undefined);
 
       authedAs("user-123");
@@ -1227,10 +1195,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
 
     it("handles queue trigger failure gracefully (test 25)", async () => {
-      const { R2 } = await import("@/lib/r2");
-      const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
-      mockedR2.mockResolvedValue(new ArrayBuffer(8));
-
       mockedAuth.mockResolvedValue({
         user: {
           id: "user-123",

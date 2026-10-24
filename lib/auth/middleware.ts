@@ -1,42 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { log } from "@/lib/utils/log";
-import { requireAuthClerk, type AuthUser, type DbUser } from "@/lib/auth/clerk";
-import type { Database } from "@/lib/db";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
-
-export async function requireAuthWithMessage(
-  errorMessage: string,
-): Promise<{ user: AuthUser; error: null } | { user: null; error: Response }> {
-  const authResult = await requireAuthClerk(errorMessage);
-
-  if (authResult.error) {
-    return {
-      user: null,
-      error: authResult.error,
-    };
-  }
-
-  return { user: authResult.user, error: null };
-}
-
-export async function requireAuthWithUserValidation(errorMessage: string): Promise<
-  | {
-      user: AuthUser;
-      db: Database;
-      dbUser: DbUser;
-      env: CloudflareEnv;
-      error: null;
-    }
-  | {
-      user: null;
-      db: null;
-      dbUser: null;
-      env: null;
-      error: Response;
-    }
-> {
-  return requireAuthClerk(errorMessage);
-}
 
 // Both sides are hashed to the same length so the comparison time reveals neither the secret
 // nor its length.

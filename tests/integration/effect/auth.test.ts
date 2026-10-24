@@ -12,13 +12,11 @@ import {
   it,
   vi,
 } from "vite-plus/test";
-import { requireAuthClerk } from "@/lib/auth/clerk";
 import { getServerSession } from "@/lib/auth/session";
 import { requireAdminAuth } from "@/lib/auth/admin";
 import { withAdminEffect, withUserEffect } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { ClerkFailed } from "@/lib/effect/failures";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
@@ -350,14 +348,5 @@ describe("requireAdminAuth", () => {
     await expect(requireAdminAuth()).rejects.not.toMatchObject({
       digest: expect.stringContaining("NEXT_REDIRECT"),
     });
-  });
-});
-
-describe("Promise API kept for routes that have not moved", () => {
-  it("requireAuthClerk reports a Clerk outage by throwing, not as a 401", async () => {
-    signedInAs("user_a");
-    mockVerifyToken.mockRejectedValue(tokenError("jwk-remote-failed-to-load"));
-
-    await expect(requireAuthClerk("You must be logged in")).rejects.toBeInstanceOf(ClerkFailed);
   });
 });
