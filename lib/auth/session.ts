@@ -38,15 +38,14 @@ export interface AppSession {
 /**
  * The signed-in user's session, or `null` when signed out or the user row does not exist yet.
  * Clerk or Postgres being unavailable fails instead of reading as signed out. Redirecting is the
- * caller's job, after the Effect returns.
+ * caller's job, after the Effect returns. A route passes its `request` so the token comes from
+ * that request's cookie or bearer header; pages leave it out and read the framework's cookie store.
  */
-export function findSession(): Effect.Effect<
-  AppSession | null,
-  ClerkFailed | DbFailed | DbConflict,
-  Clerk | Db
-> {
+export function findSession(
+  request?: Request,
+): Effect.Effect<AppSession | null, ClerkFailed | DbFailed | DbConflict, Clerk | Db> {
   return Effect.gen(function* () {
-    const auth = yield* resolveAuth();
+    const auth = yield* resolveAuth(request);
 
     if (!auth) return null;
 
