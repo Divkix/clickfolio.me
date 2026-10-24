@@ -1,11 +1,13 @@
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
-import { env } from "cloudflare:workers";
+import { Effect } from "effect";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { type Database, getDb } from "@/lib/db";
+import type { PgQueryable } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
-import { isLocalEnvironment } from "@/lib/utils/environment";
+import { Db } from "@/lib/effect/db";
+import { RateLimited, type RateLimitUnavailable } from "@/lib/effect/failures";
 import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
+import { limitsBypassed } from "./bypass";
+import { runLimiter } from "./legacy-edge";
+import { storeDown } from "./store-failure";
 
 export const RATE_LIMITS = {
   handle_change: { limit: 3, windowHours: 24 },
@@ -17,10 +19,11 @@ export const RATE_LIMITS = {
 
 type RateLimitAction = keyof typeof RATE_LIMITS;
 
-// Accepts a transaction so quota reads run under the caller's user-row lock.
-type DbOrTx = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+const USER_UNAVAILABLE_MESSAGE =
+  "Rate limiting service temporarily unavailable. Please try again in a few moments.";
 
-export async function countHandleChangesInWindow(db: DbOrTx, userId: string): Promise<number> {
+/** Pass a transaction handle so quota reads run under the caller's user-row lock. */
+export async function countHandleChangesInWindow(db: PgQueryable, userId: string): Promise<number> {
   const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
 
@@ -34,7 +37,7 @@ export async function countHandleChangesInWindow(db: DbOrTx, userId: string): Pr
       ),
     );
 
-  return result[0]?.count ?? 0;
+  return Number(result[0]?.count ?? 0);
 }
 
 interface RateLimitResult {
@@ -46,134 +49,158 @@ interface RateLimitResult {
   unavailable?: boolean;
 }
 
-const UNAVAILABLE_RETRY_SECONDS = 60;
+type Usage = { count: number; oldest: string | null };
 
-export async function checkRateLimit(
+async function readUsage(
+  db: PgQueryable,
+  userId: string,
+  action: RateLimitAction,
+  windowStart: string,
+): Promise<Usage> {
+  switch (action) {
+    case "handle_change": {
+      const [row] = await db
+        .select({
+          count: sql<number>`count(*)::int`.mapWith(Number),
+          oldest: sql<string | null>`MIN(${handleChanges.createdAt})`,
+        })
+        .from(handleChanges)
+        .where(and(eq(handleChanges.userId, userId), gte(handleChanges.createdAt, windowStart)));
+
+      return { count: row?.count ?? 0, oldest: row?.oldest ?? null };
+    }
+
+    case "resume_upload": {
+      const [row] = await db
+        .select({
+          count: sql<number>`count(*)::int`.mapWith(Number),
+          oldest: sql<string | null>`MIN(${resumes.createdAt})`,
+        })
+        .from(resumes)
+        .where(and(eq(resumes.userId, userId), gte(resumes.createdAt, windowStart)));
+
+      return { count: row?.count ?? 0, oldest: row?.oldest ?? null };
+    }
+
+    default: {
+      const _exhaustive: never = action;
+      // SAFETY: _exhaustive is never from exhaustive switch; cast to string for error message when new action added without handler.
+      throw new Error(`Unknown rate limit action: ${_exhaustive as string}`);
+    }
+  }
+}
+
+/** The quota as it stands: a read, not a reservation. Callers hold their own lock around it. */
+function readWindow(userId: string, action: RateLimitAction) {
+  const config = RATE_LIMITS[action];
+  const windowMs = config.windowHours * 60 * 60 * 1000;
+  const windowStart = new Date(Date.now() - windowMs).toISOString();
+
+  return Db.use((service) =>
+    service.query(`rate-limit.user.${action}`, (db) => readUsage(db, userId, action, windowStart)),
+  ).pipe(
+    Effect.map((usage): RateLimitResult => {
+      const oldestMs = usage.oldest === null ? Number.NaN : new Date(usage.oldest).getTime();
+
+      const resetAt = new Date(
+        Number.isNaN(oldestMs) ? Date.now() + windowMs : oldestMs + windowMs,
+      );
+
+      const allowed = usage.count < config.limit;
+
+      return {
+        allowed,
+        remaining: Math.max(0, config.limit - usage.count),
+        resetAt,
+        message: allowed
+          ? undefined
+          : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
+      };
+    }),
+    Effect.mapError(storeDown(action, USER_UNAVAILABLE_MESSAGE)),
+  );
+}
+
+function retryAfterSeconds(resetAt: Date): number {
+  return Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
+}
+
+/**
+ * Per-user quota check (3 handle changes / 24 h, 5 resume uploads / 24 h by default).
+ * Store outage: `RateLimitUnavailable` (503 + Retry-After), never "allowed".
+ * Succeeds when the user is under quota; callers that insert in the same transaction
+ * must still take their own user-row lock, this only reads.
+ */
+export function enforceRateLimitEffect(
+  userId: string,
+  action: RateLimitAction,
+): Effect.Effect<void, RateLimited | RateLimitUnavailable, Db> {
+  if (limitsBypassed()) return Effect.void;
+
+  return Effect.flatMap(readWindow(userId, action), (quota) =>
+    quota.allowed
+      ? Effect.void
+      : Effect.fail(
+          new RateLimited({
+            message: quota.message ?? "Rate limit exceeded.",
+            retryAfterSeconds: retryAfterSeconds(quota.resetAt),
+          }),
+        ),
+  );
+}
+
+/** Promise edge: the quota as data, with `unavailable` set when the store failed. */
+export function checkRateLimit(
   userId: string,
   action: RateLimitAction,
   existingEnv?: Pick<CloudflareEnv, "HYPERDRIVE">,
 ): Promise<RateLimitResult> {
-  const config = RATE_LIMITS[action];
-  const windowMs = config.windowHours * 60 * 60 * 1000;
-  const windowStart = new Date(Date.now() - windowMs);
-  let resetAt = new Date(Date.now() + windowMs);
-
-  try {
-    const resolvedEnv = existingEnv ?? env;
-    const db = getDb(resolvedEnv.HYPERDRIVE);
-
-    let count = 0;
-    let oldest: string | null | undefined;
-
-    switch (action) {
-      case "handle_change": {
-        const result = await db
-          .select({
-            count: sql<number>`count(*)`,
-            oldest: sql<string>`MIN(${handleChanges.createdAt})`,
-          })
-          .from(handleChanges)
-          .where(
-            and(
-              eq(handleChanges.userId, userId),
-              gte(handleChanges.createdAt, windowStart.toISOString()),
-            ),
-          );
-
-        count = result[0]?.count ?? 0;
-        oldest = result[0]?.oldest;
-        break;
-      }
-
-      case "resume_upload": {
-        const result = await db
-          .select({
-            count: sql<number>`count(*)`,
-            oldest: sql<string>`MIN(${resumes.createdAt})`,
-          })
-          .from(resumes)
-          .where(
-            and(eq(resumes.userId, userId), gte(resumes.createdAt, windowStart.toISOString())),
-          );
-
-        count = result[0]?.count ?? 0;
-        oldest = result[0]?.oldest;
-        break;
-      }
-
-      default: {
-        const _exhaustive: never = action;
-        // SAFETY: _exhaustive is never from exhaustive switch; cast to string for error message when new action added without handler.
-        throw new Error(`Unknown rate limit action: ${_exhaustive as string}`);
-      }
-    }
-
-    if (oldest) {
-      resetAt = new Date(new Date(oldest).getTime() + windowMs);
-    }
-
-    const allowed = count < config.limit;
-    const remaining = Math.max(0, config.limit - count);
-
-    return {
-      allowed,
-      remaining,
-      resetAt,
-      message: allowed
-        ? undefined
-        : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
-    };
-  } catch (error) {
-    log("error", `Rate limit check failed for ${action}`, errorFields(error));
-
-    return {
-      allowed: false,
-      remaining: 0,
-      resetAt: new Date(Date.now() + UNAVAILABLE_RETRY_SECONDS * 1000),
-      unavailable: true,
-      message: "Rate limiting service temporarily unavailable. Please try again in a few moments.",
-    };
-  }
+  return runLimiter(
+    readWindow(userId, action).pipe(
+      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
+        Effect.succeed<RateLimitResult>({
+          allowed: false,
+          remaining: 0,
+          resetAt: new Date(Date.now() + unavailable.retryAfterSeconds * 1000),
+          unavailable: true,
+          message: unavailable.message,
+        }),
+      ),
+    ),
+    existingEnv?.HYPERDRIVE,
+  );
 }
 
+/**
+ * Promise edge for routes not yet under `runRoute`; they move to `enforceRateLimitEffect`,
+ * which answers through `describeFailure` (429 without the X-RateLimit-* headers and details,
+ * 503 with code EXTERNAL_SERVICE_ERROR instead of RATE_LIMIT_UNAVAILABLE).
+ */
 export async function enforceRateLimit(
   userId: string,
   action: RateLimitAction,
-  env?: Pick<CloudflareEnv, "HYPERDRIVE">,
+  bindings?: Pick<CloudflareEnv, "HYPERDRIVE">,
 ): Promise<Response | null> {
-  if (process.env.NODE_ENV !== "production") {
-    return null;
-  }
+  if (limitsBypassed()) return null;
 
-  if (process.env.DISABLE_RATE_LIMITS === "true") {
-    log("warn", "[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-  }
-
-  if (isLocalEnvironment()) {
-    return null;
-  }
-
-  const result = await checkRateLimit(userId, action, env);
+  const result = await checkRateLimit(userId, action, bindings);
 
   if (result.unavailable) {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((result.resetAt.getTime() - Date.now()) / 1000),
-    );
+    const retryAfter = retryAfterSeconds(result.resetAt);
 
     return new Response(
       JSON.stringify({
         error: "Rate Limiting Unavailable",
         code: "RATE_LIMIT_UNAVAILABLE",
         message: result.message,
-        details: { retryAfterSeconds },
+        details: { retryAfterSeconds: retryAfter },
       }),
       {
         status: 503,
         headers: {
           "Content-Type": "application/json",
           ...SECURITY_HEADERS,
-          "Retry-After": String(retryAfterSeconds),
+          "Retry-After": String(retryAfter),
         },
       },
     );
