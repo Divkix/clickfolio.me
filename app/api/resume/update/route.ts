@@ -3,7 +3,8 @@ import { Effect } from "effect";
 import { z } from "zod";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { Db } from "@/lib/effect/db";
-import { Conflict, NotFound, InvalidInput } from "@/lib/effect/failures";
+import { Conflict, NotFound } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 
@@ -21,20 +22,13 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 const updateRequestSchema = z.object({ content: z.json().optional() });
 
 export async function PUT(request: Request) {
-  const sizeCheck = validateRequestSize(request);
+  const oversized = oversizedBodyResponse(request);
 
-  if (!sizeCheck.valid) {
-    return createErrorResponse(
-      sizeCheck.error || "Request body too large",
-      ERROR_CODES.BAD_REQUEST,
-      413,
-    );
-  }
+  if (oversized) return oversized;
 
   return withUserEffect(
     request,
@@ -42,31 +36,9 @@ export async function PUT(request: Request) {
       Effect.gen(function* () {
         const userId = authUser.id;
 
-        const rawBodyResult = yield* Effect.tryPromise({
-          try: () => readJsonWithLimit(request),
-          // The client went away mid-request.
-          catch: (cause) =>
-            new InvalidInput({
-              message: "Could not read the request body",
-              details: errorFields(cause),
-            }),
-        });
+        const body = yield* readJsonBody(request, updateRequestSchema, "Invalid request body");
 
-        if (!rawBodyResult.ok) {
-          return createErrorResponse(
-            rawBodyResult.error,
-            ERROR_CODES.BAD_REQUEST,
-            rawBodyResult.reason === "too_large" ? 413 : 400,
-          );
-        }
-
-        const body = updateRequestSchema.safeParse(rawBodyResult.data);
-
-        if (!body.success) {
-          return createErrorResponse("Invalid request body", ERROR_CODES.BAD_REQUEST, 400);
-        }
-
-        const validation = resumeContentSchemaStrict.safeParse(body.data.content);
+        const validation = resumeContentSchemaStrict.safeParse(body.content);
 
         if (!validation.success) {
           return createErrorResponse(

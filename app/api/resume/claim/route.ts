@@ -2,13 +2,12 @@ import { env } from "cloudflare:workers";
 import { Effect, Layer } from "effect";
 import { z } from "zod";
 import { withUserEffect } from "@/lib/auth/with-auth";
-import { InvalidInput } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
 import { runClaimIntake } from "@/lib/resume/claim-intake";
 import { claimRequestSchema } from "@/lib/schemas/resume";
-import { errorFields } from "@/lib/utils/error-fields";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import { logEvent } from "@/lib/utils/log";
 import {
@@ -21,18 +20,11 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 export async function POST(request: Request) {
-  const sizeCheck = validateRequestSize(request);
+  const oversized = oversizedBodyResponse(request);
 
-  if (!sizeCheck.valid) {
-    return createErrorResponse(
-      sizeCheck.error || "Request body too large",
-      ERROR_CODES.BAD_REQUEST,
-      413,
-    );
-  }
+  if (oversized) return oversized;
 
   return withUserEffect(
     request,
@@ -40,35 +32,11 @@ export async function POST(request: Request) {
       Effect.gen(function* () {
         const userId = authUser.id;
 
-        const rawBodyResult = yield* Effect.tryPromise({
-          try: () => readJsonWithLimit(request),
-          // The client went away mid-request.
-          catch: (cause) =>
-            new InvalidInput({
-              message: "Could not read the request body",
-              details: errorFields(cause),
-            }),
-        });
-
-        if (!rawBodyResult.ok) {
-          return createErrorResponse(
-            rawBodyResult.error,
-            ERROR_CODES.BAD_REQUEST,
-            rawBodyResult.reason === "too_large" ? 413 : 400,
-          );
-        }
-
-        const bodyResult = claimRequestSchema.safeParse(rawBodyResult.data);
-
-        if (!bodyResult.success) {
-          return createErrorResponse(
-            "Invalid upload key. Must be a temporary upload.",
-            ERROR_CODES.VALIDATION_ERROR,
-            400,
-          );
-        }
-
-        const { key } = bodyResult.data;
+        const { key } = yield* readJsonBody(
+          request,
+          claimRequestSchema,
+          "Invalid upload key. Must be a temporary upload.",
+        );
 
         // SECURITY: Prevents unauthorized claims of leaked temp keys (Issue #89)
         const cookieHeader = request.headers.get("cookie");

@@ -3,6 +3,7 @@ import { Effect, Layer } from "effect";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { runRoute } from "@/lib/effect/edges";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import { log } from "@/lib/utils/log";
@@ -17,7 +18,6 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 const pendingUploadRequestSchema = z.object({ key: z.string().startsWith("temp/") });
 
@@ -33,33 +33,7 @@ function setPendingUpload(request: Request) {
 
     if (!secret) return missingSecret();
 
-    const sizeCheck = validateRequestSize(request);
-
-    if (!sizeCheck.valid) {
-      return createErrorResponse(
-        sizeCheck.error || "Request body too large",
-        ERROR_CODES.BAD_REQUEST,
-        413,
-      );
-    }
-
-    const rawBodyResult = yield* Effect.promise(() => readJsonWithLimit(request));
-
-    if (!rawBodyResult.ok) {
-      return createErrorResponse(
-        rawBodyResult.error,
-        ERROR_CODES.BAD_REQUEST,
-        rawBodyResult.reason === "too_large" ? 413 : 400,
-      );
-    }
-
-    const body = pendingUploadRequestSchema.safeParse(rawBodyResult.data);
-
-    if (!body.success) {
-      return createErrorResponse("Invalid upload key", ERROR_CODES.BAD_REQUEST, 400);
-    }
-
-    const { key } = body.data;
+    const { key } = yield* readJsonBody(request, pendingUploadRequestSchema, "Invalid upload key");
 
     const found = yield* R2Store.use((store) => store.head(key)).pipe(
       Effect.as(true),
@@ -91,6 +65,10 @@ function setPendingUpload(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const oversized = oversizedBodyResponse(request);
+
+  if (oversized) return oversized;
+
   return runRoute(request, setPendingUpload(request), R2Store.layer(env));
 }
 
