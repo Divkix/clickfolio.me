@@ -2,12 +2,19 @@ import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
+import { Effect } from "effect";
 import type { ZodError } from "zod";
+import { RateLimited, RateLimitUnavailable } from "@/lib/api/errors";
+import { runRoute } from "@/lib/api/route";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
-import { checkHandleRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+import {
+  checkHandleRateLimit,
+  getClientIP,
+  HANDLE_CHECK_UNAVAILABLE_MESSAGE,
+} from "@/lib/rate-limit/ip";
 import { handleSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
@@ -43,73 +50,79 @@ function handleFormatErrorMessage(error: ZodError): string {
   return "Handle cannot contain consecutive hyphens";
 }
 
+// The caller's id, or null when signed out. A failed lookup only loses the
+// "this is your handle" hint, so it is logged and treated as anonymous.
+function currentUserId(): Effect.Effect<string | null> {
+  return Effect.tryPromise(() => getServerSession()).pipe(
+    Effect.map((session) => session?.user?.id ?? null),
+    Effect.catch((error) => {
+      log("warn", "Session lookup failed during handle check; treating caller as anonymous", {
+        ...errorFields(error.cause),
+      });
+
+      return Effect.succeed(null);
+    }),
+  );
+}
+
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const handle = searchParams.get("handle");
+  return runRoute(
+    request,
+    Effect.gen(function* () {
+      const { searchParams } = new URL(request.url);
+      const handle = searchParams.get("handle");
 
-    if (!handle) {
-      return createErrorResponse("handle parameter is required", ERROR_CODES.BAD_REQUEST, 400);
-    }
+      if (!handle) {
+        return createErrorResponse("handle parameter is required", ERROR_CODES.BAD_REQUEST, 400);
+      }
 
-    const normalizedHandle = handle.toLowerCase().trim();
+      const normalizedHandle = handle.toLowerCase().trim();
 
-    const parsedHandle = handleSchema.safeParse(normalizedHandle);
+      const parsedHandle = handleSchema.safeParse(normalizedHandle);
 
-    if (!parsedHandle.success) {
-      return createErrorResponse(
-        handleFormatErrorMessage(parsedHandle.error),
-        ERROR_CODES.BAD_REQUEST,
-        400,
+      if (!parsedHandle.success) {
+        return createErrorResponse(
+          handleFormatErrorMessage(parsedHandle.error),
+          ERROR_CODES.BAD_REQUEST,
+          400,
+        );
+      }
+
+      if (RESERVED_HANDLES.has(normalizedHandle)) {
+        return createSuccessResponse({ available: false, reason: "reserved" });
+      }
+
+      const rateLimit = yield* Effect.promise(() => checkHandleRateLimit(getClientIP(request)));
+
+      if (rateLimit.unavailable) {
+        return yield* new RateLimitUnavailable({
+          message: rateLimit.message ?? HANDLE_CHECK_UNAVAILABLE_MESSAGE,
+        });
+      }
+
+      if (!rateLimit.allowed) {
+        return yield* new RateLimited({
+          message: rateLimit.message ?? "Too many requests. Please try again later.",
+        });
+      }
+
+      const db = getDb(env.HYPERDRIVE);
+
+      const existingUser = yield* Effect.promise(() =>
+        db.select({ id: user.id }).from(user).where(eq(user.handle, normalizedHandle)).limit(1),
       );
-    }
 
-    if (RESERVED_HANDLES.has(normalizedHandle)) {
-      return createSuccessResponse({ available: false, reason: "reserved" });
-    }
+      if (existingUser.length === 0) {
+        return createSuccessResponse({ available: true });
+      }
 
-    const clientIP = getClientIP(request);
-    const rateLimitResult = await checkHandleRateLimit(clientIP);
+      const callerId = yield* currentUserId();
 
-    if (!rateLimitResult.allowed) {
-      return createErrorResponse(
-        rateLimitResult.message || "Too many requests. Please try again later.",
-        ERROR_CODES.RATE_LIMIT_EXCEEDED,
-        429,
-      );
-    }
+      if (callerId !== null && existingUser[0].id === callerId) {
+        return createSuccessResponse({ available: true, isCurrentHandle: true });
+      }
 
-    const db = getDb(env.HYPERDRIVE);
-
-    const existingUser = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.handle, normalizedHandle))
-      .limit(1);
-
-    if (existingUser.length === 0) {
-      return createSuccessResponse({ available: true });
-    }
-
-    let currentUserId: string | null = null;
-
-    try {
-      const session = await getServerSession();
-      currentUserId = session?.user?.id ?? null;
-    } catch {}
-
-    if (currentUserId && existingUser[0].id === currentUserId) {
-      return createSuccessResponse({ available: true, isCurrentHandle: true });
-    }
-
-    return createSuccessResponse({ available: false });
-  } catch (err) {
-    log("error", "Error checking handle availability:", { ...errorFields(err) });
-
-    return createErrorResponse(
-      "An unexpected error occurred. Please try again.",
-      ERROR_CODES.INTERNAL_ERROR,
-      500,
-    );
-  }
+      return createSuccessResponse({ available: false });
+    }),
+  );
 }

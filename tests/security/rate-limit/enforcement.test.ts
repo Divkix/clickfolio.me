@@ -568,6 +568,34 @@ describe("Rate Limit Security Enforcement", () => {
       expect(result.message).toContain("temporarily unavailable");
     });
 
+    it("fails CLOSED for handle check rate limiting errors", async () => {
+      mockSelect.mockImplementation(() => {
+        throw new Error("DB connection failed");
+      });
+
+      const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkHandleRateLimit("192.168.1.1");
+
+      expect(result).toMatchObject({ allowed: false, unavailable: true });
+      expect(result.message?.toLowerCase()).not.toContain("limit");
+    });
+
+    it("fails CLOSED when a handle check cannot be recorded", async () => {
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 0 }]),
+        }),
+      });
+      mockTransaction.mockImplementationOnce(() => {
+        throw new Error("Insert failed");
+      });
+
+      const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkHandleRateLimit("192.168.1.1");
+
+      expect(result).toMatchObject({ allowed: false, unavailable: true });
+    });
+
     it("fails CLOSED for authenticated rate limiting errors", async () => {
       mockSelect.mockImplementation(() => {
         throw new Error("DB connection failed");

@@ -16,6 +16,9 @@ const HANDLE_CHECK_HOURLY_LIMIT = 100;
 export const UPLOAD_UNAVAILABLE_MESSAGE =
   "Upload temporarily unavailable. Please try again in a moment.";
 
+export const HANDLE_CHECK_UNAVAILABLE_MESSAGE =
+  "Handle availability checks are temporarily unavailable. Please try again in a moment.";
+
 const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
 
 interface IPRateLimitResult {
@@ -199,6 +202,7 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
     actionType: "handle_check",
     limit: HANDLE_CHECK_HOURLY_LIMIT,
     blockedMessage: "Too many handle checks. Please try again later.",
+    unavailableMessage: HANDLE_CHECK_UNAVAILABLE_MESSAGE,
     checkErrorLabel: "Handle rate limit check failed:",
   });
 }
@@ -209,10 +213,19 @@ async function checkHourlyActionLimit(
     actionType: "handle_check";
     limit: number;
     blockedMessage: string;
+    unavailableMessage: string;
     checkErrorLabel: string;
   },
 ): Promise<IPRateLimitResult> {
-  const { actionType, limit, blockedMessage, checkErrorLabel } = options;
+  const { actionType, limit, blockedMessage, unavailableMessage, checkErrorLabel } = options;
+
+  // Fail closed, like the upload limit: an unmetered window would let enumeration run free.
+  const unavailable: IPRateLimitResult = {
+    allowed: false,
+    unavailable: true,
+    remaining: { hourly: 0, daily: 0 },
+    message: unavailableMessage,
+  };
 
   if (process.env.NODE_ENV !== "production") {
     return {
@@ -280,6 +293,8 @@ async function checkHourlyActionLimit(
       }
     } catch (insertError) {
       log("error", `Failed to record rate limit: ${actionType}`, { ...errorFields(insertError) });
+
+      return unavailable;
     }
 
     return {
@@ -292,9 +307,6 @@ async function checkHourlyActionLimit(
   } catch (error) {
     log("error", checkErrorLabel, { ...errorFields(error) });
 
-    return {
-      allowed: true,
-      remaining: { hourly: 1, daily: 1 },
-    };
+    return unavailable;
   }
 }
