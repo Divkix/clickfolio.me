@@ -2,7 +2,12 @@ import { sql } from "drizzle-orm";
 import { Effect } from "effect";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { AppSession } from "@/lib/auth/session";
-import { loadDashboard } from "@/lib/data/owner-pages";
+import {
+  loadDashboard,
+  loadEditContent,
+  loadSettings,
+  loadThemeChoice,
+} from "@/lib/data/owner-pages";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { DbFailed } from "@/lib/effect/failures";
@@ -110,6 +115,10 @@ async function closedDb(): Promise<TestDb> {
   return closed.db;
 }
 
+function runLoader<A, E>(effect: Effect.Effect<A, E, Db>): Promise<A> {
+  return Effect.runPromise(Effect.provide(effect, Db.layerFrom(db)));
+}
+
 beforeAll(async () => {
   testDb = await createTestDb();
   db = testDb.db;
@@ -132,7 +141,9 @@ describe("/edit", () => {
 
     const { default: EditPage } = await import("@/app/(protected)/edit/page");
 
-    expect(await EditPage()).toBeTruthy();
+    await EditPage();
+
+    expect(await runLoader(loadEditContent("owner"))).toEqual(INDEXABLE_CONTENT);
   });
 
   it("sends an owner without a site to the dashboard", async () => {
@@ -173,13 +184,18 @@ describe("/edit", () => {
 });
 
 describe("/themes", () => {
-  it("renders for an owner with a site", async () => {
+  it("hands the stored theme and content to the selector", async () => {
     await seedOwner("owner");
     await seedSite("owner");
 
     const { default: ThemesPage } = await import("@/app/(protected)/themes/page");
 
-    expect(await ThemesPage()).toBeTruthy();
+    await ThemesPage();
+
+    expect(await runLoader(loadThemeChoice("owner"))).toEqual({
+      themeId: "minimalist_editorial",
+      content: INDEXABLE_CONTENT,
+    });
   });
 
   it("sends an owner without a site to the dashboard", async () => {
@@ -201,13 +217,23 @@ describe("/themes", () => {
 });
 
 describe("/settings", () => {
-  it("renders for an owner", async () => {
+  it("hands the profile, resume count and latest resume to the page", async () => {
     await seedOwner("owner");
     await seedResume("owner");
 
     const { default: SettingsPage } = await import("@/app/(protected)/settings/page");
 
-    expect(await SettingsPage()).toBeTruthy();
+    await SettingsPage();
+
+    const settings = await runLoader(loadSettings("owner"));
+
+    expect(settings.profile).toMatchObject({
+      id: "owner",
+      email: "owner@example.com",
+      handle: "handle-owner",
+    });
+    expect(settings.resumeCount).toEqual([{ count: 1 }]);
+    expect(settings.latestResume).toMatchObject({ id: "resume-owner", status: "completed" });
   });
 
   it("sends a session whose user row is gone to the dashboard", async () => {
@@ -232,7 +258,12 @@ describe("/dashboard", () => {
 
     const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
 
-    expect(await DashboardPage()).toBeTruthy();
+    await DashboardPage();
+
+    expect(await runLoader(loadDashboard("owner"))).toMatchObject({
+      userData: { id: "owner", resumes: [], siteData: null },
+      content: null,
+    });
   });
 
   it("renders the published site", async () => {
@@ -242,7 +273,14 @@ describe("/dashboard", () => {
 
     const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
 
-    expect(await DashboardPage()).toBeTruthy();
+    await DashboardPage();
+
+    const dashboard = await runLoader(loadDashboard("owner"));
+
+    expect(dashboard.content).toEqual(INDEXABLE_CONTENT);
+    expect(dashboard.userData?.id).toBe("owner");
+    expect(dashboard.userData?.resumes?.[0]?.id).toBe("resume-owner");
+    expect(dashboard.userData?.siteData?.themeId).toBe("minimalist_editorial");
   });
 
   it("keeps a legacy resume whose contact and experience are null renderable", async () => {
