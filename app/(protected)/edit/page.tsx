@@ -1,11 +1,11 @@
 import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
 import { getServerSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db";
-import { siteData } from "@/lib/db/schema";
+import { loadEditContent } from "@/lib/data/owner-pages";
+import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 
 export const dynamic = "force-dynamic";
 
@@ -20,17 +20,11 @@ export default async function EditPage() {
     redirect("/");
   }
 
-  const db = getDb(env.HYPERDRIVE);
+  const content = await runPage(loadEditContent(session.user.id), Db.layer(env.HYPERDRIVE));
 
-  const siteDataResult = await db.query.siteData.findFirst({
-    where: eq(siteData.userId, session.user.id),
-  });
-
-  if (!siteDataResult) {
+  if (!content) {
     redirect("/dashboard");
   }
-
-  const content = siteDataResult.content;
 
   return (
     <div className="min-h-screen py-8">
