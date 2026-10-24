@@ -1,10 +1,54 @@
 # Effect v4 resume parsing pilot
 
-## Gates
+## Status (2026-10): expanded beyond the pilot
 
-- Scope: `lib/ai`, parse attempt bodies and their Workflow adapter. No API or Layer migration.
-- Version: exact `effect@4.0.4`, accepted by the existing pnpm release-age policy.
+The pilot's "stop at this boundary" decision is superseded by the Effect
+hardening project. Its decisions (rules in `AGENTS.md`, "Effect (server)" and
+"No Effect in client-reachable code"):
+
+- Effect covers all server I/O: routes, server modules under `lib/`, cron, the
+  queue consumer, the Durable Object and Workflows. No framework migration.
+- Effects run only at edges: one route-handler helper, `runStep` in Workflow
+  steps, and the cron/queue/DO handlers. No `runPromise` mid-logic, no Promise
+  wrappers around Effects.
+- No `ManagedRuntime` or module-scope I/O; `getDb(env.HYPERDRIVE)` per
+  invocation. Plain arguments first; `Context`/`Layer` services only for a
+  dependency threaded through 3+ levels, built per invocation.
+- Zod stays the only validator; a server-only helper maps Zod failures to a
+  tagged `InvalidInput` error. No Effect Schema.
+- Every tagged error maps to an HTTP status + `ERROR_CODES` entry, a retryable
+  flag and a log level. Every external call has an explicit timeout. Workflows
+  own retries inside steps; routes fail fast.
+- Stored and wire formats stay backward compatible (`toParseErrorJson`,
+  existing error types).
+- No Effect in client-reachable code, shared contract modules included. The
+  `client-effect-guard` plugin in `vite.config.ts` fails `pnpm run build` when
+  the client module graph reaches `effect` and prints each importer chain.
+
+Bundle size: the client delta must stay 0 (the guard enforces it). Project
+baseline at `main@3327340b` with wrangler 4.151.3: `pnpm run build`, then
+`pnpm exec wrangler deploy --dry-run --outdir <new dir>`, gives 8784.80 KiB
+upload / 2656.69 KiB gzip. It already includes the pilot's Effect code.
+Unrelated changes since the pilot's `d9b85996` baseline put it 11.84 KiB gzip
+below that one, so the pilot tables below are history, not a baseline. The
+gate: the project's Effect work may grow the server gzip by at most 6.34 KiB
+over 2656.69 KiB, the rest of the pilot's 25 KiB budget after its 18.66 KiB.
+At the end of the project, build the final branch and measure it with the same
+command and wrangler version into a fresh outdir. If the toolchain changed,
+rebuild `3327340b` with it and compare those two numbers. Measure non-Effect
+changes made during the project (features, dependency bumps) separately and
+leave them out of the delta. Going over needs an explicit decision recorded
+here.
+
+## Pilot gates (historical)
+
+- Scope: `lib/ai`, parse attempt bodies and their Workflow adapter. No API or
+  Layer migration. _Superseded: see Status._
+- Version: exact `effect@4.0.5` in `package.json` (the pilot measured 4.0.4),
+  accepted by the existing pnpm release-age policy.
 - Provisional bundle budget: at most 25 KiB additional gzip. Workflows owns retries and journaling.
+  _Its remaining 6.34 KiB gates the project's server growth over the
+  `main@3327340b` baseline (2656.69 KiB gzip): see Status._
 - Keep stored error JSON and successful `parse` step output compatible with existing rows and journals.
 
 ## Baseline and spike
@@ -23,7 +67,7 @@ Wrangler dry-run reports bundle sizes, but does not report Worker startup CPU ti
 
 ## Sources
 
-- [Effect 4.0.4 source and API documentation](https://github.com/Effect-TS/effect/tree/effect%404.0.4/packages/effect/src).
+- [Effect 4.0.5 source and API documentation](https://github.com/Effect-TS/effect/tree/effect%404.0.5/packages/effect/src).
 - [Current migration guide](https://github.com/Effect-TS/effect/blob/main/MIGRATION.md).
 - [v4 timeout semantics](https://effect.website/docs/v4/error-management/timing-out): feed the Effect cancellation signal into the SDK request.
 - [Flattened Cause model](https://github.com/Effect-TS/effect/blob/main/packages/effect/src/Cause.ts): preserve defects at the Workflow boundary.
@@ -101,8 +145,9 @@ Tests and generated files are excluded.
 | Promise boundary error mappings (`catch:`)          |        0 |    16 |
 | `// SAFETY:` assertions/comments                    |       62 |    49 |
 
-Decision: **keep the parser pilot and stop at this boundary**. Typed failures and
-validated resume values remove ambiguity, JSON re-parsing, and thirteen assertions.
+_Superseded (2026-10): see Status._ Pilot decision: **keep the parser pilot and
+stop at this boundary**. Typed failures and validated resume values remove
+ambiguity, JSON re-parsing, and thirteen assertions.
 Total source size is nearly unchanged; Effect still adds recovery/mapping syntax.
 Review maintainability and real parse behavior before expanding to `with-auth.ts`
 or introducing Layers.
@@ -119,5 +164,6 @@ or introducing Layers.
 - PDF/AI/R2 errors are tagged at their source; the remaining unknown-source
   classifier handles PostgreSQL/network errors. Notifications and alert failures
   are ignored and logged. This parse path creates no temporary R2 object to delete.
-- API routes, Layers, Effect SQL, claim/completion/cache-expiry logic, and database
-  schema remain outside the migration.
+- At pilot time, API routes, Layers, Effect SQL, claim/completion/cache-expiry
+  logic, and database schema remained outside the migration. _Superseded: see
+  Status._
