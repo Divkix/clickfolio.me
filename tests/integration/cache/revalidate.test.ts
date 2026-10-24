@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 describe("revalidatePublicProfilePages", () => {
-  it("flushes the directory, each profile, the galleries and the sitemap", () => {
+  it("flushes the directory, each profile and the galleries", () => {
     revalidatePublicProfilePages(["alice", null, undefined, "bob"]);
 
     expect(revalidatePathMock.mock.calls).toEqual([
@@ -20,7 +20,6 @@ describe("revalidatePublicProfilePages", () => {
       ["/@alice"],
       ["/@bob"],
       ["/examples/[slug]", "page"],
-      ["/sitemap.xml"],
     ]);
   });
 

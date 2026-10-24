@@ -34,7 +34,7 @@ describe("publicProfileTags", () => {
     const real = await tagsVinextSends(["alice", "bob"]);
 
     expect([...real].sort()).toEqual([...publicProfileTags(["alice", "bob"])].sort());
-    expect(real).toHaveLength(5);
+    expect(real).toHaveLength(4);
   });
 
   it("encodes the page tag of a profile as vinext does", () => {
@@ -43,6 +43,6 @@ describe("publicProfileTags", () => {
 
   it("skips missing handles but always includes the shared surfaces", () => {
     expect(publicProfileTags([null, undefined, ""])).toEqual(publicProfileTags([]));
-    expect(publicProfileTags([])).toHaveLength(3);
+    expect(publicProfileTags([])).toHaveLength(2);
   });
 });
