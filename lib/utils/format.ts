@@ -1,3 +1,12 @@
+/**
+ * Render-time year reads are stable within a render; suppressHydrationWarning at
+ * call sites covers a server/client mismatch at year rollover. Keep this per-call:
+ * Workers expose epoch zero for Date at module scope.
+ */
+export function currentYear(): number {
+  return new Date().getFullYear();
+}
+
 export function formatRelativeTime(date: string | Date): string {
   const d = date instanceof Date ? date : new Date(date);
   const nowMs = Date.now();

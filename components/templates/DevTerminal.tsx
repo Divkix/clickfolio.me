@@ -6,6 +6,7 @@ import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
 import { techDotColor } from "@/lib/templates/tech-colors";
 import type { TemplateProps } from "@/lib/types/template";
+import { currentYear } from "@/lib/utils/format";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -449,7 +450,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
 
             <footer className="flex flex-col gap-4 border-t border-[#444c56] pt-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-[#768390]" suppressHydrationWarning>
-                &copy; {new Date().getFullYear()} {full_name}
+                &copy; {currentYear()} {full_name}
               </p>
               <ShareBar
                 handle={profile.handle}
