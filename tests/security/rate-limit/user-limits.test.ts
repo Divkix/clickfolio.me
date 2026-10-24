@@ -10,8 +10,8 @@ import {
   it,
   vi,
 } from "vite-plus/test";
-import { Db } from "@/lib/effect/db";
-import { RateLimited, RateLimitUnavailable } from "@/lib/effect/failures";
+import { RateLimited } from "@/lib/effect/failures";
+import { readQuotaIn, requireQuota } from "@/lib/rate-limit/user";
 import { handleChanges, resumes, user } from "@/lib/db/schema";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
@@ -81,84 +81,64 @@ async function seedResumes(userId: string, ageMs: number, n: number) {
     );
 }
 
-function run<A, E>(program: Effect.Effect<A, E, Db>, target: TestDb = db) {
-  return Effect.runPromise(Effect.provide(program, Db.layerFrom(target)));
+type Action = "handle_change" | "resume_upload";
+
+async function check(userId: string, action: Action, target = db) {
+  return Effect.runPromise(requireQuota(await readQuotaIn(target, userId, action)));
 }
 
-function fail<A, E>(program: Effect.Effect<A, E, Db>, target: TestDb = db) {
-  return run(Effect.flip(program), target);
+async function refusal(userId: string, action: Action) {
+  return Effect.runPromise(Effect.flip(requireQuota(await readQuotaIn(db, userId, action))));
 }
 
-describe("per-user limiter (Effect)", () => {
+describe("per-user limiter", () => {
   it("admits a user under the handle-change quota", async () => {
-    const { enforceRateLimitEffect } = await import("@/lib/rate-limit/user");
-
     await seedHandleChanges("u1", HOUR_MS, 2);
 
-    await expect(run(enforceRateLimitEffect("u1", "handle_change"))).resolves.toBeUndefined();
+    await expect(check("u1", "handle_change")).resolves.toBeUndefined();
   });
 
   it("refuses the 4th handle change in 24 hours until the oldest one leaves the window", async () => {
-    const { enforceRateLimitEffect } = await import("@/lib/rate-limit/user");
-
     await seedHandleChanges("u1", 12 * HOUR_MS, 1);
     await seedHandleChanges("u1", HOUR_MS, 2);
 
-    const refusal = await fail(enforceRateLimitEffect("u1", "handle_change"));
+    const refused = await refusal("u1", "handle_change");
 
-    expect(refusal).toBeInstanceOf(RateLimited);
-    expect(refusal).toMatchObject({ message: expect.stringContaining("Maximum 3 handle change") });
+    expect(refused).toBeInstanceOf(RateLimited);
+    expect(refused).toMatchObject({ message: expect.stringContaining("Maximum 3 handle change") });
     // Oldest change was 12 h ago, so it frees up in about 12 h.
-    expect(Math.abs(refusal.retryAfterSeconds - 12 * 3600)).toBeLessThan(5);
+    expect(Math.abs(refused.retryAfterSeconds - 12 * 3600)).toBeLessThan(5);
   });
 
   it("refuses the 6th resume upload in 24 hours and ignores older uploads and other users", async () => {
-    const { enforceRateLimitEffect } = await import("@/lib/rate-limit/user");
-
     await seedResumes("u1", 25 * HOUR_MS, 10);
     await seedResumes("u2", HOUR_MS, 5);
     await seedResumes("u1", HOUR_MS, 4);
 
-    await expect(run(enforceRateLimitEffect("u1", "resume_upload"))).resolves.toBeUndefined();
+    await expect(check("u1", "resume_upload")).resolves.toBeUndefined();
 
     await seedResumes("u1", HOUR_MS, 1);
 
-    expect(await fail(enforceRateLimitEffect("u1", "resume_upload"))).toBeInstanceOf(RateLimited);
+    expect(await refusal("u1", "resume_upload")).toBeInstanceOf(RateLimited);
   });
 
-  it("refuses with RateLimitUnavailable and logs when the store is down", async () => {
-    const { enforceRateLimitEffect } = await import("@/lib/rate-limit/user");
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const refusal = await fail(enforceRateLimitEffect("u1", "resume_upload"), brokenDb);
-
-    expect(refusal).toBeInstanceOf(RateLimitUnavailable);
-    expect(refusal).toMatchObject({ retryAfterSeconds: 60 });
-
-    const [line] = logLines(error);
-
-    expect(line).toMatchObject({ level: "error", limiter: "resume_upload" });
-    expect(JSON.stringify(line)).not.toContain("u1");
+  it("fails closed when the store is down", async () => {
+    await expect(check("u1", "resume_upload", brokenDb)).rejects.toThrow();
   });
 
   it("skips the store outside production", async () => {
-    const { enforceRateLimitEffect } = await import("@/lib/rate-limit/user");
-
     vi.stubEnv("NODE_ENV", "development");
 
-    await expect(
-      run(enforceRateLimitEffect("u1", "resume_upload"), brokenDb),
-    ).resolves.toBeUndefined();
+    await expect(check("u1", "resume_upload", brokenDb)).resolves.toBeUndefined();
   });
 
   it("ignores DISABLE_RATE_LIMITS in production", async () => {
-    const { enforceRateLimitEffect } = await import("@/lib/rate-limit/user");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     vi.stubEnv("DISABLE_RATE_LIMITS", "true");
     await seedHandleChanges("u1", HOUR_MS, 3);
 
-    expect(await fail(enforceRateLimitEffect("u1", "handle_change"))).toBeInstanceOf(RateLimited);
+    expect(await refusal("u1", "handle_change")).toBeInstanceOf(RateLimited);
     expect(logLines(warn)[0]).toMatchObject({ level: "warn" });
   });
 });

@@ -107,11 +107,8 @@ export async function submitToIndexNow(
 }
 
 /** Canonical portfolio URLs for the given handles (nulls skipped). */
-export function profileUrls(
-  handles: ReadonlyArray<string | null | undefined>,
-  siteUrl: string = siteConfig.url,
-): string[] {
-  return handles.flatMap((handle) => (handle ? [`${siteUrl}/@${handle}`] : []));
+export function profileUrls(handles: ReadonlyArray<string | null | undefined>): string[] {
+  return handles.flatMap((handle) => (handle ? [`${siteConfig.url}/@${handle}`] : []));
 }
 
 /** `<loc>` values from a sitemap or sitemap index document. */

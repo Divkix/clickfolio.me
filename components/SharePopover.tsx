@@ -51,14 +51,13 @@ const itemVariants = cva(
 );
 
 interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
-  url?: string;
   handle?: string;
   title: string;
   name: string;
   className?: string;
 }
 
-export function SharePopover({ url, handle, title, name, variant, className }: SharePopoverProps) {
+export function SharePopover({ handle, title, name, variant, className }: SharePopoverProps) {
   const [open, setOpen] = useState(false);
   const popoverId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +72,6 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
     handleWhatsAppShare,
     handleCopyLink,
   } = useShareActions({
-    url,
     handle,
     title,
     name,

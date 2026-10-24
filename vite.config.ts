@@ -8,7 +8,7 @@ import { defineConfig, type Plugin } from "vite-plus";
 
 /**
  * Vite plugin that stubs server-only modules for client environments.
- * - `cloudflare:workers` — used by lib/referral.ts etc., doesn't exist in browser
+ * - `cloudflare:workers` — Workers-only module imported by server code, absent in the browser
  * - `node:async_hooks` — vinext's headers.js shim imports AsyncLocalStorage,
  *   which Vite externalizes to a browser stub that lacks the named export
  */
@@ -251,7 +251,7 @@ export default defineConfig(() => {
           "lib/stubs/cloudflare-workers-client-stub.mjs",
         ),
       },
-      exclude: ["node_modules", ".next", "dist", "tests/e2e/**", ".worktrees/**"],
+      exclude: ["node_modules", ".next", "dist", ".worktrees/**"],
       pool: "threads",
       projects: [
         {
@@ -286,7 +286,6 @@ export default defineConfig(() => {
           "**/node_modules/**",
           "tests/**",
           "lib/stubs/**",
-          "lib/db/migrations/**",
         ],
         thresholds: { branches: 62, functions: 64, lines: 61, statements: 61 },
       },
@@ -312,14 +311,6 @@ export default defineConfig(() => {
           clientVendorSplit(),
           clientEffectGuard(),
         ],
-    resolve: isTest
-      ? undefined
-      : {
-          alias: {
-            "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
-            "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
-          },
-        },
     optimizeDeps: {
       exclude: ["lucide-react"],
     },

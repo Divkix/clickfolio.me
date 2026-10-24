@@ -523,10 +523,6 @@ Durable resume parsing with per-step retries:
 
 Runs via `worker/index.ts` without self-fetch (avoids double billing).
 
-### Referral Program
-
-Removed — every template is free for every user. No referral gating.
-
 ---
 
 ## Resume Templates

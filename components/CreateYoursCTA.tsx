@@ -17,10 +17,9 @@ interface CreateYoursCTAProps {
   handle: string;
   profileId: string;
   variant?: ThemeId;
-  className?: string;
 }
 
-export function CreateYoursCTA({ handle, profileId, variant, className }: CreateYoursCTAProps) {
+export function CreateYoursCTA({ handle, profileId, variant }: CreateYoursCTAProps) {
   const { data: session } = useSession();
   const [visible, setVisible] = useState(false);
   const [dismissed, dismiss] = useDismissable("cta_dismissed", 7 * 24 * 60 * 60 * 1000);
@@ -76,7 +75,6 @@ export function CreateYoursCTA({ handle, profileId, variant, className }: Create
       className={cn(
         "flex items-center gap-3 px-4 py-3 rounded-full shadow-lg animate-fade-in-up",
         styles.container,
-        className,
       )}
     >
       <Sparkles className="size-4 shrink-0" aria-hidden="true" />

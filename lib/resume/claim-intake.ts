@@ -16,7 +16,7 @@ import { errorFields } from "@/lib/utils/error-fields";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, tempUploadId } from "@/lib/utils/validation";
 import { purgeR2Keys } from "@/lib/workflows/r2-purge";
-import { parseInstanceId } from "@/lib/workflows/resume-parse";
+import { parseInstanceId } from "@/lib/workflows/resume-parse-params";
 
 // One in-flight claim per (user, file hash) is arbitrated by the narrow unique
 // index resumes_user_hash_pending_uidx (migrations_pg/0006): only a pending_claim

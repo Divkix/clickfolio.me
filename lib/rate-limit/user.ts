@@ -2,10 +2,8 @@ import { Effect } from "effect";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { PgQueryable } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
-import { Db } from "@/lib/effect/db";
-import { RateLimited, type RateLimitUnavailable } from "@/lib/effect/failures";
+import { RateLimited } from "@/lib/effect/failures";
 import { limitsBypassed } from "./bypass";
-import { storeDown } from "./store-failure";
 
 export const RATE_LIMITS = {
   handle_change: { limit: 3, windowHours: 24 },
@@ -16,9 +14,6 @@ export const RATE_LIMITS = {
 } as const;
 
 type RateLimitAction = keyof typeof RATE_LIMITS;
-
-const USER_UNAVAILABLE_MESSAGE =
-  "Rate limiting service temporarily unavailable. Please try again in a few moments.";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -93,15 +88,9 @@ async function evaluateQuota(
   };
 }
 
-function readWindow(userId: string, action: RateLimitAction) {
-  return Db.use((service) =>
-    service.query(`rate-limit.user.${action}`, (db) => evaluateQuota(db, userId, action)),
-  ).pipe(Effect.mapError(storeDown(action, USER_UNAVAILABLE_MESSAGE)));
-}
-
 /**
  * The quota read on a transaction handle, for a caller that must count under the user-row lock
- * it already holds in that transaction (a Promise body cannot run `enforceRateLimitEffect`).
+ * it already holds in that transaction (3 handle changes / 24 h, 5 resume uploads / 24 h by default).
  * A database failure surfaces as the transaction's own `DbFailed`, which also fails closed.
  * Turn the result into the failure with {@link requireQuota} once the transaction is done.
  */
@@ -128,26 +117,7 @@ export function requireQuota(quota: RateLimitResult): Effect.Effect<void, RateLi
     : Effect.fail(
         new RateLimited({
           message: quota.message ?? "Rate limit exceeded.",
-          retryAfterSeconds: retryAfterSeconds(quota.resetAt),
+          retryAfterSeconds: Math.max(1, Math.ceil((quota.resetAt.getTime() - Date.now()) / 1000)),
         }),
       );
-}
-
-function retryAfterSeconds(resetAt: Date): number {
-  return Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
-}
-
-/**
- * Per-user quota check (3 handle changes / 24 h, 5 resume uploads / 24 h by default).
- * Store outage: `RateLimitUnavailable` (503 + Retry-After), never "allowed".
- * Succeeds when the user is under quota; callers that insert in the same transaction
- * must still take their own user-row lock, this only reads.
- */
-export function enforceRateLimitEffect(
-  userId: string,
-  action: RateLimitAction,
-): Effect.Effect<void, RateLimited | RateLimitUnavailable, Db> {
-  if (limitsBypassed()) return Effect.void;
-
-  return Effect.flatMap(readWindow(userId, action), requireQuota);
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { classifyParseError, ParseErrorType } from "@/lib/parse/errors";
+import { classifyParseError } from "@/lib/parse/errors";
+import { ParseErrorType } from "@/lib/parse/error-types";
 import {
   AiOutputInvalid,
   AiProviderFailed,

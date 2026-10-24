@@ -10,7 +10,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/prompt-config";
 import type { JsonValue } from "@/lib/types/json";
-import type { ResumeParseParams } from "@/lib/workflows/resume-parse";
+import type { ResumeParseParams } from "@/lib/workflows/resume-parse-params";
 import type {
   WorkflowEvent,
   WorkflowStep,

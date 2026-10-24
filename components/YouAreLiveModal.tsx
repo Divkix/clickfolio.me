@@ -18,7 +18,6 @@ interface YouAreLiveModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   handle: string;
-  url?: string;
 }
 
 const subscribeToNothing = () => () => {};
@@ -27,11 +26,11 @@ const getOrigin = () => window.location.origin;
 
 const getServerOrigin = () => "https://clickfolio.me";
 
-export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveModalProps) {
+export function YouAreLiveModal({ open, onOpenChange, handle }: YouAreLiveModalProps) {
   const { copied, copy } = useCopyToClipboard();
   const origin = useSyncExternalStore(subscribeToNothing, getOrigin, getServerOrigin);
 
-  const resumeUrl = url || `${origin}/@${handle}`;
+  const resumeUrl = `${origin}/@${handle}`;
 
   const shareText = "Just published my professional resume! Check it out:";
 
