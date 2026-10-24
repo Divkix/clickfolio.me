@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { eq } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
-import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { Db } from "@/lib/effect/db";
 import { Forbidden, NotFound } from "@/lib/effect/failures";
 import type { UnknownRecord } from "@/lib/types/json";
@@ -62,13 +61,12 @@ export async function GET(request: Request) {
 
         // The DB row stays `waiting_for_cache` until the await-cache workflow persists
         // the timeout (lib/workflows/resume-parse-workflow). No `db.update` here.
-        // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow Drizzle-inferred types for lifecycle helper
         const view = getStatusView({
-          status: resume.status as ResumeStatus,
-          createdAt: resume.createdAt as string | null,
-          retryCount: resume.retryCount as number,
-          totalAttempts: resume.totalAttempts as number,
-          lastAttemptError: resume.lastAttemptError as string | null,
+          status: resume.status,
+          createdAt: resume.createdAt,
+          retryCount: resume.retryCount,
+          totalAttempts: resume.totalAttempts,
+          lastAttemptError: resume.lastAttemptError,
         });
 
         if (view.isTimedOut) {
