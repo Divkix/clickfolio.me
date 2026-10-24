@@ -39,6 +39,15 @@ jobs:
       - name: Run full verification
         run: pnpm run verify
 
+      - name: Check schema migration drift
+        run: |
+          pnpm run db:generate
+          if [[ -n "$(git status --porcelain migrations_pg)" ]]; then
+            echo "Schema changes require committed migrations_pg output"
+            git status --short migrations_pg
+            exit 1
+          fi
+
   test:
     name: Tests
     runs-on: ubuntu-latest
