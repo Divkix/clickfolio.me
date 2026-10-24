@@ -475,13 +475,35 @@ describe("completeParsedResume", () => {
       await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual(["ada"]);
     });
 
-    it("returns none on a replay of an already completed row", async () => {
+    it.each([
+      ["a run without a retry count", JOB],
+      ["a run whose retry count still matches", { ...JOB, retryCount: 0 }],
+    ])("returns the handle again when %s retries its complete step", async (_label, job) => {
       await giveHandle(JOB.userId, "ada");
       await seed(JOB.resumeId);
 
-      await run(completeParsedResume(JOB, parsed));
+      await expect(run(completeParsedResume(job, parsed))).resolves.toEqual(["ada"]);
 
-      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual([]);
+      // The first attempt committed its completion but the step timed out, so Workflows
+      // runs it again: the retry must still refresh the page the first attempt published.
+      await expect(run(completeParsedResume(job, parsed))).resolves.toEqual(["ada"]);
+    });
+
+    it("returns none when a sweep and a retry handed the row to a newer run", async () => {
+      await giveHandle(JOB.userId, "ada");
+      await seed(JOB.resumeId, { status: "processing", retryCount: 1 });
+
+      await expect(run(completeParsedResume({ ...JOB, retryCount: 0 }, parsed))).resolves.toEqual(
+        [],
+      );
+
+      expect(await row(JOB.resumeId)).toMatchObject({
+        status: "processing",
+        retryCount: 1,
+        parsedContent: null,
+      });
+      expect(await db.select().from(siteData)).toEqual([]);
+      expect(pushes).toEqual([]);
     });
 
     it("returns none for a user without a handle yet", async () => {
