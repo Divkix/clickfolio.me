@@ -148,11 +148,13 @@ describe("Clerk.verifyToken", () => {
     },
   );
 
-  it("fails with ClerkFailed, without calling Clerk, when the secret key is missing", async () => {
+  it("fails with a non-retryable ClerkFailed, without calling Clerk, when the secret key is missing", async () => {
     const failure = await verifyFailure("jwt", envWithoutSecret);
 
     expect(failure).toBeInstanceOf(ClerkFailed);
+    expect(failure).toMatchObject({ kind: "rejected", operation: "clerk.verify-token" });
     expect(failure.message).toContain("CLERK_SECRET_KEY is not configured");
+    expect(describeFailure(failure)).toMatchObject({ status: 500, retryable: false });
     expect(mockVerifyToken).not.toHaveBeenCalled();
   });
 
