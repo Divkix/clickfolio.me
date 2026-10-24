@@ -5,7 +5,11 @@ import { runClaimIntake } from "@/lib/resume/claim-intake";
 import { getR2Binding } from "@/lib/r2";
 import { claimRequestSchema } from "@/lib/schemas/resume";
 import { getOptionalEnvValue } from "@/lib/utils/env";
-import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
+import {
+  COOKIE_NAME,
+  decodePendingUploadCookie,
+  parseSignedCookieValue,
+} from "@/lib/utils/pending-upload-cookie";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -71,12 +75,10 @@ export async function POST(request: Request) {
         .find((c) => c.startsWith(`${COOKIE_NAME}=`))
         ?.slice(`${COOKIE_NAME}=`.length);
 
-      // cookies().set() in /api/upload/pending percent-encodes the value (`|` → `%7C`).
-      let pendingUploadCookie = rawPendingUploadCookie;
-
-      try {
-        pendingUploadCookie = rawPendingUploadCookie && decodeURIComponent(rawPendingUploadCookie);
-      } catch {}
+      // A value that is not valid percent-encoding stays raw and fails the signature check.
+      const pendingUploadCookie =
+        rawPendingUploadCookie &&
+        (decodePendingUploadCookie(rawPendingUploadCookie) ?? rawPendingUploadCookie);
 
       if (!pendingUploadCookie) {
         return createErrorResponse(
