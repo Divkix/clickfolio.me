@@ -209,95 +209,11 @@ describe("POST /api/upload", () => {
 describe("/api/upload/pending", () => {
   const KEY = "temp/11111111-1111-4111-8111-111111111111/cv.pdf";
 
-  function pendingPost(key: string = KEY): Request {
-    return new Request("https://clickfolio.me/api/upload/pending", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
-    });
-  }
+  it("does not expose a cookie-minting POST handler", async () => {
+    // Load after the test's Cloudflare and cookie mocks have been installed.
+    const route = await import("@/app/api/upload/pending/route");
 
-  it("POST answers 503 when R2 cannot be asked, not 404", async () => {
-    mocks.bucket.head.mockRejectedValue(new Error("R2 is down"));
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const { POST } = await import("@/app/api/upload/pending/route");
-    const response = await POST(pendingPost());
-
-    expect(response.status).toBe(503);
-    expect(mocks.cookieSet).not.toHaveBeenCalled();
-  });
-
-  it("POST answers 500 and sets no cookie when the secret is missing", async () => {
-    mocks.secret.value = "";
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const { POST } = await import("@/app/api/upload/pending/route");
-    const response = await POST(pendingPost());
-
-    expect(response.status).toBe(500);
-    expect(mocks.cookieSet).not.toHaveBeenCalled();
-  });
-
-  it("POST answers 400 when the client drops the body mid-read", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const body = new ReadableStream<Uint8Array>({
-      pull(controller) {
-        controller.error(new Error("client went away"));
-      },
-    });
-
-    const request = new Request("https://clickfolio.me/api/upload/pending", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Content-Length": "200" },
-      body,
-      // @ts-expect-error duplex is required for streamed request bodies and missing from lib.dom.
-      duplex: "half",
-    });
-
-    const { POST } = await import("@/app/api/upload/pending/route");
-    const response = await POST(request);
-
-    expect(response.status).toBe(400);
-    expect(mocks.cookieSet).not.toHaveBeenCalled();
-  });
-
-  it("POST answers 413 for a declared oversized body before the missing-secret check", async () => {
-    mocks.secret.value = "";
-
-    const { POST } = await import("@/app/api/upload/pending/route");
-
-    const response = await POST(
-      new Request("https://clickfolio.me/api/upload/pending", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Content-Length": "9000000" },
-        body: JSON.stringify({ key: KEY }),
-      }),
-    );
-
-    expect(response.status).toBe(413);
-    expect(mocks.cookieSet).not.toHaveBeenCalled();
-  });
-
-  it("POST answers 400 for malformed JSON", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const { POST } = await import("@/app/api/upload/pending/route");
-
-    const response = await POST(
-      new Request("https://clickfolio.me/api/upload/pending", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "not json {",
-      }),
-    );
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: "Invalid JSON in request body",
-      code: "VALIDATION_ERROR",
-    });
+    expect(route).not.toHaveProperty("POST");
   });
 
   it("GET answers the key of a valid cookie", async () => {

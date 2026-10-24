@@ -4,10 +4,7 @@ import type { ChangeEvent, DragEvent } from "react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { trackEvent, type UploadStage } from "@/lib/telemetry/browser";
-import {
-  clearPendingUploadCookie,
-  setPendingUploadCookie,
-} from "@/lib/utils/pending-upload-client";
+import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
 
 export type UploadState = "idle" | "uploading" | "claiming" | "parsing" | "error";
@@ -198,8 +195,6 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         }
 
         setUploadProgress(70);
-        stage = "save";
-        await setPendingUploadCookie(key);
         setUploadProgress(90);
         setUploadProgress(100);
         setUploadedKey(key);

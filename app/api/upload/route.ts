@@ -146,8 +146,7 @@ async function readUploadBody(request: Request, contentLength: number): Promise<
 const COOKIE_UNSIGNED_WARNING =
   "PENDING_UPLOAD_SECRET not configured - upload will not be claimable";
 
-// Signed cookie for claim verification (Issue #89); /api/upload/pending refreshes it
-// for the wizard flow, so both writers must use the same attributes and max-age.
+// Signed cookie for claim verification and the wizard's pending-upload handoff (Issue #89).
 function pendingUploadCookieHeader(key: string): Effect.Effect<string | null> {
   const secret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
 
