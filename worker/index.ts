@@ -4,9 +4,10 @@
 import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
 import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/clerk";
-import { processEdgePurgeBatch, purgeResultSchema } from "../lib/cache/edge-purge";
+import { processEdgePurgeBatch } from "../lib/cache/edge-purge";
 import { performCleanup } from "../lib/cron/cleanup";
 import { getDb } from "../lib/db";
+import { CachePurge } from "../lib/effect/services/cache-purge";
 import { resumes, user as userTable } from "../lib/db/schema";
 import { log } from "../lib/utils/log";
 import { errorFields } from "../lib/utils/error-fields";
@@ -204,20 +205,7 @@ export default {
   // entrypoint that sends it, so it goes through the cached response entrypoint.
   // https://developers.cloudflare.com/workers/cache/purge/
   async queue(batch: MessageBatch, _env: CloudflareEnv, ctx: ExecutionContext): Promise<void> {
-    await processEdgePurgeBatch(batch, async (tags) => {
-      const cached = ctx.exports.VinextCachedResponse({ props: {} });
-      // RPC types turn purge's `Promise<unknown>` into `never`, but the call still
-      // returns a promise of ctx.cache.purge()'s result (undefined without a cache).
-      const raw = await Promise.resolve(cached.purge({ tags }));
-
-      if (raw === undefined) return undefined;
-
-      const result = purgeResultSchema.safeParse(raw);
-
-      return result.success
-        ? result.data
-        : { success: false, errors: [{ message: "unrecognized purge result" }] };
-    });
+    await processEdgePurgeBatch(batch, CachePurge.layer(ctx));
   },
 
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
