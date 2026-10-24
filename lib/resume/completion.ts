@@ -32,6 +32,8 @@ export function shouldSyncDisplayName(
   );
 }
 
+type CompletionOutcome = { ids: string[]; handles: string[] };
+
 type CompletionUserRow = {
   id?: string | null;
   handle: string | null;
@@ -42,7 +44,9 @@ type CompletionUserRow = {
 // user name/role sync), the single name/role sync rule (role iff AI-provided,
 // name iff missing), per-user publish-flag resolution, and the completed
 // notification after the transaction so no caller can forget it. The notification
-// is best effort; a database failure is the only way this fails.
+// is best effort; a database failure is the only way this fails. Resolves to the handles whose
+// public site-data was actually rewritten (a replay, a missing handle or a newer manual edit
+// leaves them out), for the caller to refresh the public pages.
 export function completeResumes(input: ResumeCompletionInput) {
   return Effect.gen(function* () {
     const { items, parsedContent, career, totalAttempts, fanOut } = input;
@@ -92,7 +96,7 @@ export function completeResumes(input: ResumeCompletionInput) {
       completionSet.totalAttempts = totalAttempts;
     }
 
-    const completedIds: string[] = yield* Db.use((db) =>
+    const completion: CompletionOutcome = yield* Db.use((db) =>
       db.transaction("resume.complete", async (tx) => {
         // Snapshot createdAt before the UPDATE: it is the reference point for the
         // manual-edit guard on site_data below.
@@ -116,7 +120,7 @@ export function completeResumes(input: ResumeCompletionInput) {
         // Nothing written (row gone via account deletion, or already completed):
         // no site-data upsert, no user sync, no completion notify.
         if (updated.length === 0) {
-          return [];
+          return { ids: [], handles: [] };
         }
 
         const ids = updated.map((row) => row.id);
@@ -135,6 +139,8 @@ export function completeResumes(input: ResumeCompletionInput) {
 
         const siteUpdatedAtByUser = new Map(siteRows.map((row) => [row.userId, row.updatedAt]));
 
+        const rewrittenHandles = new Set<string>();
+
         for (const item of items) {
           if (!completedIdSet.has(item.resumeId)) continue;
           const resumeCreatedAt = createdAtById.get(item.resumeId);
@@ -152,6 +158,10 @@ export function completeResumes(input: ResumeCompletionInput) {
           await buildSiteDataUpsert(tx, item.userId, item.resumeId, parsedContent, {
             publish: publishFor(item.userId),
           });
+
+          const handle = fanOut ? rowsById.get(item.userId)?.handle : singleRow?.handle;
+
+          if (handle) rewrittenHandles.add(handle);
         }
 
         if (fanOut) {
@@ -205,14 +215,16 @@ export function completeResumes(input: ResumeCompletionInput) {
           await tx.update(user).set(userUpdate).where(eq(user.id, items[0].userId));
         }
 
-        return ids;
+        return { ids, handles: [...rewrittenHandles] };
       }),
     );
 
     yield* Effect.forEach(
-      completedIds,
+      completion.ids,
       (resumeId) => notifyStatusBestEffort({ resumeId, status: "completed" }),
       { concurrency: 10, discard: true },
     );
+
+    return completion.handles;
   });
 }
