@@ -125,16 +125,19 @@ describe("upload limiter (Effect)", () => {
   it.each([
     ["the day frees last", 5 * HOUR_MS, "Limit: 50/day", 19 * 3600],
     ["the hour frees last", 24 * HOUR_MS - 5 * 60 * 1000, "Limit: 10/hour", 55 * 60],
-  ])("waits for the later window when both are full and %s", async (_label, ageOfDay, message, wait) => {
-    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+  ])(
+    "waits for the later window when both are full and %s",
+    async (_label, ageOfDay, message, wait) => {
+      const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
-    await seed(IP, "upload", ageOfDay, 40);
-    await seed(IP, "upload", 5 * 60 * 1000, 10);
-    const refusal = await fail(checkIPRateLimitEffect(IP));
+      await seed(IP, "upload", ageOfDay, 40);
+      await seed(IP, "upload", 5 * 60 * 1000, 10);
+      const refusal = await fail(checkIPRateLimitEffect(IP));
 
-    expect(refusal).toMatchObject({ message: expect.stringContaining(message) });
-    expect(Math.abs(refusal.retryAfterSeconds - wait)).toBeLessThan(5);
-  });
+      expect(refusal).toMatchObject({ message: expect.stringContaining(message) });
+      expect(Math.abs(refusal.retryAfterSeconds - wait)).toBeLessThan(5);
+    },
+  );
 
   it("ignores rows older than the windows", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
