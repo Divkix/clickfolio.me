@@ -3,6 +3,7 @@ import { classifyParseError, ParseErrorType } from "@/lib/parse/errors";
 import {
   AiOutputInvalid,
   AiProviderFailed,
+  AiProviderRejected,
   AiTimedOut,
   DbUnavailable,
   PdfInvalid,
@@ -22,6 +23,7 @@ const details = { message: "failure", cause };
 const cases = [
   [new DbUnavailable(details), "db_connection_error", true],
   [new AiProviderFailed(details), "ai_provider_error", true],
+  [new AiProviderRejected(details), "ai_provider_error", false],
   [new AiTimedOut(details), "service_binding_timeout", true],
   [new R2Throttled(details), "r2_throttle", true],
   [new PdfInvalid({ ...details, reason: "encrypted" }), "invalid_pdf", false],

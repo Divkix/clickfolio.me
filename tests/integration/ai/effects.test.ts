@@ -1,6 +1,12 @@
 import { Effect } from "effect";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, type GenerateTextResult, JSONParseError, type ToolSet } from "ai";
+import {
+  APICallError,
+  generateText,
+  type GenerateTextResult,
+  JSONParseError,
+  type ToolSet,
+} from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { textResult } from "@/tests/helpers/ai-result";
 import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
@@ -11,6 +17,7 @@ import { DEFAULT_AI_MODEL } from "@/lib/ai/prompt-config";
 import {
   AiOutputInvalid,
   AiProviderFailed,
+  AiProviderRejected,
   AiTimedOut,
   PdfInvalid,
   SchemaRejected,
@@ -125,6 +132,29 @@ describe("Effect PDF failures", () => {
 });
 
 describe("Effect AI boundaries", () => {
+  it.each([400, 401, 413])("does not repeat a rejected HTTP %s request", async (statusCode) => {
+    vi.mocked(generateText).mockRejectedValue(
+      new APICallError({
+        message: "rejected",
+        url: "https://provider.test",
+        requestBodyValues: {},
+        statusCode,
+        isRetryable: false,
+      }),
+    );
+    const failure = await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", ENV)));
+    expect(failure).toBeInstanceOf(AiProviderRejected);
+    expect(failure.retryable).toBe(false);
+    expect(generateText).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry missing gateway configuration", async () => {
+    const failure = await Effect.runPromise(Effect.flip(parseWithAiEffect("resume", {})));
+    expect(failure).toBeInstanceOf(AiProviderRejected);
+    expect(failure.retryable).toBe(false);
+    expect(generateText).not.toHaveBeenCalled();
+  });
+
   it("aborts the SDK request when its Effect times out", async () => {
     let signal: AbortSignal | undefined;
     vi.mocked(generateText).mockImplementation((options) => {

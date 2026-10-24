@@ -1,7 +1,18 @@
 import { Effect } from "effect";
-import { AiProviderFailed, AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
+import {
+  AiProviderFailed,
+  AiProviderRejected,
+  AiTimedOut,
+  AiOutputInvalid,
+} from "@/lib/parse/failures";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, JSONParseError, type LanguageModelUsage, TypeValidationError } from "ai";
+import {
+  APICallError,
+  generateText,
+  JSONParseError,
+  type LanguageModelUsage,
+  TypeValidationError,
+} from "ai";
 import { z } from "zod";
 import type { UnknownRecord } from "@/lib/types/json";
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
@@ -36,7 +47,7 @@ interface ParseAttempt {
  */
 function logParseAttempt(
   attempt: ParseAttempt,
-  error?: AiProviderFailed | AiTimedOut | AiOutputInvalid,
+  error?: AiProviderFailed | AiProviderRejected | AiTimedOut | AiOutputInvalid,
 ): void {
   if (!error) {
     log("info", "ai parse attempt", { ...attempt, success: true });
@@ -91,9 +102,10 @@ export function createAiProvider(env: Partial<AiEnvVars>): AiProvider {
   const gatewayAuthToken = env.CF_AIG_AUTH_TOKEN;
 
   if (!gatewayAccountId || !gatewayId || !gatewayAuthToken) {
-    throw new Error(
-      "Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
-    );
+    throw new AiProviderRejected({
+      message:
+        "Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
+    });
   }
 
   return createOpenAICompatible({
@@ -193,7 +205,18 @@ function failureMessage(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
-export function aiProviderFailure(cause: unknown): AiProviderFailed | AiTimedOut {
+export function aiProviderFailure(
+  cause: unknown,
+): AiProviderFailed | AiProviderRejected | AiTimedOut {
+  if (cause instanceof AiProviderRejected) return cause;
+
+  if (APICallError.isInstance(cause) && !cause.isRetryable) {
+    return new AiProviderRejected({
+      message: `AI provider rejected request (HTTP ${cause.statusCode ?? "unknown"})`,
+      cause,
+    });
+  }
+
   const message = failureMessage(cause);
 
   if (cause instanceof Error && /timeout|timed?\s*out|deadline/i.test(`${cause.name} ${message}`)) {
@@ -222,7 +245,7 @@ function usageFields(usage: LanguageModelUsage): UnknownRecord {
 export function generateAiText(
   options: Parameters<typeof generateText>[0],
   timeoutMs: number = TIMEOUT_MS.ai,
-): Effect.Effect<string, AiProviderFailed | AiTimedOut> {
+): Effect.Effect<string, AiProviderFailed | AiProviderRejected | AiTimedOut> {
   const model = options.model instanceof Object ? options.model.modelId : options.model;
 
   return Effect.suspend(() => {
@@ -286,7 +309,10 @@ export function parseWithAiEffect(
   model?: string,
   retryContext?: { previousOutput: string; errors: string },
   source: ResumeSource = "generic",
-): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
+): Effect.Effect<
+  UnknownRecord,
+  AiProviderFailed | AiProviderRejected | AiTimedOut | AiOutputInvalid
+> {
   return Effect.gen(function* () {
     const modelId = resolveAiModel(env, model);
 
@@ -349,12 +375,14 @@ export function parseWithAiEffect(
       buildSystemPrompt(source),
       buildPrompt(truncateResumeText(text)),
     ).pipe(
-      Effect.catch(() =>
-        attempt(
-          "text-fallback-retry",
-          `${buildSystemPrompt(source)}\n\nIMPORTANT: Output a single valid JSON object only.`,
-          buildPrompt(truncateForRetry(text)),
-        ),
+      Effect.catch((failure) =>
+        failure instanceof AiProviderRejected
+          ? Effect.fail(failure)
+          : attempt(
+              "text-fallback-retry",
+              `${buildSystemPrompt(source)}\n\nIMPORTANT: Output a single valid JSON object only.`,
+              buildPrompt(truncateForRetry(text)),
+            ),
       ),
     );
   });

@@ -121,6 +121,7 @@ export function classifyCareerEffect(
     // Already logged above: a classifier that is down or unintelligible leaves the user's level alone.
     Effect.catchTags({
       AiProviderFailed: () => Effect.succeed(null),
+      AiProviderRejected: () => Effect.succeed(null),
       AiTimedOut: () => Effect.succeed(null),
       AiOutputInvalid: () => Effect.succeed(null),
     }),
