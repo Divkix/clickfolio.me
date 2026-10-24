@@ -1,6 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
-import type { Database } from "@/lib/db";
+import type { PgQueryable } from "@/lib/db";
 import { user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
 import { handleSchema } from "@/lib/schemas/profile";
 
 export const RESERVED_HANDLES = new Set(["api", "_next", "static", "public", "xmlrpc", "adminer"]);
@@ -14,7 +15,7 @@ export function isValidHandleFormat(handle: string): boolean {
 }
 
 export async function isHandleTaken(
-  db: Database,
+  db: PgQueryable,
   userId: string,
   handle: string,
 ): Promise<boolean> {
@@ -25,4 +26,11 @@ export async function isHandleTaken(
     .limit(1);
 
   return existing.length > 0;
+}
+
+/** Handle availability as an Effect for routes under `runRoute`; DB failures stay typed. */
+export function isHandleTakenEffect(userId: string, handle: string) {
+  return Db.use((service) =>
+    service.query("handle.taken", (db) => isHandleTaken(db, userId, handle)),
+  );
 }
