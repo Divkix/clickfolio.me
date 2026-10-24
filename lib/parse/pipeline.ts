@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import type { CareerProfile } from "../ai/career";
 import { resumes } from "../db/schema";
-import { getDb } from "../db";
+import { getDb, type Database } from "../db";
 import { getR2Binding, R2 } from "../r2";
 import { buildWaitingForCacheTimeoutUpdate } from "../resume/lifecycle";
 import { completeResumes } from "../resume/completion";
@@ -391,8 +391,9 @@ export async function expireWaitingForCache(
     .where(and(eq(resumes.id, resumeId), eq(resumes.status, "waiting_for_cache")))
     .returning({ id: resumes.id });
 
-  if (expired.length === 0) return false;
+  if (expired.length === 0 && !(await expiredByThisTimer(db, resumeId))) return false;
 
+  // Also reached by a retry whose first attempt committed the UPDATE: notifying again is harmless.
   await notifyStatusChange({
     resumeId,
     status: "failed",
@@ -401,4 +402,32 @@ export async function expireWaitingForCache(
   });
 
   return true;
+}
+
+/**
+ * Workflows retries this step until it returns, so an attempt that committed the UPDATE and
+ * was lost before returning meets a row that is already failed. Answering "resolved" there would
+ * skip the failure email for good. Only the timeout message with no stored parse error identifies
+ * the row as ours: a row failed by the parse it waited on was already mailed by that run.
+ */
+async function expiredByThisTimer(db: Database, resumeId: string): Promise<boolean> {
+  const [row] = await db
+    .select({
+      status: resumes.status,
+      errorMessage: resumes.errorMessage,
+      lastAttemptError: resumes.lastAttemptError,
+    })
+    .from(resumes)
+    .where(eq(resumes.id, resumeId))
+    .limit(1);
+
+  const timeout = buildWaitingForCacheTimeoutUpdate();
+
+  // The timer never writes lastAttemptError; the parse failure fan-out always does, and it can
+  // copy a stale timeout message onto its waiting rows.
+  return (
+    row?.status === timeout.status &&
+    row.errorMessage === timeout.errorMessage &&
+    row.lastAttemptError === null
+  );
 }
