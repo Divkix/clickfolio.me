@@ -68,6 +68,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -219,6 +220,50 @@ describe("handleOtelProxy", () => {
       "otel.signal": "traces",
     });
     expect(JSON.stringify(mocks.log.mock.calls)).not.toContain(ENV.OTEL_BROWSER_INGEST_KEY);
+  });
+
+  it("gives up on a collector that never answers and aborts the request", async () => {
+    vi.useFakeTimers();
+    let aborted = false;
+
+    fetchMock.mockImplementationOnce(
+      (_url, init) =>
+        new Promise<Response>(() => {
+          init.signal?.addEventListener("abort", () => {
+            aborted = true;
+          });
+        }),
+    );
+
+    const { ctx, settle } = makeCtx();
+    const response = await handleOtelProxy(post("/otel/v1/traces"), ENV, ctx);
+    expect(response.status).toBe(202);
+
+    const settled = settle();
+    await vi.advanceTimersByTimeAsync(10_001);
+    await settled;
+
+    expect(aborted).toBe(true);
+
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "otel proxy upstream failed",
+      expect.objectContaining({ "otel.signal": "traces", kind: "timeout" }),
+    );
+    expect(JSON.stringify(mocks.log.mock.calls)).not.toContain(ENV.OTEL_BROWSER_INGEST_KEY);
+  });
+
+  it("logs a collector outage (5xx) as a rejection with its status", async () => {
+    fetchMock.mockResolvedValueOnce(new Response("down", { status: 503 }));
+    const { ctx, settle } = makeCtx();
+    await handleOtelProxy(post("/otel/v1/logs"), ENV, ctx);
+    await settle();
+
+    expect(mocks.log).toHaveBeenCalledWith("error", "otel proxy upstream rejected", {
+      status: 503,
+      "otel.signal": "logs",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   describe("visitor country", () => {

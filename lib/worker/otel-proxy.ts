@@ -5,8 +5,12 @@
  * country from Cloudflare (`request.cf`), never the IP. Handled in the Worker
  * entry ahead of vinext, so it costs no SSR, auth or DB work.
  */
+import { Cause, Data, Effect, Exit, Layer } from "effect";
 import { z } from "zod";
 
+import { runBackground } from "../effect/edges";
+import { externalCall } from "../effect/external";
+import { HttpUpstreamFailed } from "../effect/failures";
 import { errorFields } from "../utils/error-fields";
 import { log } from "../utils/log";
 import { SECURITY_HEADERS } from "../utils/security-headers";
@@ -40,28 +44,64 @@ function status(code: number, extra?: Record<string, string>): Response {
   return new Response(null, { status: code, headers: { ...SECURITY_HEADERS, ...extra } });
 }
 
+/** The collector answered, but not with a 2xx. Its `status` is what classifies the failure. */
+class CollectorRejected extends Data.TaggedError("CollectorRejected")<{
+  readonly status: number;
+}> {}
+
+// One POST to the collector with an explicit timeout. Nothing is retried: the browser SDK
+// already resends on its own schedule, and a timed-out POST may still have landed.
+function forward(url: string, init: RequestInit) {
+  return externalCall({
+    operation: "otel.forward",
+    timeoutMs: UPSTREAM_TIMEOUT_MS,
+    run: async (signal) => {
+      const response = await fetch(url, { ...init, signal });
+
+      // Unread bodies hold the subrequest open until GC.
+      await response.body?.cancel();
+
+      if (!response.ok) throw new CollectorRejected({ status: response.status });
+    },
+    fail: (details) => new HttpUpstreamFailed({ ...details, host: "otel-collector" }),
+    // Tracing the telemetry pipe would only add noise to the traces it carries.
+    span: false,
+  });
+}
+
 // Error level: the client always sees 202, so a bad key or a down collector
 // shows up only here. The key itself is never logged.
-async function forward(url: string, otelSignal: string, init: RequestInit): Promise<void> {
-  try {
-    const response = await fetch(url, {
-      ...init,
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+function logForwardFailure(failure: HttpUpstreamFailed, otelSignal: string): void {
+  if (failure.cause instanceof CollectorRejected) {
+    log("error", "otel proxy upstream rejected", {
+      status: failure.cause.status,
+      "otel.signal": otelSignal,
     });
 
-    // Unread bodies hold the subrequest open until GC.
-    await response.body?.cancel();
+    return;
+  }
 
-    if (!response.ok) {
-      log("error", "otel proxy upstream rejected", {
-        status: response.status,
-        "otel.signal": otelSignal,
-      });
-    }
-  } catch (error) {
-    log("error", "otel proxy upstream failed", {
+  log("error", "otel proxy upstream failed", {
+    "otel.signal": otelSignal,
+    kind: failure.kind,
+    ...errorFields(failure.cause ?? new Error(failure.message)),
+  });
+}
+
+async function forwardInBackground(url: string, otelSignal: string, init: RequestInit) {
+  const program = forward(url, init).pipe(
+    Effect.catchTag("HttpUpstreamFailed", (failure) =>
+      Effect.sync(() => logForwardFailure(failure, otelSignal)),
+    ),
+  );
+
+  const exit = await runBackground(program, Layer.empty);
+
+  // Typed failures are logged above; what is left is a bug, and it must not vanish.
+  if (Exit.isFailure(exit)) {
+    log("error", "otel proxy forward crashed", {
       "otel.signal": otelSignal,
-      ...errorFields(error),
+      ...errorFields(Cause.squash(exit.cause)),
     });
   }
 }
@@ -167,7 +207,7 @@ export async function handleOtelProxy(
   if (encoding) headers.set("content-encoding", encoding);
 
   ctx.waitUntil(
-    forward(`${env.OTEL_COLLECTOR_URL.replace(/\/+$/, "")}/v1/${signal}`, signal, {
+    forwardInBackground(`${env.OTEL_COLLECTOR_URL.replace(/\/+$/, "")}/v1/${signal}`, signal, {
       method: "POST",
       headers,
       body,

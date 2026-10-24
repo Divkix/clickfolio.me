@@ -1,8 +1,21 @@
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
+import { Effect } from "effect";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import type { UserRole } from "@/lib/config/roles";
+import {
+  countIndexableProfiles,
+  getDirectoryPage,
+  getIndexableProfileWindow,
+  indexableProfileCondition,
+} from "@/lib/data/indexable-profiles";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { siteData, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import {
+  generateSitemapEntries,
+  getTotalIndexableUserCount,
+  STATIC_SITEMAP_ENTRY_COUNT,
+} from "@/lib/seo/sitemap";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import {
@@ -12,32 +25,12 @@ import {
   type TestDb,
 } from "@/tests/helpers/pglite-db";
 
-interface DbHolder {
-  db: TestDb | null;
-}
-
-const holder = vi.hoisted(() => {
-  const value: DbHolder = { db: null };
-
-  return value;
-});
-
-vi.mock("@/lib/db", () => ({
-  getDb: () => holder.db,
-}));
-
-const {
-  countIndexableProfiles,
-  getDirectoryPage,
-  getIndexableProfileWindow,
-  indexableProfileCondition,
-} = await import("@/lib/data/indexable-profiles");
-
-const { generateSitemapEntries, getTotalIndexableUserCount, STATIC_SITEMAP_ENTRY_COUNT } =
-  await import("@/lib/seo/sitemap");
-
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;
+
+function run<A, E>(program: Effect.Effect<A, E, Db>) {
+  return Effect.runPromise(Effect.provide(program, Db.layerFrom(db)));
+}
 
 const ROLES: (UserRole | null)[] = ["senior", "mid_level", "student", null];
 const USER_COUNT = 60;
@@ -102,7 +95,6 @@ async function seed() {
 beforeAll(async () => {
   testDb = await createTestDb();
   db = testDb.db;
-  holder.db = db;
   await seed();
 });
 
@@ -258,12 +250,12 @@ describe("sitemap queries match the old JS filter", () => {
     const expected = (await legacySitemapProfiles()).length;
 
     expect(await countIndexableProfiles(db)).toBe(expected);
-    expect(await getTotalIndexableUserCount()).toBe(expected);
+    expect(await run(getTotalIndexableUserCount())).toBe(expected);
   });
 
   it("generateSitemapEntries(0) lists the same profile URLs, lastmods and /explore lastmod", async () => {
     const expected = await legacySitemapProfiles();
-    const entries = await generateSitemapEntries(0);
+    const entries = await run(generateSitemapEntries(0));
 
     expect(entries).not.toBeNull();
 
@@ -291,7 +283,7 @@ describe("sitemap queries match the old JS filter", () => {
   });
 
   it("generateSitemapEntries returns null for a shard past the end", async () => {
-    expect(await generateSitemapEntries(1)).toBeNull();
+    expect(await run(generateSitemapEntries(1))).toBeNull();
   });
 });
 
