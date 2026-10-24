@@ -53,6 +53,7 @@ const JOB = {
   userId: "user-1",
   r2Key: "users/user-1/resume-1/resume.pdf",
   fileHash: "a".repeat(64),
+  retryCount: 0,
 };
 
 const WEBHOOK_URL = "https://hooks.example.com/services/T000";
@@ -235,12 +236,6 @@ describe("claimResumeForParse", () => {
 
     expect(await row(JOB.resumeId)).toMatchObject({ status: "queued", retryCount: 1 });
     expect(pushes).toEqual([]);
-  });
-
-  it("does not check the retry count of a run started before it was in the payload", async () => {
-    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
-
-    await expect(run(claimResumeForParse(JOB))).resolves.toBe("parse");
   });
 
   it("completes from an identical earlier parse without calling the AI", async () => {
@@ -539,18 +534,15 @@ describe("completeParsedResume", () => {
       await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual(["ada"]);
     });
 
-    it.each([
-      ["a run without a retry count", JOB],
-      ["a run whose retry count still matches", { ...JOB, retryCount: 0 }],
-    ])("returns the handle again when %s retries its complete step", async (_label, job) => {
+    it("returns the handle again when the same run retries its complete step", async () => {
       await giveHandle(JOB.userId, "ada");
       await seed(JOB.resumeId);
 
-      await expect(run(completeParsedResume(job, parsed))).resolves.toEqual(["ada"]);
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual(["ada"]);
 
       // The first attempt committed its completion but the step timed out, so Workflows
       // runs it again: the retry must still refresh the page the first attempt published.
-      await expect(run(completeParsedResume(job, parsed))).resolves.toEqual(["ada"]);
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual(["ada"]);
     });
 
     it("returns none when a sweep and a retry handed the row to a newer run", async () => {

@@ -43,18 +43,14 @@ export type ResumeParseJob = {
   /**
    * The row's `retry_count` when this run was started. A run whose count no longer matches was
    * superseded by a sweep and a manual retry: it must not claim the row, count an attempt on it,
-   * record a failure on it or fail it. Absent on runs started before the field existed, which
-   * skip the check.
+   * record a failure on it or fail it.
    */
-  retryCount?: number;
+  retryCount: number;
 };
 
-/** The row this run owns: its id, and its retry count when the run recorded one. */
+/** The row this run owns: its id and its retry count. */
 function ownsRow(job: ResumeParseJob) {
-  return and(
-    eq(resumes.id, job.resumeId),
-    job.retryCount === undefined ? undefined : eq(resumes.retryCount, job.retryCount),
-  );
+  return and(eq(resumes.id, job.resumeId), eq(resumes.retryCount, job.retryCount));
 }
 
 export type ParsedResume = {
