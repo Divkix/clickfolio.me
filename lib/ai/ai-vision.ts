@@ -1,5 +1,10 @@
 import { Effect } from "effect";
-import { type AiProviderFailed, type AiTimedOut, AiOutputInvalid } from "@/lib/parse/failures";
+import {
+  type AiProviderFailed,
+  type AiProviderRejected,
+  type AiTimedOut,
+  AiOutputInvalid,
+} from "@/lib/parse/failures";
 import type { UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepairEffect, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
@@ -37,7 +42,10 @@ export function parsePdfWithVisionEffect(
   pdfBuffer: ArrayBuffer,
   env: Partial<AiEnvVars>,
   model?: string,
-): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
+): Effect.Effect<
+  UnknownRecord,
+  AiProviderFailed | AiProviderRejected | AiTimedOut | AiOutputInvalid
+> {
   return Effect.gen(function* () {
     const modelId = resolveAiModel(env, model);
 

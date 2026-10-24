@@ -25,6 +25,12 @@ export class AiProviderFailed extends Data.TaggedError("AiProviderFailed")<Failu
   readonly userMessage = GENERIC_MESSAGE;
 }
 
+export class AiProviderRejected extends Data.TaggedError("AiProviderRejected")<FailureDetails> {
+  readonly wireType = ParseErrorType.AI_PROVIDER_ERROR;
+  readonly retryable = false;
+  readonly userMessage = GENERIC_MESSAGE;
+}
+
 export class AiTimedOut extends Data.TaggedError("AiTimedOut")<FailureDetails> {
   readonly wireType = ParseErrorType.SERVICE_BINDING_TIMEOUT;
   readonly retryable = true;
@@ -95,6 +101,7 @@ export class UnknownParseFailure extends Data.TaggedError("UnknownParseFailure")
 export type ParseFailure =
   | DbUnavailable
   | AiProviderFailed
+  | AiProviderRejected
   | AiTimedOut
   | R2Throttled
   | PdfInvalid
@@ -108,6 +115,7 @@ export function isParseFailure(cause: unknown): cause is ParseFailure {
   return (
     cause instanceof DbUnavailable ||
     cause instanceof AiProviderFailed ||
+    cause instanceof AiProviderRejected ||
     cause instanceof AiTimedOut ||
     cause instanceof R2Throttled ||
     cause instanceof PdfInvalid ||
