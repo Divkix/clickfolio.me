@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   fail: vi.fn(),
   expire: vi.fn(),
   email: vi.fn(),
+  refresh: vi.fn(),
   log: vi.fn(),
   logEvent: vi.fn(),
 }));
@@ -57,6 +58,8 @@ vi.mock("@/lib/parse/pipeline", () => ({
   markResumeParseFailed: mocks.fail,
   expireWaitingForCache: mocks.expire,
 }));
+
+vi.mock("@/lib/parse/public-refresh", () => ({ refreshPublicProfiles: mocks.refresh }));
 
 vi.mock("@/lib/parse/email", () => ({ resumeFailureEmailBestEffort: mocks.email }));
 
@@ -149,6 +152,7 @@ beforeEach(() => {
   mocks.complete.mockReturnValue(Effect.void);
   mocks.fail.mockReturnValue(Effect.void);
   mocks.email.mockReturnValue(Effect.void);
+  mocks.refresh.mockReturnValue(Effect.void);
 });
 
 describe("resume failure email workflow step", () => {
@@ -367,5 +371,76 @@ describe("latest Workflow failure", () => {
       type: "db_connection_error",
       message: "ECONNRESET",
     });
+  });
+});
+
+describe("public page refresh step", () => {
+  const parsed = { parsedContent: { full_name: "User" }, career: null };
+
+  it("refreshes the rewritten handles in its own step that is never retried", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockReturnValue(Effect.succeed(["ada"]));
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(workflow.doStep).toHaveBeenCalledWith(
+      "refresh public pages",
+      expect.objectContaining({ retries: { limit: 0, delay: "1 second" } }),
+      expect.any(Function),
+    );
+    expect(mocks.refresh).toHaveBeenCalledWith(["ada"], "https://clickfolio.me");
+  });
+
+  it("does not run again on a replay", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockReturnValue(Effect.succeed(["ada"]));
+    const workflow = await runWorkflow();
+
+    await workflow.run();
+    await workflow.run();
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("is skipped when the completion rewrote no profile", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockReturnValue(Effect.succeed([]));
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(workflow.doStep).not.toHaveBeenCalledWith(
+      "refresh public pages",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("treats a journaled completion without an output as nothing to refresh", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockReturnValue(Effect.void);
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("logs a failed refresh and still completes the run", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockReturnValue(Effect.succeed(["ada"]));
+    mocks.refresh.mockReturnValue(Effect.die(new Error("queue exploded")));
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "public page refresh step failed",
+      expect.objectContaining({ "error.message": expect.stringContaining("queue exploded") }),
+    );
+    expect(mocks.fail).not.toHaveBeenCalled();
   });
 });

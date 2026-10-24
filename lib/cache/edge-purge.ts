@@ -89,6 +89,19 @@ function sendPurgeMessages(
 }
 
 /**
+ * Enqueue a purge of encoded tags as an Effect, for callers that already run inside one (a
+ * Workflow step). Fails with the typed error so the caller decides how to log it; a timed-out
+ * send is not retried, it may have landed.
+ */
+export function purgeEdgeTags(
+  tags: readonly string[],
+): Effect.Effect<void, InvalidInput | QueueFailed, EdgePurgeQueue> {
+  const unique = [...new Set(tags)];
+
+  return unique.length === 0 ? Effect.void : sendPurgeMessages(unique);
+}
+
+/**
  * Enqueue a purge of encoded tags. Never throws: a purge must not fail the write that triggered
  * it, and the short page TTL bounds staleness if this fails. Every failure is logged with the
  * tags (digests, not handles). A timed-out send is not retried: it may have landed.
