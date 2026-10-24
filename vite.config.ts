@@ -255,23 +255,12 @@ export default defineConfig(() => {
     build: isTest
       ? undefined
       : {
-          rollupOptions: {
+          rolldownOptions: {
             plugins: [
               ...(process.env.ANALYZE === "true"
                 ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
                 : []),
             ],
-            onwarn(warning, warn) {
-              if (
-                warning.code === "MISSING_EXPORT" &&
-                warning.message?.includes('"middleware"') &&
-                warning.message?.includes("proxy.ts")
-              ) {
-                return;
-              }
-
-              warn(warning);
-            },
           },
         },
   };
