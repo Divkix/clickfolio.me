@@ -19,8 +19,8 @@ const args = process.argv.slice(2);
 const sinceIndex = args.indexOf("--since");
 const updatedSince = sinceIndex === -1 ? undefined : args[sinceIndex + 1];
 
-if (updatedSince !== undefined && Number.isNaN(Date.parse(updatedSince))) {
-  console.error(`[backfill] --since needs an ISO timestamp, got ${updatedSince}`);
+if (sinceIndex !== -1 && (!updatedSince || Number.isNaN(Date.parse(updatedSince)))) {
+  console.error(`[backfill] --since needs an ISO timestamp, got ${updatedSince ?? "no value"}`);
   process.exit(1);
 }
 
