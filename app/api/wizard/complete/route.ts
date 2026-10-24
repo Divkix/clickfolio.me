@@ -6,10 +6,10 @@ import { logEvent } from "@/lib/utils/log";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { Conflict, InvalidInput, RateLimited } from "@/lib/effect/failures";
+import { Conflict, InvalidInput } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { isHandleTakenEffect, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
-import { countHandleChangesInWindow, RATE_LIMITS } from "@/lib/rate-limit/user";
+import { readQuotaIn, requireQuota, type RateLimitResult } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
@@ -40,7 +40,7 @@ type WizardCompleteOutcome =
   | { kind: "ok"; oldHandle: string | null }
   | { kind: "missing_user" }
   | { kind: "stale" }
-  | { kind: "rate_limited" };
+  | { kind: "rate_limited"; quota: RateLimitResult; oldHandle: string | null };
 
 export async function POST(request: Request) {
   const oversized = oversizedBodyResponse(request);
@@ -118,9 +118,9 @@ export async function POST(request: Request) {
             const isHandleChange = oldHandle !== body.handle;
 
             if (isHandleChange) {
-              const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
+              const quota = await readQuotaIn(tx, authUser.id, "handle_change");
 
-              if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
+              if (!quota.allowed) return { kind: "rate_limited", quota, oldHandle };
             }
 
             const updated = await tx
@@ -216,13 +216,7 @@ export async function POST(request: Request) {
         }
 
         if (outcome.kind === "rate_limited") {
-          return yield* Effect.fail(
-            new RateLimited({
-              message: `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
-              // Upper bound: the oldest change in the window frees a slot sooner than this.
-              retryAfterSeconds: RATE_LIMITS.handle_change.windowHours * 60 * 60,
-            }),
-          );
+          yield* requireQuota(outcome.quota);
         }
 
         yield* Effect.sync(() => {

@@ -57,6 +57,8 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  vi.stubEnv("NODE_ENV", "production");
+  vi.stubEnv("APP_URL", "https://clickfolio.me");
   await testDb.reset();
   await seedUser(db, "alice", { handle: null, onboardingCompleted: false });
   await seedUser(db, "bob");
@@ -68,6 +70,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   mocks.revalidate.mockClear();
   mocks.indexNow.mockClear();
 });
@@ -210,7 +213,7 @@ describe("POST /api/wizard/complete", () => {
   it("answers 429 when an onboarded user changes handle a fourth time in 24 hours", async () => {
     await db.update(user).set({ handle: "old-handle" }).where(eq(user.id, "alice"));
 
-    const recent = new Date().toISOString();
+    const recent = new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString();
 
     await db.insert(handleChanges).values(
       ["one", "two", "three"].map((name) => ({
@@ -226,8 +229,10 @@ describe("POST /api/wizard/complete", () => {
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(429);
+    expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(3500);
+    expect(Number(response.headers.get("Retry-After"))).toBeLessThanOrEqual(3600);
     expect(await response.json()).toMatchObject({
-      error: "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
+      error: "Rate limit exceeded. Maximum 3 handle change per 24 hour(s). Try again later.",
       code: "RATE_LIMIT_EXCEEDED",
     });
     expect((await rowOf("alice")).handle).toBe("old-handle");

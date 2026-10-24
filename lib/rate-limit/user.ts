@@ -20,25 +20,7 @@ type RateLimitAction = keyof typeof RATE_LIMITS;
 const USER_UNAVAILABLE_MESSAGE =
   "Rate limiting service temporarily unavailable. Please try again in a few moments.";
 
-/** Pass a transaction handle so quota reads run under the caller's user-row lock. */
-export async function countHandleChangesInWindow(db: PgQueryable, userId: string): Promise<number> {
-  const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
-  const windowStart = new Date(Date.now() - windowMs);
-
-  const result = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(handleChanges)
-    .where(
-      and(
-        eq(handleChanges.userId, userId),
-        gte(handleChanges.createdAt, windowStart.toISOString()),
-      ),
-    );
-
-  return Number(result[0]?.count ?? 0);
-}
-
-interface RateLimitResult {
+export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetAt: Date;

@@ -3,10 +3,10 @@ import { eq } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { handleChanges, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { Conflict, InvalidInput, RateLimited } from "@/lib/effect/failures";
+import { Conflict, InvalidInput } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { isHandleTakenEffect, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
-import { countHandleChangesInWindow, RATE_LIMITS } from "@/lib/rate-limit/user";
+import { readQuotaIn, requireQuota, type RateLimitResult } from "@/lib/rate-limit/user";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { logEvent } from "@/lib/utils/log";
@@ -21,7 +21,7 @@ type HandleUpdateOutcome =
   | { kind: "ok"; oldHandle: string | null }
   | { kind: "missing_user" }
   | { kind: "unchanged" }
-  | { kind: "rate_limited" };
+  | { kind: "rate_limited"; quota: RateLimitResult; oldHandle: string | null };
 
 const HANDLE_TAKEN_MESSAGE = "This handle is already taken. Please choose a different one.";
 
@@ -76,9 +76,9 @@ export async function PUT(request: Request) {
 
             if (oldHandle === newHandle) return { kind: "unchanged" };
 
-            const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
+            const quota = await readQuotaIn(tx, authUser.id, "handle_change");
 
-            if (changesIn24h >= RATE_LIMITS.handle_change.limit) return { kind: "rate_limited" };
+            if (!quota.allowed) return { kind: "rate_limited", quota, oldHandle };
 
             await tx
               .update(user)
@@ -119,13 +119,7 @@ export async function PUT(request: Request) {
         }
 
         if (outcome.kind === "rate_limited") {
-          return yield* Effect.fail(
-            new RateLimited({
-              message: `Rate limit exceeded. Maximum ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours.`,
-              // Upper bound: the oldest change in the window frees a slot sooner than this.
-              retryAfterSeconds: RATE_LIMITS.handle_change.windowHours * 60 * 60,
-            }),
-          );
+          yield* requireQuota(outcome.quota);
         }
 
         yield* Effect.sync(() => {
