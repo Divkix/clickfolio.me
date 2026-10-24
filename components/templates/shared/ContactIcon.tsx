@@ -21,44 +21,27 @@ export function getContactIcon(
   type: ContactLinkType,
   options: ContactIconOptions = {},
 ): React.ReactNode {
-  const { className, size, variant = "black", strokeWidth, "aria-hidden": ariaHidden } = options;
+  const { variant = "black", ...iconProps } = options;
 
-  const lucideProps = {
-    ...(className !== undefined && { className }),
-    ...(size !== undefined && { size }),
-    ...(strokeWidth !== undefined && { strokeWidth }),
-    ...(ariaHidden !== undefined && { "aria-hidden": ariaHidden }),
-  };
-
-  const brandProps = {
-    ...(className !== undefined && { className }),
-    ...(size !== undefined && { size }),
-    ...(ariaHidden !== undefined && { "aria-hidden": ariaHidden }),
-    variant,
-  };
-
-  const glyphProps = {
-    ...(className !== undefined && { className }),
-    ...(size !== undefined && { size }),
-    ...(ariaHidden !== undefined && { "aria-hidden": ariaHidden }),
-  };
+  // Lucide treats an absent aria-hidden differently from an explicit undefined.
+  if (iconProps["aria-hidden"] === undefined) delete iconProps["aria-hidden"];
 
   switch (type) {
     case "email":
-      return <Mail {...lucideProps} />;
+      return <Mail {...iconProps} />;
     case "phone":
-      return <Phone {...lucideProps} />;
+      return <Phone {...iconProps} />;
     case "location":
-      return <MapPin {...lucideProps} />;
+      return <MapPin {...iconProps} />;
     case "website":
-      return <Globe {...lucideProps} />;
+      return <Globe {...iconProps} />;
     case "github":
-      return <GitHubIcon {...brandProps} />;
+      return <GitHubIcon {...iconProps} variant={variant} />;
     case "linkedin":
-      return <LinkedInIcon {...brandProps} />;
+      return <LinkedInIcon {...iconProps} variant={variant} />;
     case "behance":
-      return <BehanceIcon {...glyphProps} />;
+      return <BehanceIcon {...iconProps} />;
     case "dribbble":
-      return <DribbbleIcon {...glyphProps} />;
+      return <DribbbleIcon {...iconProps} />;
   }
 }
