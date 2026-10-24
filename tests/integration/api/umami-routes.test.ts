@@ -221,6 +221,34 @@ describe("GET /api/analytics/stats", () => {
     expect(new Set(paths)).toEqual(new Set(["/@alice", "/@alice-old"]));
   });
 
+  it("excludes a previous handle now owned by someone else from every metric", async () => {
+    const now = new Date().toISOString();
+    await db.insert(user).values({
+      id: "user-2",
+      name: "Bob",
+      email: "bob@example.com",
+      handle: "alice-old",
+      clerkId: "clerk-2",
+      createdAt: now,
+      updatedAt: now,
+    });
+    const fetchMock = stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
+
+    // Load the route after installing the auth, database and upstream mocks.
+    const { GET } = await import("@/app/api/analytics/stats/route");
+    const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ totalViews: 10, uniqueVisitors: 2 });
+
+    const paths = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)).searchParams.get("path"))
+      .filter((path) => path !== null);
+
+    expect(paths).toHaveLength(5);
+    expect(new Set(paths)).toEqual(new Set(["/@alice"]));
+  });
+
   it("refuses to cache when the handle set changed during the fan-out", async () => {
     let inserted = false;
 

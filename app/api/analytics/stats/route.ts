@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
 import { Effect } from "effect";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
-import { handleChanges } from "@/lib/db/schema";
+import { handleChanges, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
 import { Umami } from "@/lib/effect/services/umami";
@@ -32,7 +32,15 @@ function loadHandleSet(userId: string, currentHandle: string) {
       handle
         .select({ oldHandle: handleChanges.oldHandle })
         .from(handleChanges)
-        .where(eq(handleChanges.userId, userId))
+        .where(
+          and(
+            eq(handleChanges.userId, userId),
+            sql`not exists (
+              select 1 from ${user}
+              where ${user.handle} = ${handleChanges.oldHandle} and ${user.id} <> ${userId}
+            )`,
+          ),
+        )
         .orderBy(desc(handleChanges.createdAt))
         .limit(3),
     ),
