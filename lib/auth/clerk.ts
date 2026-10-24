@@ -25,30 +25,34 @@ import { Clerk, type ClerkClaims } from "@/lib/effect/services/clerk";
 export const CLERK_SESSION_COOKIE = "__session";
 
 export interface ClerkAuthContext {
-  userId: string;
   clerkId: string;
   sessionId: string | null;
   claims: ClerkClaims;
   token: string;
 }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-  image: string | null;
-  handle: string | null;
-  headline: string | null;
-  privacySettings: SchemaUser["privacySettings"];
-  onboardingCompleted: boolean;
-  role: SchemaUser["role"];
-}
+const authUserColumns = {
+  id: userTable.id,
+  email: userTable.email,
+  name: userTable.name,
+  image: userTable.image,
+  handle: userTable.handle,
+  headline: userTable.headline,
+  privacySettings: userTable.privacySettings,
+  onboardingCompleted: userTable.onboardingCompleted,
+  role: userTable.role,
+  isAdmin: userTable.isAdmin,
+};
 
-export interface DbUser {
-  id: string;
-  handle: string | null;
-  clerkId: string;
-}
+/** The user-row projection shared by API, page-session and admin auth. */
+export type AuthRow = Pick<SchemaUser, Exclude<keyof typeof authUserColumns, "name">> & {
+  // Auth consumers also accept accounts whose display name has not been set.
+  name: string | null;
+};
+
+export type AuthUser = Omit<AuthRow, "isAdmin">;
+
+export type DbUser = Pick<AuthRow, "id" | "handle"> & Pick<ClerkAuthContext, "clerkId">;
 
 export interface AuthenticatedUser {
   user: AuthUser;
@@ -131,7 +135,6 @@ export function resolveAuth(
     if (!claims) return null;
 
     return {
-      userId: claims.sub,
       clerkId: claims.sub,
       sessionId: claims.sid ?? null,
       claims,
@@ -148,22 +151,7 @@ export function resolveAuth(
 export function findUserByClerkId(clerkId: string) {
   return Db.use((service) =>
     service.query("auth.user-by-clerk-id", (db) =>
-      db
-        .select({
-          id: userTable.id,
-          email: userTable.email,
-          name: userTable.name,
-          image: userTable.image,
-          handle: userTable.handle,
-          headline: userTable.headline,
-          privacySettings: userTable.privacySettings,
-          onboardingCompleted: userTable.onboardingCompleted,
-          role: userTable.role,
-          isAdmin: userTable.isAdmin,
-        })
-        .from(userTable)
-        .where(eq(userTable.clerkId, clerkId))
-        .limit(1),
+      db.select(authUserColumns).from(userTable).where(eq(userTable.clerkId, clerkId)).limit(1),
     ),
   );
 }

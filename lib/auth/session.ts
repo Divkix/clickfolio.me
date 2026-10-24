@@ -1,27 +1,14 @@
 import { env } from "cloudflare:workers";
 import { cache } from "react";
 import { Effect } from "effect";
-import { findUserByClerkId, resolveAuth } from "@/lib/auth/clerk";
-import type { UserRole } from "@/lib/config/roles";
-import type { User as SchemaUser } from "@/lib/db/schema";
+import { findUserByClerkId, resolveAuth, type AuthRow } from "@/lib/auth/clerk";
 import { Db } from "@/lib/effect/db";
 import { runPage } from "@/lib/effect/edges";
 import type { ClerkFailed, DbConflict, DbFailed } from "@/lib/effect/failures";
 import { appLayer } from "@/lib/effect/layers";
 import type { Clerk } from "@/lib/effect/services/clerk";
 
-export interface AppSessionUser {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  handle: string | null;
-  headline: string | null;
-  privacySettings: SchemaUser["privacySettings"];
-  onboardingCompleted: boolean;
-  role: UserRole | null;
-  isAdmin: boolean;
-}
+export type AppSessionUser = AuthRow;
 
 export interface AppSession {
   user: AppSessionUser;

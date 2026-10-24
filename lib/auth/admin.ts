@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { redirect } from "next/navigation";
+import type { AuthRow } from "@/lib/auth/clerk";
 import type { Db } from "@/lib/effect/db";
 import {
   Forbidden,
@@ -11,12 +12,7 @@ import {
 import type { Clerk } from "@/lib/effect/services/clerk";
 import { findSession, getServerSession, type AppSessionUser } from "./session";
 
-export interface AdminUser {
-  id: string;
-  email: string;
-  name: string | null;
-  isAdmin: boolean;
-}
+export type AdminUser = Pick<AuthRow, "id" | "email" | "name" | "isAdmin">;
 
 // getServerSession already re-reads the user row from Postgres every request, so its
 // isAdmin value is as fresh as a second query and no separate lookup is needed.
