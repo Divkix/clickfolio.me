@@ -44,33 +44,42 @@ vi.mock("vinext/server/app-router-entry", () => ({
   },
 }));
 
-const { mockVerifyToken, mockPerformCleanup, mockUserFindFirst, mockResumeFindFirst } = vi.hoisted(
-  () => {
-    const claims = {
-      "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
-      "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
-    };
+const {
+  mockVerifyToken,
+  mockPerformCleanup,
+  mockPerformStrandedSweep,
+  mockUserFindFirst,
+  mockResumeFindFirst,
+} = vi.hoisted(() => {
+  const claims = {
+    "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
+    "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
+  };
 
-    return {
-      // @clerk/backend rejects a bad token with a TokenVerificationError carrying a `reason`.
-      mockVerifyToken: vi.fn(async (token: string, _options?: { secretKey?: string }) => {
-        const found = Object.entries(claims).find(([known]) => known === token)?.[1];
+  return {
+    // @clerk/backend rejects a bad token with a TokenVerificationError carrying a `reason`.
+    mockVerifyToken: vi.fn(async (token: string, _options?: { secretKey?: string }) => {
+      const found = Object.entries(claims).find(([known]) => known === token)?.[1];
 
-        if (!found) throw Object.assign(new Error("invalid token"), { reason: "token-invalid" });
+      if (!found) throw Object.assign(new Error("invalid token"), { reason: "token-invalid" });
 
-        return found;
-      }),
-      mockPerformCleanup: vi.fn(),
-      mockUserFindFirst: vi.fn(),
-      mockResumeFindFirst: vi.fn(),
-    };
-  },
-);
+      return found;
+    }),
+    mockPerformCleanup: vi.fn(),
+    mockPerformStrandedSweep: vi.fn(),
+    mockUserFindFirst: vi.fn(),
+    mockResumeFindFirst: vi.fn(),
+  };
+});
 
 vi.mock("@clerk/backend", () => ({ verifyToken: mockVerifyToken }));
 
 vi.mock("@/lib/cron/cleanup", () => ({
   performCleanup: mockPerformCleanup,
+}));
+
+vi.mock("@/lib/cron/stranded-resumes", () => ({
+  performStrandedSweep: mockPerformStrandedSweep,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -164,6 +173,7 @@ function resetAll() {
     deleted: { rateLimits: 1, handleChanges: 0 },
     timestamp: new Date().toISOString(),
   });
+  mockPerformStrandedSweep.mockResolvedValue({ neverStarted: 0, timedOut: 0 });
 }
 
 describe("Worker fetch handler", () => {
@@ -541,13 +551,36 @@ describe("Worker scheduled handler", () => {
     expect(mockPerformCleanup).toHaveBeenCalled();
   });
 
-  it("ignores the retired '0 2' and '*/15' crons (now R2 lifecycle + workflows)", async () => {
+  it("dispatches the stranded-resume sweep on '*/15 * * * *' without running cleanup", async () => {
+    const env = makeEnv();
+
+    await worker.scheduled(makeController("*/15 * * * *"), env);
+
+    expect(mockPerformStrandedSweep).toHaveBeenCalledWith(env);
+    expect(mockPerformCleanup).not.toHaveBeenCalled();
+  });
+
+  it("ignores the retired '0 2' cron (now R2 lifecycle + workflows)", async () => {
     const env = makeEnv();
 
     await worker.scheduled(makeController("0 2 * * *"), env);
-    await worker.scheduled(makeController("*/15 * * * *"), env);
 
     expect(mockPerformCleanup).not.toHaveBeenCalled();
+    expect(mockPerformStrandedSweep).not.toHaveBeenCalled();
+  });
+
+  it("does not run the sweep on the daily cleanup cron", async () => {
+    await worker.scheduled(makeController("0 3 * * *"), makeEnv());
+
+    expect(mockPerformStrandedSweep).not.toHaveBeenCalled();
+  });
+
+  it("rethrows a sweep failure so the run is recorded as failed", async () => {
+    mockPerformStrandedSweep.mockRejectedValueOnce(new Error("db down"));
+
+    await expect(worker.scheduled(makeController("*/15 * * * *"), makeEnv())).rejects.toThrow(
+      "db down",
+    );
   });
 
   it("rethrows a cleanup failure so the run is recorded as failed", async () => {

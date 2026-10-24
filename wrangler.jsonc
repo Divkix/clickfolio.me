@@ -129,7 +129,7 @@
     },
   },
   "triggers": {
-    "crons": ["0 3 * * *"],
+    "crons": ["0 3 * * *", "*/15 * * * *"],
   },
   "vars": {
     // Environment variables are set via 'wrangler secret put' for production

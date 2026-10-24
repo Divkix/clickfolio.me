@@ -191,6 +191,7 @@ describe("POST /api/resume/retry", () => {
         resumeId: "resume_1",
         userId: "user_1",
         fileHash: "hash_1",
+        retryCount: 1,
       }),
     );
   });

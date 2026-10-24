@@ -147,6 +147,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
       userId: params.userId,
       r2Key: params.r2Key,
       fileHash: params.fileHash,
+      retryCount: params.retryCount,
     };
 
     const claim = await tracedStep("claim", DB_STEP, () => this.exec(claimResumeForParse(job)));

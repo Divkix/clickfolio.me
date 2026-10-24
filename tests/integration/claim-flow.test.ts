@@ -335,6 +335,7 @@ describe("POST /api/resume/claim", () => {
         userId: "user_1",
         r2Key: row.r2Key,
         fileHash: pdfHash,
+        retryCount: 0,
       }),
     );
   });
