@@ -258,8 +258,8 @@ export function parseResumePdf(job: ResumeParseJob, env: CloudflareEnv) {
         Effect.mapError(toR2ParseFailure),
       );
 
-      // parseResumeWithAi takes a plain ArrayBuffer; `slice()` is a Uint8Array over exactly the PDF.
-      const pdfBuffer = pdfBytes.slice().buffer;
+      // R2Store returns a view of the whole object buffer; extraction owns the copy pdf.js transfers.
+      const pdfBuffer = pdfBytes.buffer;
       const { parseResumeWithAi } = yield* Effect.promise(() => import("../ai"));
       const parsedContent = yield* parseResumeWithAi(pdfBuffer, env);
       const { classifyCareerEffect } = yield* Effect.promise(() => import("../ai/career"));

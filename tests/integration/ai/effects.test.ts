@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     pdf,
-    document: vi.fn(async () => pdf),
+    document: vi.fn(async (_data: Uint8Array) => pdf),
     extract: vi.fn(async () => ({
       text: "Resume text with enough detail about professional experience and education.",
       totalPages: 1,
@@ -282,6 +282,11 @@ describe("Effect AI boundaries", () => {
   });
 
   it("uses vision for scanned PDFs and sends the intact original bytes", async () => {
+    mocks.document.mockImplementationOnce(async (data) => {
+      structuredClone(data, { transfer: [data.buffer] });
+
+      return mocks.pdf;
+    });
     mocks.extract.mockResolvedValue({ text: "", totalPages: 1 });
     vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
     const buffer = pdfBuffer();
