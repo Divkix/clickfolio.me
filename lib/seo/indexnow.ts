@@ -1,5 +1,6 @@
 import { siteConfig } from "@/lib/config/site";
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
+import { errorFields } from "@/lib/utils/error-fields";
 
 /**
  * IndexNow client shared by the Worker (portfolio events) and `scripts/submit-indexnow.ts`
@@ -18,6 +19,8 @@ export interface IndexNowResult {
   submitted: number;
   /** HTTP status per batch; 0 when the request threw. */
   statuses: number[];
+  /** `name: message` of each batch whose request threw (scrubbed), for the script to print. */
+  errors: string[];
 }
 
 type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
@@ -78,7 +81,7 @@ export async function submitToIndexNow(
   { siteUrl = siteConfig.url, fetchImpl = fetch }: SubmitOptions = {},
 ): Promise<IndexNowResult> {
   const urlList = filterSiteUrls(urls, siteUrl);
-  const result: IndexNowResult = { submitted: 0, statuses: [] };
+  const result: IndexNowResult = { submitted: 0, statuses: [], errors: [] };
 
   for (let start = 0; start < urlList.length; start += MAX_URLS_PER_REQUEST) {
     const batch = urlList.slice(start, start + MAX_URLS_PER_REQUEST);
@@ -92,8 +95,11 @@ export async function submitToIndexNow(
       result.statuses.push(response.status);
 
       if (isIndexNowAccepted(response.status)) result.submitted += batch.length;
-    } catch {
+    } catch (error) {
+      const { "error.name": name, "error.message": message } = errorFields(error);
+
       result.statuses.push(0);
+      result.errors.push(`${name}: ${message}`);
     }
   }
 
