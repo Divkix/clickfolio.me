@@ -62,7 +62,7 @@ lib/durable-objects/   ClickfolioStatusDO (hibernation WebSocket status push); n
 lib/data/              page loaders as Effects on the Db service (public-resume, owner-pages, admin-overview), run by
                        runPage; user-r2-keys.ts lists a user's R2 keys for account deletion; stored-content.ts checks the jsonb a page renders (loose structure, returns the
                        original value) and fails DbFailed "invalid-response"
-lib/stubs/             stubs for CF-incompatible modules (test aliases in vite.config.ts)
+lib/stubs/             `cloudflare:workers` stub for client bundles and tests (vite.config.ts)
 lib/seo/               sitemap, llms.txt generators, IndexNow (`notifyIndexNowForProfiles` debounces a URL for 10 min per colo;
                        hide/delete/rename callers pass `skipDebounce` so a recent publish ping cannot drop them), lastmod.json
 lib/examples/          EXAMPLE_GALLERIES: hand-picked directory handles for /examples/<slug>
