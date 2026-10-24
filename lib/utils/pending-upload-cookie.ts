@@ -1,31 +1,21 @@
+import { z } from "zod";
+
 export const COOKIE_NAME = "pending_upload";
 
 export const COOKIE_MAX_AGE = 30 * 60;
 
 const encoder = new TextEncoder();
 
-const keyCache = new Map<string, CryptoKey>();
-
-export function clearKeyCache(): void {
-  keyCache.clear();
-}
-
-async function getCryptoKey(secret: string): Promise<CryptoKey> {
-  const cached = keyCache.get(secret);
-
-  if (cached) return cached;
-
-  const key = await crypto.subtle.importKey(
+// The key is imported on every call: a derived key is cheap to rebuild, and nothing that holds
+// the secret may outlive its request.
+function getCryptoKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-
-  keyCache.set(secret, key);
-
-  return key;
 }
 
 async function signValue(value: string, secret: string): Promise<string> {
@@ -61,31 +51,48 @@ interface ParsedPendingUpload {
   tempKey: string;
 }
 
+// `<tempKey>|<expiresAt ms>|<signature>`; the key never contains `|`, so any other shape is forged.
+const signedCookieSchema = z
+  .string()
+  .transform((value) => value.split("|"))
+  .pipe(z.tuple([z.string().min(1), z.string().regex(/^\d+$/), z.string().min(1)]));
+
+/**
+ * `cookies().set()` percent-encodes the value (`|` becomes `%7C`) and the raw Cookie header
+ * keeps that encoding. Null when the value is not valid percent-encoding.
+ */
+export function decodePendingUploadCookie(rawValue: string): string | null {
+  const decoded = z
+    .string()
+    .transform((value, ctx) => {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        ctx.issues.push({ code: "custom", message: "malformed percent-encoding", input: value });
+
+        return z.NEVER;
+      }
+    })
+    .safeParse(rawValue);
+
+  return decoded.success ? decoded.data : null;
+}
+
 export async function parseSignedCookieValue(
   cookieValue: string,
   secret: string,
 ): Promise<ParsedPendingUpload | null> {
-  const parts = cookieValue.split("|");
+  const parts = signedCookieSchema.safeParse(cookieValue);
 
-  if (parts.length !== 3) {
-    return null;
-  }
+  if (!parts.success) return null;
 
-  const [tempKey, expiresAtStr, signature] = parts;
-  const expiresAt = parseInt(expiresAtStr, 10);
+  const [tempKey, expiresAtStr, signature] = parts.data;
 
-  if (Number.isNaN(expiresAt) || Date.now() > expiresAt) {
-    return null;
-  }
+  if (Date.now() > Number(expiresAtStr)) return null;
 
-  const payload = `${tempKey}|${expiresAtStr}`;
-  const isValid = await verifySignature(payload, signature, secret);
+  const isValid = await verifySignature(`${tempKey}|${expiresAtStr}`, signature, secret);
 
-  if (!isValid) {
-    return null;
-  }
+  if (!isValid) return null;
 
-  return {
-    tempKey,
-  };
+  return { tempKey };
 }

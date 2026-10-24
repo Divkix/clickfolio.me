@@ -90,35 +90,69 @@ async function readUsage(
   }
 }
 
-/** The quota as it stands: a read, not a reservation. Callers hold their own lock around it. */
-function readWindow(userId: string, action: RateLimitAction) {
+/** The quota as `db` sees it: a read, not a reservation. Callers hold their own lock around it. */
+async function evaluateQuota(
+  db: PgQueryable,
+  userId: string,
+  action: RateLimitAction,
+): Promise<RateLimitResult> {
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs).toISOString();
+  const usage = await readUsage(db, userId, action, windowStart);
 
+  const oldestMs = usage.oldest === null ? Number.NaN : new Date(usage.oldest).getTime();
+  const resetAt = new Date(Number.isNaN(oldestMs) ? Date.now() + windowMs : oldestMs + windowMs);
+  const allowed = usage.count < config.limit;
+
+  return {
+    allowed,
+    remaining: Math.max(0, config.limit - usage.count),
+    resetAt,
+    message: allowed
+      ? undefined
+      : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
+  };
+}
+
+function readWindow(userId: string, action: RateLimitAction) {
   return Db.use((service) =>
-    service.query(`rate-limit.user.${action}`, (db) => readUsage(db, userId, action, windowStart)),
-  ).pipe(
-    Effect.map((usage): RateLimitResult => {
-      const oldestMs = usage.oldest === null ? Number.NaN : new Date(usage.oldest).getTime();
+    service.query(`rate-limit.user.${action}`, (db) => evaluateQuota(db, userId, action)),
+  ).pipe(Effect.mapError(storeDown(action, USER_UNAVAILABLE_MESSAGE)));
+}
 
-      const resetAt = new Date(
-        Number.isNaN(oldestMs) ? Date.now() + windowMs : oldestMs + windowMs,
+/**
+ * The quota read on a transaction handle, for a caller that must count under the user-row lock
+ * it already holds in that transaction (a Promise body cannot run `enforceRateLimitEffect`).
+ * A database failure surfaces as the transaction's own `DbFailed`, which also fails closed.
+ * Turn the result into the failure with {@link requireQuota} once the transaction is done.
+ */
+export function readQuotaIn(
+  db: PgQueryable,
+  userId: string,
+  action: RateLimitAction,
+): Promise<RateLimitResult> {
+  if (limitsBypassed()) {
+    return Promise.resolve({
+      allowed: true,
+      remaining: RATE_LIMITS[action].limit,
+      resetAt: new Date(),
+    });
+  }
+
+  return evaluateQuota(db, userId, action);
+}
+
+/** `RateLimited` when the quota read by {@link readQuotaIn} is spent. */
+export function requireQuota(quota: RateLimitResult): Effect.Effect<void, RateLimited> {
+  return quota.allowed
+    ? Effect.void
+    : Effect.fail(
+        new RateLimited({
+          message: quota.message ?? "Rate limit exceeded.",
+          retryAfterSeconds: retryAfterSeconds(quota.resetAt),
+        }),
       );
-
-      const allowed = usage.count < config.limit;
-
-      return {
-        allowed,
-        remaining: Math.max(0, config.limit - usage.count),
-        resetAt,
-        message: allowed
-          ? undefined
-          : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
-      };
-    }),
-    Effect.mapError(storeDown(action, USER_UNAVAILABLE_MESSAGE)),
-  );
 }
 
 function retryAfterSeconds(resetAt: Date): number {
@@ -137,16 +171,7 @@ export function enforceRateLimitEffect(
 ): Effect.Effect<void, RateLimited | RateLimitUnavailable, Db> {
   if (limitsBypassed()) return Effect.void;
 
-  return Effect.flatMap(readWindow(userId, action), (quota) =>
-    quota.allowed
-      ? Effect.void
-      : Effect.fail(
-          new RateLimited({
-            message: quota.message ?? "Rate limit exceeded.",
-            retryAfterSeconds: retryAfterSeconds(quota.resetAt),
-          }),
-        ),
-  );
+  return Effect.flatMap(readWindow(userId, action), requireQuota);
 }
 
 /** Promise edge: the quota as data, with `unavailable` set when the store failed. */

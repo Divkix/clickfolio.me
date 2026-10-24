@@ -43,6 +43,26 @@ const mockDb = {
   insert: mockInsert,
 };
 
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    CLICKFOLIO_PARSE_WORKFLOW: {},
+  },
+}));
+
+vi.mock("@/lib/db", () => ({ getDb: () => mockDb }));
+
+vi.mock("@/lib/auth/clerk", async (importOriginal) => {
+  // Resolved once here: a per-request dynamic import of the mocked module races its registration.
+  const middleware = await import("@/lib/auth/middleware");
+  const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
+
+  return {
+    ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
+    authenticate: authenticateStub(() => middleware.requireAuthWithUserValidation("Unauthorized")),
+  };
+});
+
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
   requireAuthWithMessage: vi.fn(),
@@ -762,6 +782,8 @@ describe("IDOR - Resume Routes Security", () => {
 
       const targets = ["user-1", "user-2", "user-3", "user-4", "user-5"];
 
+      const { GET } = await import("@/app/api/resume/status/route");
+
       const results = await Promise.all(
         targets.map(async (targetUser) => {
           mockFindFirst.mockResolvedValue({
@@ -773,8 +795,6 @@ describe("IDOR - Resume Routes Security", () => {
             totalAttempts: 1,
             createdAt: new Date().toISOString(),
           });
-
-          const { GET } = await import("@/app/api/resume/status/route");
 
           const request = new Request(
             `http://localhost:3000/api/resume/status?resume_id=resume-${targetUser}`,

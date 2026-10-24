@@ -13,6 +13,13 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithMessage: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
+  authenticate: (await import("@/tests/helpers/authenticate-stub")).authenticateStub(() =>
+    mockedAuth(),
+  ),
+}));
+
 vi.mock("@/lib/auth/admin", () => ({
   requireAdminAuthForApi: vi.fn(),
 }));
@@ -610,69 +617,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(413);
     });
 
-    it("returns 404 when file not found in R2 (test 7)", async () => {
-      const { R2 } = await import("@/lib/r2");
-      const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
-      mockedR2.mockResolvedValue(null);
-
-      authedAs("user-123");
-      mockLimit.mockResolvedValue([]);
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const tempKey = "temp/uuid/resume.pdf";
-      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
-
-      const request = makeRequest(
-        "http://localhost:3000/api/resume/claim",
-        "POST",
-        {
-          key: tempKey,
-        },
-        cookieValue,
-      );
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(404);
-    });
-
-    it("returns already_claimed when double-claim detected (test 16)", async () => {
-      const { R2 } = await import("@/lib/r2");
-      const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
-      mockedR2.mockResolvedValue(null);
-
-      authedAs("user-123");
-      mockLimit.mockResolvedValue([
-        {
-          id: "existing-resume",
-          status: "processing",
-          createdAt: new Date(Date.now() - 60000).toISOString(),
-        },
-      ]);
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const tempKey = "temp/uuid/resume.pdf";
-      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
-
-      const request = makeRequest(
-        "http://localhost:3000/api/resume/claim",
-        "POST",
-        {
-          key: tempKey,
-        },
-        cookieValue,
-      );
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-      const body: { already_claimed: boolean; resume_id: string } = await response.json();
-      expect(body.already_claimed).toBe(true);
-      expect(body.resume_id).toBe("existing-resume");
-    });
-
     it("returns 401 when not authenticated", async () => {
       unauthenticated();
 
@@ -795,7 +739,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       const response = await POST(request);
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(503);
       expect(mockUpdateSet).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({

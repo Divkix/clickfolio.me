@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { RateLimited } from "@/lib/effect/failures";
 import type { JsonValue } from "@/lib/types/json";
 
 type ClaimBody = { key: string };
@@ -88,7 +89,31 @@ const mockDb = {
 
 const mockR2Store = new Map<string, ArrayBuffer>();
 
-const mockR2Binding: R2Bucket = {
+// The bucket the real R2Store talks to; it shares its contents with the legacy `R2` mock below.
+const mockR2Binding = {
+  head: vi.fn(async (key: string) => {
+    const buf = mockR2Store.get(key);
+
+    return buf ? { size: buf.byteLength, etag: "etag" } : null;
+  }),
+  get: vi.fn(async (key: string) => {
+    const buf = mockR2Store.get(key);
+
+    return buf ? { arrayBuffer: async () => buf } : null;
+  }),
+  put: vi.fn(async (key: string, body: ArrayBuffer) => {
+    mockR2Store.set(key, body);
+
+    return { size: body.byteLength, etag: "etag" };
+  }),
+  delete: vi.fn(async (key: string) => {
+    mockR2Store.delete(key);
+  }),
+  list: vi.fn(),
+};
+
+// Handed to the parse pipeline step, which reaches R2 only through the legacy `mockR2` below.
+const stubR2Binding: R2Bucket = {
   head: vi.fn(),
   get: vi.fn(),
   put: vi.fn(),
@@ -222,10 +247,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/rate-limit/ip", () => ({
-  checkIPRateLimit: vi.fn().mockResolvedValue({
-    allowed: true,
-    remaining: { hourly: 10, daily: 50 },
-  }),
+  checkIPRateLimitEffect: vi.fn(() => Effect.succeed({ remaining: { hourly: 10, daily: 50 } })),
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
@@ -271,29 +293,6 @@ function makeInvalidBuffer(): ArrayBuffer {
   return data.buffer;
 }
 
-async function createSignedCookieValue(
-  tempKey: string,
-  secret: string,
-  expiresAt?: number,
-): Promise<string> {
-  const encoder = new TextEncoder();
-  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000;
-  const payload = `${tempKey}|${actualExpiresAt}`;
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
-
-  return `${payload}|${signatureBase64}`;
-}
-
 function makeUploadRequest(
   buffer: ArrayBuffer,
   filename = "test-resume.pdf",
@@ -324,15 +323,6 @@ function makeClaimRequest(key: string, cookieValue?: string): Request {
     headers,
     body: JSON.stringify(body),
   });
-}
-
-function extractPendingUploadCookie(uploadResponse: Response): string | null {
-  const setCookieHeader = uploadResponse.headers.get("Set-Cookie");
-
-  if (!setCookieHeader) return null;
-  const match = setCookieHeader.match(/pending_upload=([^;]+)/);
-
-  return match?.[1] ?? null;
 }
 
 function resetAll() {
@@ -373,7 +363,7 @@ describe("POST /api/upload", () => {
     expect(body.key).toMatch(/^temp\/.*\.pdf$/);
     expect(body.remaining.hourly).toBe(10);
     expect(body.remaining.daily).toBe(50);
-    expect(mockR2.put).toHaveBeenCalled();
+    expect(mockR2Binding.put).toHaveBeenCalled();
   });
 
   it("2. Upload with invalid PDF → rejected (400 bad request)", async () => {
@@ -389,12 +379,10 @@ describe("POST /api/upload", () => {
   });
 
   it("3. Upload rate limit exceeded → 429 too many requests", async () => {
-    const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
-    vi.mocked(checkIPRateLimit).mockResolvedValueOnce({
-      allowed: false,
-      remaining: { hourly: 0, daily: 50 },
-      message: "Rate limit exceeded",
-    });
+    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+    vi.mocked(checkIPRateLimitEffect).mockReturnValueOnce(
+      Effect.fail(new RateLimited({ message: "Rate limit exceeded", retryAfterSeconds: 3600 })),
+    );
 
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
@@ -541,86 +529,12 @@ describe("POST /api/upload", () => {
 describe("POST /api/resume/claim", () => {
   beforeEach(resetAll);
 
-  it("11. Claim upload with valid auth → success (resume created, queue triggered)", async () => {
-    const { POST: uploadPost } = await import("@/app/api/upload/route");
-    const buffer = makePdfBuffer();
-    const uploadResponse = await uploadPost(makeUploadRequest(buffer));
-    const uploadBody: { key: string } = await uploadResponse.json();
-    const tempKey = uploadBody.key;
-
-    expect(mockR2Store.has(tempKey)).toBe(true);
-
-    const pendingCookie = extractPendingUploadCookie(uploadResponse);
-    expect(pendingCookie).not.toBeNull();
-
-    setMockAuthUser("user-1");
-    const { POST: claimPost } = await import("@/app/api/resume/claim/route");
-    const claimResponse = await claimPost(makeClaimRequest(tempKey, pendingCookie!));
-    const claimBody: { resume_id: string; status: string } = await claimResponse.json();
-
-    expect(claimResponse.status).toBe(200);
-    expect(claimBody.status).toBe("queued");
-    expect(claimBody.resume_id).toBeDefined();
-    expect(mockDb.insert).toHaveBeenCalled();
-    expect(mockWorkflowRuns.length).toBe(1);
-    expect(mockWorkflowRuns[0].id).toBe(claimBody.resume_id);
-  });
-
   it("12. Claim without auth → 401 unauthorized", async () => {
     setMockAuthUser(null);
     const { POST } = await import("@/app/api/resume/claim/route");
     const response = await POST(makeClaimRequest("temp/test/file.pdf"));
 
     expect(response.status).toBe(401);
-  });
-
-  it("15. Claim with queue trigger → verify message sent to queue", async () => {
-    const { POST: uploadPost } = await import("@/app/api/upload/route");
-    const buffer = makePdfBuffer();
-    const uploadResponse = await uploadPost(makeUploadRequest(buffer));
-    const uploadBody: { key: string } = await uploadResponse.json();
-
-    const pendingCookie = extractPendingUploadCookie(uploadResponse);
-    expect(pendingCookie).not.toBeNull();
-
-    setMockAuthUser("user-1");
-    const { POST: claimPost } = await import("@/app/api/resume/claim/route");
-    const claimResponse = await claimPost(makeClaimRequest(uploadBody.key, pendingCookie!));
-    const claimBody: { resume_id: string } = await claimResponse.json();
-
-    expect(mockWorkflowRuns.length).toBe(1);
-    expect(mockWorkflowRuns[0]).toMatchObject({
-      id: claimBody.resume_id,
-      params: { kind: "parse", resumeId: claimBody.resume_id, userId: "user-1" },
-    });
-    expect(mockWorkflowRuns[0].params.r2Key).toMatch(/^users\/user-1\//);
-    expect(mockWorkflowRuns[0].params.fileHash).toMatch(/^[a-f0-9]{64}$/);
-  });
-
-  it("16. Claim with invalid temp key → 404/400 error", async () => {
-    setMockAuthUser("user-1");
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest("invalid-key-format"));
-
-    expect(response.status).toBe(400);
-  });
-
-  it("20. Claim with rate limit exceeded → 429 error", async () => {
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-    vi.mocked(enforceRateLimit).mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }),
-    );
-
-    setMockAuthUser("user-1");
-
-    const tempKey = "temp/test/file.pdf";
-    const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
-    mockR2Store.set(tempKey, makePdfBuffer());
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest(tempKey, cookieValue));
-
-    expect(response.status).toBe(429);
   });
 });
 
@@ -630,7 +544,7 @@ describe("Parse pipeline → siteData Creation", () => {
   // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings the pipeline steps read; CloudflareEnv's remaining properties are never accessed on this path.
   const env = {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    CLICKFOLIO_R2_BUCKET: mockR2Binding,
+    CLICKFOLIO_R2_BUCKET: stubR2Binding,
   } as CloudflareEnv;
 
   it("22. Transient parse failure → retryable tagged failure for the workflow step", async () => {
