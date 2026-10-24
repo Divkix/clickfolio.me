@@ -484,6 +484,23 @@ describe("completeParsedResume", () => {
       await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual([]);
     });
 
+    it("returns none when a sweep and a retry handed the row to a newer run", async () => {
+      await giveHandle(JOB.userId, "ada");
+      await seed(JOB.resumeId, { status: "processing", retryCount: 1 });
+
+      await expect(
+        run(completeParsedResume({ ...JOB, retryCount: 0 }, parsed)),
+      ).resolves.toEqual([]);
+
+      expect(await row(JOB.resumeId)).toMatchObject({
+        status: "processing",
+        retryCount: 1,
+        parsedContent: null,
+      });
+      expect(await db.select().from(siteData)).toEqual([]);
+      expect(pushes).toEqual([]);
+    });
+
     it("returns none for a user without a handle yet", async () => {
       await seed(JOB.resumeId);
 

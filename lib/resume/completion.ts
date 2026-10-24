@@ -16,6 +16,12 @@ export type ResumeCompletionInput = {
   career?: CareerProfile | null;
   totalAttempts?: number;
   fanOut?: boolean;
+  /**
+   * The completing run's `retry_count` (single-row path only; a run carries the row's count).
+   * A run whose count no longer matches was superseded by a sweep and a manual retry and must
+   * not complete the row. Absent on runs started before the field existed: skip the check.
+   */
+  retryCount?: number;
 };
 
 // Single name-sync rule: display name updates iff the parsed name is real and
@@ -45,11 +51,11 @@ type CompletionUserRow = {
 // name iff missing), per-user publish-flag resolution, and the completed
 // notification after the transaction so no caller can forget it. The notification
 // is best effort; a database failure is the only way this fails. Resolves to the handles whose
-// public site-data was actually rewritten (a replay, a missing handle or a newer manual edit
-// leaves them out), for the caller to refresh the public pages.
+// public site-data was rewritten (a missing handle or a newer manual edit leaves them out),
+// for the caller to refresh the public pages.
 export function completeResumes(input: ResumeCompletionInput) {
   return Effect.gen(function* () {
-    const { items, parsedContent, career, totalAttempts, fanOut } = input;
+    const { items, parsedContent, career, totalAttempts, fanOut, retryCount } = input;
     const now = new Date().toISOString();
     const resumeIds = items.map((item) => item.resumeId);
     const userIds = [...new Set(items.map((item) => item.userId))];
@@ -113,7 +119,11 @@ export function completeResumes(input: ResumeCompletionInput) {
           .where(
             fanOut
               ? and(inArray(resumes.id, resumeIds), eq(resumes.status, "waiting_for_cache"))
-              : and(inArray(resumes.id, resumeIds), ne(resumes.status, "completed")),
+              : and(
+                  inArray(resumes.id, resumeIds),
+                  ne(resumes.status, "completed"),
+                  retryCount === undefined ? undefined : eq(resumes.retryCount, retryCount),
+                ),
           )
           .returning({ id: resumes.id });
 
