@@ -1,9 +1,9 @@
-import { Effect, Layer } from "effect";
+import { env } from "cloudflare:workers";
+import { Effect } from "effect";
 import { desc, eq } from "drizzle-orm";
-import { withUser } from "@/lib/auth/with-auth";
+import { withUserEffect } from "@/lib/auth/with-auth";
 import { handleChanges } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { runRoute } from "@/lib/effect/edges";
 import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
 import { Umami } from "@/lib/effect/services/umami";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
@@ -217,14 +217,9 @@ function loadStats(
 }
 
 export async function GET(request: Request) {
-  return withUser(
+  return withUserEffect(
     request,
-    ({ db, dbUser, env }) =>
-      runRoute(
-        request,
-        loadStats(request, dbUser),
-        Layer.mergeAll(Db.layerFrom(db), Umami.layer(env)),
-      ),
+    ({ dbUser }) => loadStats(request, dbUser).pipe(Effect.provide(Umami.layer(env))),
     "Must be logged in to view analytics",
   );
 }

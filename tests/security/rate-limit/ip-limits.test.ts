@@ -17,13 +17,6 @@ import { sha256Hex } from "@/lib/utils/hash";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
-// The Promise edges build their own Db layer from getDb(env.HYPERDRIVE): point it at PGlite.
-const store = vi.hoisted(() => new Map<string, unknown>());
-
-vi.mock("cloudflare:workers", () => ({ env: { HYPERDRIVE: { connectionString: "unused" } } }));
-
-vi.mock("@/lib/db", () => ({ getDb: () => store.get("db") }));
-
 const HOUR_MS = 60 * 60 * 1000;
 
 const IP = "203.0.113.7";
@@ -48,7 +41,6 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.delete(uploadRateLimits);
-  store.set("db", db);
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("APP_URL", "https://clickfolio.me");
   vi.stubEnv("DISABLE_RATE_LIMITS", "");
@@ -281,73 +273,6 @@ describe("handle-check limiter (Effect)", () => {
 
     expect(refusal).toBeInstanceOf(RateLimitUnavailable);
     expect(refusal).toMatchObject({ retryAfterSeconds: 60 });
-    expect(logLines(error)[0]).toMatchObject({ level: "error", limiter: "handle_check" });
-  });
-});
-
-describe("Promise edges", () => {
-  it("answer an upload refusal with the old result shape", async () => {
-    const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
-
-    await seed(IP, "upload", 1000, 10);
-    const result = await checkIPRateLimit(IP);
-
-    expect(result).toEqual({
-      allowed: false,
-      remaining: { hourly: 0, daily: 40 },
-      message: "Too many upload requests. Try again in an hour. (Limit: 10/hour)",
-    });
-  });
-
-  it("count down remaining uploads", async () => {
-    const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
-
-    expect(await checkIPRateLimit(IP)).toEqual({
-      allowed: true,
-      remaining: { hourly: 9, daily: 49 },
-    });
-  });
-
-  it("keep refusing an upload when the store is down, flagged unavailable", async () => {
-    const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
-
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    store.set("db", brokenDb);
-
-    const result = await checkIPRateLimit(IP);
-
-    expect(result).toMatchObject({
-      allowed: false,
-      unavailable: true,
-      retryAfterSeconds: 60,
-      message: expect.stringContaining("temporarily unavailable"),
-    });
-  });
-
-  it("answer a handle-check refusal with the old result shape", async () => {
-    const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
-
-    await seed(IP, "handle_check", 1000, 100);
-
-    expect(await checkHandleRateLimit(IP)).toEqual({
-      allowed: false,
-      remaining: { hourly: 0, daily: 0 },
-      message: "Too many handle checks. Please try again later.",
-    });
-  });
-
-  it("fail closed for handle checks when the store is down", async () => {
-    const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    store.set("db", brokenDb);
-
-    expect(await checkHandleRateLimit(IP)).toMatchObject({
-      allowed: false,
-      unavailable: true,
-      retryAfterSeconds: 60,
-      message: expect.stringContaining("temporarily unavailable"),
-    });
     expect(logLines(error)[0]).toMatchObject({ level: "error", limiter: "handle_check" });
   });
 });

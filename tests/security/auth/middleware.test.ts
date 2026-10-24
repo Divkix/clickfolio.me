@@ -5,9 +5,10 @@ import { cookies } from "next/headers";
 import { env } from "cloudflare:workers";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { user as userTable } from "@/lib/db/schema";
-import { ClerkFailed } from "@/lib/effect/failures";
 import { CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
-import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { Effect } from "effect";
+import type { AuthenticatedUser } from "@/lib/auth/clerk";
+import { withUserEffect } from "@/lib/auth/with-auth";
 
 const mockVerifyToken = vi.mocked(verifyToken);
 
@@ -129,12 +130,38 @@ function pgRow(overrides: Partial<PgRow> = {}): PgRow {
   };
 }
 
+/**
+ * Runs the real `withUserEffect` pipeline (cookie, Clerk verification, row lookup) and reports
+ * what a route handler would see: the signed-in user, or the refusal response.
+ */
+async function requireAuth(message = "You must be logged in") {
+  const seen: AuthenticatedUser[] = [];
+
+  const response = await withUserEffect(
+    undefined,
+    (context) =>
+      Effect.sync(() => {
+        seen.push(context);
+
+        return new Response(null, { status: 204 });
+      }),
+    message,
+  );
+
+  return {
+    response,
+    error: seen.length > 0 ? null : response,
+    user: seen[0]?.user ?? null,
+    dbUser: seen[0]?.dbUser ?? null,
+  };
+}
+
 describe("Authentication Middleware Security", () => {
-  describe("requireAuthWithMessage", () => {
+  describe("session verification", () => {
     it("returns 401 when no __session cookie exists", async () => {
       sessionCookieValue = undefined;
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
       expect(result.user).toBeNull();
@@ -145,7 +172,7 @@ describe("Authentication Middleware Security", () => {
     it("returns 401 when the __session cookie is blank", async () => {
       sessionCookieValue = "";
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
       expect(result.user).toBeNull();
@@ -155,7 +182,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([pgRow()]);
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error).toBeNull();
       expect(mockVerifyToken).toHaveBeenCalledWith("signed-clerk-jwt-value", {
@@ -167,7 +194,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([pgRow({ privacySettings: { showDirectory: true }, role: "senior" })]);
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error).toBeNull();
       expect(result.user).toEqual({
@@ -184,23 +211,21 @@ describe("Authentication Middleware Security", () => {
     });
   });
 
-  describe("requireAuthWithUserValidation", () => {
+  describe("user row validation", () => {
     it("returns 401 when no session exists", async () => {
       sessionCookieValue = undefined;
 
-      const result = await requireAuthWithUserValidation("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
       expect(result.user).toBeNull();
-      expect(result.db).toBeNull();
-      expect(result.env).toBeNull();
     });
 
     it("returns 404 when verified claims have no mapped Postgres row", async () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([]);
 
-      const result = await requireAuthWithUserValidation("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(404);
       // SAFETY: the error body is only read after a 404 response in this test, and
@@ -210,16 +235,14 @@ describe("Authentication Middleware Security", () => {
       expect(result.dbUser).toBeNull();
     });
 
-    it("returns db, env, user, and dbUser with clerkId from the verified sub claim", async () => {
+    it("returns user and dbUser with clerkId from the verified sub claim", async () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([pgRow()]);
 
-      const result = await requireAuthWithUserValidation("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error).toBeNull();
       expect(result.user?.id).toBe("legacy-user-1");
-      expect(result.db).toBe(mockDb.db);
-      expect(result.env).toBe(env);
       expect(result.dbUser).toEqual({
         id: "legacy-user-1",
         handle: "testuser",
@@ -232,7 +255,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([pgRow()]);
 
-      await requireAuthWithUserValidation("You must be logged in");
+      await requireAuth();
 
       expect(mockDb.from).toHaveBeenCalledWith(userTable);
 
@@ -248,7 +271,7 @@ describe("Authentication Middleware Security", () => {
       mockVerifyToken.mockRejectedValue(tokenError("token-invalid-signature"));
       mockDb.setRows([pgRow({ email: "attacker@test.com" })]);
 
-      const result = await requireAuthWithUserValidation("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
       expect(mockDb.select).not.toHaveBeenCalled();
@@ -260,7 +283,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "expired-clerk-jwt";
       mockVerifyToken.mockRejectedValue(tokenError("token-expired"));
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
@@ -278,7 +301,7 @@ describe("Authentication Middleware Security", () => {
       });
       mockDb.setRows([pgRow()]);
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error).toBeNull();
       expect(result.user?.id).toBe("legacy-user-1");
@@ -299,7 +322,7 @@ describe("Authentication Middleware Security", () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         iat: Math.floor(Date.now() / 1000),
       });
-      const first = await requireAuthWithMessage("You must be logged in");
+      const first = await requireAuth();
 
       sessionCookieValue = "jwt-with-session-two";
       mockVerifyToken.mockResolvedValue({
@@ -311,7 +334,7 @@ describe("Authentication Middleware Security", () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
         iat: Math.floor(Date.now() / 1000),
       });
-      const second = await requireAuthWithMessage("You must be logged in");
+      const second = await requireAuth();
 
       expect(first.error).toBeNull();
       expect(second.error).toBeNull();
@@ -331,7 +354,7 @@ describe("Authentication Middleware Security", () => {
         iat: Math.floor(Date.now() / 1000),
       });
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error).toBeNull();
       expect(result.user?.id).toBe("legacy-user-1");
@@ -343,7 +366,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "valid-token-format-12345";
       mockVerifyToken.mockRejectedValue(tokenError("token-invalid"));
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
@@ -353,7 +376,7 @@ describe("Authentication Middleware Security", () => {
     it("rejects requests carrying only the __client device cookie", async () => {
       sessionCookieValue = undefined;
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
       expect(mockVerifyToken).not.toHaveBeenCalled();
@@ -363,7 +386,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "invalid-token";
       mockVerifyToken.mockRejectedValue(tokenError("token-invalid"));
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
@@ -371,7 +394,7 @@ describe("Authentication Middleware Security", () => {
     it("blocks requests with no cookies at all", async () => {
       sessionCookieValue = undefined;
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
@@ -382,7 +405,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "jwt-with-modified-payload";
       mockVerifyToken.mockRejectedValue(tokenError("token-invalid-signature"));
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
@@ -391,7 +414,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "jwt-with-alg-none";
       mockVerifyToken.mockRejectedValue(tokenError("token-invalid-algorithm"));
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
@@ -403,23 +426,25 @@ describe("Authentication Middleware Security", () => {
       // verifyClerkToken reads through optional chaining (payload?.sub).
       mockVerifyToken.mockResolvedValue({} as never);
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(401);
     });
   });
 
   describe("Fail-Closed Behavior", () => {
-    it("fails closed with a ClerkFailed, not a sign-out, when Clerk credentials are unconfigured", async () => {
+    it("fails closed with a 503, not a sign-out, when Clerk credentials are unconfigured", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
       Reflect.deleteProperty(env, "CLERK_SECRET_KEY");
 
       try {
         sessionCookieValue = "otherwise-valid-jwt";
         mockDb.setRows([pgRow()]);
 
-        await expect(requireAuthWithMessage("You must be logged in")).rejects.toBeInstanceOf(
-          ClerkFailed,
-        );
+        const result = await requireAuth();
+
+        expect(result.response.status).toBe(503);
+        expect(result.user).toBeNull();
         expect(mockVerifyToken).not.toHaveBeenCalled();
         expect(mockDb.select).not.toHaveBeenCalled();
       } finally {
@@ -427,13 +452,15 @@ describe("Authentication Middleware Security", () => {
       }
     });
 
-    it("propagates database failures during row lookup (route handlers map to 500)", async () => {
+    it("answers a database failure during row lookup with an error, never a sign-out", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setQueryError(new Error("Database connection lost"));
 
-      await expect(requireAuthWithUserValidation("You must be logged in")).rejects.toThrow(
-        "Database connection lost",
-      );
+      const result = await requireAuth();
+
+      expect(result.response.status).toBeGreaterThanOrEqual(500);
+      expect(result.user).toBeNull();
     });
   });
 
@@ -442,7 +469,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([]);
 
-      const result = await requireAuthWithUserValidation("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error?.status).toBe(404);
     });
@@ -451,7 +478,7 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([pgRow({ id: "other-user-row" })]);
 
-      const result = await requireAuthWithMessage("You must be logged in");
+      const result = await requireAuth();
 
       expect(result.error).toBeNull();
       expect(result.user?.id).toBe("other-user-row");

@@ -14,7 +14,7 @@ import { Db } from "@/lib/effect/db";
 import { runRoute } from "@/lib/effect/edges";
 import { ClerkFailed, Conflict, InvalidInput, Unauthorized } from "@/lib/effect/failures";
 import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
-import { collectR2KeysForUser } from "@/lib/r2";
+import { collectR2KeysForUser } from "@/lib/data/user-r2-keys";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";

@@ -10,7 +10,7 @@ import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { Clerk } from "@/lib/effect/services/clerk";
 import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
 import { R2_DELETE_BATCH_LIMIT, R2Store } from "@/lib/effect/services/r2-store";
-import { collectR2KeysForUser } from "@/lib/r2";
+import { collectR2KeysForUser } from "@/lib/data/user-r2-keys";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import type { UnknownRecord } from "@/lib/types/json";

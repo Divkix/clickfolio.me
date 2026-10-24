@@ -5,7 +5,7 @@ import { user } from "@/lib/db/schema";
 import type { TestDb } from "./pglite-db";
 
 /**
- * Drives the real `withUser` / `withUserEffect` pipeline from a test: the session cookie, Clerk's
+ * Drives the real `withUserEffect` pipeline from a test: the session cookie, Clerk's
  * token verification and the user lookup all run, against whatever database the test points
  * `getDb` at. The test file must mock `@clerk/backend` (with `verifyToken`) and `next/headers`.
  */

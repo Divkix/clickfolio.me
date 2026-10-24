@@ -1,10 +1,8 @@
 import { Effect } from "effect";
-import { env } from "cloudflare:workers";
 import { count, or, sql } from "drizzle-orm";
-import { withAdmin } from "@/lib/auth/with-auth";
+import { withAdminEffect } from "@/lib/auth/with-auth";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { runRoute } from "@/lib/effect/edges";
 import type { ServerFailure } from "@/lib/effect/failures";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 import { safePageParam } from "@/lib/utils/pagination";
@@ -189,5 +187,5 @@ function listUsers(request: Request): Effect.Effect<Response, ServerFailure, Db>
 
 // react-doctor-disable-next-line nextjs-no-side-effect-in-get-handler -- request-local map built from this query, discarded with the response
 export async function GET(request: Request) {
-  return withAdmin(request, () => runRoute(request, listUsers(request), Db.layer(env.HYPERDRIVE)));
+  return withAdminEffect(request, () => listUsers(request));
 }

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import type { AuthenticatedUser } from "@/lib/auth/clerk";
-import { Unauthorized } from "@/lib/effect/failures";
+import type { AdminUser } from "@/lib/auth/admin";
+import { Forbidden, Unauthorized } from "@/lib/effect/failures";
 
 /** What a test's "who is signed in" mock answers: a user, or a signed-out visitor. */
 export type StubbedSession =
@@ -30,5 +31,26 @@ export function authenticateStub(read: () => Promise<StubbedSession>) {
             )
           : Effect.succeed({ user: session.user, dbUser: session.dbUser }),
       ),
+    );
+}
+
+/** What a test's "who is the admin" mock answers: an admin, or a refusal (403 forbidden, else 401). */
+export type StubbedAdminSession =
+  | { readonly error: null; readonly user: AdminUser }
+  | { readonly error: Response };
+
+/** A stand-in for `authenticateAdmin` in `@/lib/auth/admin`, which `withAdminEffect` calls first. */
+export function authenticateAdminStub(read: () => Promise<StubbedAdminSession>) {
+  return (): Effect.Effect<AdminUser, Unauthorized | Forbidden> =>
+    Effect.promise(read).pipe(
+      Effect.flatMap((session): Effect.Effect<AdminUser, Unauthorized | Forbidden> => {
+        if (!session.error) return Effect.succeed(session.user);
+
+        if (session.error.status === 403) {
+          return Effect.fail(new Forbidden({ message: "Admin access required" }));
+        }
+
+        return Effect.fail(new Unauthorized({ message: "Unauthorized" }));
+      }),
     );
 }

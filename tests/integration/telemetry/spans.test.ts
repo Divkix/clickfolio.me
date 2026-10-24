@@ -1,7 +1,10 @@
+import { Effect } from "effect";
 import type { PoolClient, QueryResult } from "pg";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { WorkflowStarter as WorkflowStarterService } from "@/lib/effect/services/workflow-starter";
 import type { SpanAttributes } from "@/lib/telemetry/spans";
-import type { ResumeParseWorkflowBinding } from "@/lib/workflows/resume-parse";
+
+type Binding = NonNullable<Parameters<typeof WorkflowStarterService.layerFrom>[0]>;
 
 type SpanException = Parameters<Span["recordException"]>[0];
 
@@ -58,7 +61,7 @@ vi.mock("cloudflare:workers", () => {
 
 const { annotateActiveSpan, withSpan } = await import("@/lib/telemetry/spans");
 
-const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+const { WorkflowStarter } = await import("@/lib/effect/services/workflow-starter");
 
 const { describeStatement, traceQueries } = await import("@/lib/db/query-spans");
 
@@ -101,14 +104,21 @@ describe("withSpan", () => {
 
 describe("trace linking", () => {
   it("tags the workflow.create span with the ids the run's step spans repeat", async () => {
-    const create = vi.fn<ResumeParseWorkflowBinding["create"]>();
+    const create = vi.fn<Binding["create"]>();
 
-    const workflow: Pick<ResumeParseWorkflowBinding, "create" | "get"> = {
+    const workflow: Binding = {
       create,
       get: vi.fn(),
     };
 
-    await startResumeParse(workflow, "resume-1", { kind: "await-cache", resumeId: "resume-1" });
+    await Effect.runPromise(
+      Effect.provide(
+        WorkflowStarter.use((starter) =>
+          starter.startResumeParse("resume-1", { kind: "await-cache", resumeId: "resume-1" }),
+        ),
+        WorkflowStarter.layerFrom(workflow),
+      ),
+    );
 
     expect(create).toHaveBeenCalledOnce();
     expect(recorded).toEqual([
