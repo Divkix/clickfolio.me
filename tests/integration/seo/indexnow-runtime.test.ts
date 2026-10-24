@@ -173,6 +173,18 @@ describe("IndexNow runtime failures", () => {
     expect(logLines(warn)[0]).toMatchObject({ msg: "indexnow debounce unavailable" });
   });
 
+  it("still pings, and says so, when the debounce write is down", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cache.put.mockRejectedValueOnce(new Error("cache unavailable"));
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await notify(["grace"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@grace`]);
+    expect(logLines(warn)[0]).toMatchObject({ msg: "indexnow debounce write failed" });
+  });
+
   it("does nothing outside production", async () => {
     vi.stubEnv("APP_URL", "http://localhost:3000");
 
