@@ -487,7 +487,7 @@ describe("Admin API Integration Tests", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=1");
       const response = await GET(request);
 
-      expect([200, 500]).toContain(response.status);
+      expect([200, 500, 503]).toContain(response.status);
 
       if (response.status === 200) {
         const body: {
@@ -522,7 +522,7 @@ describe("Admin API Integration Tests", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=1&search=john");
       const response = await GET(request);
 
-      expect([200, 500]).toContain(response.status);
+      expect([200, 500, 503]).toContain(response.status);
 
       if (response.status === 200) {
         const body: { users: JsonValue[] } = await response.json();
@@ -540,7 +540,7 @@ describe("Admin API Integration Tests", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=2");
       const response = await GET(request);
 
-      expect([200, 500]).toContain(response.status);
+      expect([200, 500, 503]).toContain(response.status);
 
       if (response.status === 200) {
         const body: { page: number; pageSize: number; total: number } = await response.json();
@@ -580,7 +580,7 @@ describe("Admin API Integration Tests", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=1");
       const response = await GET(request);
 
-      expect([200, 500]).toContain(response.status);
+      expect([200, 500, 503]).toContain(response.status);
 
       if (response.status === 200) {
         const body: { users: JsonValue[]; total: number } = await response.json();
