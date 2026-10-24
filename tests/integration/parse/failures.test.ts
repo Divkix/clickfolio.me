@@ -18,6 +18,7 @@ import {
   checkRetryEligibility,
   isPermanentErrorType,
   parseLastAttemptError,
+  RETRY_LIMITS,
 } from "@/lib/resume/lifecycle";
 
 const cause = new Error("original");
@@ -39,6 +40,27 @@ const cases = [
 ] as const;
 
 describe("stable parse failure wire format", () => {
+  it("leaves both manual retries reachable after exhausted parse runs", () => {
+    for (const retryCount of [0, 1]) {
+      expect(
+        checkRetryEligibility({
+          status: "failed",
+          retryCount,
+          totalAttempts: (retryCount + 1) * RETRY_LIMITS.PARSE_MAX_ATTEMPTS,
+        }),
+      ).toEqual({ eligible: true, nextAttempt: retryCount + 1 });
+    }
+
+    expect(
+      checkRetryEligibility({
+        status: "failed",
+        retryCount: 2,
+        totalAttempts: RETRY_LIMITS.TOTAL_MAX_ATTEMPTS,
+      }).eligible,
+    ).toBe(false);
+    expect(RETRY_LIMITS.TOTAL_MAX_ATTEMPTS).toBe(12);
+  });
+
   it.each([ParseErrorType.MALFORMED_RESPONSE, ParseErrorType.PARSE_VALIDATION_ERROR])(
     "allows a manual retry after nondeterministic %s output",
     (type) => {

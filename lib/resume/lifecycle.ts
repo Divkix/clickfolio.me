@@ -8,9 +8,13 @@ function isString(value: JsonValue): value is string {
   return z.string().safeParse(value).success;
 }
 
+const MANUAL_MAX_RETRIES = 2;
+const PARSE_MAX_ATTEMPTS = 4;
+
 export const RETRY_LIMITS = {
-  MANUAL_MAX_RETRIES: 2,
-  TOTAL_MAX_ATTEMPTS: 6,
+  MANUAL_MAX_RETRIES,
+  PARSE_MAX_ATTEMPTS,
+  TOTAL_MAX_ATTEMPTS: PARSE_MAX_ATTEMPTS * (1 + MANUAL_MAX_RETRIES),
 } as const;
 
 export const PERMANENT_ERROR_TYPES = new Set<ParseErrorType>([
