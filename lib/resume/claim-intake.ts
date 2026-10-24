@@ -125,8 +125,8 @@ function logObjectsLeftBehind(keyCount: number): void {
 }
 
 // Marks the row failed with the message the visitor can see on the status page. Best-effort:
-// the failure the caller is already handling is what the visitor is told, and a row that could
-// not be marked stays pending_claim, which is logged here.
+// the failure the caller is already handling is what the visitor is told. A run that already
+// started or completed must not be rolled back by a late start/lookup failure.
 function markFailed(resumeId: string, errorMessage: string) {
   const stuck = (failure: { message: string; cause?: unknown }) =>
     Effect.sync(() => {
@@ -138,7 +138,10 @@ function markFailed(resumeId: string, errorMessage: string) {
 
   return Db.use((service) =>
     service.query("claim.fail", (db) =>
-      db.update(resumes).set({ status: "failed", errorMessage }).where(eq(resumes.id, resumeId)),
+      db
+        .update(resumes)
+        .set({ status: "failed", errorMessage })
+        .where(and(eq(resumes.id, resumeId), inArray(resumes.status, ["pending_claim", "queued"]))),
     ),
   ).pipe(Effect.asVoid, Effect.catchTags({ DbFailed: stuck, DbConflict: stuck }));
 }

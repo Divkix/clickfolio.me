@@ -648,6 +648,49 @@ describe("POST /api/resume/claim: failures", () => {
     expect((await readClaimed())[0]).toMatchObject({ status: "failed" });
   });
 
+  // SAFETY: These literals are the two Workflow states that intake must preserve.
+  it.each(["processing", "completed"] as const)(
+    "keeps a %s run when its persisted Workflow start times out",
+    async (status) => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      mocks.startResumeParse.mockImplementation(
+        async (_workflow, _id, params: { resumeId: string }) => {
+          await db
+            .update(resumes)
+            .set({ status, parsedContent: status === "completed" ? INDEXABLE_CONTENT : null })
+            .where(eq(resumes.id, params.resumeId));
+
+          if (status === "completed") {
+            await db.insert(siteData).values({
+              id: "site_completed",
+              userId: "user_1",
+              resumeId: params.resumeId,
+              content: INDEXABLE_CONTENT,
+              createdAt: NOW,
+              updatedAt: NOW,
+            });
+          }
+
+          return new Promise(() => {});
+        },
+      );
+
+      const pending = claim();
+
+      await vi.waitFor(async () => expect((await readClaimed())[0]?.status).toBe(status));
+      await vi.advanceTimersByTimeAsync(TIMEOUT_MS.workflow + 1);
+
+      expect((await pending).status).toBe(504);
+      expect((await readClaimed())[0]).toMatchObject({ status, errorMessage: null });
+
+      if (status === "completed") {
+        expect(await db.select().from(siteData)).toMatchObject([
+          { resumeId: (await readClaimed())[0].id, content: INDEXABLE_CONTENT },
+        ]);
+      }
+    },
+  );
+
   it("answers 503 and fails the row when the R2 put fails", async () => {
     mocks.bucket.put.mockRejectedValue(new Error("R2 unavailable"));
 
