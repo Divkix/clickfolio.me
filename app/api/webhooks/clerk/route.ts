@@ -3,18 +3,22 @@
  * Clerk Dashboard webhook at https://clickfolio.me/api/webhooks/clerk.
  */
 
-import { log } from "@/lib/utils/log";
-import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
+import { Effect, Layer } from "effect";
 import { Webhook } from "svix";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { getDb, type Database } from "@/lib/db";
+import type { PgQueryable } from "@/lib/db";
 import { user as users } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
+import { ClerkFailed, Conflict, InvalidInput, Unauthorized } from "@/lib/effect/failures";
+import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
 import { collectR2KeysForUser } from "@/lib/r2";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { errorFields } from "@/lib/utils/error-fields";
+import { log } from "@/lib/utils/log";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
-import { scheduleR2Deletion } from "@/lib/workflows/r2-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +94,7 @@ function primaryEmailOf(payload: ClerkUserPayload): {
   };
 }
 
-async function findMappedUser(db: Database, payload: ClerkUserPayload) {
+async function findMappedUser(db: PgQueryable, payload: ClerkUserPayload) {
   const byClerkId = await db.query.user.findFirst({
     where: eq(users.clerkId, payload.id),
   });
@@ -128,7 +132,7 @@ function profileColumns(payload: ClerkUserPayload): ProfileColumns {
   return columns;
 }
 
-async function upsertUser(db: Database, payload: ClerkUserPayload): Promise<string> {
+async function upsertUser(db: PgQueryable, payload: ClerkUserPayload): Promise<string> {
   const existing = await findMappedUser(db, payload);
   const now = new Date().toISOString();
   const profile = profileColumns(payload);
@@ -163,100 +167,158 @@ type WebhookOutcome = {
   detail?: string;
 };
 
-export async function POST(request: Request): Promise<Response> {
-  const secret = env.CLERK_WEBHOOK_SECRET;
+const VERIFY_OPERATION = "clerk.webhook-verify";
 
-  if (!secret) {
-    log("error", "[clerk-webhook] CLERK_WEBHOOK_SECRET is not configured");
+/**
+ * Checks the Svix signature and timestamp, then parses the verified body. A bad signature is the
+ * sender's fault (401); a malformed signing secret or none at all is ours (500).
+ */
+function verifiedEvent(request: Request) {
+  return Effect.gen(function* () {
+    const secret = env.CLERK_WEBHOOK_SECRET;
 
-    return Response.json({ error: "Server misconfiguration" }, { status: 500 });
-  }
+    if (!secret) {
+      return yield* Effect.fail(
+        new ClerkFailed({
+          operation: VERIFY_OPERATION,
+          kind: "rejected",
+          message: "CLERK_WEBHOOK_SECRET is not configured",
+        }),
+      );
+    }
 
-  let rawBody: string;
+    const rawBody = yield* Effect.tryPromise({
+      try: () => request.text(),
+      catch: () => new InvalidInput({ message: "Invalid request body" }),
+    });
 
-  try {
-    rawBody = await request.text();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+    const webhook = yield* Effect.try({
+      try: () => new Webhook(secret),
+      catch: (cause) =>
+        new ClerkFailed({
+          operation: VERIFY_OPERATION,
+          kind: "rejected",
+          message: "CLERK_WEBHOOK_SECRET is not a valid Svix secret",
+          cause,
+        }),
+    });
 
-  let event: z.infer<typeof verifiedEventSchema>;
-
-  try {
-    const wh = new Webhook(secret);
     // verify() throws on any signature/timestamp problem and, since svix 2.2,
     // returns undefined instead of the parsed body — parse the verified raw
     // body here. Parsing the return value breaks every delivery.
-    wh.verify(rawBody, {
-      "svix-id": request.headers.get("svix-id") ?? "",
-      "svix-timestamp": request.headers.get("svix-timestamp") ?? "",
-      "svix-signature": request.headers.get("svix-signature") ?? "",
+    yield* Effect.try({
+      try: () =>
+        webhook.verify(rawBody, {
+          "svix-id": request.headers.get("svix-id") ?? "",
+          "svix-timestamp": request.headers.get("svix-timestamp") ?? "",
+          "svix-signature": request.headers.get("svix-signature") ?? "",
+        }),
+      catch: (cause) => {
+        log("warn", "[clerk-webhook] signature verification failed:", { ...errorFields(cause) });
+
+        return new Unauthorized({ message: "Unauthorized" });
+      },
     });
-    const parsedEvent = verifiedEventSchema.safeParse(JSON.parse(rawBody));
+
+    const json = yield* Effect.try({
+      try: () => JSON.parse(rawBody),
+      catch: () => new InvalidInput({ message: "Invalid payload" }),
+    });
+
+    const parsedEvent = verifiedEventSchema.safeParse(json);
 
     if (!parsedEvent.success) {
-      return Response.json({ error: "Invalid payload" }, { status: 400 });
+      return yield* Effect.fail(new InvalidInput({ message: "Invalid payload" }));
     }
 
-    event = parsedEvent.data;
-  } catch (error) {
-    log("warn", "[clerk-webhook] signature verification failed:", { ...errorFields(error) });
+    return parsedEvent.data;
+  });
+}
 
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+function handleDelivery(request: Request) {
+  return Effect.gen(function* () {
+    const event = yield* verifiedEvent(request);
 
-  if (!["user.created", "user.updated", "user.deleted"].includes(event.type)) {
-    const outcome: WebhookOutcome = { received: true, action: "ignored", detail: event.type };
+    if (!["user.created", "user.updated", "user.deleted"].includes(event.type)) {
+      const outcome: WebhookOutcome = { received: true, action: "ignored", detail: event.type };
 
-    return Response.json(outcome);
-  }
+      return Response.json(outcome);
+    }
 
-  // Deactivations (deleted=false) keep the account; hard deletes remove it.
-  if (event.type === "user.deleted" && deactivatedSchema.safeParse(event.data).success) {
-    const outcome: WebhookOutcome = { received: true, action: "ignored", detail: "deactivation" };
+    // Deactivations (deleted=false) keep the account; hard deletes remove it.
+    if (event.type === "user.deleted" && deactivatedSchema.safeParse(event.data).success) {
+      const outcome: WebhookOutcome = { received: true, action: "ignored", detail: "deactivation" };
 
-    return Response.json(outcome);
-  }
+      return Response.json(outcome);
+    }
 
-  const userResult = clerkUserSchema.safeParse(event.data);
+    const userResult = clerkUserSchema.safeParse(event.data);
 
-  if (!userResult.success) {
-    return Response.json({ error: "Unrecognized user payload" }, { status: 400 });
-  }
+    if (!userResult.success) {
+      return yield* Effect.fail(new InvalidInput({ message: "Unrecognized user payload" }));
+    }
 
-  const payload = toUserPayload(userResult.data);
+    const payload = toUserPayload(userResult.data);
 
-  const db = getDb(env.HYPERDRIVE);
-
-  try {
     if (event.type === "user.deleted") {
       // Start the R2 cleanup before the cascade removes the resume rows the keys
-      // come from. A failed start returns 500 before the delete, so the Svix retry
-      // collects the same keys again.
-      const mapped = await findMappedUser(db, payload);
+      // come from. A failed start fails the delivery before the delete, so the Svix
+      // retry collects the same keys again (R2 deletes are idempotent).
+      const mapped = yield* Db.use((db) =>
+        db.query("webhook.clerk.find-user", (handle) => findMappedUser(handle, payload)),
+      );
 
       if (mapped) {
-        await scheduleR2Deletion(env.CLICKFOLIO_R2_DELETE_WORKFLOW, {
-          keys: await collectR2KeysForUser(db, mapped.id),
-          prefix: `users/${mapped.id}/`,
-        });
+        const keys = yield* Db.use((db) =>
+          db.query("webhook.clerk.resume-keys", (handle) =>
+            collectR2KeysForUser(handle, mapped.id),
+          ),
+        );
+
+        yield* R2DeleteScheduler.use((scheduler) =>
+          scheduler.schedule({ keys, prefix: `users/${mapped.id}/` }),
+        );
       }
 
-      await db.delete(users).where(eq(users.clerkId, payload.id));
-      notifyIndexNowForProfiles([mapped?.handle]);
-      revalidatePublicProfilePages([mapped?.handle]);
+      // Delete the row that was mapped, which may have matched by external id alone: deleting
+      // by Clerk id would leave it behind with its files already swept.
+      if (mapped) {
+        yield* Db.use((db) =>
+          db.query("webhook.clerk.delete-user", (handle) =>
+            handle.delete(users).where(eq(users.id, mapped.id)),
+          ),
+        );
+      }
+
+      yield* Effect.sync(() => {
+        notifyIndexNowForProfiles([mapped?.handle]);
+        revalidatePublicProfilePages([mapped?.handle]);
+      });
+
       const outcome: WebhookOutcome = { received: true, action: "deleted" };
 
       return Response.json(outcome);
     }
 
-    const userId = await upsertUser(db, payload);
+    // A concurrent delivery for the same user can win the insert; Svix retries and then updates.
+    const userId = yield* Db.use((db) =>
+      db.query("webhook.clerk.upsert-user", (handle) => upsertUser(handle, payload)),
+    ).pipe(
+      Effect.catchTag("DbConflict", () =>
+        Effect.fail(new Conflict({ message: "Conflicting user record" })),
+      ),
+    );
+
     const outcome: WebhookOutcome = { received: true, action: "upserted", detail: userId };
 
     return Response.json(outcome);
-  } catch (error) {
-    log("error", `[clerk-webhook] ${event.type} handling failed:`, { ...errorFields(error) });
+  });
+}
 
-    return Response.json({ error: "Internal error" }, { status: 500 });
-  }
+export function POST(request: Request): Promise<Response> {
+  return runRoute(
+    request,
+    handleDelivery(request),
+    Layer.mergeAll(Db.layer(env.HYPERDRIVE), R2DeleteScheduler.layer(env)),
+  );
 }

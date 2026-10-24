@@ -1,4 +1,4 @@
-import { verifyToken } from "@clerk/backend";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Context, Effect, Layer } from "effect";
 import { z } from "zod";
 import { errorFields } from "@/lib/utils/error-fields";
@@ -53,6 +53,11 @@ type Verification =
   | { readonly outcome: "verified"; readonly claims: ClerkClaims }
   | { readonly outcome: "rejected"; readonly cause: unknown };
 
+// What `users.deleteUser` throws on a refusal: a ClerkAPIResponseError carries the HTTP status.
+const httpStatusSchema = z.object({ status: z.number() });
+
+const DELETE_USER_OPERATION = "clerk.delete-user";
+
 type ClerkService = {
   /**
    * Claims of a valid session token, or `null` when the token is expired, forged or malformed
@@ -62,10 +67,50 @@ type ClerkService = {
    * the timeout and never retries.
    */
   readonly verifyToken: (token: string) => Effect.Effect<ClerkClaims | null, ClerkFailed>;
+  /**
+   * Deletes the Clerk identity. A user Clerk no longer has (404) counts as deleted, so a repeat
+   * of a delete that landed after a timeout still succeeds. A missing secret key fails
+   * non-retryable. Never retried here: the caller decides, and the `user.deleted` webhook
+   * finishes local cleanup if the request cannot be repeated.
+   */
+  readonly deleteUser: (clerkId: string) => Effect.Effect<void, ClerkFailed>;
 };
+
+function deleteUserWith(secretKey: string | undefined): ClerkService["deleteUser"] {
+  return (clerkId) => {
+    if (!secretKey) {
+      return Effect.fail(
+        new ClerkFailed({
+          operation: DELETE_USER_OPERATION,
+          kind: "rejected",
+          message: "CLERK_SECRET_KEY is not configured",
+        }),
+      );
+    }
+
+    return externalCall({
+      operation: DELETE_USER_OPERATION,
+      timeoutMs: TIMEOUT_MS.clerk,
+      // The SDK takes no AbortSignal: a timeout stops the wait, not the request.
+      run: async () => {
+        try {
+          await createClerkClient({ secretKey }).users.deleteUser(clerkId);
+        } catch (cause) {
+          const status = httpStatusSchema.safeParse(cause);
+
+          if (status.success && status.data.status === 404) return;
+
+          throw cause;
+        }
+      },
+      fail: (details) => new ClerkFailed(details),
+    });
+  };
+}
 
 function service(secretKey: string | undefined): ClerkService {
   return {
+    deleteUser: deleteUserWith(secretKey),
     verifyToken: (token) => {
       if (!token) return Effect.succeed(null);
 
@@ -122,8 +167,14 @@ export class Clerk extends Context.Service<Clerk, ClerkService>()("clickfolio/Cl
     return Layer.sync(Clerk, () => service(env.CLERK_SECRET_KEY));
   }
 
-  /** For tests: swap the verification itself, no network and no secret. */
-  static layerFrom(verify: ClerkService["verifyToken"]): Layer.Layer<Clerk> {
-    return Layer.succeed(Clerk, { verifyToken: verify });
+  /**
+   * For tests: swap the verification (and optionally the deletion) itself, no network and no
+   * secret. Without `deleteUser`, deleting fails as not configured.
+   */
+  static layerFrom(
+    verify: ClerkService["verifyToken"],
+    deleteUser: ClerkService["deleteUser"] = deleteUserWith(undefined),
+  ): Layer.Layer<Clerk> {
+    return Layer.succeed(Clerk, { verifyToken: verify, deleteUser });
   }
 }
