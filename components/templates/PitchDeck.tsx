@@ -429,7 +429,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
         .pd-deck a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
       `}</style>
       <div className="pd-deck min-h-screen overflow-x-hidden bg-[#E3E4E8]" style={{ color: INK }}>
-        <main className="mx-auto max-w-[66rem] px-4 pt-8 pb-16 sm:px-8 sm:pt-14 sm:pb-20">
+        <div className="mx-auto max-w-[66rem] px-4 pt-8 pb-16 sm:px-8 sm:pt-14 sm:pb-20">
           <div className="space-y-6 sm:space-y-10">
             {slides.map((spec, index) => (
               <Slide
@@ -452,7 +452,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="pitch-deck"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

@@ -163,7 +163,7 @@ export const Workspace: React.FC<TemplateProps> = ({ content, profile }) => {
       `}</style>
       <div className="ws-root">
         <div className="ws-cover" aria-hidden="true" />
-        <main className="ws-page">
+        <div className="ws-page">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt="" width={80} height={80} className="ws-icon" />
           ) : (
@@ -316,7 +316,7 @@ export const Workspace: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="workspace"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

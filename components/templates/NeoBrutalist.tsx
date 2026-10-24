@@ -382,7 +382,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
 
         <Marquee skills={flatSkills} />
 
-        <main className="mx-auto max-w-6xl space-y-20 px-4 pb-20 md:space-y-28 md:px-8">
+        <div className="mx-auto max-w-6xl space-y-20 px-4 pb-20 md:space-y-28 md:px-8">
           {content.experience.length > 0 && <Experience experience={content.experience} />}
 
           {content.projects && content.projects.length > 0 && <Work projects={content.projects} />}
@@ -392,7 +392,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
           {(education.length > 0 || certifications.length > 0) && (
             <EducationAndCerts education={education} certifications={certifications} />
           )}
-        </main>
+        </div>
 
         <footer className="mx-auto flex max-w-6xl flex-col gap-4 border-t-4 border-black px-4 py-8 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <p className="text-sm font-bold" suppressHydrationWarning>

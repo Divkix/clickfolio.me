@@ -244,7 +244,7 @@ export const ContactSheet: React.FC<TemplateProps> = ({ content, profile }) => {
             )}
           </header>
 
-          <main>
+          <div>
             {hasProjects && (
               <section className="cs-section" aria-labelledby="cs-frames">
                 <h2 id="cs-frames">Selected frames</h2>
@@ -320,7 +320,7 @@ export const ContactSheet: React.FC<TemplateProps> = ({ content, profile }) => {
                 )}
               </section>
             )}
-          </main>
+          </div>
 
           <footer className="cs-foot">
             {emailLink ? (

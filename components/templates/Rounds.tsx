@@ -203,7 +203,7 @@ export const Rounds: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </aside>
 
-          <main className="rd-main">
+          <div className="rd-main">
             {summary && <p className="rd-lede">{summary}</p>}
 
             {certifications && certifications.length > 0 && (
@@ -341,7 +341,7 @@ export const Rounds: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
               </section>
             )}
-          </main>
+          </div>
         </div>
 
         <footer className="rd-foot">

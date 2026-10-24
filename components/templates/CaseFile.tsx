@@ -329,7 +329,7 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
           .cf-no-print { display: none !important; }
         }
       `}</style>
-      <main
+      <div
         className="cf-desk font-body-cf min-h-screen w-full overflow-x-hidden px-2 py-6 sm:px-6 md:py-14"
         style={{ color: INK }}
       >
@@ -425,7 +425,7 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
             </article>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 };

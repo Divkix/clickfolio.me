@@ -463,7 +463,7 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
         .rl-root .rl-safe-inner { position: absolute; inset: 10% 10%; border: 1px dashed rgba(255,255,255,0.08); pointer-events: none; }
       `}</style>
       <div className="rl-root min-h-screen overflow-x-hidden bg-[#0C0C0E] text-[#E7E6E2]">
-        <main className="mx-auto max-w-[76rem] px-4 pt-6 pb-20 sm:px-6 sm:pt-10 space-y-4">
+        <div className="mx-auto max-w-[76rem] px-4 pt-6 pb-20 sm:px-6 sm:pt-10 space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <Panel
               title={`@${profile.handle}`}
@@ -794,7 +794,7 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="reel"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

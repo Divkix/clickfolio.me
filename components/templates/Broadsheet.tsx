@@ -138,7 +138,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
           .bs-no-print { display: none !important; }
         }
       `}</style>
-      <main className="bs-root min-h-screen w-full overflow-x-hidden">
+      <div className="bs-root min-h-screen w-full overflow-x-hidden">
         <div className="bs-wrap">
           <div className="bs-strip" aria-hidden="true">
             <span>Résumé</span>
@@ -259,7 +259,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
             />
           </footer>
         </div>
-      </main>
+      </div>
     </>
   );
 };

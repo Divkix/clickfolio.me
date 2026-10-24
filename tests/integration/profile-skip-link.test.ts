@@ -37,8 +37,8 @@ describe("public profile skip link", () => {
       const page = await HandlePage({ params: Promise.resolve({ handle: "@someone" }) });
       const html = renderToStaticMarkup(page);
       expect(html.match(/id="main-content"/g)).toHaveLength(1);
-      expect(html).toContain('<div id="main-content">');
-      expect(html.match(/<main\b/g)?.length ?? 0).toBeLessThanOrEqual(1);
+      expect(html).toContain('<main id="main-content">');
+      expect(html.match(/<main\b/g)).toHaveLength(1);
     },
   );
 });

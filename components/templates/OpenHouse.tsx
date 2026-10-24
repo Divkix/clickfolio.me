@@ -234,7 +234,7 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
         .oh-root :is(h2, h3), .oh-root .oh-label { font-family: 'Archivo', system-ui, sans-serif; font-weight: 700; font-stretch: 108%; }
       `}</style>
       <div className="oh-root min-h-screen bg-[#EEF1EE] text-[#18231D] overflow-x-hidden">
-        <main className="mx-auto max-w-[50rem] px-4 sm:px-8 pt-10 sm:pt-14 pb-24">
+        <div className="mx-auto max-w-[50rem] px-4 sm:px-8 pt-10 sm:pt-14 pb-24">
           <YardSign
             name={full_name}
             headline={headline}
@@ -399,7 +399,7 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="open-house"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );

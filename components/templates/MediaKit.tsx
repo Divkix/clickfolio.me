@@ -132,7 +132,7 @@ export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
 
         .mk-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem 2.5rem; margin-top: clamp(2.75rem, 7vw, 4.5rem); padding-top: 1.1rem; border-top: 2px solid var(--ink); }
         @media (min-width: 56rem) { .mk-section { grid-template-columns: 13rem minmax(0, 1fr); } }
-        main > .mk-inner:first-child > .mk-section:first-child { margin-top: clamp(1.75rem, 4vw, 2.5rem); }
+        .mk-content > .mk-inner:first-child > .mk-section:first-child { margin-top: clamp(1.75rem, 4vw, 2.5rem); }
         .mk-root h2.mk-h2 { font-size: clamp(1.75rem, 3.6vw, 2.35rem); line-height: 1.05; font-weight: 500; font-style: italic; letter-spacing: -0.01em; }
         .mk-body { min-width: 0; }
 
@@ -252,7 +252,7 @@ export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
           </div>
         </header>
 
-        <main>
+        <div className="mk-content">
           <div className="mk-inner">
             {brands.length > 0 && (
               <Section id="mk-brands" title="Worked with">
@@ -450,7 +450,7 @@ export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
               </Section>
             )}
           </div>
-        </main>
+        </div>
 
         <footer className="mk-close">
           <div className="mk-inner mk-close-in">

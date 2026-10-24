@@ -107,7 +107,7 @@ export const LinerNotes: React.FC<TemplateProps> = ({ content, profile }) => {
         }
       `}</style>
       <div className="ln-root">
-        <main className="ln-wrap">
+        <div className="ln-wrap">
           <div className="ln-cover">
             <div className="ln-stack">
               <div className="ln-record" aria-hidden="true">
@@ -274,7 +274,7 @@ export const LinerNotes: React.FC<TemplateProps> = ({ content, profile }) => {
               )}
             </section>
           )}
-        </main>
+        </div>
 
         <footer className="ln-foot">
           <div className="ln-share">

@@ -124,6 +124,7 @@ describe.each(THEME_IDS)("template %s", (themeId) => {
     const { html, visibleText } = await render(themeId, content, PROFILES.withoutAvatar);
 
     expect(html).toContain(content.full_name);
+    expect(html).not.toMatch(/<main\b/);
     expect(visibleText).not.toMatch(LEAKED);
   });
 

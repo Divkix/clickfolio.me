@@ -203,7 +203,7 @@ export const AcademicCV: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </nav>
           )}
 
-          <main className="ac-main">
+          <div className="ac-main">
             <header className="ac-head">
               <div className="ac-head-text">
                 <h1 className="ac-name">{full_name}</h1>
@@ -327,7 +327,7 @@ export const AcademicCV: React.FC<TemplateProps> = ({ content, profile, isPrevie
                 />
               </div>
             </footer>
-          </main>
+          </div>
         </div>
       </div>
     </>

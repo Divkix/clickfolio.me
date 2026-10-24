@@ -314,7 +314,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
         }
       `}</style>
 
-      <main
+      <div
         className="bento-root font-bento min-h-screen px-3 py-3 antialiased sm:px-5 sm:py-5 lg:px-8 lg:py-8"
         style={{ backgroundColor: "#E4E7E1", color: INK }}
       >
@@ -499,7 +499,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             variant="bento-grid"
           />
         </footer>
-      </main>
+      </div>
     </>
   );
 };

@@ -30,8 +30,11 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className={cn("min-h-screen", bg?.bg ?? "bg-white", bg?.isDark ? "dark" : "")}>
+    <main
+      id="main-content"
+      className={cn("min-h-screen", bg?.bg ?? "bg-white", bg?.isDark ? "dark" : "")}
+    >
       <Template content={content} profile={profile} />
-    </div>
+    </main>
   );
 }

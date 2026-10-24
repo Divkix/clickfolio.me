@@ -434,7 +434,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
         <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-8 px-4 py-8 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)] md:px-8 lg:grid-cols-[296px_minmax(0,1fr)]">
           <ProfileSidebar content={content} avatarUrl={profile.avatar_url} />
 
-          <main className="min-w-0 space-y-10">
+          <div className="min-w-0 space-y-10">
             <Readme handle={profile.handle} summary={summary} />
 
             {projects && projects.length > 0 && <ProjectsSection projects={projects} />}
@@ -458,7 +458,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 variant="dev-terminal"
               />
             </footer>
-          </main>
+          </div>
         </div>
       </div>
     </>

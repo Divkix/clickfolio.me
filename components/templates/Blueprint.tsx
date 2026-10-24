@@ -194,7 +194,7 @@ export const Blueprint: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
               </header>
 
-              <main>
+              <div>
                 {experience.length > 0 && (
                   <Section index={nextIndex()} title="Experience">
                     <Jobs experience={experience} />
@@ -296,7 +296,7 @@ export const Blueprint: React.FC<TemplateProps> = ({ content, profile }) => {
                     </table>
                   </Section>
                 )}
-              </main>
+              </div>
 
               <footer>
                 <div className="bp-title-block">

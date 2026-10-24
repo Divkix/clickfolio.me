@@ -277,7 +277,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap" />
       <style>{`.bc-root, .bc-display { font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; }`}</style>
 
-      <main className="bc-root min-h-screen bg-white text-[#1B2430] antialiased selection:bg-[#0E2A47] selection:text-white lg:grid lg:grid-cols-[minmax(320px,400px)_1fr]">
+      <div className="bc-root min-h-screen bg-white text-[#1B2430] antialiased selection:bg-[#0E2A47] selection:text-white lg:grid lg:grid-cols-[minmax(320px,400px)_1fr]">
         <Sidebar content={content} avatarUrl={profile.avatar_url} />
 
         <div className="min-w-0 px-6 py-12 sm:px-10 lg:px-16 lg:py-16 xl:px-20">
@@ -307,7 +307,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
             {certifications.length > 0 && <CertificationsSection certifications={certifications} />}
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 };

@@ -117,7 +117,7 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
       <div className="qt-root min-h-screen bg-[#FBFAF8] text-[#1F1C19] overflow-x-hidden">
         <div className="h-2" style={{ backgroundColor: ACCENT }} aria-hidden="true" />
 
-        <main className="mx-auto max-w-[46rem] px-5 sm:px-8 pt-12 sm:pt-16 pb-24">
+        <div className="mx-auto max-w-[46rem] px-5 sm:px-8 pt-12 sm:pt-16 pb-24">
           <header>
             {profile.avatar_url && (
               <img
@@ -361,7 +361,7 @@ export const Quota: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="quota"
             />
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );
