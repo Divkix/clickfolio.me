@@ -330,7 +330,6 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
         }
       `}</style>
       <main
-        id="main-content"
         className="cf-desk font-body-cf min-h-screen w-full overflow-x-hidden px-2 py-6 sm:px-6 md:py-14"
         style={{ color: INK }}
       >

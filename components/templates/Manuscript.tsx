@@ -311,7 +311,7 @@ export const Manuscript: React.FC<TemplateProps> = ({ content, profile }) => {
           .ms-title h1 { font-size: 52px; }
         }
       `}</style>
-      <main id="main-content" className="ms-root">
+      <main className="ms-root">
         <div className={chapters.length > 0 ? "ms-spread" : "ms-spread ms-spread--solo"}>
           <div className="ms-ribbon" aria-hidden="true" />
 

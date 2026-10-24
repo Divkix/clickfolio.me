@@ -204,7 +204,7 @@ export const Boardroom: React.FC<TemplateProps> = ({ content, profile }) => {
           .bd-no-print { display: none !important; }
         }
       `}</style>
-      <main id="main-content" className="bd-root min-h-screen w-full overflow-x-hidden">
+      <main className="bd-root min-h-screen w-full overflow-x-hidden">
         <div className="bd-wrap">
           <aside className="bd-id">
             <Mark name={full_name} avatarUrl={profile.avatar_url} />
