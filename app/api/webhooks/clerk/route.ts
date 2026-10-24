@@ -14,6 +14,7 @@ import { user as users } from "@/lib/db/schema";
 import { collectR2KeysForUser } from "@/lib/r2";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
+import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { scheduleR2Deletion } from "@/lib/workflows/r2-delete";
 
 export const dynamic = "force-dynamic";
@@ -180,30 +181,38 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  let event: z.infer<typeof verifiedEventSchema>;
-
   try {
     const wh = new Webhook(secret);
     // verify() throws on any signature/timestamp problem and, since svix 2.2,
     // returns undefined instead of the parsed body — parse the verified raw
-    // body here. Parsing the return value breaks every delivery.
+    // body below. Parsing the return value breaks every delivery.
     wh.verify(rawBody, {
       "svix-id": request.headers.get("svix-id") ?? "",
       "svix-timestamp": request.headers.get("svix-timestamp") ?? "",
       "svix-signature": request.headers.get("svix-signature") ?? "",
     });
-    const parsedEvent = verifiedEventSchema.safeParse(JSON.parse(rawBody));
-
-    if (!parsedEvent.success) {
-      return Response.json({ error: "Invalid payload" }, { status: 400 });
-    }
-
-    event = parsedEvent.data;
   } catch (error) {
     log("warn", "[clerk-webhook] signature verification failed:", { ...errorFields(error) });
 
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return createErrorResponse("Unauthorized", ERROR_CODES.UNAUTHORIZED, 401);
   }
+
+  // Signed but unparseable is a bad payload (400), not a bad signature (401).
+  let json: unknown;
+
+  try {
+    json = JSON.parse(rawBody);
+  } catch {
+    return createErrorResponse("Invalid JSON payload", ERROR_CODES.BAD_REQUEST, 400);
+  }
+
+  const parsedEvent = verifiedEventSchema.safeParse(json);
+
+  if (!parsedEvent.success) {
+    return createErrorResponse("Invalid payload", ERROR_CODES.BAD_REQUEST, 400);
+  }
+
+  const event = parsedEvent.data;
 
   if (!["user.created", "user.updated", "user.deleted"].includes(event.type)) {
     const outcome: WebhookOutcome = { received: true, action: "ignored", detail: event.type };
