@@ -11,6 +11,7 @@ import {
   getInitials,
 } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { currentYear } from "@/lib/utils/format";
 import { NeoBrutalistMobileNav } from "./NeoBrutalistMobileNav";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -396,7 +397,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
 
         <footer className="mx-auto flex max-w-6xl flex-col gap-4 border-t-4 border-black px-4 py-8 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <p className="text-sm font-bold" suppressHydrationWarning>
-            © {new Date().getFullYear()} {content.full_name}
+            © {currentYear()} {content.full_name}
           </p>
           <ShareBar
             handle={profile.handle}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
+import { currentYear } from "@/lib/utils/format";
 
 const FOOTER_LINKS = [
   { href: "/explore", label: "Explore" },
@@ -18,8 +19,6 @@ const FOOTER_LINKS = [
 ];
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -44,7 +43,7 @@ export function Footer() {
         </div>
         <div className="mt-8 border-t border-border pt-6">
           <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
-            <span>&copy; {currentYear} clickfolio.me</span>
+            <span suppressHydrationWarning>&copy; {currentYear()} clickfolio.me</span>
             <span aria-hidden="true">&middot;</span>
             <span className="text-foreground/80">Powered by Cloudflare</span>
             <span aria-hidden="true">&middot;</span>

@@ -5,6 +5,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { currentYear } from "@/lib/utils/format";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -501,7 +502,7 @@ export const RetroOS: React.FC<TemplateProps> = ({ content, profile }) => {
             className="ros-sunken ml-auto shrink-0 px-2.5 py-1 font-mono text-xs text-black"
             suppressHydrationWarning
           >
-            @{profile.handle} · {new Date().getFullYear()}
+            @{profile.handle} · {currentYear()}
           </p>
         </footer>
       </div>

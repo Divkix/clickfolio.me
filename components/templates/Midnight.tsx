@@ -6,6 +6,7 @@ import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
+import { currentYear } from "@/lib/utils/format";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -397,7 +398,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               variant="midnight"
             />
             <p suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} {content.full_name}
+              &copy; {currentYear()} {content.full_name}
             </p>
           </footer>
         </div>

@@ -4,6 +4,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { currentYear } from "@/lib/utils/format";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -407,7 +408,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                 />
               </div>
               <p className="mt-8 text-[0.95rem] text-[#BFAE9F]" suppressHydrationWarning>
-                © {new Date().getFullYear()} {name}
+                © {currentYear()} {name}
               </p>
             </div>
           </footer>

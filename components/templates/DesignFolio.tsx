@@ -4,6 +4,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateSpan, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { currentYear } from "@/lib/utils/format";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -384,7 +385,7 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
             )}
             <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-6">
               <span className="text-white/80" suppressHydrationWarning>
-                © {new Date().getFullYear()} {full_name}
+                © {currentYear()} {full_name}
               </span>
               <ShareBar
                 handle={profile.handle}
