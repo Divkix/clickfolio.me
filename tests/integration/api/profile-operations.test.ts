@@ -116,6 +116,7 @@ vi.mock("@/lib/db/schema", () => ({
 
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
+import { rowVersionSchema } from "@/lib/schemas/profile";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
@@ -712,6 +713,102 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
+    });
+
+    describe("If-Unmodified-Since", () => {
+      const PRIVACY_BODY = {
+        show_phone: true,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      };
+
+      function privacyRequest(ifUnmodifiedSince?: string): Request {
+        const headers = new Headers({ "Content-Type": "application/json" });
+
+        if (ifUnmodifiedSince !== undefined) headers.set("If-Unmodified-Since", ifUnmodifiedSince);
+
+        return new Request("http://localhost:3000/api/profile/privacy", {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(PRIVACY_BODY),
+        });
+      }
+
+      it.each([
+        ["junk", "foo"],
+        ["a Postgres special value", "now"],
+        ["infinity", "infinity"],
+        ["an impossible date", "2026-02-30T00:00:00Z"],
+        ["a timestamp without an offset", "2026-10-23 23:28:57.872"],
+        ["an HTTP-date (second precision)", "Sat, 24 Oct 2026 05:28:57 GMT"],
+        ["a timestamp with trailing garbage", `2026-10-23T23:28:57.872123Z${"0".repeat(2000)}`],
+      ])("rejects %s with 400 before touching the database", async (_label, header) => {
+        authedAs("user-123");
+
+        const { PUT } = await import("@/app/api/profile/privacy/route");
+
+        const response = await PUT(privacyRequest(header));
+
+        expect(response.status).toBe(400);
+        await expect(response.json()).resolves.toMatchObject({
+          error: "Invalid If-Unmodified-Since header",
+        });
+        expect(mockUpdate).not.toHaveBeenCalled();
+      });
+
+      it("caps the header length before matching the timestamp pattern", () => {
+        const result = rowVersionSchema.safeParse("x".repeat(41));
+
+        expect(result.error?.issues.map((issue) => issue.code)).toContain("too_big");
+      });
+
+      it.each([
+        ["Postgres timestamptz text", "2026-10-23 23:28:57.872123-06"],
+        ["an ISO timestamp", "2026-10-24T05:28:57.872Z"],
+        ["a half-hour offset", "2026-10-24 10:58:57.872+05:30"],
+      ])("guards the write with %s passed through verbatim", async (_label, header) => {
+        authedAs("user-123");
+        mockReturning.mockResolvedValue([{ id: "user-123" }]);
+
+        const { PUT } = await import("@/app/api/profile/privacy/route");
+
+        const response = await PUT(privacyRequest(header));
+
+        expect(response.status).toBe(200);
+        expect(mockUpdateWhere).toHaveBeenCalledWith({
+          and: [{ eq: "user-123" }, { eq: header }],
+        });
+      });
+
+      it("answers 409 when the guarded write matches no row", async () => {
+        authedAs("user-123");
+        mockReturning.mockResolvedValueOnce([]);
+
+        const { PUT } = await import("@/app/api/profile/privacy/route");
+
+        const response = await PUT(privacyRequest("2026-10-23 23:28:57.872123-06"));
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toMatchObject({
+          error: "Settings changed elsewhere, reload",
+        });
+      });
+
+      it.each([
+        ["absent", undefined],
+        ["empty", ""],
+      ])("keeps the unconditional write when the header is %s", async (_label, header) => {
+        authedAs("user-123");
+        mockReturning.mockResolvedValue([{ id: "user-123" }]);
+
+        const { PUT } = await import("@/app/api/profile/privacy/route");
+
+        const response = await PUT(privacyRequest(header));
+
+        expect(response.status).toBe(200);
+        expect(mockUpdateWhere).toHaveBeenCalledWith({ eq: "user-123" });
+      });
     });
   });
 

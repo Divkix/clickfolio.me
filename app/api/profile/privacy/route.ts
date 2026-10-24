@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { Effect } from "effect";
+import { decodeJsonBody, decodeWith, runRoute } from "@/lib/api/route";
 import { withUser } from "@/lib/auth/with-auth";
-
-import { user } from "@/lib/db/schema";
-import { privacySettingsSchema } from "@/lib/schemas/profile";
+import { updatePrivacySettings } from "@/lib/data/privacy-settings";
+import { privacySettingsSchema, rowVersionSchema } from "@/lib/schemas/profile";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
@@ -10,7 +10,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+import { validateRequestSize } from "@/lib/utils/validation";
 
 export async function PUT(request: Request) {
   const sizeCheck = validateRequestSize(request);
@@ -25,74 +25,47 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, dbUser }) => {
-      const rawBodyResult = await readJsonWithLimit(request);
+    ({ user: authUser, db, dbUser }) =>
+      runRoute(
+        request,
+        Effect.gen(function* () {
+          const settings = yield* decodeJsonBody(request, privacySettingsSchema, {
+            message: "Invalid privacy settings data",
+          });
 
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
-        );
-      }
+          // Version the client loaded; absent (or empty) means a legacy client, which keeps the unguarded write.
+          const header = request.headers.get("If-Unmodified-Since");
 
-      const validation = privacySettingsSchema.safeParse(rawBodyResult.data);
+          const expectedUpdatedAt = header
+            ? yield* decodeWith(rowVersionSchema, header, {
+                message: "Invalid If-Unmodified-Since header",
+              })
+            : null;
 
-      if (!validation.success) {
-        return createErrorResponse(
-          "Invalid privacy settings data",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          validation.error.issues,
-        );
-      }
+          const now = new Date().toISOString();
 
-      const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
+          const updated = yield* Effect.promise(() =>
+            updatePrivacySettings(db, { userId: authUser.id, settings, expectedUpdatedAt, now }),
+          );
 
-      const privacySettings = {
-        show_phone,
-        show_address,
-        hide_from_search,
-        show_in_directory,
-      };
+          if (expectedUpdatedAt !== null && !updated) {
+            return createErrorResponse(
+              "Settings changed elsewhere, reload",
+              ERROR_CODES.CONFLICT,
+              409,
+            );
+          }
 
-      // Version the client loaded; absent means a legacy client, which keeps the unguarded write.
-      const expectedUpdatedAt = request.headers.get("If-Unmodified-Since");
+          revalidatePublicProfilePages([dbUser.handle]);
+          notifyIndexNowForProfiles([dbUser.handle]);
 
-      const now = new Date().toISOString();
-
-      const updated = await db
-        .update(user)
-        .set({
-          privacySettings,
-          showInDirectory: show_in_directory,
-          updatedAt: now,
-        })
-        .where(
-          expectedUpdatedAt
-            ? and(eq(user.id, authUser.id), eq(user.updatedAt, expectedUpdatedAt))
-            : eq(user.id, authUser.id),
-        )
-        .returning({ id: user.id });
-
-      if (expectedUpdatedAt && updated.length === 0) {
-        return createErrorResponse("Settings changed elsewhere, reload", ERROR_CODES.CONFLICT, 409);
-      }
-
-      revalidatePublicProfilePages([dbUser.handle]);
-      notifyIndexNowForProfiles([dbUser.handle]);
-
-      return createSuccessResponse({
-        success: true,
-        updated_at: now,
-        privacy_settings: {
-          show_phone,
-          show_address,
-          hide_from_search,
-          show_in_directory,
-        },
-      });
-    },
+          return createSuccessResponse({
+            success: true,
+            updated_at: now,
+            privacy_settings: settings,
+          });
+        }),
+      ),
     "You must be logged in to update privacy settings",
   );
 }

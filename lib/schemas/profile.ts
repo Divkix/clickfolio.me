@@ -17,6 +17,32 @@ export const privacySettingsSchema = z.object({
   }),
 });
 
+// Postgres timestamptz text ("2026-10-23 23:28:57.872123-06") or ISO 8601 ("…T…Z"), offset required.
+const ROW_VERSION_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})[T ]([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d{1,6})?(Z|[+-](0\d|1[0-4])(:?[0-5]\d)?)$/;
+
+function isCalendarDate(value: string): boolean {
+  const [, year, month, day] = ROW_VERSION_PATTERN.exec(value) ?? [];
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+
+  return (
+    date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() === Number(month) - 1 &&
+    date.getUTCDate() === Number(day)
+  );
+}
+
+/**
+ * The `updated_at` a client loaded, echoed back in `If-Unmodified-Since`. Only exact timestamp
+ * literals pass: Postgres would also accept words like `now` or `infinity`, or reject junk with
+ * a 500, and an HTTP-date loses the sub-second precision the equality check needs.
+ */
+export const rowVersionSchema = z
+  .string()
+  .max(40)
+  .regex(ROW_VERSION_PATTERN)
+  .refine(isCalendarDate, "Not a calendar date");
+
 export const privacySettingsInputSchema = z.object({
   show_phone: z.boolean({
     message: "Phone visibility setting must be a boolean",
