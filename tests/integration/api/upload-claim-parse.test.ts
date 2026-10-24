@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RateLimited } from "@/lib/effect/failures";
 import type { JsonValue } from "@/lib/types/json";
@@ -535,56 +534,6 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest("temp/test/file.pdf"));
 
     expect(response.status).toBe(401);
-  });
-});
-
-describe("Parse pipeline → siteData Creation", () => {
-  beforeEach(resetAll);
-
-  // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings the pipeline steps read; CloudflareEnv's remaining properties are never accessed on this path.
-  const env = {
-    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    CLICKFOLIO_R2_BUCKET: stubR2Binding,
-  } as CloudflareEnv;
-
-  it("22. Transient parse failure → retryable tagged failure for the workflow step", async () => {
-    const { parseResumePdf } = await import("@/lib/parse/pipeline");
-    const { AiProviderFailed } = await import("@/lib/parse/failures");
-
-    const userId = "user-1";
-    const r2Key = `users/${userId}/123456/resume.pdf`;
-
-    mockR2Store.set(r2Key, makePdfBuffer());
-
-    vi.doMock("@/lib/ai", () => ({
-      parseResumeWithAi: vi.fn(() =>
-        Effect.fail(new AiProviderFailed({ message: "AI provider timeout" })),
-      ),
-    }));
-
-    const job = { resumeId: crypto.randomUUID(), userId, r2Key, fileHash: "abc123".repeat(8) };
-    const failure = await Effect.runPromise(Effect.flip(parseResumePdf(job, env)));
-    expect(failure).toBeInstanceOf(AiProviderFailed);
-    expect(failure.retryable).toBe(true);
-  });
-
-  it("25. Claim with cached fileHash → skip AI, complete from cache", async () => {
-    const { claimResumeForParse } = await import("@/lib/parse/pipeline");
-
-    const userId = "user-1";
-
-    const job = {
-      resumeId: crypto.randomUUID(),
-      userId,
-      r2Key: `users/${userId}/123456/resume.pdf`,
-      fileHash: "abc123".repeat(8),
-    };
-
-    mockDbSelectChain.limit.mockResolvedValueOnce([{ status: "queued" }]);
-    mockDbSelectChain.limit.mockResolvedValueOnce([{ parsedContent: { name: "Cached User" } }]);
-
-    await expect(claimResumeForParse(job, env)).resolves.toBe("cached");
-    expect(mockDb.transaction).toHaveBeenCalled();
   });
 });
 

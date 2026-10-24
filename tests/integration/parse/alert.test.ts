@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { Effect } from "effect";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { AlertWebhook } from "@/lib/effect/services/alert-webhook";
 import {
   getAlertChannel,
-  sendAlert,
-  type AlertEnv,
+  parseFailureAlertBestEffort,
+  type AlertChannel,
   type ParseFailureAlert,
 } from "@/lib/parse/alert";
 
@@ -11,13 +13,6 @@ const mocks = vi.hoisted(() => ({ log: vi.fn() }));
 vi.mock("@/lib/utils/log", () => ({ log: mocks.log }));
 
 const WEBHOOK_URL = "https://hooks.example.com/services/T000/B000/SECRETTOKEN";
-
-const ENV: AlertEnv = {
-  // SAFETY: the alert path never reads the database binding.
-  HYPERDRIVE: {} as CloudflareEnv["HYPERDRIVE"],
-  CLICKFOLIO_STATUS_DO: undefined,
-  ALERT_WEBHOOK_URL: WEBHOOK_URL,
-};
 
 const ALERT: ParseFailureAlert = {
   resumeId: "resume-1",
@@ -30,13 +25,17 @@ const ALERT: ParseFailureAlert = {
 
 const fetchMock = vi.fn<typeof fetch>();
 
+function raise(channel: AlertChannel, webhookUrl: string | null = WEBHOOK_URL) {
+  return Effect.runPromise(
+    Effect.provide(
+      parseFailureAlertBestEffort(ALERT, channel),
+      AlertWebhook.layerFrom(webhookUrl ?? undefined, fetchMock),
+    ),
+  );
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubGlobal("fetch", fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 describe("getAlertChannel", () => {
@@ -46,9 +45,9 @@ describe("getAlertChannel", () => {
   });
 });
 
-describe("sendAlert", () => {
+describe("parseFailureAlertBestEffort", () => {
   it("logs the payload on the logpush channel without calling out", async () => {
-    await sendAlert(ALERT, "logpush", ENV);
+    await raise("logpush");
 
     expect(mocks.log).toHaveBeenCalledWith("error", "PARSE_FAILURE_ALERT", ALERT);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -57,7 +56,7 @@ describe("sendAlert", () => {
   it("POSTs the alert once on the webhook channel", async () => {
     fetchMock.mockResolvedValue(new Response("ok"));
 
-    await sendAlert(ALERT, "webhook", ENV);
+    await raise("webhook");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
@@ -70,7 +69,7 @@ describe("sendAlert", () => {
   });
 
   it("skips a webhook channel without a URL", async () => {
-    await sendAlert(ALERT, "webhook", { ...ENV, ALERT_WEBHOOK_URL: undefined });
+    await raise("webhook", null);
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -78,7 +77,7 @@ describe("sendAlert", () => {
   it("logs a rejected webhook with the status and never the URL", async () => {
     fetchMock.mockResolvedValue(new Response("gone", { status: 404 }));
 
-    await expect(sendAlert(ALERT, "webhook", ENV)).resolves.toBeUndefined();
+    await expect(raise("webhook")).resolves.toBeUndefined();
 
     expect(mocks.log).toHaveBeenCalledWith(
       "error",
@@ -95,7 +94,7 @@ describe("sendAlert", () => {
   it("logs a network error without the URL and does not retry", async () => {
     fetchMock.mockRejectedValue(new Error(`fetch failed: ${WEBHOOK_URL}`));
 
-    await sendAlert(ALERT, "webhook", ENV);
+    await raise("webhook");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(mocks.log).toHaveBeenCalledWith(

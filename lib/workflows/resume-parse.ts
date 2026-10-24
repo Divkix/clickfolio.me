@@ -6,7 +6,7 @@ import type { ResumeParseParams } from "./resume-parse-params";
 // Trigger side of ResumeParseWorkflow. Kept apart from the class so routes can
 // start runs without importing `WorkflowEntrypoint` and the parse pipeline.
 
-export { parseInstanceId, parseRunAttributes, type ResumeParseParams } from "./resume-parse-params";
+export { parseInstanceId, type ResumeParseParams } from "./resume-parse-params";
 
 export type ResumeParseWorkflowBinding = Workflow<ResumeParseParams>;
 

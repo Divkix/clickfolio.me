@@ -1,16 +1,11 @@
-import { Cause, Effect, Exit, Layer } from "effect";
+import { Effect } from "effect";
 import { eq } from "drizzle-orm";
 import { resumes, user } from "../db/schema";
 import { Db } from "../effect/db";
-import { runBackground } from "../effect/edges";
 import { upstreamLogFields } from "../effect/failure-fields";
 import { Mailer } from "../effect/services/mailer";
 import { errorFields } from "../utils/error-fields";
 import { log } from "../utils/log";
-
-type ResumeEmailEnv = Pick<CloudflareEnv, "HYPERDRIVE" | "APP_URL" | "EMAIL_FROM"> & {
-  EMAIL?: CloudflareEnv["EMAIL"];
-};
 
 type FailureEmailConfig = { readonly appUrl: string; readonly from: string };
 
@@ -95,22 +90,4 @@ export function resumeFailureEmailBestEffort(resumeId: string, config: FailureEm
     }),
     Effect.asVoid,
   );
-}
-
-/** Best effort: only the verified account owner receives a failure notification. */
-export async function sendResumeFailureEmail(resumeId: string, env: ResumeEmailEnv): Promise<void> {
-  if (!env.EMAIL) return;
-
-  const exit = await runBackground(
-    resumeFailureEmailBestEffort(resumeId, { appUrl: env.APP_URL, from: env.EMAIL_FROM }),
-    Layer.mergeAll(Db.layer(env.HYPERDRIVE), Mailer.layer(env)),
-  );
-
-  // Typed failures were logged above; what reaches here is a defect (a bug or a bad APP_URL).
-  if (Exit.isFailure(exit)) {
-    log("error", "resume failure email failed", {
-      resumeId,
-      ...errorFields(Cause.squash(exit.cause)),
-    });
-  }
 }

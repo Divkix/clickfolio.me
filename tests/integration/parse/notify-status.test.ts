@@ -2,12 +2,7 @@ import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DurableObjectFailed } from "@/lib/effect/failures";
 import { StatusChannel, type StatusNamespace } from "@/lib/effect/services/status-channel";
-import {
-  notifyStatus,
-  notifyStatusBestEffort,
-  notifyStatusChange,
-  notifyStatusChangeBatch,
-} from "@/lib/parse/notify-status";
+import { notifyStatus, notifyStatusBestEffort } from "@/lib/parse/notify-status";
 
 const mocks = vi.hoisted(() => ({ log: vi.fn() }));
 
@@ -103,13 +98,15 @@ describe("notifyStatusBestEffort", () => {
 });
 
 describe("without a bound Durable Object", () => {
-  it("notifyStatusChange and the batch resolve without logging", async () => {
-    const env = { CLICKFOLIO_STATUS_DO: undefined };
-
+  it("notifyStatus resolves without logging", async () => {
     await expect(
-      notifyStatusChange({ resumeId: "resume-1", status: "completed", env }),
+      Effect.runPromise(
+        Effect.provide(
+          notifyStatus({ resumeId: "resume-1", status: "completed" }),
+          StatusChannel.layerFrom(undefined),
+        ),
+      ),
     ).resolves.toBeUndefined();
-    await expect(notifyStatusChangeBatch(["a", "b"], "completed", env)).resolves.toBeUndefined();
     expect(mocks.log).not.toHaveBeenCalled();
   });
 });
