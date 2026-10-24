@@ -272,6 +272,50 @@ describe("POST /api/webhooks/clerk", () => {
     });
   });
 
+  it("treats Clerk's email verification status `verified` as verified", async () => {
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery(
+        "user.created",
+        clerkUser({
+          email_addresses: [
+            {
+              id: "idn_1",
+              email_address: "ada@example.com",
+              verification: { status: "verified" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect((await usersWhere("user_clerk_1"))[0].emailVerified).toBe(true);
+  });
+
+  it("leaves an unverified primary email unverified", async () => {
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery(
+        "user.created",
+        clerkUser({
+          email_addresses: [
+            {
+              id: "idn_1",
+              email_address: "ada@example.com",
+              verification: { status: "unverified" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect((await usersWhere("user_clerk_1"))[0].emailVerified).toBe(false);
+  });
+
   it("adopts a row created before the Clerk id was known, matched by external id", async () => {
     await seedUser(db, "legacy-id-7", { clerkId: null });
 
