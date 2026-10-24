@@ -215,6 +215,31 @@ describe("claimResumeForParse", () => {
     if (status) expect((await row(JOB.resumeId)).status).toBe(status);
   });
 
+  it("claims a row whose retry count matches the run's", async () => {
+    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
+
+    await expect(run(claimResumeForParse({ ...JOB, retryCount: 1 }))).resolves.toBe("parse");
+
+    expect((await row(JOB.resumeId)).status).toBe("processing");
+  });
+
+  it("skips a row that was swept and retried since this run started", async () => {
+    // The first run (retryCount 0) outlived the sweep; the user's retry queued the row again
+    // under retryCount 1 and started its own run. The old run must not parse it a second time.
+    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
+
+    await expect(run(claimResumeForParse({ ...JOB, retryCount: 0 }))).resolves.toBe("skipped");
+
+    expect(await row(JOB.resumeId)).toMatchObject({ status: "queued", retryCount: 1 });
+    expect(pushes).toEqual([]);
+  });
+
+  it("does not check the retry count of a run started before it was in the payload", async () => {
+    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
+
+    await expect(run(claimResumeForParse(JOB))).resolves.toBe("parse");
+  });
+
   it("completes from an identical earlier parse without calling the AI", async () => {
     await seed("earlier", { status: "completed", parsedContent: CONTENT });
     await seed(JOB.resumeId, { status: "queued" });

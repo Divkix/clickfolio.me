@@ -39,6 +39,12 @@ export type ResumeParseJob = {
   userId: string;
   r2Key: string;
   fileHash: string;
+  /**
+   * The row's `retry_count` when this run was started. A run whose count no longer matches was
+   * superseded by a sweep and a manual retry, and must not claim the row. Absent on runs
+   * started before the field existed, which skip the check.
+   */
+  retryCount?: number;
 };
 
 export type ParsedResume = {
@@ -142,6 +148,7 @@ export function claimResumeForParse(job: ResumeParseJob) {
             and(
               eq(resumes.id, job.resumeId),
               inArray(resumes.status, ["queued", "pending_claim", "processing"]),
+              job.retryCount === undefined ? undefined : eq(resumes.retryCount, job.retryCount),
             ),
           )
           .returning({ id: resumes.id }),
@@ -149,7 +156,9 @@ export function claimResumeForParse(job: ResumeParseJob) {
     );
 
     if (claimed.length === 0) {
-      log("info", "resume not claimable in current status, skipping", { resumeId: job.resumeId });
+      log("info", "resume not claimable in current status or retry, skipping", {
+        resumeId: job.resumeId,
+      });
 
       return "skipped" as const;
     }

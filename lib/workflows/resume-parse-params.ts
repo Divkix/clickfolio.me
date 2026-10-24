@@ -15,6 +15,8 @@ export const resumeParseParamsSchema = z.discriminatedUnion("kind", [
     userId: z.string(),
     r2Key: z.string(),
     fileHash: z.string(),
+    // The row's `retry_count` when the run was started. Absent on runs started by an older deploy.
+    retryCount: z.number().int().optional(),
   }),
   /** Durable timer for a `waiting_for_cache` row: fails it if no identical parse completes it. */
   z.object({ kind: z.literal("await-cache"), resumeId: z.string() }),

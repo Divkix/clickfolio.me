@@ -227,6 +227,17 @@ describe("resume failure email workflow step", () => {
     await expect(workflow.run()).resolves.toBe("cached");
     expect(mocks.email).not.toHaveBeenCalled();
   });
+
+  it("hands the run's retry count to the claim, and tolerates a payload without one", async () => {
+    mocks.claim.mockReturnValue(Effect.succeed("skipped"));
+    await expect((await runWorkflow({ ...JOB, retryCount: 2 })).run()).resolves.toBe("skipped");
+    expect(mocks.claim).toHaveBeenLastCalledWith(expect.objectContaining({ retryCount: 2 }));
+
+    await expect((await runWorkflow()).run()).resolves.toBe("skipped");
+    expect(mocks.claim).toHaveBeenLastCalledWith(
+      expect.objectContaining({ resumeId: "resume-1", retryCount: undefined }),
+    );
+  });
 });
 
 describe("Workflow failure metadata and successful replay", () => {
