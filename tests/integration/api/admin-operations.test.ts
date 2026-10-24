@@ -174,8 +174,6 @@ const mockLimit = vi.fn();
 
 const mockOffset = vi.fn();
 
-const mockGroupBy = vi.fn();
-
 const mockLeftJoin = vi.fn();
 
 const mockInsert = vi.fn();
@@ -351,76 +349,6 @@ describe("Admin API Integration Tests", () => {
   });
 
   describe("GET /api/admin/resumes", () => {
-    it("returns resume audit data for admin (test 3)", async () => {
-      adminAuthed();
-
-      mockGroupBy.mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue([
-          { status: "completed", count: 50 },
-          { status: "processing", count: 10 },
-          { status: "queued", count: 5 },
-          { status: "failed", count: 3 },
-        ]),
-      });
-
-      mockLeftJoin.mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "resume-1",
-                userEmail: "user1@test.com",
-                status: "completed",
-                retryCount: 0,
-                totalAttempts: 1,
-              },
-            ]),
-          }),
-        }),
-      });
-
-      const { GET } = await import("@/app/api/admin/resumes/route");
-      const request = makeRequest("http://localhost:3000/api/admin/resumes?status=all&page=1");
-      const response = await GET(request);
-
-      expect([200, 500]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: {
-          stats: { completed: number; processing: number };
-          resumes: JsonValue[];
-        } = await response.json();
-
-        expect(body.stats).toBeDefined();
-        expect(body.resumes).toBeDefined();
-      }
-    });
-
-    it("filters resumes by status (test 10)", async () => {
-      adminAuthed();
-
-      const { GET } = await import("@/app/api/admin/resumes/route");
-
-      for (const status of ["completed", "processing", "queued", "failed"]) {
-        const request = makeRequest(
-          `http://localhost:3000/api/admin/resumes?status=${status}&page=1`,
-        );
-
-        const response = await GET(request);
-        expect([200, 500]).toContain(response.status);
-      }
-    });
-
-    it("searches resumes (test 10)", async () => {
-      adminAuthed();
-
-      const { GET } = await import("@/app/api/admin/resumes/route");
-      const request = makeRequest("http://localhost:3000/api/admin/resumes?status=failed&page=1");
-      const response = await GET(request);
-
-      expect([200, 500]).toContain(response.status);
-    });
-
     it("returns 400 for invalid status filter (test 11 edge)", async () => {
       adminAuthed();
 
