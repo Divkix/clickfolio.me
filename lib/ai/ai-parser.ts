@@ -239,7 +239,7 @@ export function generateAiText(
             "gen_ai.request.model": model,
           },
           async (annotate) => {
-            const result = await generateText({ ...options, abortSignal: signal });
+            const result = await generateText({ ...options, maxRetries: 0, abortSignal: signal });
 
             annotate({
               "gen_ai.response.model": result.response.modelId,
