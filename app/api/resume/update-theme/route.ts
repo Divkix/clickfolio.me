@@ -3,8 +3,8 @@ import { z } from "zod";
 import { and, eq, lte } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { Db } from "@/lib/effect/db";
-import { Conflict, InvalidInput, NotFound } from "@/lib/effect/failures";
-import { errorFields } from "@/lib/utils/error-fields";
+import { Conflict, NotFound } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { logEvent } from "@/lib/utils/log";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
@@ -17,56 +17,25 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 const themeUpdateSchema = z.object({ theme_id: z.string().min(1) });
 
 export async function POST(request: Request) {
+  const oversized = oversizedBodyResponse(request);
+
+  if (oversized) return oversized;
+
   return withUserEffect(
     request,
     ({ user: authUser, dbUser }) =>
       Effect.gen(function* () {
         const userId = authUser.id;
 
-        const sizeCheck = validateRequestSize(request);
-
-        if (!sizeCheck.valid) {
-          return createErrorResponse(
-            sizeCheck.error || "Request body too large",
-            ERROR_CODES.BAD_REQUEST,
-            413,
-          );
-        }
-
-        const rawBodyResult = yield* Effect.tryPromise({
-          try: () => readJsonWithLimit(request),
-          // The client went away mid-request.
-          catch: (cause) =>
-            new InvalidInput({
-              message: "Could not read the request body",
-              details: errorFields(cause),
-            }),
-        });
-
-        if (!rawBodyResult.ok) {
-          return createErrorResponse(
-            rawBodyResult.error,
-            ERROR_CODES.BAD_REQUEST,
-            rawBodyResult.reason === "too_large" ? 413 : 400,
-          );
-        }
-
-        const body = themeUpdateSchema.safeParse(rawBodyResult.data);
-
-        if (!body.success) {
-          return createErrorResponse(
-            "theme_id is required and must be a string",
-            ERROR_CODES.BAD_REQUEST,
-            400,
-          );
-        }
-
-        const { theme_id } = body.data;
+        const { theme_id } = yield* readJsonBody(
+          request,
+          themeUpdateSchema,
+          "theme_id is required and must be a string",
+        );
 
         if (!isValidThemeId(theme_id)) {
           return createErrorResponse(

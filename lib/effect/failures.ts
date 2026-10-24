@@ -17,7 +17,7 @@ export type UpstreamDetails = {
 type Reason = { readonly message: string };
 
 export class InvalidInput extends Data.TaggedError("InvalidInput")<
-  Reason & { readonly details?: unknown }
+  Reason & { readonly cause?: unknown }
 > {}
 
 export class PayloadTooLarge extends Data.TaggedError("PayloadTooLarge")<Reason> {}
