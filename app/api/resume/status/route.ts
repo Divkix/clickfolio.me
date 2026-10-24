@@ -40,6 +40,7 @@ export async function GET(request: Request) {
                 userId: true,
                 status: true,
                 errorMessage: true,
+                parsedContent: true,
                 retryCount: true,
                 totalAttempts: true,
                 lastAttemptError: true,
@@ -80,19 +81,8 @@ export async function GET(request: Request) {
         }
 
         if (view.status === "completed") {
-          const resumeContent = yield* Db.use((service) =>
-            service.query("resume.status.content", (db) =>
-              db.query.resumes.findFirst({
-                where: eq(resumes.id, resumeId),
-                columns: {
-                  parsedContent: true,
-                },
-              }),
-            ),
-          );
-
           // SAFETY: parsedContent is schema-validated JSONB written by the parse pipeline; cast bridges the column's wide Record type.
-          const parsedJson = (resumeContent?.parsedContent as UnknownRecord | null) ?? null;
+          const parsedJson = (resume.parsedContent as UnknownRecord | null) ?? null;
 
           return createSuccessResponse({
             status: "completed",
