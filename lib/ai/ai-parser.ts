@@ -4,6 +4,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, JSONParseError, type LanguageModelUsage, TypeValidationError } from "ai";
 import { z } from "zod";
 import type { UnknownRecord } from "@/lib/types/json";
+import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { withSpan } from "@/lib/telemetry/spans";
 import { log, logEvent } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
@@ -18,8 +19,6 @@ import {
 } from "./prompt-config";
 import { LINKEDIN_PROMPT_RULES, type ResumeSource } from "./linkedin";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
-
-const TIMEOUT_MS = 60_000;
 
 // AI Gateway route, and `gen_ai.provider.name` on AI spans.
 const AI_PROVIDER = "openrouter";
@@ -105,23 +104,6 @@ export function createAiProvider(env: Partial<AiEnvVars>): AiProvider {
     },
     supportsStructuredOutputs: true,
   });
-}
-
-let cachedProvider: AiProvider | null = null;
-
-let cachedEnvKey: string | null = null;
-
-function getAiProvider(env: Partial<AiEnvVars>): AiProvider {
-  const key =
-    (env.CF_AI_GATEWAY_ACCOUNT_ID || "") +
-    (env.CF_AI_GATEWAY_ID || "") +
-    (env.CF_AIG_AUTH_TOKEN || "");
-
-  if (cachedProvider && cachedEnvKey === key) return cachedProvider;
-  cachedProvider = createAiProvider(env);
-  cachedEnvKey = key;
-
-  return cachedProvider;
 }
 
 const VALID_REASONING_EFFORTS = [
@@ -239,7 +221,7 @@ function usageFields(usage: LanguageModelUsage): UnknownRecord {
 
 export function generateAiText(
   options: Parameters<typeof generateText>[0],
-  timeoutMs: number = TIMEOUT_MS,
+  timeoutMs: number = TIMEOUT_MS.ai,
 ): Effect.Effect<string, AiProviderFailed | AiTimedOut> {
   const model = options.model instanceof Object ? options.model.modelId : options.model;
 
@@ -307,7 +289,12 @@ export function parseWithAiEffect(
 ): Effect.Effect<UnknownRecord, AiProviderFailed | AiTimedOut | AiOutputInvalid> {
   return Effect.gen(function* () {
     const modelId = resolveAiModel(env, model);
-    const provider = yield* Effect.try({ try: () => getAiProvider(env), catch: aiProviderFailure });
+
+    const provider = yield* Effect.try({
+      try: () => createAiProvider(env),
+      catch: aiProviderFailure,
+    });
+
     const providerOptions = withReasoning(PROVIDER_ROUTING, getReasoningEffort(env));
 
     function attempt(path: ParseAttempt["path"], system: string, prompt: string) {
