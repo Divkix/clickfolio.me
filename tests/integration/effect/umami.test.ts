@@ -171,6 +171,30 @@ describe("Umami service", () => {
     expect(await statsFailure()).toMatchObject({ kind: "invalid-response" });
   });
 
+  it("keeps the response body out of the failure when it is not JSON", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    stubFetch((url) =>
+      isLogin(url)
+        ? json({ token: "tok" })
+        : new Response("<html>umami.invalid-host.test secret-body</html>", { status: 200 }),
+    );
+
+    const Umami = await freshUmami();
+
+    await runRoute(
+      new Request("https://clickfolio.me/api/admin/analytics"),
+      Umami.use((umami) => umami.getStats(WINDOW)).pipe(Effect.map(() => Response.json({}))),
+      Umami.layer(env),
+    );
+
+    const logged = JSON.stringify(logLines(error));
+
+    expect(logged).toContain("invalid-response");
+    expect(logged).not.toContain("secret-body");
+    expect(logged).not.toContain("invalid-host.test");
+  });
+
   it("rejects a login without a token and does not cache anything", async () => {
     let logins = 0;
 

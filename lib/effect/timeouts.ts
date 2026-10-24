@@ -13,5 +13,7 @@ export const TIMEOUT_MS = {
   durableObject: 5_000,
   clerk: 8_000,
   upstream: 5_000,
+  /** A whole Umami call: a cold login plus the GET, one hop of up to 5s each. */
+  umami: 10_000,
   workflow: 8_000,
 } as const;

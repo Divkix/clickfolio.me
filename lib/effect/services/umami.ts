@@ -13,12 +13,7 @@ import {
 } from "@/lib/umami/client";
 import { classifyUpstreamCause, externalCall } from "../external";
 import { HttpUpstreamFailed, type UpstreamDetails, type UpstreamKind } from "../failures";
-
-/**
- * The whole call: a cold login plus the GET (two hops of up to 5s each inside the client).
- * Keep it above one hop and below the route's own budget; the client has no other retry.
- */
-const UMAMI_TIMEOUT_MS = 10_000;
+import { TIMEOUT_MS } from "../timeouts";
 
 // A response that parses as JSON but not as the expected shape is the server's fault, not ours.
 function classifyUmami(cause: unknown): UpstreamKind {
@@ -44,7 +39,7 @@ function service(env: CloudflareEnv): UmamiService {
     getStats: (opts) =>
       externalCall({
         operation: "umami.stats",
-        timeoutMs: UMAMI_TIMEOUT_MS,
+        timeoutMs: TIMEOUT_MS.umami,
         run: (signal) => getStats(env, opts, signal),
         fail: umamiFailure,
         classify: classifyUmami,
@@ -52,7 +47,7 @@ function service(env: CloudflareEnv): UmamiService {
     getPageviews: (opts) =>
       externalCall({
         operation: "umami.pageviews",
-        timeoutMs: UMAMI_TIMEOUT_MS,
+        timeoutMs: TIMEOUT_MS.umami,
         run: (signal) => getPageviews(env, opts, signal),
         fail: umamiFailure,
         classify: classifyUmami,
@@ -60,7 +55,7 @@ function service(env: CloudflareEnv): UmamiService {
     getMetrics: (opts) =>
       externalCall({
         operation: "umami.metrics",
-        timeoutMs: UMAMI_TIMEOUT_MS,
+        timeoutMs: TIMEOUT_MS.umami,
         run: (signal) => getMetrics(env, opts, signal),
         fail: umamiFailure,
         classify: classifyUmami,
