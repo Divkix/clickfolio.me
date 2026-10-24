@@ -227,7 +227,7 @@ export async function POST(request: Request) {
 
         yield* Effect.sync(() => {
           revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
-          notifyIndexNowForProfiles([outcome.oldHandle, body.handle]);
+          notifyIndexNowForProfiles([outcome.oldHandle, body.handle], { skipDebounce: true });
 
           logEvent("onboarding_completed", {
             userId: authUser.id,
