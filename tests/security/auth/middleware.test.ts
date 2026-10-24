@@ -25,6 +25,7 @@ vi.mock("next/headers", () => ({
 vi.mock("cloudflare:workers", () => ({
   env: {
     CLERK_SECRET_KEY: "sk_test_clickfolio_secret",
+    APP_URL: "https://clickfolio.me",
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
 }));
@@ -187,6 +188,7 @@ describe("Authentication Middleware Security", () => {
       expect(result.error).toBeNull();
       expect(mockVerifyToken).toHaveBeenCalledWith("signed-clerk-jwt-value", {
         secretKey: "sk_test_clickfolio_secret",
+        authorizedParties: ["https://clickfolio.me"],
       });
     });
 

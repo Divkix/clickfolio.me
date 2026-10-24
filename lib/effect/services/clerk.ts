@@ -1,6 +1,7 @@
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Context, Effect, Layer } from "effect";
 import { z } from "zod";
+import { getOptionalEnvValue } from "@/lib/utils/env";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 import { classifyUpstreamCause, externalCall } from "../external";
@@ -112,7 +113,10 @@ function deleteUserWith(secretKey: string | undefined): ClerkService["deleteUser
   };
 }
 
-function service(secretKey: string | undefined): ClerkService {
+function service(secretKey: string | undefined, appUrl: string | undefined): ClerkService {
+  const parsedUrl = z.url().safeParse(appUrl);
+  const authorizedParty = parsedUrl.success ? new URL(parsedUrl.data).origin : null;
+
   return {
     deleteUser: deleteUserWith(secretKey),
     verifyToken: (token) => {
@@ -120,12 +124,24 @@ function service(secretKey: string | undefined): ClerkService {
 
       if (!secretKey) return Effect.fail(missingSecret(VERIFY_TOKEN_OPERATION));
 
+      if (!authorizedParty) {
+        return Effect.fail(
+          new ClerkFailed({
+            operation: VERIFY_TOKEN_OPERATION,
+            kind: "rejected",
+            message: appUrl ? "APP_URL must be a valid URL" : "APP_URL is not configured",
+          }),
+        );
+      }
+
       return externalCall({
         operation: VERIFY_TOKEN_OPERATION,
         timeoutMs: TIMEOUT_MS.clerk,
         run: async (): Promise<Verification> => {
           try {
-            const payload = payloadSchema.safeParse(await verifyToken(token, { secretKey }));
+            const payload = payloadSchema.safeParse(
+              await verifyToken(token, { secretKey, authorizedParties: [authorizedParty] }),
+            );
 
             if (!payload.success) {
               return { outcome: "rejected", cause: payload.error };
@@ -164,7 +180,9 @@ function service(secretKey: string | undefined): ClerkService {
  */
 export class Clerk extends Context.Service<Clerk, ClerkService>()("clickfolio/Clerk") {
   static layer(env: CloudflareEnv): Layer.Layer<Clerk> {
-    return Layer.sync(Clerk, () => service(env.CLERK_SECRET_KEY));
+    return Layer.sync(Clerk, () =>
+      service(env.CLERK_SECRET_KEY, getOptionalEnvValue(env, "APP_URL")),
+    );
   }
 
   /**

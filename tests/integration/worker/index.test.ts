@@ -142,6 +142,7 @@ function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
     CLICKFOLIO_STATUS_DO: makeStatusDo().namespace,
     CLERK_SECRET_KEY: "sk_test_worker",
+    APP_URL: "https://clickfolio.me",
     ...overrides,
   } as CloudflareEnv;
 }
