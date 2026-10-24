@@ -182,8 +182,6 @@ Run each command and paste the value when prompted:
 ```bash
 pnpm exec wrangler secret put CLERK_SECRET_KEY                 # sk_… from Clerk
 pnpm exec wrangler secret put CLERK_WEBHOOK_SECRET             # whsec_… from Clerk webhook
-pnpm exec wrangler secret put NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY # pk_… from Clerk
-pnpm exec wrangler secret put APP_URL                          # https://your-domain.com
 openssl rand -base64 32                                        # then:
 pnpm exec wrangler secret put PENDING_UPLOAD_SECRET            # random value from openssl above
 pnpm exec wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
@@ -191,16 +189,25 @@ pnpm exec wrangler secret put CF_AI_GATEWAY_ID
 pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
 ```
 
+Set the public values in `wrangler.jsonc` → `vars`, not as secrets:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` = your Clerk publishable key (`pk_…`)
+- `APP_URL` = `https://your-domain.com`
+
 **Step 8: Deploy**
 
 ```bash
-DATABASE_URL="postgres://…" pnpm run deploy   # build → db:migrate → R2 lifecycle → wrangler deploy
+DATABASE_URL="postgres://…" pnpm run deploy
 ```
+
+Deploy builds, migrates, backfills NULL `content_indexable` flags, applies R2 lifecycle
+rules, and deploys the Worker. It then backfills rows updated since deploy start
+minus one hour and sends a best-effort IndexNow ping.
 
 **Step 9: Add your domain**
 Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domains & Routes.
 
-**Important:** After domain is connected, update these secrets and redeploy:
+**Important:** After the domain is connected, update `wrangler.jsonc` → `vars` and redeploy:
 
 - `APP_URL` = `https://your-domain.com`
 - Point the Clerk webhook endpoint URL at `https://your-domain.com/api/webhooks/clerk`
@@ -320,7 +327,7 @@ See `.env.example` for complete template with all options.
 3. **Deploy**
 
    ```bash
-   pnpm run deploy
+   DATABASE_URL="postgres://…" pnpm run deploy
    ```
 
 4. **Configure custom domain** (optional)
@@ -343,7 +350,7 @@ pnpm run type-check       # TypeScript check
 # Build & Deploy
 pnpm run build            # Vite production build (vinext)
 pnpm run preview          # Local Cloudflare preview
-pnpm run deploy           # scripts/deploy.ts: build, db:migrate, R2 lifecycle, wrangler deploy, IndexNow (needs DATABASE_URL)
+pnpm run deploy           # build → migrate → NULL backfill → R2 lifecycle → deploy → since backfill → IndexNow (needs DATABASE_URL)
 
 # Database (PlanetScale Postgres via drizzle-kit; needs DATABASE_URL except generate)
 pnpm run db:generate      # Generate migration files into migrations_pg/
