@@ -277,23 +277,6 @@ describe("Worker fetch handler", () => {
     expect(vi.mocked(verifyToken)).not.toHaveBeenCalled();
   });
 
-  it("falls back to the Authorization header when the __session cookie is undecodable", async () => {
-    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
-    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
-
-    const response = await worker.fetch(
-      makeWsRequest({
-        Cookie: "__session=%E0%A4%A",
-        Authorization: "Bearer jwt.for.clerk-user-1",
-      }),
-      makeEnv(),
-      makeCtx(),
-    );
-
-    expect(response.status).toBe(200);
-    expect(vi.mocked(verifyToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1", expect.anything());
-  });
-
   it("answers 503 when Clerk cannot be reached, not a sign-out and not a crash", async () => {
     // The SDK's own key-set fetch failing surfaces as a plain network error, not a token fault.
     vi.mocked(verifyToken).mockRejectedValueOnce(new TypeError("fetch failed"));
@@ -336,10 +319,8 @@ describe("Worker fetch handler", () => {
     expect(statusDo.forward).toHaveBeenCalledTimes(1);
   });
 
-  it("authenticates via the Authorization Bearer header", async () => {
+  it("returns signed-out for an Authorization Bearer header without a __session cookie", async () => {
     const env = makeEnv();
-    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
-    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
 
     const response = await worker.fetch(
       makeWsRequest({ Authorization: "Bearer jwt.for.clerk-user-1" }),
@@ -347,14 +328,13 @@ describe("Worker fetch handler", () => {
       makeCtx(),
     );
 
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe("WS response");
-    expect(mockUserFindFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { op: "eq", value: "user_clerk_1" } }),
-    );
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized: Invalid session");
+    expect(vi.mocked(verifyToken)).not.toHaveBeenCalled();
+    expect(mockUserFindFirst).not.toHaveBeenCalled();
   });
 
-  it("prefers the __session cookie over an Authorization header when both are present", async () => {
+  it("uses only the __session cookie when an Authorization header is also present", async () => {
     const env = makeEnv();
 
     await worker.fetch(

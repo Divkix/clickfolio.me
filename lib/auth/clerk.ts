@@ -88,23 +88,15 @@ function readCookieFromHeader(cookieHeader: string, name: string): string | null
   return null;
 }
 
+/** Clerk sessions accept only the __session cookie, never an Authorization header. */
 export function extractClerkTokenFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get("Cookie") ?? "";
-  const fromCookie = readCookieFromHeader(cookieHeader, CLERK_SESSION_COOKIE);
 
-  if (fromCookie) return fromCookie;
-
-  const authorization = request.headers.get("Authorization");
-
-  if (authorization?.startsWith("Bearer ")) {
-    return authorization.slice(7).trim() || null;
-  }
-
-  return null;
+  return readCookieFromHeader(cookieHeader, CLERK_SESSION_COOKIE);
 }
 
 /**
- * The session token of this request: from `request` when given, else from the framework's
+ * The __session cookie only: from `request` when given, else from the framework's
  * cookie store. `cookies()` signals "this render is dynamic" by throwing; that is not an auth
  * failure, so it becomes a defect and unwinds the render untouched (edges rethrow it).
  */
