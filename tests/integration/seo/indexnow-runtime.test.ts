@@ -87,6 +87,15 @@ describe("IndexNow runtime debounce", () => {
     expect(submittedUrls(1)).toEqual([`${siteConfig.url}/@erin`]);
   });
 
+  it("dedupes a forced ping so a handle that did not change is sent once", async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await notify(["erin", "erin"], { skipDebounce: true });
+
+    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@erin`]);
+    expect(cache.put).toHaveBeenCalledTimes(1);
+  });
+
   it("still marks a forced ping so an ordinary publish right after it is coalesced", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
 
@@ -162,6 +171,18 @@ describe("IndexNow runtime failures", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(logLines(warn)[0]).toMatchObject({ msg: "indexnow debounce unavailable" });
+  });
+
+  it("still pings, and says so, when the debounce write is down", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cache.put.mockRejectedValueOnce(new Error("cache unavailable"));
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await notify(["grace"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@grace`]);
+    expect(logLines(warn)[0]).toMatchObject({ msg: "indexnow debounce write failed" });
   });
 
   it("does nothing outside production", async () => {

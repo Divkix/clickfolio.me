@@ -51,7 +51,8 @@ vi.mock("@/lib/utils/revalidate", () => ({
 }));
 
 vi.mock("@/lib/seo/indexnow-runtime", () => ({
-  notifyIndexNowForProfiles: (handles: unknown[]) => mocks.indexNow(handles),
+  notifyIndexNowForProfiles: (handles: unknown[], options?: { skipDebounce?: boolean }) =>
+    mocks.indexNow(handles, options),
 }));
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
@@ -306,7 +307,7 @@ describe("POST /api/webhooks/clerk", () => {
     expect(await usersWhere("user_clerk_1")).toHaveLength(0);
     expect(await db.select().from(resumes)).toHaveLength(0);
     expect(mocks.revalidate).toHaveBeenCalledWith(["alice-site"]);
-    expect(mocks.indexNow).toHaveBeenCalledWith(["alice-site"]);
+    expect(mocks.indexNow).toHaveBeenCalledWith(["alice-site"], { skipDebounce: true });
   });
 
   it("removes a row that was only matched by external id, not left behind with its files gone", async () => {

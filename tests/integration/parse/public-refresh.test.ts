@@ -1,12 +1,22 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { Effect, Layer } from "effect";
 import { publicProfileTags } from "@/lib/cache/public-profile-paths";
 import { siteConfig } from "@/lib/config/site";
+import { siteDataContentColumns } from "@/lib/data/site-data-content";
+import { siteData, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
 import { QueueFailed } from "@/lib/effect/failures";
 import { EdgePurgeQueue } from "@/lib/effect/services/edge-purge-queue";
 import { IndexNow } from "@/lib/effect/services/indexnow";
 import { refreshPublicProfiles } from "@/lib/parse/public-refresh";
 import { profileUrls } from "@/lib/seo/indexnow";
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { ResumeContent } from "@/lib/types/database";
+import {
+  createTestDb,
+  INDEXABLE_CONTENT,
+  THIN_CONTENT,
+  type TestDb,
+} from "@/tests/helpers/pglite-db";
 
 const { logMock } = vi.hoisted(() => ({ logMock: vi.fn() }));
 
@@ -40,13 +50,62 @@ const indexNow = Layer.succeed(IndexNow, {
   markDebounced: () => Effect.void,
 });
 
-function refresh(handles: string[], appUrl: string | undefined) {
+const NOW = "2026-01-01T00:00:00.000Z";
+
+let testDb: Awaited<ReturnType<typeof createTestDb>>;
+let db: TestDb;
+
+function refresh(
+  handles: string[],
+  appUrl: string | undefined,
+  dbLayer: Layer.Layer<Db> = Db.layerFrom(db),
+) {
   return Effect.runPromise(
-    Effect.provide(refreshPublicProfiles(handles, appUrl), Layer.mergeAll(queue, indexNow)),
+    Effect.provide(
+      refreshPublicProfiles(handles, appUrl),
+      Layer.mergeAll(queue, indexNow, dbLayer),
+    ),
   );
 }
 
-beforeEach(() => {
+async function seedProfile(handle: string, content: ResumeContent, hideFromSearch = false) {
+  await db.insert(user).values({
+    id: `id-${handle}`,
+    name: handle,
+    email: `${handle}@example.com`,
+    handle,
+    showInDirectory: true,
+    onboardingCompleted: true,
+    privacySettings: {
+      show_phone: false,
+      show_address: false,
+      hide_from_search: hideFromSearch,
+      show_in_directory: true,
+    },
+    createdAt: NOW,
+    updatedAt: NOW,
+  });
+
+  await db.insert(siteData).values({
+    id: `site-${handle}`,
+    userId: `id-${handle}`,
+    ...siteDataContentColumns(content),
+    createdAt: NOW,
+    updatedAt: NOW,
+  });
+}
+
+beforeAll(async () => {
+  testDb = await createTestDb();
+  db = testDb.db;
+});
+
+afterAll(async () => {
+  await testDb.close();
+});
+
+beforeEach(async () => {
+  await testDb.reset();
   sent.length = 0;
   submitted.length = 0;
   sendFails = false;
@@ -55,9 +114,22 @@ beforeEach(() => {
 
 describe("refreshPublicProfiles", () => {
   it("enqueues the profile, directory, example and sitemap tags and pings IndexNow in production", async () => {
+    await seedProfile("ada", INDEXABLE_CONTENT);
+
     await refresh(["ada"], siteConfig.url);
 
     expect(sent.flat().sort()).toEqual(publicProfileTags(["ada"]).sort());
+    expect(submitted).toEqual([profileUrls(["ada"])]);
+  });
+
+  it("purges every rewritten profile but pings only the indexable ones", async () => {
+    await seedProfile("ada", INDEXABLE_CONTENT);
+    await seedProfile("thin", THIN_CONTENT);
+    await seedProfile("hidden", INDEXABLE_CONTENT, true);
+
+    await refresh(["ada", "thin", "hidden"], siteConfig.url);
+
+    expect(sent.flat().sort()).toEqual(publicProfileTags(["ada", "thin", "hidden"]).sort());
     expect(submitted).toEqual([profileUrls(["ada"])]);
   });
 
@@ -77,6 +149,7 @@ describe("refreshPublicProfiles", () => {
 
   it("logs a failed enqueue, still pings, and does not throw", async () => {
     sendFails = true;
+    await seedProfile("ada", INDEXABLE_CONTENT);
 
     await expect(refresh(["ada"], siteConfig.url)).resolves.toBeUndefined();
 
@@ -86,5 +159,23 @@ describe("refreshPublicProfiles", () => {
       expect.objectContaining({ operation: "queue.edge_purge.send", kind: "unavailable" }),
     );
     expect(submitted).toEqual([profileUrls(["ada"])]);
+  });
+
+  it("logs a failed indexability lookup, skips the ping, and does not throw", async () => {
+    const closed = await createTestDb();
+
+    await closed.close();
+
+    await expect(
+      refresh(["ada"], siteConfig.url, Db.layerFrom(closed.db)),
+    ).resolves.toBeUndefined();
+
+    expect(sent.flat().sort()).toEqual(publicProfileTags(["ada"]).sort());
+    expect(submitted).toEqual([]);
+    expect(logMock).toHaveBeenCalledWith(
+      "error",
+      "public page indexnow lookup failed",
+      expect.objectContaining({ operation: "public-refresh.indexable-handles" }),
+    );
   });
 });
