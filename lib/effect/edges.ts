@@ -8,8 +8,9 @@ import { upstreamLogFields } from "./failure-fields";
 import { isFrameworkSignal } from "./external";
 import type { ServerFailure } from "./failures";
 
-// The only places that run an Effect. Everything else yields services and returns Effects.
-// Layers are built here, once per invocation, so no pool, client or token outlives its request.
+// The request, page and background edges. Everything else yields services and returns Effects;
+// a Workflow step runs its own Effect in `runWorkflowStep`. Layers are built here, once per
+// invocation, so no pool, client or token outlives its request.
 
 const UNEXPECTED_MESSAGE = "An unexpected error occurred. Please try again.";
 
