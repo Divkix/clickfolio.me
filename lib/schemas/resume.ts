@@ -366,3 +366,7 @@ export type ResumeContentFormData = z.infer<typeof resumeContentSchema>;
 export const claimRequestSchema = z.object({
   key: z.string().min(1).startsWith("temp/"),
 });
+
+export const themeUpdateRequestSchema = z.object({
+  theme_id: z.string().min(1),
+});

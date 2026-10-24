@@ -95,17 +95,10 @@ vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("@/lib/utils/validation", () => ({
-  MAX_FILE_SIZE: 5 * 1024 * 1024,
-  MAX_FILE_SIZE_LABEL: "5MB",
+// Real body reading, so missing and `null` bodies take the production path.
+vi.mock("@/lib/utils/validation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/utils/validation")>()),
   validateRequestSize: vi.fn(() => ({ valid: true })),
-  readJsonWithLimit: vi.fn(async (req: Request) => {
-    try {
-      return { ok: true, data: await req.json() };
-    } catch {
-      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
-    }
-  }),
 }));
 
 vi.mock("@/lib/data/site-data-upsert", () => ({
@@ -1321,6 +1314,27 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(200);
       expect(mockedIndexNow).not.toHaveBeenCalled();
       expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
+    });
+
+    it.each([
+      ["no body", undefined],
+      ["a JSON null body", "null"],
+      ["a body without theme_id", "{}"],
+      ["a non-string theme_id", JSON.stringify({ theme_id: 42 })],
+    ])("returns 400, not 500, for %s", async (_label, body) => {
+      authedAs("user-123");
+
+      const { POST } = await import("@/app/api/resume/update-theme/route");
+
+      const response = await POST(
+        new Request("http://localhost:3000/api/resume/update-theme", { method: "POST", body }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: "theme_id is required and must be a string",
+      });
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
 
     it("returns 400 for invalid theme ID (test 14)", async () => {

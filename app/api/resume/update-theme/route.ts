@@ -1,5 +1,6 @@
-import { z } from "zod";
+import { Effect } from "effect";
 import { and, eq, lte } from "drizzle-orm";
+import { decodeJsonBody, runRoute } from "@/lib/api/route";
 import { withUser } from "@/lib/auth/with-auth";
 import { logEvent } from "@/lib/utils/log";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
@@ -7,119 +8,101 @@ import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import { siteData } from "@/lib/db/schema";
+import { themeUpdateRequestSchema } from "@/lib/schemas/resume";
 import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
-
-interface ThemeUpdateRequestBody {
-  theme_id?: string;
-}
 
 export async function POST(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db, dbUser }) => {
-      const userId = authUser.id;
+    ({ user: authUser, db, dbUser }) =>
+      runRoute(
+        request,
+        Effect.gen(function* () {
+          const userId = authUser.id;
 
-      const sizeCheck = validateRequestSize(request);
+          const { theme_id } = yield* decodeJsonBody(request, themeUpdateRequestSchema, {
+            message: "theme_id is required and must be a string",
+            code: "BAD_REQUEST",
+          });
 
-      if (!sizeCheck.valid) {
-        return createErrorResponse(
-          sizeCheck.error || "Request body too large",
-          ERROR_CODES.BAD_REQUEST,
-          413,
-        );
-      }
+          if (!isValidThemeId(theme_id)) {
+            return createErrorResponse(
+              "Invalid theme_id provided",
+              ERROR_CODES.VALIDATION_ERROR,
+              400,
+              { valid_themes: [...THEME_IDS] },
+            );
+          }
 
-      const rawBodyResult = await readJsonWithLimit(request);
-
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
-        );
-      }
-
-      // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts typed theme_id field.
-      const body = rawBodyResult.data as ThemeUpdateRequestBody;
-      const { theme_id } = body;
-
-      if (!theme_id || !z.string().safeParse(theme_id).success) {
-        return createErrorResponse(
-          "theme_id is required and must be a string",
-          ERROR_CODES.BAD_REQUEST,
-          400,
-        );
-      }
-
-      if (!isValidThemeId(theme_id)) {
-        return createErrorResponse("Invalid theme_id provided", ERROR_CODES.VALIDATION_ERROR, 400, {
-          valid_themes: [...THEME_IDS],
-        });
-      }
-
-      const siteDataRow = await db
-        .select({ updatedAt: siteData.updatedAt })
-        .from(siteData)
-        .where(eq(siteData.userId, userId))
-        .limit(1);
-
-      const expectedUpdatedAt = siteDataRow[0]?.updatedAt;
-
-      const now = new Date().toISOString();
-
-      const updateResult = await db
-        .update(siteData)
-        .set({
-          themeId: theme_id,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(siteData.userId, userId),
-            // Only apply when no other writer moved the row past the version read at request start.
-            expectedUpdatedAt ? lte(siteData.updatedAt, expectedUpdatedAt) : undefined,
-          ),
-        )
-        .returning({ themeId: siteData.themeId, content: siteData.content });
-
-      if (updateResult.length === 0) {
-        if (!expectedUpdatedAt) {
-          return createErrorResponse(
-            "Resume data not found. Please upload a resume first.",
-            ERROR_CODES.NOT_FOUND,
-            404,
+          const siteDataRow = yield* Effect.promise(() =>
+            db
+              .select({ updatedAt: siteData.updatedAt })
+              .from(siteData)
+              .where(eq(siteData.userId, userId))
+              .limit(1),
           );
-        }
 
-        return createErrorResponse(
-          "Theme changed elsewhere. Please reload and try again.",
-          ERROR_CODES.CONFLICT,
-          409,
-        );
-      }
+          const expectedUpdatedAt = siteDataRow[0]?.updatedAt;
 
-      const data = updateResult[0];
+          const now = new Date().toISOString();
 
-      if (isIndexableProfile(data.content, normalizePrivacySettings(authUser.privacySettings))) {
-        notifyIndexNowForProfiles([dbUser.handle]);
-      }
+          const updateResult = yield* Effect.promise(() =>
+            db
+              .update(siteData)
+              .set({
+                themeId: theme_id,
+                updatedAt: now,
+              })
+              .where(
+                and(
+                  eq(siteData.userId, userId),
+                  // Only apply when no other writer moved the row past the version read at request start.
+                  expectedUpdatedAt ? lte(siteData.updatedAt, expectedUpdatedAt) : undefined,
+                ),
+              )
+              .returning({ themeId: siteData.themeId, content: siteData.content }),
+          );
 
-      logEvent("theme_changed", { userId, themeId: theme_id });
+          if (updateResult.length === 0) {
+            if (!expectedUpdatedAt) {
+              return createErrorResponse(
+                "Resume data not found. Please upload a resume first.",
+                ERROR_CODES.NOT_FOUND,
+                404,
+              );
+            }
 
-      revalidatePublicProfilePages([dbUser.handle]);
+            return createErrorResponse(
+              "Theme changed elsewhere. Please reload and try again.",
+              ERROR_CODES.CONFLICT,
+              409,
+            );
+          }
 
-      return createSuccessResponse({
-        success: true,
-        theme_id: data.themeId,
-        message: "Theme updated successfully",
-      });
-    },
+          const data = updateResult[0];
+
+          if (
+            isIndexableProfile(data.content, normalizePrivacySettings(authUser.privacySettings))
+          ) {
+            notifyIndexNowForProfiles([dbUser.handle]);
+          }
+
+          logEvent("theme_changed", { userId, themeId: theme_id });
+
+          revalidatePublicProfilePages([dbUser.handle]);
+
+          return createSuccessResponse({
+            success: true,
+            theme_id: data.themeId,
+            message: "Theme updated successfully",
+          });
+        }),
+      ),
     "You must be logged in to update theme",
   );
 }
