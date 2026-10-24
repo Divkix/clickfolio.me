@@ -1,241 +1,90 @@
-import type { UnknownRecord, JsonValue } from "@/lib/types/json";
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { eq } from "drizzle-orm";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
+import { resumes, siteData, user } from "@/lib/db/schema";
+import { TIMEOUT_MS } from "@/lib/effect/timeouts";
+import type { JsonValue } from "@/lib/types/json";
+import { sha256Hex } from "@/lib/utils/hash";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
+import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "@/tests/helpers/pglite-db";
+import { logLines } from "@/tests/helpers/log-lines";
 
-type ClaimHeaders = { "Content-Type": string; Cookie?: string };
+const TEST_SECRET = "test-secret-key-for-testing-only";
+const TEMP_KEY = "temp/uuid/resume.pdf";
+const NOW = "2026-01-01T00:00:00.000Z";
 
-const mockFindFirst = vi.fn();
-
-const mockDbFrom = vi.fn();
-
-const mockDbWhere = vi.fn();
-
-const mockDbLimit = vi.fn();
-
-const mockDbOrderBy = vi.fn();
-
-const mockDbForUpdate = vi.fn().mockResolvedValue(undefined);
-
-let mockArbitratedId = "resume-id";
-
-const mockDbInsertReturning = vi.fn(async () => [
-  { id: mockArbitratedId, status: "pending_claim" },
-]);
-
-const mockDbOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockDbInsertReturning });
-
-const mockDbInsertValues = vi.fn((values: { id?: string }) => {
-  mockArbitratedId = values.id ?? mockArbitratedId;
-
-  return { onConflictDoUpdate: mockDbOnConflictDoUpdate };
-});
-
-const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
-
-const mockDbUpdateSet = vi.fn();
-
-const mockDbUpdateReturning = vi.fn(async () => [{ id: "resume-id" }]);
-
-const mockDbUpdateWhere = vi.fn().mockReturnValue({ returning: mockDbUpdateReturning });
-
-const mockDbTransaction = vi.fn(async <T>(cb: (tx: typeof mockDb) => Promise<T>) => cb(mockDb));
-
-let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
-
-/** Column map passed to `db.select(...)`; the mock only needs to spot the handle lookup. */
-type SelectColumns = { handle?: string } | null | undefined;
-
-const mockDbSelect = vi.fn().mockImplementation((cols: SelectColumns) => {
-  const isHandleQuery = cols != null && "handle" in cols;
-
-  if (isHandleQuery) {
-    return {
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue(mockHandleRows),
-        }),
-      }),
-    };
-  }
-
-  return { from: mockDbFrom };
-});
-
-mockDbFrom.mockReturnValue({ where: mockDbWhere });
-
-mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit, for: mockDbForUpdate });
-
-mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
-
-mockDbLimit.mockResolvedValue([]);
-
-const mockDbUpdate = vi.fn().mockReturnValue({ set: mockDbUpdateSet });
-
-mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
-
-const mockDb = {
-  query: { resumes: { findFirst: mockFindFirst } },
-  select: mockDbSelect,
-  from: mockDbFrom,
-  where: mockDbWhere,
-  limit: mockDbLimit,
-  insert: mockDbInsert,
-  update: mockDbUpdate,
-  transaction: mockDbTransaction,
-};
-
-vi.mock("@/lib/auth/middleware", () => ({
-  requireAuthWithUserValidation: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  db: vi.fn(),
+  startResumeParse: vi.fn(),
+  bound: { workflow: true },
+  auth: { signedIn: true },
+  bucket: {
+    objects: new Map<string, Uint8Array>(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
 }));
 
-vi.mock("drizzle-orm", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("drizzle-orm")>();
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    PENDING_UPLOAD_SECRET: "test-secret-key-for-testing-only",
+    get CLICKFOLIO_PARSE_WORKFLOW() {
+      return mocks.bound.workflow ? {} : undefined;
+    },
+    CLICKFOLIO_R2_BUCKET: mocks.bucket,
+  },
+}));
+
+vi.mock("@/lib/db", () => ({ getDb: () => mocks.db() }));
+
+vi.mock("@/lib/auth/clerk", async (importOriginal) => {
+  const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
+  const { DEFAULT_PRIVACY_SETTINGS: privacySettings } = await import("@/lib/utils/privacy");
 
   return {
-    ...actual,
-    eq: vi.fn((_col, val) => ({ eq: val })),
-    and: vi.fn((...args: JsonValue[]) => ({ and: args })),
-    desc: vi.fn((col) => ({ desc: col })),
-    gte: vi.fn((_col, val) => ({ gte: val })),
-    ne: vi.fn((_col, val) => ({ ne: val })),
-    isNotNull: vi.fn((col) => ({ isNotNull: col })),
-    inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
-    sql: actual.sql,
+    ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
+    authenticate: authenticateStub(async () => {
+      if (!mocks.auth.signedIn) return { error: new Response(null, { status: 401 }) };
+
+      return {
+        error: null,
+        user: {
+          id: "user_1",
+          email: "avery@example.com",
+          name: "Avery",
+          image: null,
+          handle: "avery",
+          headline: null,
+          privacySettings,
+          onboardingCompleted: true,
+          role: "mid_level",
+        },
+        dbUser: { id: "user_1", handle: "avery", clerkId: "clerk_1" },
+      };
+    }),
   };
 });
 
-vi.mock("@/lib/db/schema", () => ({
-  resumes: {
-    id: "id",
-    userId: "userId",
-    r2Key: "r2Key",
-    status: "status",
-    errorMessage: "errorMessage",
-    retryCount: "retryCount",
-    totalAttempts: "totalAttempts",
-    createdAt: "createdAt",
-    fileHash: "fileHash",
-    parsedContent: "parsedContent",
-    queuedAt: "queuedAt",
-    parsedAt: "parsedAt",
-  },
-  siteData: {
-    id: "id",
-    userId: "userId",
-    resumeId: "resumeId",
-    content: "content",
-    lastPublishedAt: "lastPublishedAt",
-    createdAt: "createdAt",
-    updatedAt: "updatedAt",
-  },
-  user: {
-    id: "id",
-    handle: "handle",
-  },
-}));
-
-const mockR2GetAsArrayBuffer = vi.fn();
-
-const mockR2Put = vi.fn().mockResolvedValue(undefined);
-
-const mockR2Delete = vi.fn().mockResolvedValue(undefined);
-
-vi.mock("@/lib/r2", () => ({
-  getR2Binding: vi.fn(() => ({})),
-  R2: {
-    getAsArrayBuffer: (...args: JsonValue[]) => mockR2GetAsArrayBuffer(...args),
-    put: (...args: JsonValue[]) => mockR2Put(...args),
-    delete: (...args: JsonValue[]) => mockR2Delete(...args),
-  },
-}));
-
-vi.mock("@/lib/rate-limit/user", () => ({
-  enforceRateLimit: vi.fn().mockResolvedValue(null),
-}));
-
-vi.mock("@/lib/utils/validation", () => ({
-  MAX_FILE_SIZE: 5 * 1024 * 1024,
-  MAX_FILE_SIZE_LABEL: "5MB",
-  validateRequestSize: vi.fn(() => ({ valid: true })),
-  readJsonWithLimit: vi.fn(async (req: Request) => {
-    try {
-      return { ok: true, data: await req.json() };
-    } catch {
-      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
-    }
-  }),
-}));
-
 vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
-  startResumeParse: vi.fn().mockResolvedValue(undefined),
+  startResumeParse: mocks.startResumeParse,
 }));
 
-vi.mock("@/lib/data/site-data-upsert", () => ({
-  buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
-}));
+let testDb: Awaited<ReturnType<typeof createTestDb>>;
+let db: TestDb;
+let pdfHash: string;
 
-vi.mock("@/lib/utils/security-headers", () => ({
-  createErrorResponse: vi.fn((error: string, code: string, status: number) => {
-    return new Response(JSON.stringify({ error, code }), { status });
-  }),
-  createSuccessResponse: vi.fn((data: JsonValue) => {
-    return new Response(JSON.stringify(data), { status: 200 });
-  }),
-  ERROR_CODES: {
-    UNAUTHORIZED: "UNAUTHORIZED",
-    FORBIDDEN: "FORBIDDEN",
-    NOT_FOUND: "NOT_FOUND",
-    BAD_REQUEST: "BAD_REQUEST",
-    INTERNAL_ERROR: "INTERNAL_ERROR",
-    RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
-    VALIDATION_ERROR: "VALIDATION_ERROR",
-    DATABASE_ERROR: "DATABASE_ERROR",
-    EXTERNAL_SERVICE_ERROR: "EXTERNAL_SERVICE_ERROR",
-  },
-}));
-
-import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { validateRequestSize } from "@/lib/utils/validation";
-
-const mockedAuth = vi.mocked(requireAuthWithUserValidation);
-
-const mockedValidateRequestSize = vi.mocked(validateRequestSize);
-
-function makePdfBuffer(): ArrayBuffer {
-  const header = new TextEncoder().encode("%PDF-1.4 fake content");
-
-  return header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength);
-}
-
-function authedAs(userId: string) {
-  mockedAuth.mockResolvedValue({
-    user: {
-      id: userId,
-      email: `${userId}@test.com`,
-      name: "Test User",
-      image: null,
-      handle: "testuser",
-      headline: null,
-      privacySettings: {
-        show_phone: false,
-        show_address: false,
-        hide_from_search: false,
-        show_in_directory: true,
-      },
-      onboardingCompleted: true,
-      role: "mid_level",
-    },
-    // SAFETY: mockDb implements exactly the select/insert/update/transaction surface the
-    // claim route calls; Database additionally requires the live node-postgres $client, which
-    // no test can construct — the auth context only forwards db through to the handler.
-    db: mockDb as never,
-    dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
-    // SAFETY: the route reads only PENDING_UPLOAD_SECRET (cookie HMAC) and passes the queue
-    // binding to the mocked publisher; the other 28 CloudflareEnv bindings stay untouched.
-    env: { CLICKFOLIO_PARSE_WORKFLOW: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
-    error: null,
-  });
-}
+const pdfBytes = new TextEncoder().encode("%PDF-1.4 fake content");
 
 async function createSignedCookieValue(
   tempKey: string,
@@ -260,390 +109,517 @@ async function createSignedCookieValue(
   return `${payload}|${signatureBase64}`;
 }
 
-const TEST_SECRET = "test-secret-key-for-testing-only";
+async function claim(
+  body: JsonValue = { key: TEMP_KEY },
+  options: { cookie?: string | null; headers?: Record<string, string> } = {},
+) {
+  const cookie =
+    options.cookie === undefined
+      ? await createSignedCookieValue(TEMP_KEY, TEST_SECRET)
+      : options.cookie;
 
-function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
-  const headers: ClaimHeaders = {
-    "Content-Type": "application/json",
-  };
+  const headers = new Headers({ "Content-Type": "application/json", ...options.headers });
 
-  if (cookieValue) headers.Cookie = `pending_upload=${cookieValue}`;
+  if (cookie) headers.set("Cookie", `pending_upload=${cookie}`);
 
-  return new Request("http://localhost:3000/api/resume/claim", {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
+  const { POST } = await import("@/app/api/resume/claim/route");
+
+  return POST(
+    new Request("http://localhost:3000/api/resume/claim", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+function connectionLost(): Error {
+  return Object.assign(new Error("connection terminated unexpectedly"), { code: "08006" });
+}
+
+/** Makes the nth `update` statement on `db` fail, like a connection that drops mid-request. */
+function failUpdateNumber(failOn: number) {
+  const update = db.update.bind(db);
+  let updates = 0;
+
+  vi.spyOn(db, "update").mockImplementation((...args: Parameters<TestDb["update"]>) => {
+    updates += 1;
+
+    if (updates === failOn) throw connectionLost();
+
+    return update(...args);
   });
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  mockHandleRows = [{ handle: "test-handle" }];
-  mockedValidateRequestSize.mockReturnValue({ valid: true });
-  mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
-  mockDbLimit.mockResolvedValue([]);
-  mockDbSelect.mockImplementation((cols: SelectColumns) => {
-    const isHandleQuery = cols != null && "handle" in cols;
+async function insertUsers(handle: string | null = "avery") {
+  await db.insert(user).values([
+    {
+      id: "user_1",
+      name: "Avery",
+      email: "avery@example.com",
+      handle,
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+  ]);
+}
 
-    if (isHandleQuery) {
-      return {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue(mockHandleRows),
-          }),
-        }),
-      };
-    }
-
-    return { from: mockDbFrom };
+async function insertResume(overrides: Partial<typeof resumes.$inferInsert> = {}) {
+  await db.insert(resumes).values({
+    id: "existing_1",
+    userId: "user_1",
+    r2Key: "users/user_1/existing_1/resume.pdf",
+    fileHash: "other_hash",
+    status: "completed",
+    createdAt: NOW,
+    ...overrides,
   });
-  mockDbFrom.mockReturnValue({ where: mockDbWhere });
-  mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit, for: mockDbForUpdate });
-  mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
-  mockDbInsert.mockReturnValue({ values: mockDbInsertValues });
-  mockArbitratedId = "resume-id";
-  mockDbUpdate.mockReturnValue({ set: mockDbUpdateSet });
-  mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
-  mockDbUpdateWhere.mockReturnValue({ returning: mockDbUpdateReturning });
+}
+
+async function readClaimed() {
+  const rows = await db.select().from(resumes).where(eq(resumes.userId, "user_1"));
+
+  return rows.filter((row) => row.id !== "existing_1");
+}
+
+beforeAll(async () => {
+  testDb = await createTestDb();
+  db = testDb.db;
+  pdfHash = await sha256Hex(pdfBytes.slice());
+});
+
+afterAll(async () => {
+  await testDb.close();
+});
+
+beforeEach(async () => {
+  await testDb.reset();
+  mocks.db.mockReset().mockImplementation(() => db);
+  mocks.bound.workflow = true;
+  mocks.startResumeParse.mockReset().mockResolvedValue(undefined);
+  mocks.bucket.objects.clear();
+  mocks.bucket.objects.set(TEMP_KEY, pdfBytes);
+  mocks.bucket.get.mockReset().mockImplementation(async (key: string) => {
+    const bytes = mocks.bucket.objects.get(key);
+
+    return bytes ? { arrayBuffer: async () => bytes.slice().buffer } : null;
+  });
+  mocks.bucket.put.mockReset().mockImplementation(async (key: string, body: Uint8Array) => {
+    mocks.bucket.objects.set(key, body);
+
+    return { size: body.byteLength, etag: "etag" };
+  });
+  mocks.bucket.delete.mockReset().mockImplementation(async (key: string | string[]) => {
+    for (const one of Array.isArray(key) ? key : [key]) mocks.bucket.objects.delete(one);
+  });
+  mocks.auth.signedIn = true;
+  await insertUsers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("POST /api/resume/claim", () => {
-  it("returns 401 when not authenticated", async () => {
-    mockedAuth.mockResolvedValue({
-      user: null,
-      db: null,
-      dbUser: null,
-      env: null,
-      error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
+  it("answers 401 for a signed-out visitor", async () => {
+    mocks.auth.signedIn = false;
+
+    expect((await claim()).status).toBe(401);
+  });
+
+  it("answers 400 when the key is missing", async () => {
+    const response = await claim({});
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: expect.stringContaining("Invalid upload key"),
     });
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(401);
   });
 
-  it("returns 400 when key is missing", async () => {
-    authedAs("user-1");
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/missing-key/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({}, cookie));
-
-    expect(response.status).toBe(400);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("Invalid upload key");
-  });
-
-  it("returns 400 when key does not start with temp/", async () => {
-    authedAs("user-1");
-
-    const { POST } = await import("@/app/api/resume/claim/route");
+  it("answers 400 when the key is not a temporary upload", async () => {
     const cookie = await createSignedCookieValue("users/hack/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "users/hack/resume.pdf" }, cookie));
+    const response = await claim({ key: "users/hack/resume.pdf" }, { cookie });
 
     expect(response.status).toBe(400);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("temporary upload");
+    expect(await response.json()).toMatchObject({
+      error: expect.stringContaining("temporary upload"),
+    });
   });
 
-  it("returns 413 when request size validation fails", async () => {
-    authedAs("user-1");
-    mockedValidateRequestSize.mockReturnValue({ valid: false, error: "Request body too large" });
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+  it("answers 413 when the request is too large", async () => {
+    const response = await claim({ key: TEMP_KEY }, { headers: { "Content-Length": "9000000" } });
 
     expect(response.status).toBe(413);
   });
 
-  it("returns 404 when file not found in R2 and no recent resume exists", async () => {
-    authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockResolvedValue(null);
-    mockDbLimit.mockResolvedValue([]);
+  it("answers 404 when the file is gone and no claim of it exists", async () => {
+    mocks.bucket.objects.clear();
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await claim();
 
     expect(response.status).toBe(404);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("not found");
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("not found") });
   });
 
-  it("returns already_claimed when file gone but recent resume exists (double-claim guard)", async () => {
-    authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockResolvedValue(null);
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+  it("answers already_claimed when the file is gone but a claim of it exists", async () => {
+    mocks.bucket.objects.clear();
+    await insertResume({ id: "claimed_1", r2Key: TEMP_KEY, status: "processing" });
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await claim();
 
     expect(response.status).toBe(200);
-    const body: { already_claimed: boolean; resume_id: string } = await response.json();
-    expect(body.already_claimed).toBe(true);
-    expect(body.resume_id).toBe("existing-resume");
+    expect(await response.json()).toMatchObject({
+      already_claimed: true,
+      resume_id: "claimed_1",
+      status: "processing",
+    });
   });
 
-  it("returns already_claimed when R2 throws missing-object error and recent resume exists", async () => {
-    authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockRejectedValue(new Error("No such key"));
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+  it("answers 503 on a transient R2 read failure even if a claim exists", async () => {
+    mocks.bucket.get.mockRejectedValue(new Error("R2 timeout"));
+    await insertResume({ id: "claimed_1", r2Key: TEMP_KEY, status: "processing" });
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await claim();
+
+    expect(response.status).toBe(503);
+  });
+
+  it("answers 400 for a file that is not a PDF", async () => {
+    mocks.bucket.objects.set(TEMP_KEY, new TextEncoder().encode("<html>not a pdf</html>"));
+
+    const response = await claim();
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "Invalid PDF format" });
+    expect(await readClaimed()).toHaveLength(0);
+  });
+
+  it("queues a new resume: moves the file, stores the row and starts the parse", async () => {
+    const response = await claim();
 
     expect(response.status).toBe(200);
-    const body: { already_claimed: boolean; resume_id: string } = await response.json();
-    expect(body.already_claimed).toBe(true);
-    expect(body.resume_id).toBe("existing-resume");
-  });
 
-  it("returns 500 on transient R2 fetch errors even if a recent resume exists", async () => {
-    authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockRejectedValue(new Error("R2 timeout"));
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(500);
-  });
-
-  it("queues a new resume for parsing on valid claim", async () => {
-    authedAs("user-1");
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(200);
     const body: { resume_id: string; status: string } = await response.json();
-    expect(body.status).toBe("queued");
-    expect(body.resume_id).toBeDefined();
 
-    expect(mockR2Put).toHaveBeenCalled();
-    expect(mockDbInsert).toHaveBeenCalled();
+    expect(body.status).toBe("queued");
+
+    const [row] = await readClaimed();
+
+    expect(row).toMatchObject({
+      id: body.resume_id,
+      status: "queued",
+      fileHash: pdfHash,
+      r2Key: `users/user_1/${body.resume_id}/resume.pdf`,
+    });
+    expect(mocks.bucket.objects.has(row.r2Key)).toBe(true);
+    expect(mocks.bucket.objects.has(TEMP_KEY)).toBe(false);
+
+    expect(mocks.startResumeParse).toHaveBeenCalledTimes(1);
+    expect(mocks.startResumeParse).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining(body.resume_id),
+      expect.objectContaining({
+        kind: "parse",
+        resumeId: body.resume_id,
+        userId: "user_1",
+        r2Key: row.r2Key,
+        fileHash: pdfHash,
+      }),
+    );
   });
 
   it("accepts a percent-encoded cookie as set by cookies().set() in /api/upload/pending", async () => {
-    authedAs("user-1");
+    const cookie = encodeURIComponent(await createSignedCookieValue(TEMP_KEY, TEST_SECRET));
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-
-    const cookie = encodeURIComponent(
-      await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET),
-    );
-
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(200);
+    expect((await claim({ key: TEMP_KEY }, { cookie })).status).toBe(200);
   });
 
-  it("fails the resume (manually retryable) when the parse workflow cannot start", async () => {
-    authedAs("user-1");
-    const { startResumeParse } = await import("@/lib/workflows/resume-parse");
-    vi.mocked(startResumeParse).mockRejectedValueOnce(new Error("Workflow unavailable"));
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(500);
-    const body: { error: string; code: string } = await response.json();
-    expect(body).toMatchObject({
-      error: "Failed to start resume processing",
-      code: "EXTERNAL_SERVICE_ERROR",
+  it("answers already_claimed for a duplicate pending claim of the same file", async () => {
+    await insertResume({
+      id: "pending_1",
+      r2Key: "temp/other/resume.pdf",
+      fileHash: pdfHash,
+      status: "pending_claim",
     });
-    // No instance exists, so nothing would ever pick the queued row up.
-    expect(mockDbUpdateSet).toHaveBeenCalledWith({
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      already_claimed: true,
+      resume_id: "pending_1",
+      status: "pending_claim",
+    });
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
+    expect(await readClaimed()).toHaveLength(1);
+  });
+});
+
+describe("POST /api/resume/claim: dedup against the same file", () => {
+  it("completes inline from an earlier identical parse and publishes it", async () => {
+    await insertResume({
+      fileHash: pdfHash,
+      status: "completed",
+      parsedContent: INDEXABLE_CONTENT,
+    });
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "completed", cached: true });
+
+    const [row] = await readClaimed();
+
+    expect(row).toMatchObject({ status: "completed", parsedContent: INDEXABLE_CONTENT });
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
+
+    const [site] = await db.select().from(siteData).where(eq(siteData.userId, "user_1"));
+
+    expect(site?.resumeId).toBe(row.id);
+    expect(site?.lastPublishedAt).not.toBeNull();
+  });
+
+  it("completes without publishing when the user has no handle yet", async () => {
+    await db.update(user).set({ handle: null }).where(eq(user.id, "user_1"));
+    await insertResume({
+      fileHash: pdfHash,
+      status: "completed",
+      parsedContent: INDEXABLE_CONTENT,
+    });
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+
+    const [site] = await db.select().from(siteData).where(eq(siteData.userId, "user_1"));
+
+    expect(site).toBeDefined();
+    expect(site?.lastPublishedAt).toBeNull();
+  });
+
+  it("waits for an identical parse that is still running and starts the cache timer", async () => {
+    await insertResume({ fileHash: pdfHash, status: "processing" });
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "processing", waiting_for_cache: true });
+
+    const [row] = await readClaimed();
+
+    expect(row).toMatchObject({ status: "waiting_for_cache", fileHash: pdfHash });
+    expect(mocks.bucket.objects.has(row.r2Key)).toBe(true);
+    expect(mocks.bucket.objects.has(TEMP_KEY)).toBe(false);
+
+    expect(mocks.startResumeParse).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      expect.objectContaining({ kind: "await-cache", resumeId: row.id }),
+    );
+  });
+
+  it("still waits when the cache timer cannot start, and logs it", async () => {
+    await insertResume({ fileHash: pdfHash, status: "processing" });
+    mocks.startResumeParse.mockRejectedValue(new Error("Workflow unavailable"));
+
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ waiting_for_cache: true });
+    expect(logLines(logged)).toContainEqual(
+      expect.objectContaining({ msg: "failed to start waiting_for_cache timer" }),
+    );
+  });
+});
+
+describe("POST /api/resume/claim: rate limit", () => {
+  beforeEach(() => {
+    // Limits only apply to a production deploy (lib/rate-limit/bypass.ts).
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("APP_URL", "https://clickfolio.me");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function useUpTheQuota() {
+    for (let index = 0; index < 5; index += 1) {
+      await insertResume({
+        id: `old_${index}`,
+        r2Key: `users/user_1/old_${index}/resume.pdf`,
+        fileHash: `old_hash_${index}`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  it("answers 429 with Retry-After once the daily quota is spent, and stores nothing", async () => {
+    await useUpTheQuota();
+
+    const response = await claim();
+
+    expect(response.status).toBe(429);
+    expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(0);
+    expect(await readClaimed()).toHaveLength(5);
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("answers already_claimed before counting the quota", async () => {
+    await useUpTheQuota();
+    await insertResume({
+      id: "pending_1",
+      r2Key: "temp/other/resume.pdf",
+      fileHash: pdfHash,
+      status: "pending_claim",
+    });
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ already_claimed: true });
+  });
+});
+
+describe("POST /api/resume/claim: failures", () => {
+  it("answers 503 and fails the row (manually retryable) when the parse workflow cannot start", async () => {
+    mocks.startResumeParse.mockRejectedValue(new Error("Workflow unavailable"));
+
+    const response = await claim();
+
+    expect(response.status).toBe(503);
+
+    const [row] = await readClaimed();
+
+    expect(row).toMatchObject({
       status: "failed",
       errorMessage: "Failed to start processing. Please try again.",
     });
   });
 
-  it("fails the resume with the returned message when the R2 put fails", async () => {
-    authedAs("user-1");
-    mockR2Put.mockRejectedValueOnce(new Error("R2 unavailable"));
+  it("answers 503 and fails the row when the Workflow binding is missing", async () => {
+    mocks.bound.workflow = false;
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await claim();
 
-    expect(response.status).toBe(500);
-    const body: { error: string; code: string } = await response.json();
-    expect(body).toMatchObject({
-      error: "Failed to store file for processing",
-      code: "EXTERNAL_SERVICE_ERROR",
-    });
-    expect(mockDbUpdateSet).toHaveBeenCalledWith({
+    expect(response.status).toBe(503);
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
+    expect((await readClaimed())[0]).toMatchObject({ status: "failed" });
+  });
+
+  it("gives up with 504 after the Workflow timeout, fails the row and never starts twice", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    mocks.startResumeParse.mockReturnValue(new Promise(() => {}));
+
+    const pending = claim();
+
+    await vi.waitFor(() => expect(mocks.startResumeParse).toHaveBeenCalled());
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS.workflow + 1);
+
+    const response = await pending;
+
+    expect(response.status).toBe(504);
+    expect(mocks.startResumeParse).toHaveBeenCalledTimes(1);
+    expect((await readClaimed())[0]).toMatchObject({ status: "failed" });
+  });
+
+  it("answers 503 and fails the row when the R2 put fails", async () => {
+    mocks.bucket.put.mockRejectedValue(new Error("R2 unavailable"));
+
+    const response = await claim();
+
+    expect(response.status).toBe(503);
+    expect((await readClaimed())[0]).toMatchObject({
       status: "failed",
       errorMessage: "Failed to store file for processing",
     });
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
   });
 
-  it("fails the resume with a database error when queuing the row throws", async () => {
-    authedAs("user-1");
-    mockDbUpdateReturning.mockRejectedValueOnce(new Error("connection reset"));
+  it("answers 504 after the R2 timeout without retrying the put", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    mocks.bucket.put.mockReturnValue(new Promise(() => {}));
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const pending = claim();
 
-    expect(response.status).toBe(500);
-    const body: { error: string; code: string } = await response.json();
-    expect(body).toMatchObject({ error: "Failed to update resume status", code: "DATABASE_ERROR" });
-    expect(mockDbUpdateSet).toHaveBeenCalledWith({
+    await vi.waitFor(() => expect(mocks.bucket.put).toHaveBeenCalled());
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS.r2 + 1);
+
+    const response = await pending;
+
+    expect(response.status).toBe(504);
+    expect(mocks.bucket.put).toHaveBeenCalledTimes(1);
+    expect((await readClaimed())[0]).toMatchObject({ status: "failed" });
+  });
+
+  it("answers 503 and fails the row when queuing the row throws", async () => {
+    failUpdateNumber(1);
+
+    const response = await claim();
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: "DATABASE_ERROR" });
+    expect((await readClaimed())[0]).toMatchObject({
       status: "failed",
       errorMessage: "Failed to update resume status",
     });
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
   });
 
-  it("returns already_claimed BEFORE rate limiting (double-claim does not burn a rate-limit slot)", async () => {
-    authedAs("user-1");
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-    vi.mocked(enforceRateLimit).mockResolvedValue(
-      new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }),
+  it("logs the stranded row when even marking it failed fails", async () => {
+    mocks.startResumeParse.mockRejectedValue(new Error("Workflow unavailable"));
+    // update #1 queues the row, update #2 marks it failed.
+    failUpdateNumber(2);
+
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await claim();
+
+    expect(response.status).toBe(503);
+    expect(logLines(logged)).toContainEqual(
+      expect.objectContaining({ msg: "claim row could not be marked failed" }),
     );
-    mockR2GetAsArrayBuffer.mockResolvedValue(null);
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(200);
-    const body: { already_claimed: boolean } = await response.json();
-    expect(body.already_claimed).toBe(true);
-    expect(enforceRateLimit).not.toHaveBeenCalled();
-  });
-
-  it("still enforces the rate limit after the double-claim guard for real claims", async () => {
-    authedAs("user-1");
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-    vi.mocked(enforceRateLimit).mockResolvedValue(
-      new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }),
-    );
-    mockDbLimit.mockResolvedValue([]);
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(429);
-    expect(enforceRateLimit).toHaveBeenCalled();
-  });
-
-  it("uses publish:false when cached resume exists but user has no handle", async () => {
-    authedAs("user-1");
-    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-    vi.mocked(enforceRateLimit).mockResolvedValue(null);
-
-    const cachedContent = { full_name: "Test User" };
-    let limitCallCount = 0;
-    mockDbLimit.mockImplementation(() => {
-      limitCallCount++;
-
-      if (limitCallCount === 1) return Promise.resolve([]);
-
-      return Promise.resolve([{ id: "cached-resume", parsedContent: cachedContent }]);
-    });
-    mockHandleRows = [];
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(200);
-    const body: { status: string; cached?: boolean } = await response.json();
-    expect(body.status).toBe("completed");
-    expect(body.cached).toBe(true);
-
-    const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
-    expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-      expect.anything(),
-      "user-1",
-      expect.anything(),
-      cachedContent,
-      expect.objectContaining({ publish: false }),
-    );
-    expect(mockDbTransaction).toHaveBeenCalled();
+    expect((await readClaimed())[0]?.status).toBe("queued");
   });
 });
 
-describe("POST /api/resume/claim - cookie security", () => {
-  const VALID_TEMP_KEY = "temp/uuid-123/resume.pdf";
-
-  it("returns 403 when pending_upload cookie is missing", async () => {
-    authedAs("user-1");
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }));
+describe("POST /api/resume/claim: cookie security", () => {
+  it("answers 403 when the pending_upload cookie is missing", async () => {
+    const response = await claim({ key: TEMP_KEY }, { cookie: null });
 
     expect(response.status).toBe(403);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("Unauthorized upload attempt");
+    expect(await response.json()).toMatchObject({
+      error: expect.stringContaining("Unauthorized upload attempt"),
+    });
   });
 
-  it("returns 403 when pending_upload cookie has invalid signature", async () => {
-    authedAs("user-1");
+  it("answers 403 when the cookie has an invalid signature", async () => {
+    const cookie = `${TEMP_KEY}|${Date.now() + 30 * 60 * 1000}|invalid-signature`;
 
-    const invalidCookie = `${VALID_TEMP_KEY}|${Date.now() + 30 * 60 * 1000}|invalid-signature`;
+    expect((await claim({ key: TEMP_KEY }, { cookie })).status).toBe(403);
+  });
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, invalidCookie));
+  it("answers 403 when the cookie has expired", async () => {
+    const cookie = await createSignedCookieValue(TEMP_KEY, TEST_SECRET, Date.now() - 1000);
+
+    expect((await claim({ key: TEMP_KEY }, { cookie })).status).toBe(403);
+  });
+
+  it("answers 403 when the cookie key does not match the body key", async () => {
+    const cookie = await createSignedCookieValue("temp/uuid-456/other.pdf", TEST_SECRET);
+
+    const response = await claim({ key: TEMP_KEY }, { cookie });
 
     expect(response.status).toBe(403);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("Unauthorized upload attempt");
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("key mismatch") });
   });
 
-  it("returns 403 when pending_upload cookie has expired", async () => {
-    authedAs("user-1");
-
-    const expiredCookie = await createSignedCookieValue(
-      VALID_TEMP_KEY,
-      TEST_SECRET,
-      Date.now() - 1000,
+  it("answers 403 when the cookie is malformed", async () => {
+    expect((await claim({ key: TEMP_KEY }, { cookie: "not-a-valid-cookie-format" })).status).toBe(
+      403,
     );
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, expiredCookie));
-
-    expect(response.status).toBe(403);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("Unauthorized upload attempt");
-  });
-
-  it("returns 403 when pending_upload cookie key does not match body key", async () => {
-    authedAs("user-1");
-
-    const mismatchedCookie = await createSignedCookieValue("temp/uuid-456/other.pdf", TEST_SECRET);
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, mismatchedCookie));
-
-    expect(response.status).toBe(403);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("Unauthorized upload attempt");
-  });
-
-  it("returns 403 when pending_upload cookie is malformed", async () => {
-    authedAs("user-1");
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-
-    const response = await POST(
-      makeClaimRequest({ key: VALID_TEMP_KEY }, "not-a-valid-cookie-format"),
-    );
-
-    expect(response.status).toBe(403);
-    const body: { error: string } = await response.json();
-    expect(body.error).toContain("Unauthorized upload attempt");
   });
 });
