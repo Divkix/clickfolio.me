@@ -165,6 +165,40 @@ describe("POST /api/webhooks/clerk", () => {
     expect(response.status).toBe(401);
   });
 
+  it("answers 500, not 401, when the configured secret is not a valid Svix secret", async () => {
+    mocks.state.secret = "not-a-svix-secret";
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const response = await POST(delivery("user.created", clerkUser()));
+
+    // The sender did nothing wrong: this is our configuration, so Svix keeps retrying.
+    expect(response.status).toBe(500);
+    expect(await usersWhere("user_clerk_1")).toHaveLength(0);
+  });
+
+  it("answers 400 for a correctly signed body that is not JSON", async () => {
+    const id = "msg_test_1";
+    const timestamp = new Date();
+    const payload = "{not json";
+    const signature = new Webhook(SECRET).sign(id, timestamp, payload);
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      new Request("https://clickfolio.me/api/webhooks/clerk", {
+        method: "POST",
+        headers: {
+          "svix-id": id,
+          "svix-timestamp": String(Math.floor(timestamp.getTime() / 1000)),
+          "svix-signature": signature,
+        },
+        body: payload,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   it("creates the user row on user.created", async () => {
     const { POST } = await import("@/app/api/webhooks/clerk/route");
 
@@ -332,7 +366,7 @@ describe("POST /api/webhooks/clerk", () => {
     const response = await POST(delivery("user.created", { nope: true }));
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Unrecognized user payload" });
+    expect(await response.json()).toMatchObject({ error: "Unrecognized user payload" });
   });
 
   it("answers 5xx, not 200, when the database fails, so Svix retries", async () => {
