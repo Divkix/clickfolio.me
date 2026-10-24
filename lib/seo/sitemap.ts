@@ -5,13 +5,12 @@ import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { countIndexableProfiles, getIndexableProfileWindow } from "@/lib/data/indexable-profiles";
 import { Db } from "@/lib/effect/db";
-import { logFailure } from "@/lib/effect/edges";
 import type { DbConflict, DbFailed } from "@/lib/effect/failures";
+import { retryLater } from "@/lib/effect/retry-later";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { getStaticLastmod } from "@/lib/seo/lastmod";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
 import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
-import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
 
@@ -202,26 +201,9 @@ export function getTotalIndexableUserCount(): Effect.Effect<number, DbFailed | D
 
 const SITEMAP_RETRY_AFTER_SECONDS = 300;
 
-/**
- * The 503 for a sitemap request whose database read failed: crawlers retry later and no cache
- * keeps it. Logs the cause, so route programs pipe every database failure through it.
- */
+/** The 503 for a sitemap request whose database read failed; route programs pipe failures here. */
 export function sitemapUnavailable(path: string) {
-  return (failure: DbFailed | DbConflict) =>
-    Effect.sync(() => {
-      logFailure(failure, { path, method: "GET" });
-
-      return new Response("Sitemap temporarily unavailable", {
-        status: 503,
-        headers: {
-          ...SECURITY_HEADERS,
-          "Content-Type": "text/plain",
-          "Retry-After": String(SITEMAP_RETRY_AFTER_SECONDS),
-          "Cache-Control": "no-store",
-          "CDN-Cache-Control": "no-store",
-        },
-      });
-    });
+  return retryLater(path, "Sitemap temporarily unavailable", SITEMAP_RETRY_AFTER_SECONDS);
 }
 
 export function buildSitemapIndexXml(shardCount: number): string {

@@ -3,10 +3,17 @@ import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { Resvg } from "@cf-wasm/resvg/workerd";
 import { eq } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { Effect } from "effect";
+import type { PgQueryable } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
+import { runRoute } from "@/lib/effect/edges";
+import { retryLater } from "@/lib/effect/retry-later";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { escapeXml } from "@/lib/utils/xml";
+
+// Social crawlers re-request an image that answered 5xx; a cached wrong card would stay for good.
+const OG_RETRY_AFTER_SECONDS = 60;
 
 const RESVG_OPTIONS = {
   fitTo: { mode: "width" as const, value: 1200 },
@@ -37,43 +44,26 @@ function renderLastResort(): Response {
   });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
-  const { handle: rawHandle } = await params;
+type CardRow = Awaited<ReturnType<typeof loadCardRow>>[number];
 
-  let handle = "";
+function loadCardRow(db: PgQueryable, handle: string) {
+  return db
+    .select({
+      name: user.name,
+      handle: user.handle,
+      previewName: siteData.previewName,
+      previewHeadline: siteData.previewHeadline,
+      previewSkills: siteData.previewSkills,
+    })
+    .from(user)
+    .innerJoin(siteData, eq(user.id, siteData.userId))
+    .where(eq(user.handle, handle))
+    .limit(1);
+}
 
+/** Draws the card. A render failure is logged and answered with the fallback card; it never throws. */
+async function renderCard(row: CardRow, handle: string): Promise<Response> {
   try {
-    handle = decodeURIComponent(rawHandle).replace(/^@/, "");
-  } catch {
-    handle = "";
-  }
-
-  if (!handle) {
-    return renderLastResort();
-  }
-
-  try {
-    const db = getDb(env.HYPERDRIVE);
-
-    const rows = await db
-      .select({
-        name: user.name,
-        handle: user.handle,
-        previewName: siteData.previewName,
-        previewHeadline: siteData.previewHeadline,
-        previewSkills: siteData.previewSkills,
-      })
-      .from(user)
-      .innerJoin(siteData, eq(user.id, siteData.userId))
-      .where(eq(user.handle, handle))
-      .limit(1);
-
-    const row = rows[0];
-
-    if (!row) {
-      return renderLastResort();
-    }
-
     const displayName = escapeXml(row.previewName || row.name || handle);
     const headline = row.previewHeadline ? escapeXml(row.previewHeadline) : "";
 
@@ -172,4 +162,37 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
 
     return renderLastResort();
   }
+}
+
+function cardProgram(handle: string, path: string) {
+  const unavailable = retryLater(path, "Image temporarily unavailable", OG_RETRY_AFTER_SECONDS);
+
+  return Db.use((service) => service.query("og.profile", (db) => loadCardRow(db, handle))).pipe(
+    Effect.flatMap(([row]) =>
+      row ? Effect.promise(() => renderCard(row, handle)) : Effect.succeed(renderLastResort()),
+    ),
+    Effect.catchTags({ DbFailed: unavailable, DbConflict: unavailable }),
+  );
+}
+
+export async function GET(request: Request, { params }: { params: Promise<{ handle: string }> }) {
+  const { handle: rawHandle } = await params;
+
+  let handle = "";
+
+  try {
+    handle = decodeURIComponent(rawHandle).replace(/^@/, "");
+  } catch {
+    handle = "";
+  }
+
+  if (!handle) {
+    return renderLastResort();
+  }
+
+  return runRoute(
+    request,
+    cardProgram(handle, new URL(request.url).pathname),
+    Db.layer(env.HYPERDRIVE),
+  );
 }
