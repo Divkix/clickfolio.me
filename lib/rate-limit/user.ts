@@ -5,7 +5,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { type Database, getDb } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
 import { isLocalEnvironment } from "@/lib/utils/environment";
-import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
+import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
 export const RATE_LIMITS = {
   handle_change: { limit: 3, windowHours: 24 },
@@ -47,6 +47,12 @@ interface RateLimitResult {
 }
 
 const UNAVAILABLE_RETRY_SECONDS = 60;
+
+// Never say "limit" here: the upload client reads that word as a used-up quota.
+const UNAVAILABLE_MESSAGES: Record<RateLimitAction, string> = {
+  handle_change: "Handle changes are temporarily unavailable. Please try again in a minute.",
+  resume_upload: "Uploads are temporarily unavailable. Please try again in a minute.",
+};
 
 export async function checkRateLimit(
   userId: string,
@@ -131,7 +137,7 @@ export async function checkRateLimit(
       remaining: 0,
       resetAt: new Date(Date.now() + UNAVAILABLE_RETRY_SECONDS * 1000),
       unavailable: true,
-      message: "Rate limiting service temporarily unavailable. Please try again in a few moments.",
+      message: UNAVAILABLE_MESSAGES[action],
     };
   }
 }
@@ -161,46 +167,29 @@ export async function enforceRateLimit(
       Math.ceil((result.resetAt.getTime() - Date.now()) / 1000),
     );
 
-    return new Response(
-      JSON.stringify({
-        error: "Rate Limiting Unavailable",
-        code: "RATE_LIMIT_UNAVAILABLE",
-        message: result.message,
-        details: { retryAfterSeconds },
-      }),
-      {
-        status: 503,
-        headers: {
-          "Content-Type": "application/json",
-          ...SECURITY_HEADERS,
-          "Retry-After": String(retryAfterSeconds),
-        },
-      },
+    return createErrorResponse(
+      UNAVAILABLE_MESSAGES[action],
+      ERROR_CODES.RATE_LIMIT_UNAVAILABLE,
+      503,
+      { retryAfterSeconds },
+      { "Retry-After": String(retryAfterSeconds) },
     );
   }
 
   if (!result.allowed) {
-    return new Response(
-      JSON.stringify({
-        error: "Rate Limit Exceeded",
-        code: "RATE_LIMIT_EXCEEDED",
-        message: result.message,
-        details: {
-          limit: RATE_LIMITS[action].limit,
-          windowHours: RATE_LIMITS[action].windowHours,
-          resetAt: result.resetAt.toISOString(),
-        },
-      }),
+    const { limit, windowHours } = RATE_LIMITS[action];
+    const resetAt = result.resetAt.toISOString();
+
+    return createErrorResponse(
+      result.message ?? "Too many requests. Please try again later.",
+      ERROR_CODES.RATE_LIMIT_EXCEEDED,
+      429,
+      { limit, windowHours, resetAt },
       {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          ...SECURITY_HEADERS,
-          "X-RateLimit-Limit": String(RATE_LIMITS[action].limit),
-          "X-RateLimit-Remaining": String(result.remaining),
-          "X-RateLimit-Reset": result.resetAt.toISOString(),
-          "Retry-After": String(Math.ceil((result.resetAt.getTime() - Date.now()) / 1000)),
-        },
+        "X-RateLimit-Limit": String(limit),
+        "X-RateLimit-Remaining": String(result.remaining),
+        "X-RateLimit-Reset": resetAt,
+        "Retry-After": String(Math.ceil((result.resetAt.getTime() - Date.now()) / 1000)),
       },
     );
   }

@@ -389,12 +389,20 @@ describe("Rate Limit Security Enforcement", () => {
 
       const response = await enforceRateLimit("user-123", "resume_upload");
 
-      if (response) {
-        expect(response.status).toBe(429);
-        expect(response.headers.get("Retry-After")).toBeTruthy();
-        expect(response.headers.get("X-RateLimit-Limit")).toBeTruthy();
-        expect(response.headers.get("X-RateLimit-Remaining")).toBeTruthy();
-      }
+      expect(response?.status).toBe(429);
+      expect(response?.headers.get("Retry-After")).toBeTruthy();
+      expect(response?.headers.get("X-RateLimit-Limit")).toBe("5");
+      expect(response?.headers.get("X-RateLimit-Remaining")).toBe("0");
+      expect(response?.headers.get("X-Content-Type-Options")).toBe("nosniff");
+
+      const body = await response?.json<UnknownRecord>();
+
+      // Same { error, code, details } body as createErrorResponse, with the specific text in `error`.
+      expect(body).toEqual({
+        error: expect.stringContaining("Rate limit exceeded. Maximum 5"),
+        code: "RATE_LIMIT_EXCEEDED",
+        details: { limit: 5, windowHours: 24, resetAt: expect.any(String) },
+      });
     });
 
     it("returns a retryable 503 when the rate-limit backend is unavailable", async () => {
@@ -407,10 +415,17 @@ describe("Rate Limit Security Enforcement", () => {
 
       expect(response?.status).toBe(503);
       expect(response?.headers.get("Retry-After")).toBe("60");
-      await expect(response?.json()).resolves.toMatchObject({
+      expect(response?.headers.get("X-Content-Type-Options")).toBe("nosniff");
+
+      const body = await response?.json<{ error: string }>();
+
+      expect(body).toEqual({
+        error: "Uploads are temporarily unavailable. Please try again in a minute.",
         code: "RATE_LIMIT_UNAVAILABLE",
-        message: expect.stringContaining("temporarily unavailable"),
+        details: { retryAfterSeconds: 60 },
       });
+      // The upload client reads "limit" as a used-up daily quota.
+      expect(body?.error.toLowerCase()).not.toContain("limit");
     });
   });
 
