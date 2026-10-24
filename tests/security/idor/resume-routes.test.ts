@@ -151,17 +151,9 @@ vi.mock("@/lib/utils/security-headers", () => ({
   },
 }));
 
-vi.mock("@/lib/utils/validation", () => ({
+vi.mock("@/lib/utils/validation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/utils/validation")>()),
   validateRequestSize: vi.fn(() => ({ valid: true })),
-  MAX_FILE_SIZE: 5 * 1024 * 1024,
-  MAX_FILE_SIZE_LABEL: "5MB",
-  readJsonWithLimit: vi.fn(async (req: Request) => {
-    try {
-      return { ok: true, data: await req.json() };
-    } catch {
-      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
-    }
-  }),
 }));
 
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
