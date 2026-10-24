@@ -1,3 +1,5 @@
+import { generateKeyPairSync, sign, webcrypto } from "node:crypto";
+import type * as ClerkBackend from "@clerk/backend";
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -23,8 +25,8 @@ function clerkError(reason: string): Error {
 
 const SECRET = "sk_test_clickfolio_secret";
 
-// SAFETY: only CLERK_SECRET_KEY is read by the Clerk layer; the rest of the environment is unused.
-const env = { CLERK_SECRET_KEY: SECRET } as CloudflareEnv;
+// SAFETY: the Clerk layer reads only the secret and app URL; other bindings are unused.
+const env = { CLERK_SECRET_KEY: SECRET, APP_URL: "https://clickfolio.me" } as CloudflareEnv;
 
 // SAFETY: same partial environment, with the secret deliberately absent.
 const envWithoutSecret = {} as CloudflareEnv;
@@ -54,6 +56,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("Clerk.verifyToken", () => {
@@ -76,7 +79,44 @@ describe("Clerk.verifyToken", () => {
       exp: 2_000_000_000,
       iat: 1_000_000_000,
     });
-    expect(mockVerifyToken).toHaveBeenCalledWith("jwt", { secretKey: SECRET });
+    expect(mockVerifyToken).toHaveBeenCalledWith("jwt", {
+      secretKey: SECRET,
+      authorizedParties: ["https://clickfolio.me"],
+    });
+  });
+
+  it("accepts localhost azp and rejects another origin with the installed SDK", async () => {
+    vi.stubGlobal("crypto", webcrypto);
+
+    const sdk = await vi.importActual<typeof ClerkBackend>("@clerk/backend");
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const jwtKey = publicKey.export({ type: "spki", format: "pem" }).toString();
+    const now = Math.floor(Date.now() / 1000);
+
+    const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT", kid: "test" })).toString(
+      "base64url",
+    );
+
+    const payload = Buffer.from(
+      JSON.stringify({
+        sub: "user_local",
+        azp: "http://localhost:3000",
+        iss: "https://local.clerk.accounts.dev",
+        iat: now,
+        nbf: now - 1,
+        exp: now + 60,
+      }),
+    ).toString("base64url");
+
+    const unsigned = `${header}.${payload}`;
+    const token = `${unsigned}.${sign("RSA-SHA256", Buffer.from(unsigned), privateKey).toString("base64url")}`;
+
+    await expect(
+      sdk.verifyToken(token, { jwtKey, authorizedParties: ["http://localhost:3000"] }),
+    ).resolves.toMatchObject({ sub: "user_local" });
+    await expect(
+      sdk.verifyToken(token, { jwtKey, authorizedParties: ["https://clickfolio.me"] }),
+    ).rejects.toMatchObject({ reason: "token-invalid-authorized-parties" });
   });
 
   it("answers an empty token with no session and no Clerk call", async () => {
@@ -90,6 +130,7 @@ describe("Clerk.verifyToken", () => {
     "token-invalid-signature",
     "token-invalid-algorithm",
     "token-not-active-yet",
+    "token-invalid-authorized-parties",
     "jwk-kid-mismatch",
   ])("treats a %s rejection as no session and warns", async (reason) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -156,6 +197,20 @@ describe("Clerk.verifyToken", () => {
     expect(failure.message).toContain("CLERK_SECRET_KEY is not configured");
     expect(describeFailure(failure)).toMatchObject({ status: 500, retryable: false });
     expect(mockVerifyToken).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "not a URL"])("fails closed with APP_URL=%s", async (appUrl) => {
+    vi.stubEnv("APP_URL", "");
+
+    try {
+      const failure = await verifyFailure("jwt", { ...env, APP_URL: appUrl ?? "" });
+
+      expect(failure).toMatchObject({ kind: "rejected", operation: "clerk.verify-token" });
+      expect(describeFailure(failure)).toMatchObject({ status: 500, retryable: false });
+      expect(mockVerifyToken).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("fails with a timeout when Clerk never answers", async () => {

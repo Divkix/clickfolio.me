@@ -55,6 +55,7 @@ vi.mock("cloudflare:workers", () => ({
     get CLERK_SECRET_KEY() {
       return mocks.state.secretKey;
     },
+    APP_URL: "https://clickfolio.me",
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
     get CLICKFOLIO_R2_BUCKET() {
       return mocks.state.bucketBound ? fakeBucket() : undefined;

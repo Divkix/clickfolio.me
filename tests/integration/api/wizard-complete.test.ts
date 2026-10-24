@@ -27,6 +27,7 @@ vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 vi.mock("cloudflare:workers", () => ({
   env: {
     CLERK_SECRET_KEY: "sk_test_clickfolio_secret",
+    APP_URL: "https://clickfolio.me",
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
   waitUntil: vi.fn(),
