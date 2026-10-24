@@ -18,19 +18,3 @@ export function getOptionalEnvValue<K extends keyof CloudflareEnv>(
 
   return undefined;
 }
-
-export function getEnvValue<K extends keyof CloudflareEnv>(
-  env: Partial<CloudflareEnv>,
-  key: K,
-): string {
-  const value = getOptionalEnvValue(env, key);
-
-  if (value === undefined) {
-    throw new Error(
-      `Missing required environment variable: ${key}. ` +
-        `Set it via .dev.vars (dev) or 'wrangler secret put ${key}' (prod).`,
-    );
-  }
-
-  return value;
-}

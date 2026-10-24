@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { RateLimited } from "@/lib/effect/failures";
 import type { JsonValue } from "@/lib/types/json";
 
 type ClaimBody = { key: string };
@@ -88,7 +89,31 @@ const mockDb = {
 
 const mockR2Store = new Map<string, ArrayBuffer>();
 
-const mockR2Binding: R2Bucket = {
+// The bucket the real R2Store talks to; it shares its contents with the legacy `R2` mock below.
+const mockR2Binding = {
+  head: vi.fn(async (key: string) => {
+    const buf = mockR2Store.get(key);
+
+    return buf ? { size: buf.byteLength, etag: "etag" } : null;
+  }),
+  get: vi.fn(async (key: string) => {
+    const buf = mockR2Store.get(key);
+
+    return buf ? { arrayBuffer: async () => buf } : null;
+  }),
+  put: vi.fn(async (key: string, body: ArrayBuffer) => {
+    mockR2Store.set(key, body);
+
+    return { size: body.byteLength, etag: "etag" };
+  }),
+  delete: vi.fn(async (key: string) => {
+    mockR2Store.delete(key);
+  }),
+  list: vi.fn(),
+};
+
+// Handed to the parse pipeline step, which reaches R2 only through the legacy `mockR2` below.
+const stubR2Binding: R2Bucket = {
   head: vi.fn(),
   get: vi.fn(),
   put: vi.fn(),
@@ -222,10 +247,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/rate-limit/ip", () => ({
-  checkIPRateLimit: vi.fn().mockResolvedValue({
-    allowed: true,
-    remaining: { hourly: 10, daily: 50 },
-  }),
+  checkIPRateLimitEffect: vi.fn(() => Effect.succeed({ remaining: { hourly: 10, daily: 50 } })),
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
@@ -373,7 +395,7 @@ describe("POST /api/upload", () => {
     expect(body.key).toMatch(/^temp\/.*\.pdf$/);
     expect(body.remaining.hourly).toBe(10);
     expect(body.remaining.daily).toBe(50);
-    expect(mockR2.put).toHaveBeenCalled();
+    expect(mockR2Binding.put).toHaveBeenCalled();
   });
 
   it("2. Upload with invalid PDF → rejected (400 bad request)", async () => {
@@ -389,12 +411,10 @@ describe("POST /api/upload", () => {
   });
 
   it("3. Upload rate limit exceeded → 429 too many requests", async () => {
-    const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
-    vi.mocked(checkIPRateLimit).mockResolvedValueOnce({
-      allowed: false,
-      remaining: { hourly: 0, daily: 50 },
-      message: "Rate limit exceeded",
-    });
+    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+    vi.mocked(checkIPRateLimitEffect).mockReturnValueOnce(
+      Effect.fail(new RateLimited({ message: "Rate limit exceeded", retryAfterSeconds: 3600 })),
+    );
 
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
@@ -630,7 +650,7 @@ describe("Parse pipeline → siteData Creation", () => {
   // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings the pipeline steps read; CloudflareEnv's remaining properties are never accessed on this path.
   const env = {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    CLICKFOLIO_R2_BUCKET: mockR2Binding,
+    CLICKFOLIO_R2_BUCKET: stubR2Binding,
   } as CloudflareEnv;
 
   it("22. Transient parse failure → retryable tagged failure for the workflow step", async () => {
