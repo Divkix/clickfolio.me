@@ -159,7 +159,13 @@ beforeEach(() => {
   mocks.readFailure.mockReturnValue(Effect.succeed(null));
   mocks.expire.mockReturnValue(Effect.succeed(true));
   mocks.complete.mockReturnValue(Effect.void);
-  mocks.fail.mockReturnValue(Effect.succeed(null));
+  mocks.fail.mockReturnValue(
+    Effect.succeed({
+      failure: toParseErrorJson(new UnknownParseFailure({ message: "Original parse failure" })),
+      totalAttempts: 1,
+      waitingIds: [],
+    }),
+  );
   mocks.announce.mockReturnValue(Effect.void);
   mocks.email.mockReturnValue(Effect.void);
   mocks.refresh.mockReturnValue(Effect.void);
@@ -238,9 +244,12 @@ describe("resume failure email workflow step", () => {
   });
 
   it("does not announce without a notice, and logs a failed announcement without failing the run", async () => {
+    // A superseded run must not email even if the newer run also left the row failed.
+    mocks.fail.mockReturnValueOnce(Effect.succeed(null));
     const workflow = await runWorkflow();
     await expect(workflow.run()).rejects.toThrow("Original parse failure");
     expect(mocks.announce).not.toHaveBeenCalled();
+    expect(mocks.email).not.toHaveBeenCalled();
 
     const notice = {
       failure: toParseErrorJson(new UnknownParseFailure({ message: "Original parse failure" })),
@@ -264,7 +273,7 @@ describe("resume failure email workflow step", () => {
       }),
     );
     // Once per run: the failed announcement did not stop the email.
-    expect(mocks.email).toHaveBeenCalledTimes(2);
+    expect(mocks.email).toHaveBeenCalledTimes(1);
   });
 
   it("finishes a run journaled before the notice existed without announcing", async () => {
@@ -274,7 +283,7 @@ describe("resume failure email workflow step", () => {
 
     expect(mocks.fail).not.toHaveBeenCalled();
     expect(mocks.announce).not.toHaveBeenCalled();
-    expect(mocks.email).toHaveBeenCalledTimes(1);
+    expect(mocks.email).not.toHaveBeenCalled();
   });
 
   it("logs each failed attempt and the terminal failure with its type and stack", async () => {

@@ -331,9 +331,10 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
 
       // Nothing to announce when the row was already gone, and for a run journaled before this
       // step returned a notice (its alert already went out inside `mark failed`).
-      if (notice) await this.announceFailure(job, notice, tracedStep);
-
-      await this.emailFailure(job.resumeId, tracedStep);
+      if (notice) {
+        await this.announceFailure(job, notice, tracedStep);
+        await this.emailFailure(job.resumeId, tracedStep);
+      }
 
       throw error;
     }
