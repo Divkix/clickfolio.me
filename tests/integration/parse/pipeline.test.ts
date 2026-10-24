@@ -2,7 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-
 import { Effect, Layer } from "effect";
 import { eq } from "drizzle-orm";
 import type { PgQueryable } from "@/lib/db";
-import { resumes, user } from "@/lib/db/schema";
+import { resumes, siteData, user } from "@/lib/db/schema";
+import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { Db } from "@/lib/effect/db";
 import { DbFailed } from "@/lib/effect/failures";
 import { AlertWebhook } from "@/lib/effect/services/alert-webhook";
@@ -452,6 +453,56 @@ describe("completeParsedResume", () => {
 
     const [owner] = await db.select().from(user).where(eq(user.id, JOB.userId));
     expect(owner).toMatchObject({ role: "senior", roleSource: "ai", isFreelance: true });
+  });
+
+  describe("rewritten handles", () => {
+    async function giveHandle(userId: string, handle: string) {
+      await db.update(user).set({ handle }).where(eq(user.id, userId));
+    }
+
+    it("returns the handle of the profile it rewrote", async () => {
+      await giveHandle(JOB.userId, "ada");
+      await seed(JOB.resumeId);
+
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual(["ada"]);
+    });
+
+    it("lists the handle once when identical uploads of the same user are fanned out to", async () => {
+      await giveHandle(JOB.userId, "ada");
+      await seed(JOB.resumeId);
+      await seed("waiting-1", { status: "waiting_for_cache" });
+
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual(["ada"]);
+    });
+
+    it("returns none on a replay of an already completed row", async () => {
+      await giveHandle(JOB.userId, "ada");
+      await seed(JOB.resumeId);
+
+      await run(completeParsedResume(JOB, parsed));
+
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual([]);
+    });
+
+    it("returns none for a user without a handle yet", async () => {
+      await seed(JOB.resumeId);
+
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual([]);
+    });
+
+    it("returns none when a newer manual edit kept the site data", async () => {
+      await giveHandle(JOB.userId, "ada");
+      await seed(JOB.resumeId);
+      await db.insert(siteData).values({
+        id: "site-1",
+        userId: JOB.userId,
+        ...siteDataContentColumns(CONTENT),
+        createdAt: T0,
+        updatedAt: "2026-02-01T00:00:00.000Z",
+      });
+
+      await expect(run(completeParsedResume(JOB, parsed))).resolves.toEqual([]);
+    });
   });
 
   it("completes only the row itself when nothing is waiting, without a career", async () => {
