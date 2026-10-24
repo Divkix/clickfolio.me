@@ -478,7 +478,7 @@ migrations_pg/
 tests/
 ├── integration/         # Integration tests
 ├── security/            # Security tests (IDOR, rate limits)
-└── setup.ts             # Test configuration
+└── helpers/             # Shared fixtures, including PGlite; tests use native Node WebCrypto
 ```
 
 ---
