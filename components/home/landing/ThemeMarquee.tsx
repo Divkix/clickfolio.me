@@ -1,7 +1,7 @@
 // Two-row design marquee on theme tokens.
 // Hover pauses a row; reduced motion stops it (globals.css).
 
-import { DEMO_PROFILES } from "@/lib/templates/demo-data";
+import { DEMO_PROFILES } from "@/lib/templates/demo-profiles";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 
 const previews = DEMO_PROFILES.map((profile) => ({

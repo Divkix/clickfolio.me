@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
+import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-profiles";
 import { THEME_IDS, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import type { ApiErrorBody } from "@/lib/types/api";
