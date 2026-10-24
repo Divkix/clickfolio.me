@@ -112,25 +112,8 @@ const mockR2Binding = {
   list: vi.fn(),
 };
 
-type StartedParseRun = {
-  id: string;
-  params: {
-    kind: string;
-    resumeId: string;
-    userId: string;
-    r2Key: string;
-    fileHash: string;
-  };
-};
-
-const mockWorkflowRuns: StartedParseRun[] = [];
-
 const mockWorkflow = {
-  create: vi.fn().mockImplementation(async (run: StartedParseRun) => {
-    mockWorkflowRuns.push(run);
-
-    return { id: run.id };
-  }),
+  create: vi.fn().mockResolvedValue({ id: "parse-run-1" }),
   get: vi.fn().mockRejectedValue(new Error("instance not found")),
 };
 
@@ -234,7 +217,6 @@ function makeClaimRequest(key: string, cookieValue?: string): Request {
 function resetAll() {
   vi.clearAllMocks();
   mockR2Store.clear();
-  mockWorkflowRuns.length = 0;
   resetMockDbChains();
 }
 
