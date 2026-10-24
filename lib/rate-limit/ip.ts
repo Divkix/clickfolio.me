@@ -9,11 +9,10 @@ import {
   type DbFailed,
 } from "@/lib/effect/failures";
 import { uploadRateLimits } from "@/lib/db/schema";
-import { errorFields } from "@/lib/utils/error-fields";
 import { sha256Hex } from "@/lib/utils/hash";
-import { log } from "@/lib/utils/log";
 import { limitsBypassed } from "./bypass";
 import { runLimiter } from "./legacy-edge";
+import { storeDown } from "./store-failure";
 
 const HOURLY_LIMIT = 10;
 
@@ -24,8 +23,6 @@ const HANDLE_CHECK_HOURLY_LIMIT = 100;
 const HOUR_MS = 60 * 60 * 1000;
 
 const DAY_MS = 24 * HOUR_MS;
-
-const UNAVAILABLE_RETRY_SECONDS = 60;
 
 const UNKNOWN_IP = "unknown";
 
@@ -143,18 +140,6 @@ function meterAction(
       return { kind: "recorded", hourly: hourly + 1, daily: daily + 1 };
     }),
   );
-}
-
-/** A store failure refuses the request: dropping the increment would meter nothing. */
-function storeDown(limiter: ActionType, message: string) {
-  return (failure: DbFailed | DbConflict): RateLimitUnavailable => {
-    log("error", "Rate limit store failed", {
-      limiter,
-      ...errorFields(failure.cause ?? failure),
-    });
-
-    return new RateLimitUnavailable({ message, retryAfterSeconds: UNAVAILABLE_RETRY_SECONDS });
-  };
 }
 
 function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailable, Db> {
