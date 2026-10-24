@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -10,8 +11,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // tall, so wrapped text keeps landing on the rules (the mobile header scales by whole lines too).
 // The avatar, contact buttons and section pills are sized in whole 32px lines for the same reason,
 // and a contact label too long for its button clips with an ellipsis instead of wrapping mid-word.
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 const SECTION_TONES = ["t1", "t2", "t3", "t4"] as const;
 
@@ -236,13 +235,7 @@ export const LessonPlan: React.FC<TemplateProps> = ({ content, profile }) => {
                       className="lp-entry"
                     >
                       <h3>
-                        {project.url ? (
-                          <a href={project.url} target="_blank" rel={LINK_REL}>
-                            {project.title}
-                          </a>
-                        ) : (
-                          project.title
-                        )}
+                        <MaybeLink href={project.url}>{project.title}</MaybeLink>
                       </h3>
                       {meta && <p className="lp-meta">{meta}</p>}
                       {project.description && <p className="lp-text">{project.description}</p>}
@@ -263,13 +256,7 @@ export const LessonPlan: React.FC<TemplateProps> = ({ content, profile }) => {
                         className="lp-item"
                       >
                         <h3>
-                          {cert.url ? (
-                            <a href={cert.url} target="_blank" rel={LINK_REL}>
-                              {cert.name}
-                            </a>
-                          ) : (
-                            cert.name
-                          )}
+                          <MaybeLink href={cert.url}>{cert.name}</MaybeLink>
                         </h3>
                         <p className="lp-meta">
                           {[cert.issuer, cert.date ? formatShortDate(cert.date) : null]

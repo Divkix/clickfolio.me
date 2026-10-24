@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -79,18 +80,9 @@ function ProjectsSection({ projects }: { projects: NonNullable<Content["projects
           <p className="bd-dates">{project.year ?? ""}</p>
           <div className="bd-body">
             <h3 className="bd-title">
-              {project.url ? (
-                <a
-                  href={project.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
-                  className="bd-link"
-                >
-                  {project.title}
-                </a>
-              ) : (
-                project.title
-              )}
+              <MaybeLink href={project.url} className="bd-link">
+                {project.title}
+              </MaybeLink>
             </h3>
             {project.description && <p className="bd-desc">{project.description}</p>}
             {project.technologies && project.technologies.length > 0 && (
@@ -140,18 +132,9 @@ function CertificationsSection({
           <p className="bd-dates">{cert.date ? formatShortDate(cert.date) : ""}</p>
           <div className="bd-body">
             <h3 className="bd-title bd-title-sm">
-              {cert.url ? (
-                <a
-                  href={cert.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
-                  className="bd-link"
-                >
-                  {cert.name}
-                </a>
-              ) : (
-                cert.name
-              )}
+              <MaybeLink href={cert.url} className="bd-link">
+                {cert.name}
+              </MaybeLink>
             </h3>
             {cert.issuer && <p className="bd-co">{cert.issuer}</p>}
           </div>
@@ -240,7 +223,7 @@ export const Boardroom: React.FC<TemplateProps> = ({ content, profile }) => {
                       <a
                         href={link.href}
                         target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                        rel={link.isExternal ? LINK_REL : undefined}
                       >
                         {link.label}
                       </a>

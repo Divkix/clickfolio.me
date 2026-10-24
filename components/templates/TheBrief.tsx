@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import type { ContactLinkDescriptor } from "@/lib/templates/contact-links";
@@ -21,7 +22,7 @@ function ContactLinkLabel({ link }: { link: ContactLinkDescriptor }): React.Reac
     <a
       href={link.href}
       target={link.isExternal ? "_blank" : undefined}
-      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+      rel={link.isExternal ? LINK_REL : undefined}
       className="hover:underline"
     >
       {link.label}
@@ -158,18 +159,9 @@ export const TheBrief: React.FC<TemplateProps> = ({ content, profile }) => {
               {projects.map((project) => (
                 <article key={`${project.title}-${project.year ?? ""}`}>
                   <p className="font-bold break-words">
-                    {project.url ? (
-                      <a
-                        href={project.url}
-                        target="_blank"
-                        rel="ugc nofollow noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        {project.title}
-                      </a>
-                    ) : (
-                      project.title
-                    )}
+                    <MaybeLink href={project.url} className="hover:underline">
+                      {project.title}
+                    </MaybeLink>
                     {project.year && (
                       <span className="font-normal tabular-nums"> ({project.year})</span>
                     )}

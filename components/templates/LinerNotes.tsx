@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -8,8 +9,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // A record sleeve: the resume as an album — the name on the cover, work as numbered tracks on
 // Side A, projects on Side B, skills as session personnel. Everything shown comes from the
 // parsed resume; the vinyl, its label and the sleeve arc are pure CSS decoration.
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 // The cover title sits in a fixed square sleeve, so the type steps down as the name grows.
 function coverTypeSize(name: string): string {
@@ -205,18 +204,9 @@ export const LinerNotes: React.FC<TemplateProps> = ({ content, profile }) => {
                             className="ln-track"
                           >
                             <b>
-                              {project.url ? (
-                                <a
-                                  href={project.url}
-                                  target="_blank"
-                                  rel={LINK_REL}
-                                  className="ln-link"
-                                >
-                                  {project.title}
-                                </a>
-                              ) : (
-                                project.title
-                              )}
+                              <MaybeLink href={project.url} className="ln-link">
+                                {project.title}
+                              </MaybeLink>
                             </b>
                             {project.year && (
                               <span className="ln-yr">{formatYear(project.year)}</span>
@@ -267,13 +257,9 @@ export const LinerNotes: React.FC<TemplateProps> = ({ content, profile }) => {
                         ])}
                         {certList.flatMap((cert) => [
                           <dt key={`${cert.name}-${cert.issuer ?? ""}-term`}>
-                            {cert.url ? (
-                              <a href={cert.url} target="_blank" rel={LINK_REL} className="ln-link">
-                                {cert.name}
-                              </a>
-                            ) : (
-                              cert.name
-                            )}
+                            <MaybeLink href={cert.url} className="ln-link">
+                              {cert.name}
+                            </MaybeLink>
                           </dt>,
                           <dd key={`${cert.name}-${cert.issuer ?? ""}-detail`}>
                             {[cert.issuer, cert.date ? formatShortDate(cert.date) : null]

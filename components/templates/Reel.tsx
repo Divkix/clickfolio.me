@@ -1,3 +1,4 @@
+import { ExternalLink, MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
@@ -578,9 +579,7 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
                               <a
                                 href={link.href}
                                 target={link.isExternal ? "_blank" : undefined}
-                                rel={
-                                  link.isExternal ? "ugc nofollow noopener noreferrer" : undefined
-                                }
+                                rel={link.isExternal ? LINK_REL : undefined}
                                 className="underline decoration-[#5A5A63] underline-offset-[3px] hover:decoration-current"
                                 style={{ color: RED_TEXT }}
                               >
@@ -690,14 +689,12 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
                               style={{ backgroundColor: PROJECT_CLIP }}
                             />
                             {project.url ? (
-                              <a
+                              <ExternalLink
                                 href={project.url}
-                                target="_blank"
-                                rel="ugc nofollow noopener noreferrer"
                                 className="min-w-0 underline decoration-[#5A5A63] underline-offset-[3px] hover:decoration-current"
                               >
                                 {project.title}
-                              </a>
+                              </ExternalLink>
                             ) : (
                               <span className="min-w-0">{project.title}</span>
                             )}
@@ -816,18 +813,12 @@ export const Reel: React.FC<TemplateProps> = ({ content, profile }) => {
                           style={{ borderColor: LINE }}
                         >
                           <p className="text-[0.9375rem] font-semibold break-words">
-                            {cert.url ? (
-                              <a
-                                href={cert.url}
-                                target="_blank"
-                                rel="ugc nofollow noopener noreferrer"
-                                className="underline decoration-[#5A5A63] underline-offset-[3px] hover:decoration-current"
-                              >
-                                {cert.name}
-                              </a>
-                            ) : (
-                              cert.name
-                            )}
+                            <MaybeLink
+                              href={cert.url}
+                              className="underline decoration-[#5A5A63] underline-offset-[3px] hover:decoration-current"
+                            >
+                              {cert.name}
+                            </MaybeLink>
                           </p>
                           {(cert.issuer || cert.date?.trim()) && (
                             <p

@@ -1,3 +1,4 @@
+import { ExternalLink, LINK_REL } from "./shared/ExternalLink";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowUpRight,
@@ -166,7 +167,7 @@ function GlassHero({
                 <a
                   href={link.href}
                   target={link.isExternal ? "_blank" : undefined}
-                  rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                  rel={link.isExternal ? LINK_REL : undefined}
                   className={`inline-flex items-center gap-2 border-b border-white/20 pb-0.5 text-sm text-[#E6EAF4] transition-colors hover:border-[#7FE3D4] hover:text-white ${FOCUS_RING}`}
                 >
                   {getContactIcon(link.type, {
@@ -257,15 +258,13 @@ function GlassProjects({ projects }: { projects: ResumeContent["projects"] }) {
             <div className="flex items-baseline justify-between gap-4">
               <h3 className="min-w-0 text-lg font-medium break-words text-white">
                 {project.url ? (
-                  <a
+                  <ExternalLink
                     href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
                     className={`inline-flex items-center gap-1.5 transition-colors hover:text-[#7FE3D4] ${FOCUS_RING}`}
                   >
                     {project.title}
                     <ArrowUpRight size={17} aria-hidden="true" className="shrink-0" />
-                  </a>
+                  </ExternalLink>
                 ) : (
                   project.title
                 )}
@@ -379,15 +378,13 @@ function GlassEducation({
                 <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
                   <p className="font-medium break-words text-white">
                     {cert.url ? (
-                      <a
+                      <ExternalLink
                         href={cert.url}
-                        target="_blank"
-                        rel="ugc nofollow noopener noreferrer"
                         className={`inline-flex items-center gap-1.5 transition-colors hover:text-[#7FE3D4] ${FOCUS_RING}`}
                       >
                         {cert.name}
                         <ArrowUpRight size={15} aria-hidden="true" className="shrink-0" />
-                      </a>
+                      </ExternalLink>
                     ) : (
                       cert.name
                     )}

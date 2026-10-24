@@ -1,3 +1,4 @@
+import { ExternalLink, MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -120,7 +121,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                       <a
                         href={link.href}
                         target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                        rel={link.isExternal ? LINK_REL : undefined}
                         className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C] focus-visible:outline-2 focus-visible:outline-[#22385C]"
                       >
                         {link.isExternal ? printableUrl(link.href) : link.label}
@@ -224,18 +225,12 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                       left={
                         <>
                           <span className="font-semibold">
-                            {cert.url ? (
-                              <a
-                                href={cert.url}
-                                target="_blank"
-                                rel="ugc nofollow noopener noreferrer"
-                                className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
-                              >
-                                {cert.name}
-                              </a>
-                            ) : (
-                              cert.name
-                            )}
+                            <MaybeLink
+                              href={cert.url}
+                              className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
+                            >
+                              {cert.name}
+                            </MaybeLink>
                           </span>
                           {cert.issuer && <span>, {cert.issuer}</span>}
                         </>
@@ -261,14 +256,12 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                         <h3 className="font-semibold [text-wrap:unset]">
                           {project.title}
                           {project.url && (
-                            <a
+                            <ExternalLink
                               href={project.url}
-                              target="_blank"
-                              rel="ugc nofollow noopener noreferrer"
                               className="ml-2 font-normal underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
                             >
                               {printableUrl(project.url)}
-                            </a>
+                            </ExternalLink>
                           )}
                         </h3>
                       }

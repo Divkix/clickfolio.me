@@ -1,3 +1,4 @@
+import { ExternalLink, LINK_REL } from "./shared/ExternalLink";
 import { Award, BookMarked, GitCommitHorizontal, GraduationCap, MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -142,7 +143,7 @@ function ProfileSidebar({ content, avatarUrl }: { content: Content; avatarUrl: s
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                    rel={link.isExternal ? LINK_REL : undefined}
                     className="min-w-0 break-all text-[#adbac7] hover:text-[#539bf5] hover:underline"
                   >
                     {link.label}
@@ -206,14 +207,9 @@ function ProjectsSection({ projects }: { projects: NonNullable<Content["projects
               <BookMarked className="mt-0.5 size-4 shrink-0 text-[#768390]" aria-hidden="true" />
               <h3 className="min-w-0 flex-1 break-words text-sm font-semibold">
                 {project.url ? (
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
-                    className="text-[#539bf5] hover:underline"
-                  >
+                  <ExternalLink href={project.url} className="text-[#539bf5] hover:underline">
                     {project.title}
-                  </a>
+                  </ExternalLink>
                 ) : (
                   <span className="text-[#cdd9e5]">{project.title}</span>
                 )}
@@ -383,14 +379,9 @@ function EducationSection({
                 <div className="min-w-0 text-sm leading-6">
                   <h3 className="font-semibold">
                     {cert.url ? (
-                      <a
-                        href={cert.url}
-                        target="_blank"
-                        rel="ugc nofollow noopener noreferrer"
-                        className="text-[#539bf5] hover:underline"
-                      >
+                      <ExternalLink href={cert.url} className="text-[#539bf5] hover:underline">
                         {cert.name}
-                      </a>
+                      </ExternalLink>
                     ) : (
                       <span className="text-[#cdd9e5]">{cert.name}</span>
                     )}

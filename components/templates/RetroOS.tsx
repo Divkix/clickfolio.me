@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import { Award, FileText, Folder, GraduationCap, HardDrive, User, Wrench } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -149,7 +150,7 @@ function AboutWindow({ content, avatarUrl }: { content: Content; avatarUrl: stri
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                    rel={link.isExternal ? LINK_REL : undefined}
                     className={`ros-raised inline-flex max-w-full items-center gap-1.5 bg-[#C0C0C0] px-2.5 py-1 text-sm text-black active:[box-shadow:inset_1px_1px_#0a0a0a,inset_-1px_-1px_#fff] ${FOCUS}`}
                   >
                     {getContactIcon(link.type, {
@@ -279,18 +280,12 @@ function ProjectsWindow({ projects }: { projects: NonNullable<Content["projects"
             />
             <div className="min-w-0 flex-1">
               <h3 className="text-[15px] font-bold break-words text-black">
-                {project.url ? (
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
-                    className={`text-[#0000EE] underline visited:text-[#551A8B] ${FOCUS}`}
-                  >
-                    {project.title}
-                  </a>
-                ) : (
-                  project.title
-                )}
+                <MaybeLink
+                  href={project.url}
+                  className={`text-[#0000EE] underline visited:text-[#551A8B] ${FOCUS}`}
+                >
+                  {project.title}
+                </MaybeLink>
                 {project.year && (
                   <span className="ml-2 font-mono text-xs font-normal text-[#555]">
                     {project.year}
@@ -372,18 +367,9 @@ function CredentialsWindow({
                   <Award className="mt-0.5 size-5 shrink-0 text-[#800000]" aria-hidden="true" />
                   <div className="min-w-0 text-sm leading-6">
                     <h3 className="font-bold break-words text-black">
-                      {cert.url ? (
-                        <a
-                          href={cert.url}
-                          target="_blank"
-                          rel="ugc nofollow noopener noreferrer"
-                          className={`text-[#0000EE] underline ${FOCUS}`}
-                        >
-                          {cert.name}
-                        </a>
-                      ) : (
-                        cert.name
-                      )}
+                      <MaybeLink href={cert.url} className={`text-[#0000EE] underline ${FOCUS}`}>
+                        {cert.name}
+                      </MaybeLink>
                     </h3>
                     {cert.issuer && <p className="text-[#222]">{cert.issuer}</p>}
                     {cert.date && (

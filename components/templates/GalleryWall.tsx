@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -14,8 +15,6 @@ type Content = TemplateProps["content"];
 
 type Project = NonNullable<Content["projects"]>[number];
 
-const LINK_REL = "ugc nofollow noopener noreferrer";
-
 // Frames hang at mixed proportions, and an imageless frame cycles four compositions by position.
 const ASPECTS = ["4 / 5", "3 / 4", "1 / 1"];
 
@@ -29,13 +28,7 @@ function yearSpan(start?: string, end?: string | null): string {
 function Frame({ project, index, name }: { project: Project; index: number; name: string }) {
   const media = project.technologies?.filter(Boolean) ?? [];
 
-  const title = project.url ? (
-    <a href={project.url} target="_blank" rel={LINK_REL}>
-      {project.title}
-    </a>
-  ) : (
-    project.title
-  );
+  const title = <MaybeLink href={project.url}>{project.title}</MaybeLink>;
 
   return (
     <figure className="gw-figure">
@@ -238,13 +231,7 @@ export const GalleryWall: React.FC<TemplateProps> = ({ content, profile }) => {
                         >
                           <dt>{cert.date?.trim() ? formatYear(cert.date) : ""}</dt>
                           <dd>
-                            {cert.url ? (
-                              <a href={cert.url} target="_blank" rel={LINK_REL}>
-                                {cert.name}
-                              </a>
-                            ) : (
-                              cert.name
-                            )}
+                            <MaybeLink href={cert.url}>{cert.name}</MaybeLink>
                             {cert.issuer && <span className="gw-note">{cert.issuer}</span>}
                           </dd>
                         </div>

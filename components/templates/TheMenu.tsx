@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import type { ContactLinkDescriptor } from "@/lib/templates/contact-links";
@@ -40,7 +41,7 @@ function ContactLink({ link }: { link: ContactLinkDescriptor }): React.ReactElem
     <a
       href={link.href}
       target={link.isExternal ? "_blank" : undefined}
-      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+      rel={link.isExternal ? LINK_REL : undefined}
       className={LINK}
     >
       {link.label}
@@ -146,18 +147,9 @@ function ProjectDishes({ projects }: { projects: NonNullable<Content["projects"]
     <article key={`${project.title}-${project.year ?? ""}`}>
       <MenuLine
         name={
-          project.url ? (
-            <a
-              href={project.url}
-              target="_blank"
-              rel="ugc nofollow noopener noreferrer"
-              className={LINK}
-            >
-              {project.title}
-            </a>
-          ) : (
-            project.title
-          )
+          <MaybeLink href={project.url} className={LINK}>
+            {project.title}
+          </MaybeLink>
         }
         price={project.year?.trim() || null}
       />
@@ -209,18 +201,9 @@ function CertificationDishes({
           <MenuLine
             as="p"
             name={
-              cert.url ? (
-                <a
-                  href={cert.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
-                  className={LINK}
-                >
-                  {cert.name}
-                </a>
-              ) : (
-                cert.name
-              )
+              <MaybeLink href={cert.url} className={LINK}>
+                {cert.name}
+              </MaybeLink>
             }
             price={yearSpan(undefined, cert.date)}
           />

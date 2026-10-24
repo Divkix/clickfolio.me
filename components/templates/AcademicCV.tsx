@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -11,8 +12,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // that exist. The resume schema has no publications field, so projects stand in for them.
 
 type Content = TemplateProps["content"];
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 function Section({
   id,
@@ -43,20 +42,6 @@ function Row({
       <p className="ac-when">{when}</p>
       <div className="ac-what">{children}</div>
     </div>
-  );
-}
-
-function ExternalLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}): React.ReactElement {
-  return (
-    <a href={href} target="_blank" rel={LINK_REL} className="ac-link">
-      {children}
-    </a>
   );
 }
 
@@ -99,11 +84,9 @@ function Outputs({ projects }: { projects: NonNullable<Content["projects"]> }) {
             <Row when={project.year ? formatYear(project.year) : null}>
               <h3>
                 <span className="ac-num">[{projects.length - index}]</span>{" "}
-                {project.url ? (
-                  <ExternalLink href={project.url}>{project.title}</ExternalLink>
-                ) : (
-                  project.title
-                )}
+                <MaybeLink className="ac-link" href={project.url}>
+                  {project.title}
+                </MaybeLink>
               </h3>
               {project.description && <p className="ac-text">{project.description}</p>}
               {keywords.length > 0 && (
@@ -312,11 +295,9 @@ export const AcademicCV: React.FC<TemplateProps> = ({ content, profile, isPrevie
                     when={cert.date ? formatShortDate(cert.date) : null}
                   >
                     <h3>
-                      {cert.url ? (
-                        <ExternalLink href={cert.url}>{cert.name}</ExternalLink>
-                      ) : (
-                        cert.name
-                      )}
+                      <MaybeLink href={cert.url} className="ac-link">
+                        {cert.name}
+                      </MaybeLink>
                     </h3>
                     {cert.issuer && <p className="ac-meta">{cert.issuer}</p>}
                   </Row>

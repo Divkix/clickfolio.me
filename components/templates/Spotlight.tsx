@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -119,7 +120,7 @@ function Hero({ content }: { content: Content }) {
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                    rel={link.isExternal ? LINK_REL : undefined}
                     className={`${linkClass} break-all`}
                   >
                     {link.label}
@@ -264,18 +265,9 @@ function Productions({ items }: { items: Content["projects"] }) {
           <li key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}>
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
               <h3 className="sl-serif text-[1.45rem] md:text-[1.7rem] font-bold leading-snug tracking-normal break-words min-w-0 text-[#FFF1CF]">
-                {project.url ? (
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
-                    className={linkClass}
-                  >
-                    {project.title}
-                  </a>
-                ) : (
-                  project.title
-                )}
+                <MaybeLink href={project.url} className={linkClass}>
+                  {project.title}
+                </MaybeLink>
               </h3>
               {project.year && <span className="text-[#BFAE9F]">{project.year}</span>}
             </div>
@@ -336,18 +328,9 @@ function Certifications({ items }: { items: Content["certifications"] }) {
             className="leading-[1.6] text-[#E2D4C2] break-words"
           >
             <span className="sl-serif text-[1.25rem] md:text-[1.35rem] font-bold text-[#FFF1CF]">
-              {cert.url ? (
-                <a
-                  href={cert.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
-                  className={linkClass}
-                >
-                  {cert.name}
-                </a>
-              ) : (
-                cert.name
-              )}
+              <MaybeLink href={cert.url} className={linkClass}>
+                {cert.name}
+              </MaybeLink>
             </span>
             {cert.issuer && <span className="sl-serif text-[1.2rem] italic">, {cert.issuer}</span>}
             {cert.date && <span className="text-[#BFAE9F]"> ({formatShortDate(cert.date)})</span>}

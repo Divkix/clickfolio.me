@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import { MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -85,7 +86,7 @@ function Sidebar({ content, avatarUrl }: { content: Content; avatarUrl: string |
                 <a
                   href={link.href}
                   target={link.isExternal ? "_blank" : undefined}
-                  rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                  rel={link.isExternal ? LINK_REL : undefined}
                   className="inline-flex max-w-full items-center gap-3 text-[15px] text-white hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white rounded-sm"
                 >
                   <span className="flex shrink-0 text-white/70">
@@ -181,18 +182,9 @@ function ProjectsSection({ projects }: { projects: NonNullable<Content["projects
           >
             <div className="flex items-baseline justify-between gap-4">
               <h3 className="text-lg font-bold leading-snug break-words">
-                {project.url ? (
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
-                    className={LINK}
-                  >
-                    {project.title}
-                  </a>
-                ) : (
-                  project.title
-                )}
+                <MaybeLink href={project.url} className={LINK}>
+                  {project.title}
+                </MaybeLink>
               </h3>
               {project.year && (
                 <span className="shrink-0 text-sm tabular-nums" style={{ color: SLATE }}>
@@ -257,18 +249,9 @@ function CertificationsSection({
             </p>
             <div className="min-w-0">
               <h3 className="text-lg font-bold leading-snug break-words">
-                {cert.url ? (
-                  <a
-                    href={cert.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
-                    className={LINK}
-                  >
-                    {cert.name}
-                  </a>
-                ) : (
-                  cert.name
-                )}
+                <MaybeLink href={cert.url} className={LINK}>
+                  {cert.name}
+                </MaybeLink>
               </h3>
               {cert.issuer && (
                 <p className="text-[15px]" style={{ color: SLATE }}>

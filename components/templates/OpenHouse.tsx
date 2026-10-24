@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -210,7 +211,7 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
               <a
                 href={link.href}
                 target={link.isExternal ? "_blank" : undefined}
-                rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                rel={link.isExternal ? LINK_REL : undefined}
                 className="underline decoration-[#1F4D3A]/40 underline-offset-4 hover:decoration-[#1F4D3A]"
                 style={{ color: SIGN }}
               >
@@ -363,19 +364,13 @@ export const OpenHouse: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="py-5 border-b border-[#18231D]/25 last:border-b-0"
                   >
                     <h3 className="text-[1.1875rem] leading-tight [overflow-wrap:anywhere]">
-                      {project.url ? (
-                        <a
-                          href={project.url}
-                          target="_blank"
-                          rel="ugc nofollow noopener noreferrer"
-                          className="underline decoration-[#1F4D3A]/40 underline-offset-4 hover:decoration-[#1F4D3A]"
-                          style={{ color: SIGN }}
-                        >
-                          {project.title}
-                        </a>
-                      ) : (
-                        project.title
-                      )}
+                      <MaybeLink
+                        href={project.url}
+                        className="underline decoration-[#1F4D3A]/40 underline-offset-4 hover:decoration-[#1F4D3A]"
+                        style={{ color: SIGN }}
+                      >
+                        {project.title}
+                      </MaybeLink>
                       {project.year && (
                         <span className="ml-3 text-sm font-normal" style={{ color: MUTED }}>
                           {project.year}

@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import { Briefcase } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -12,8 +13,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // always gets the same colour and server and client markup match.
 
 type Content = TemplateProps["content"];
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 const PROPERTY_LABELS = {
   email: "Email",
@@ -52,14 +51,6 @@ function Toggle({ title, children }: { title: string; children: React.ReactNode 
       </summary>
       <div className="ws-toggle-body">{children}</div>
     </details>
-  );
-}
-
-function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a href={href} target="_blank" rel={LINK_REL} className="ws-link">
-      {children}
-    </a>
   );
 }
 
@@ -236,11 +227,9 @@ export const Workspace: React.FC<TemplateProps> = ({ content, profile }) => {
                       className="ws-card"
                     >
                       <h3>
-                        {project.url ? (
-                          <ExternalLink href={project.url}>{project.title}</ExternalLink>
-                        ) : (
-                          project.title
-                        )}
+                        <MaybeLink className="ws-link" href={project.url}>
+                          {project.title}
+                        </MaybeLink>
                       </h3>
                       {project.year && <p className="ws-year">{formatYear(project.year)}</p>}
                       {project.description && <p className="ws-text">{project.description}</p>}
@@ -303,11 +292,9 @@ export const Workspace: React.FC<TemplateProps> = ({ content, profile }) => {
                 {certifications.map((cert) => (
                   <li key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`}>
                     <strong>
-                      {cert.url ? (
-                        <ExternalLink href={cert.url}>{cert.name}</ExternalLink>
-                      ) : (
-                        cert.name
-                      )}
+                      <MaybeLink href={cert.url} className="ws-link">
+                        {cert.name}
+                      </MaybeLink>
                     </strong>
                     <div className="ws-sub">
                       {[cert.issuer, cert.date ? formatShortDate(cert.date) : null]
