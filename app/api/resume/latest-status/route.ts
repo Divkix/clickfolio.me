@@ -47,18 +47,14 @@ export async function GET(request?: Request) {
           lastAttemptError: resume.lastAttemptError,
         });
 
-        // SAFETY: errorMessage is a nullable string column; cast bridges Drizzle type.
-        const error = view.isTimedOut
-          ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE
-          : (resume.errorMessage as string | null);
+        const error = view.isTimedOut ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE : resume.errorMessage;
 
-        // SAFETY: id and createdAt are validated string columns; casts bridge Drizzle nullable type.
         return createSuccessResponse({
-          id: resume.id as string,
+          id: resume.id,
           status: view.status,
           error,
           can_retry: view.canRetry,
-          createdAt: resume.createdAt as string,
+          createdAt: resume.createdAt,
         });
       }),
     "You must be logged in to check resume status",
