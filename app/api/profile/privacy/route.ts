@@ -66,7 +66,7 @@ export async function PUT(request: Request) {
 
         yield* Effect.sync(() => {
           revalidatePublicProfilePages([dbUser.handle]);
-          notifyIndexNowForProfiles([dbUser.handle]);
+          notifyIndexNowForProfiles([dbUser.handle], { skipDebounce: true });
         });
 
         return createSuccessResponse({

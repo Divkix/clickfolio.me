@@ -61,7 +61,8 @@ lib/data/              page loaders as Effects on the Db service (public-resume,
                        runPage; user-r2-keys.ts lists a user's R2 keys for account deletion; stored-content.ts checks the jsonb a page renders (loose structure, returns the
                        original value) and fails DbFailed "invalid-response"
 lib/stubs/             stubs for CF-incompatible modules (test aliases in vite.config.ts)
-lib/seo/               sitemap, llms.txt generators, IndexNow, lastmod.json
+lib/seo/               sitemap, llms.txt generators, IndexNow (`notifyIndexNowForProfiles` debounces a URL for 10 min per colo;
+                       hide/delete/rename callers pass `skipDebounce` so a recent publish ping cannot drop them), lastmod.json
 lib/examples/          EXAMPLE_GALLERIES: hand-picked directory handles for /examples/<slug>
 components/templates/  portfolio themes; registry in lib/templates/
 app/(protected)/       user pages — each page gates itself (layout does NOT)

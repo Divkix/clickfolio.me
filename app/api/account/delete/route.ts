@@ -149,7 +149,7 @@ function deleteAccount(request: Request, { user: authUser, dbUser }: Authenticat
       );
     }
 
-    notifyIndexNowForProfiles([dbUser.handle]);
+    notifyIndexNowForProfiles([dbUser.handle], { skipDebounce: true });
     revalidatePublicProfilePages([dbUser.handle]);
 
     // Prefix sweep catches every layout (users/{userId}/{timestamp}/… and
