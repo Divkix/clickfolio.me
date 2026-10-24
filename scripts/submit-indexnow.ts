@@ -80,6 +80,8 @@ async function main(): Promise<void> {
     console.log(
       `[indexnow] submitted ${result.submitted}/${urls.length} URLs (statuses: ${result.statuses.join(", ")})`,
     );
+
+    for (const error of result.errors) console.log(`[indexnow] batch failed: ${error}`);
   } catch (error) {
     console.log(`[indexnow] skipped: ${String(error)}`);
   }

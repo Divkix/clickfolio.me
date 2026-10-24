@@ -180,6 +180,11 @@ describe("handleOtelProxy", () => {
 
     expect(response.status).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.log).toHaveBeenCalledWith(
+      "warn",
+      "otel upload aborted by the client",
+      expect.objectContaining({ signal: "logs", "error.message": "client aborted" }),
+    );
   });
 
   it.each([
@@ -371,6 +376,30 @@ describe("handleOtelProxy", () => {
       );
 
       expect(body).toEqual(sent);
+    });
+
+    it("logs a body that is not JSON before passing it through", async () => {
+      await forwardedBody(withCountry(post("/otel/v1/traces", { body: "{not json" }), "DE"));
+
+      expect(mocks.log).toHaveBeenCalledWith(
+        "warn",
+        "otel export is not JSON; forwarded without country",
+        expect.objectContaining({ "error.name": "SyntaxError" }),
+      );
+    });
+
+    it("logs a JSON body that is not an OTLP export before passing it through", async () => {
+      const malformed = JSON.stringify(otlpTraces([{ value: { stringValue: "no key" } }]));
+
+      await forwardedBody(withCountry(post("/otel/v1/traces", { body: malformed }), "DE"));
+
+      expect(mocks.log).toHaveBeenCalledWith(
+        "warn",
+        "otel export is not OTLP JSON; forwarded without country",
+        {
+          issue_count: 1,
+        },
+      );
     });
   });
 });

@@ -137,13 +137,22 @@ function tagCountry(body: Uint8Array<ArrayBuffer>, country: string): Uint8Array<
 
   try {
     json = JSON.parse(utf8.decode(body));
-  } catch {
+  } catch (error) {
+    log("warn", "otel export is not JSON; forwarded without country", errorFields(error));
+
     return body;
   }
 
   const parsed = otlpExportSchema.safeParse(json);
 
-  if (!parsed.success) return body;
+  if (!parsed.success) {
+    log("warn", "otel export is not OTLP JSON; forwarded without country", {
+      issue_count: parsed.error.issues.length,
+    });
+
+    return body;
+  }
+
   const payload = parsed.data;
   const entries = [...(payload.resourceSpans ?? []), ...(payload.resourceLogs ?? [])];
 
@@ -183,8 +192,10 @@ export async function handleOtelProxy(
 
   try {
     if (request.body) body = await readBodyWithLimit(request.body, MAX_BODY_BYTES);
-  } catch {
+  } catch (error) {
     // The client went away mid-upload; nothing to forward.
+    log("warn", "otel upload aborted by the client", { signal, ...errorFields(error) });
+
     return status(400);
   }
 

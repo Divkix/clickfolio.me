@@ -72,8 +72,18 @@ export function initBrowserTelemetry(): void {
 
       return hyperdx;
     })
-    // Blocked or failed chunk: telemetry is best-effort.
-    .catch(() => null);
+    // Blocked or failed chunk: telemetry stays best-effort, but the reason is logged. The
+    // logger and scrubber load on this path only, so they stay out of the entry chunk.
+    .catch(async (error) => {
+      const [{ errorFields }, { log }] = await Promise.all([
+        import("../utils/error-fields"),
+        import("../utils/log"),
+      ]);
+
+      log("warn", "telemetry SDK failed to load", errorFields(error));
+
+      return null;
+    });
 }
 
 function withSdk(use: (hyperdx: HyperDX) => void): void {
