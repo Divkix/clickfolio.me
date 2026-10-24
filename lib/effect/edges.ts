@@ -4,6 +4,7 @@ import type { UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { describeFailure } from "./failure-map";
+import { upstreamLogFields } from "./failure-fields";
 import { isFrameworkSignal } from "./external";
 import type { ServerFailure } from "./failures";
 
@@ -30,12 +31,11 @@ export function logFailure(failure: ServerFailure, fields: EdgeLogFields = {}): 
   const entry: UnknownRecord = { failure: failure._tag, status, retryable, ...fields };
 
   if ("operation" in failure) {
-    entry.operation = failure.operation;
-    entry.kind = failure.kind;
-  }
-
-  if ("cause" in failure && failure.cause !== undefined) {
+    Object.assign(entry, upstreamLogFields(failure));
+  } else if ("cause" in failure && failure.cause !== undefined) {
     Object.assign(entry, errorFields(failure.cause));
+  } else {
+    entry["error.message"] = failure.message;
   }
 
   log(logLevel, "request failed", entry);
