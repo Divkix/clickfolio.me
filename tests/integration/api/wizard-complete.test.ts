@@ -261,14 +261,14 @@ describe("POST /api/wizard/complete", () => {
     expect(await auditOf("alice")).toHaveLength(3);
   });
 
-  it("answers 400 naming the handle field when another user has it", async () => {
+  it("answers 409 with the same message when another user has the handle", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
     const response = await POST(complete(validBody({ handle: "handle-bob" })));
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({
       error: "This handle is already taken. Please choose another.",
-      code: "VALIDATION_ERROR",
+      code: "CONFLICT",
     });
     expect((await rowOf("alice")).handle).toBeNull();
   });
