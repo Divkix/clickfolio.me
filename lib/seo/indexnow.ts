@@ -1,4 +1,5 @@
 import { siteConfig } from "@/lib/config/site";
+import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 
 /**
  * IndexNow client shared by the Worker (portfolio events) and `scripts/submit-indexnow.ts`
@@ -45,9 +46,32 @@ export function filterSiteUrls(
   return [...unique];
 }
 
+/** The endpoint answers 200 or 202 when it takes the URLs; anything else is a rejection or a limit. */
+export function isIndexNowAccepted(status: number): boolean {
+  return status === 200 || status === 202;
+}
+
+/** The POST for one batch of site URLs, ready for `fetch` (add the caller's `signal`). */
+export function indexNowRequest(
+  batch: readonly string[],
+  siteUrl: string = siteConfig.url,
+): RequestInit {
+  return {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({
+      host: new URL(siteUrl).host,
+      key: INDEXNOW_KEY,
+      keyLocation: `${siteUrl}/${INDEXNOW_KEY}.txt`,
+      urlList: batch,
+    }),
+  };
+}
+
 /**
- * POSTs `urls` to IndexNow in protocol-sized batches. Never throws: IndexNow is a hint, and a
- * failure must not fail a deploy or a user request.
+ * POSTs `urls` to IndexNow in protocol-sized batches, each limited to the upstream timeout.
+ * Never throws: IndexNow is a hint, and a failure must not fail a deploy. This is the Node
+ * script's path (`scripts/submit-indexnow.ts`); the Worker goes through the `IndexNow` service.
  */
 export async function submitToIndexNow(
   urls: readonly string[],
@@ -55,26 +79,19 @@ export async function submitToIndexNow(
 ): Promise<IndexNowResult> {
   const urlList = filterSiteUrls(urls, siteUrl);
   const result: IndexNowResult = { submitted: 0, statuses: [] };
-  const host = new URL(siteUrl).host;
 
   for (let start = 0; start < urlList.length; start += MAX_URLS_PER_REQUEST) {
     const batch = urlList.slice(start, start + MAX_URLS_PER_REQUEST);
 
     try {
       const response = await fetchImpl(INDEXNOW_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=utf-8" },
-        body: JSON.stringify({
-          host,
-          key: INDEXNOW_KEY,
-          keyLocation: `${siteUrl}/${INDEXNOW_KEY}.txt`,
-          urlList: batch,
-        }),
+        ...indexNowRequest(batch, siteUrl),
+        signal: AbortSignal.timeout(TIMEOUT_MS.upstream),
       });
 
       result.statuses.push(response.status);
 
-      if (response.status === 200 || response.status === 202) result.submitted += batch.length;
+      if (isIndexNowAccepted(response.status)) result.submitted += batch.length;
     } catch {
       result.statuses.push(0);
     }

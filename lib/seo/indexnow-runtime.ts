@@ -1,81 +1,75 @@
 import { waitUntil } from "cloudflare:workers";
+import { Cause, Effect, Exit } from "effect";
 import { siteConfig } from "@/lib/config/site";
-import { profileUrls, submitToIndexNow } from "@/lib/seo/indexnow";
-import { log } from "@/lib/utils/log";
+import { runBackground } from "@/lib/effect/edges";
+import { IndexNow } from "@/lib/effect/services/indexnow";
+import { profileUrls } from "@/lib/seo/indexnow";
 import { errorFields } from "@/lib/utils/error-fields";
-
-/** A URL submitted within this window is skipped: search engines coalesce pings anyway. */
-const DEBOUNCE_SECONDS = 10 * 60;
+import { log } from "@/lib/utils/log";
 
 /** Only the production Worker pings; local dev and `wrangler dev` override APP_URL. */
 function isProductionSite(): boolean {
   return process.env.APP_URL === siteConfig.url;
 }
 
-function debounceKey(url: string): string {
-  return `${siteConfig.url}/__indexnow-debounce/${encodeURIComponent(url)}`;
-}
-
-async function openDebounceCache(): Promise<Cache | null> {
-  if (typeof caches === "undefined") return null;
-
-  return caches.open("indexnow-debounce");
-}
-
 /**
- * Drops URLs pinged within DEBOUNCE_SECONDS. Marking happens after a successful submission, so
- * a rejected ping is retried on the next change instead of being suppressed. Uses the Workers
- * Cache API, so the debounce is per-colo and best-effort; without a cache (tests, Node) nothing
- * is skipped.
+ * Drops URLs pinged recently, submits the rest, and marks them only after an accepted
+ * submission, so a rejected ping is retried on the next change instead of being suppressed. The
+ * debounce is per-colo and best-effort: when it fails the ping goes ahead without it.
  */
-async function takeUndebounced(urls: string[]): Promise<string[]> {
-  const cache = await openDebounceCache();
+function submitProfiles(urls: string[]): Effect.Effect<void, never, IndexNow> {
+  return Effect.gen(function* () {
+    const indexNow = yield* IndexNow;
 
-  if (!cache) return urls;
+    const fresh = yield* indexNow.undebounced(urls).pipe(
+      Effect.catchTag("IndexNowDebounceFailed", (failure) =>
+        Effect.sync(() => {
+          log("warn", "indexnow debounce unavailable", {
+            operation: failure.operation,
+            kind: failure.kind,
+            ...errorFields(failure.cause ?? failure),
+          });
 
-  const fresh: string[] = [];
-
-  for (const url of new Set(urls)) {
-    if (await cache.match(debounceKey(url))) continue;
-
-    fresh.push(url);
-  }
-
-  return fresh;
-}
-
-async function markDebounced(urls: string[]): Promise<void> {
-  const cache = await openDebounceCache();
-
-  if (!cache) return;
-
-  await Promise.all(
-    urls.map((url) =>
-      cache.put(
-        debounceKey(url),
-        new Response("1", { headers: { "Cache-Control": `max-age=${DEBOUNCE_SECONDS}` } }),
+          return urls;
+        }),
       ),
+    );
+
+    if (fresh.length === 0) return;
+
+    yield* indexNow.submit(fresh);
+    yield* indexNow.markDebounced(fresh).pipe(
+      Effect.catchTag("IndexNowDebounceFailed", (failure) =>
+        Effect.sync(() => {
+          log("warn", "indexnow debounce write failed", {
+            operation: failure.operation,
+            kind: failure.kind,
+            ...errorFields(failure.cause ?? failure),
+          });
+        }),
+      ),
+    );
+    log("info", "indexnow submitted", { url_count: fresh.length });
+  }).pipe(
+    Effect.catchTag("HttpUpstreamFailed", (failure) =>
+      Effect.sync(() => {
+        log("warn", "indexnow submission failed", {
+          operation: failure.operation,
+          kind: failure.kind,
+          host: failure.host,
+          ...errorFields(failure.cause ?? failure),
+        });
+      }),
     ),
   );
 }
 
-async function submitProfiles(urls: string[]): Promise<void> {
-  try {
-    const fresh = await takeUndebounced(urls);
+/** Background edge: every typed failure is logged inside the program, defects here. */
+async function runSubmission(urls: string[]): Promise<void> {
+  const exit = await runBackground(submitProfiles(urls), IndexNow.layer());
 
-    if (fresh.length === 0) return;
-
-    const result = await submitToIndexNow(fresh);
-    const accepted = result.submitted === fresh.length;
-
-    if (accepted) await markDebounced(fresh);
-
-    log(accepted ? "info" : "warn", "indexnow submitted", {
-      urls: fresh,
-      statuses: result.statuses,
-    });
-  } catch (error) {
-    log("warn", "indexnow submission failed", { ...errorFields(error) });
+  if (Exit.isFailure(exit)) {
+    log("warn", "indexnow submission failed", { ...errorFields(Cause.squash(exit.cause)) });
   }
 }
 
@@ -91,7 +85,7 @@ export function notifyIndexNowForProfiles(handles: ReadonlyArray<string | null |
   if (urls.length === 0) return;
 
   try {
-    waitUntil(submitProfiles(urls));
+    waitUntil(runSubmission(urls));
   } catch (error) {
     log("warn", "indexnow waitUntil registration failed", { ...errorFields(error) });
   }
