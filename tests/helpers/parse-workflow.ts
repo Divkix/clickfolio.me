@@ -1,7 +1,7 @@
 import { vi } from "vite-plus/test";
 import type { ResumeParseParams } from "@/lib/workflows/resume-parse-params";
 
-type ParseWorkflow = {
+export type ParseWorkflow = {
   create: (options: { id: string; params: ResumeParseParams }) => Promise<{ id: string }>;
   get: (id: string) => Promise<{ id: string }>;
 };
