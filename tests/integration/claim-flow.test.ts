@@ -202,6 +202,21 @@ async function readClaimed() {
   return rows.filter((row) => row.id !== "existing_1");
 }
 
+/** Records the r2Key the claim row names at the moment the temp object is deleted. */
+function rowKeyAtTempDelete() {
+  const recorded = vi.fn();
+
+  mocks.bucket.delete.mockImplementation(async (key: string | string[]) => {
+    for (const one of Array.isArray(key) ? key : [key]) mocks.bucket.objects.delete(one);
+
+    const [row] = await readClaimed();
+
+    recorded(row?.r2Key);
+  });
+
+  return recorded;
+}
+
 beforeAll(async () => {
   testDb = await createTestDb();
   db = testDb.db;
@@ -352,6 +367,21 @@ describe("POST /api/resume/claim", () => {
     );
   });
 
+  it("deletes the temp object only after the row is queued", async () => {
+    const atDelete = rowKeyAtTempDelete();
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+
+    const [row] = await readClaimed();
+
+    expect(atDelete).toHaveBeenCalledTimes(1);
+    expect(atDelete).toHaveBeenCalledWith(row?.r2Key);
+    expect(atDelete).toHaveBeenCalledWith(`users/user_1/${row?.id}/resume.pdf`);
+    expect(mocks.bucket.objects.has(TEMP_KEY)).toBe(false);
+  });
+
   it("accepts a percent-encoded cookie as set by cookies().set() in /api/upload/pending", async () => {
     const cookie = encodeURIComponent(await createSignedCookieValue(TEMP_KEY, TEST_SECRET));
 
@@ -403,6 +433,27 @@ describe("POST /api/resume/claim: dedup against the same file", () => {
     expect(site?.lastPublishedAt).not.toBeNull();
     expect(mocks.revalidate).toHaveBeenCalledWith(["avery"]);
     expect(mocks.indexNow).toHaveBeenCalledWith(["avery"]);
+  });
+
+  it("deletes the temp object only after the cached row names the new key", async () => {
+    await insertResume({
+      fileHash: pdfHash,
+      status: "completed",
+      parsedContent: INDEXABLE_CONTENT,
+    });
+    const atDelete = rowKeyAtTempDelete();
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "completed", cached: true });
+
+    const [row] = await readClaimed();
+
+    expect(atDelete).toHaveBeenCalledTimes(1);
+    expect(atDelete).toHaveBeenCalledWith(row?.r2Key);
+    expect(atDelete).toHaveBeenCalledWith(`users/user_1/${row?.id}/resume.pdf`);
+    expect(mocks.bucket.objects.has(TEMP_KEY)).toBe(false);
   });
 
   it("refreshes the page but pings no search engine for a profile hidden from search", async () => {
@@ -633,11 +684,18 @@ describe("POST /api/resume/claim: failures", () => {
 
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: "DATABASE_ERROR" });
-    expect((await readClaimed())[0]).toMatchObject({
+    expect(mocks.startResumeParse).not.toHaveBeenCalled();
+
+    // The final object was written, but the row still names the temp key and that object is
+    // still there, so the retry route has a file to download.
+    const [row] = await readClaimed();
+
+    expect(row).toMatchObject({
       status: "failed",
       errorMessage: "Failed to update resume status",
+      r2Key: TEMP_KEY,
     });
-    expect(mocks.startResumeParse).not.toHaveBeenCalled();
+    expect(mocks.bucket.objects.has(TEMP_KEY)).toBe(true);
   });
 
   it("logs the stranded row when even marking it failed fails", async () => {
