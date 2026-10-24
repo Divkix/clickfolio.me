@@ -373,9 +373,9 @@ pnpm run seo:lastmod      # Update SEO last-modified timestamps
 pnpm run ci               # type-check + lint + test + build
 ```
 
-Tests cover integration and security flows. CI collects whole-app coverage and
-enforces the remaining-suite baseline: 24% statements/lines, 16% branches, and
-14% functions.
+Tests cover integration and security flows. CI collects coverage (including
+`worker/`) and enforces the measured floors in `vite.config.ts`
+(`test.coverage.thresholds`).
 
 ### Dependency Updates
 
@@ -389,31 +389,12 @@ packages (`vite-plus`, the `vite` catalog alias, `vitest`, `@vitest/*`,
 | minor / patch (grouped per group) | Auto-merged once every required check is green          |
 | major                             | Left open for a human; review is requested from @Divkix |
 
-`.github/workflows/dependabot-automerge.yml` performs the merge
-(`gh pr merge --squash --match-head-commit <event SHA>`) only after it has
-observed, on the PR's head commit: `Code Quality`, `Tests`, `Build`,
-`CI Success`, `GitGuardian Security Checks` and `Workers Builds: clickfolio-me`
-present **and** exactly successful, **every** other reported check/commit status
-exactly successful too (a skipped or neutral check is not green), and its own
-45-minute budget not exhausted. Its own check runs are recognised as this
-workflow's runs on the gated commit (check-suite ids), not by name, so a foreign
-check sharing that name still has to pass while a cancelled predecessor run
-cannot deadlock the gate. Author, same-repo head, base branch and head SHA are
-re-verified on every poll and again immediately before the merge. Missing checks, failures,
-cancellations, timeouts, a moved head, a retarget, a draft flip, conflicts, fork
-heads and non-Dependabot authors all fail closed — the PR stays open, the run log
-says why, and a human merges it. The branch is deleted by the repository setting
-`delete_branch_on_merge`, not by a merge flag.
-
-The workflow is metadata-only: it runs on `pull_request_target`, never checks
-out, installs or executes pull-request code, and receives every event value
-through `env` (nothing is interpolated into the script). Repository Actions rule
-7006 allows the `pull_request_target` event for exactly this file and the
-`dependabot[bot]` actor, which keeps the November 2026 public-repo
-`pull_request_target` restriction from blocking it without widening the event
-for other workflows. A `pull_request_target` workflow only runs from the default
-branch, so this automation starts working once the workflow is on `main`; a
-manual re-run of an update may also need a Dependabot-side event to be eligible.
+`.github/workflows/dependabot-automerge.yml` squash-merges only when `Code Quality`,
+`Tests`, `Build`, `CI Success`, `GitGuardian Security Checks` and
+`Workers Builds: clickfolio-me` **and** every other check on the head commit are
+exactly `success`. Anything else (a failure, a skipped check, a moved head, a
+non-Dependabot author) fails closed: the PR stays open for a human and the run log
+says why. The workflow's header comment documents the full gate and safety model.
 
 ### Project Structure
 
