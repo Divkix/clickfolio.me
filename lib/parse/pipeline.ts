@@ -174,6 +174,7 @@ export function claimResumeForParse(job: ResumeParseJob) {
         items: [{ resumeId: job.resumeId, userId: job.userId }],
         // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
         parsedContent: cached[0].parsedContent as ResumeContent,
+        retryCount: job.retryCount,
       });
 
       return "cached" as const;
@@ -294,6 +295,7 @@ export function completeParsedResume(job: ResumeParseJob, parsed: ParsedResume) 
         items: [{ resumeId: job.resumeId, userId: job.userId }],
         parsedContent: parsed.parsedContent,
         career,
+        retryCount: job.retryCount,
       }),
     );
 
