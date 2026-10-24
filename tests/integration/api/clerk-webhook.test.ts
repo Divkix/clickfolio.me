@@ -223,6 +223,51 @@ describe("POST /api/webhooks/clerk", () => {
     });
   });
 
+  it.each(["user.created", "user.updated"])(
+    "creates an unmapped user with a placeholder on %s when another account owns the email",
+    async (eventType) => {
+      await seedUser(db, "other", { email: "taken@example.com", emailVerified: true });
+
+      const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+      const payload = clerkUser({
+        email_addresses: [
+          {
+            id: "idn_1",
+            email_address: "taken@example.com",
+            verification: { status: "verified" },
+          },
+        ],
+      });
+
+      const response = await POST(delivery(eventType, payload));
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        action: "upserted",
+        detail: "user_clerk_1",
+      });
+      expect(await usersWhere("user_clerk_1")).toMatchObject([
+        {
+          id: "user_clerk_1",
+          name: "Ada Lovelace",
+          email: "user_clerk_1@unverified.clerk",
+          emailVerified: false,
+          image: "https://img.clerk.test/ada.png",
+        },
+      ]);
+      expect(await usersWhere("clerk-other")).toMatchObject([
+        { id: "other", email: "taken@example.com", emailVerified: true },
+      ]);
+
+      expect((await POST(delivery(eventType, payload))).status).toBe(200);
+      expect(await usersWhere("user_clerk_1")).toHaveLength(1);
+      expect(await usersWhere("clerk-other")).toMatchObject([
+        { id: "other", email: "taken@example.com", emailVerified: true },
+      ]);
+    },
+  );
+
   it("uses the external id as the row id when Clerk carries one", async () => {
     const { POST } = await import("@/app/api/webhooks/clerk/route");
 
