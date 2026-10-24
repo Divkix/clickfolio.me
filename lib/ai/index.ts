@@ -48,7 +48,11 @@ function validateParseResult(
       );
     }
 
-    return transformAiOutput(result.data);
+    return yield* Effect.try({
+      try: () => transformAiOutput(result.data),
+      catch: (cause) =>
+        new AiOutputInvalid({ message: "Invalid transformed resume fields", cause }),
+    });
   });
 }
 

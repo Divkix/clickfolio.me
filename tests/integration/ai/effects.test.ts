@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { textResult } from "@/tests/helpers/ai-result";
 import { generateAiText, parseWithAiEffect } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai";
+import * as transform from "@/lib/ai/transform";
 import { extractPdfTextEffect } from "@/lib/ai/pdf-extract";
 import { classifyCareerEffect } from "@/lib/ai/career";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/prompt-config";
@@ -224,6 +225,23 @@ describe("Effect AI boundaries", () => {
       total_tokens: 2000,
       cost_credits: 0.0042,
     });
+  });
+
+  it("tags a final output transform throw without repeating AI generation", async () => {
+    const output = vi.spyOn(transform, "transformAiOutput").mockImplementationOnce(() => {
+      throw new TypeError("deterministic transform failure");
+    });
+
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(CONTENT)));
+
+    try {
+      const failure = await Effect.runPromise(Effect.flip(parseResumeWithAi(pdfBuffer(), ENV)));
+      expect(failure).toBeInstanceOf(AiOutputInvalid);
+      expect(failure.retryable).toBe(false);
+      expect(generateText).toHaveBeenCalledTimes(1);
+    } finally {
+      output.mockRestore();
+    }
   });
 
   it("sends one schema-feedback attempt then fails permanently", async () => {
