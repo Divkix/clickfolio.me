@@ -3,7 +3,7 @@ import { resolveThemeId, type ThemeId } from "./theme-ids";
 
 type TemplateLoader = () => Promise<React.FC<TemplateProps>>;
 
-const TEMPLATE_LOADERS = {
+export const TEMPLATE_LOADERS = {
   bento: () => import("@/components/templates/BentoGrid").then((m) => m.BentoGrid),
   boardroom: () => import("@/components/templates/Boardroom").then((m) => m.Boardroom),
   bold_corporate: () => import("@/components/templates/BoldCorporate").then((m) => m.BoldCorporate),
