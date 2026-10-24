@@ -1,7 +1,5 @@
 "use client";
 
-export const revalidate = 86400;
-
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { Search, Users } from "lucide-react";
