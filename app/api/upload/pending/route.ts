@@ -1,8 +1,10 @@
+import { Effect } from "effect";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
-import { z } from "zod";
+import { decodeJsonBody, runRoute } from "@/lib/api/route";
+import { claimRequestSchema } from "@/lib/schemas/resume";
 import { getEnvValue } from "@/lib/utils/env";
 import { getR2Binding, R2 } from "@/lib/r2";
 import {
@@ -16,41 +18,26 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 export async function POST(request: Request) {
+  return runRoute(
+    request,
+    Effect.gen(function* () {
+      const { key } = yield* decodeJsonBody(request, claimRequestSchema, {
+        message: "Invalid upload key",
+        code: "BAD_REQUEST",
+      });
+
+      return yield* Effect.promise(() => savePendingUpload(key));
+    }),
+  );
+}
+
+async function savePendingUpload(key: string): Promise<Response> {
   try {
     // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
     const typedEnv = env as CloudflareEnv;
     const secret = getEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
-
-    const sizeCheck = validateRequestSize(request);
-
-    if (!sizeCheck.valid) {
-      return createErrorResponse(
-        sizeCheck.error || "Request body too large",
-        ERROR_CODES.BAD_REQUEST,
-        413,
-      );
-    }
-
-    const rawBodyResult = await readJsonWithLimit(request);
-
-    if (!rawBodyResult.ok) {
-      return createErrorResponse(
-        rawBodyResult.error,
-        ERROR_CODES.BAD_REQUEST,
-        rawBodyResult.reason === "too_large" ? 413 : 400,
-      );
-    }
-
-    // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts optional key field.
-    const body = rawBodyResult.data as { key?: string };
-    const { key } = body ?? {};
-
-    if (!key || !z.string().safeParse(key).success || !key.startsWith("temp/")) {
-      return createErrorResponse("Invalid upload key", ERROR_CODES.BAD_REQUEST, 400);
-    }
 
     const r2 = getR2Binding(typedEnv);
     const head = r2 ? await R2.head(r2, key) : null;

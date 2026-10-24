@@ -694,6 +694,23 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
+  it.each([
+    ["no body", undefined],
+    ["a JSON null body", "null"],
+    ["a JSON array body", "[]"],
+    ["a non-string key", JSON.stringify({ key: ["temp/a.pdf"] })],
+  ])("POST /api/upload/pending with %s → 400, not 500", async (_label, body) => {
+    const { POST } = await import("@/app/api/upload/pending/route");
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/upload/pending", { method: "POST", body }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ error: "Invalid upload key" });
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
   it("27. POST /api/upload/pending with invalid key prefix → 400", async () => {
     const { POST } = await import("@/app/api/upload/pending/route");
 
