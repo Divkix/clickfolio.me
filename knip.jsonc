@@ -13,6 +13,7 @@
   ],
   "ignore": [],
   "ignoreBinaries": [],
+  // `cloudflare:workers` imports read as a package named "cloudflare" (a runtime builtin, not installed).
   "ignoreDependencies": ["cloudflare", "postcss"],
   "ignoreExportsUsedInFile": true,
 }
