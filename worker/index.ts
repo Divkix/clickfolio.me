@@ -4,6 +4,7 @@
 import handler from "vinext/server/app-router-entry";
 import { processEdgePurgeBatch } from "../lib/cache/edge-purge";
 import { performCleanup } from "../lib/cron/cleanup";
+import { performStrandedSweep } from "../lib/cron/stranded-resumes";
 import { CachePurge } from "../lib/effect/services/cache-purge";
 import { log } from "../lib/utils/log";
 import { errorFields } from "../lib/utils/error-fields";
@@ -157,6 +158,13 @@ export default {
         case "0 3 * * *": {
           // Logs its own cleanup_completed / cleanup_failed event; builds its own layers.
           await performCleanup(env);
+          break;
+        }
+
+        case "*/15 * * * *": {
+          // Fails resumes stuck in queued/processing; builds its own layers. A rejection
+          // lands in the catch below, so the run is recorded as failed.
+          await performStrandedSweep(env);
           break;
         }
 

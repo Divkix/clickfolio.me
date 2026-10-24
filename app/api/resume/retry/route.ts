@@ -218,6 +218,7 @@ export async function POST(request: Request) {
             userId,
             r2Key: resume.r2Key,
             fileHash,
+            retryCount: nextRetryCount,
           }),
         ).pipe(
           Effect.tapError(() =>

@@ -494,6 +494,7 @@ function queueParse(claim: Claim) {
         userId,
         r2Key: newKey,
         fileHash,
+        retryCount: 0,
       }),
     ).pipe(
       Effect.tapError((failure) =>

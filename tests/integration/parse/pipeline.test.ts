@@ -215,6 +215,31 @@ describe("claimResumeForParse", () => {
     if (status) expect((await row(JOB.resumeId)).status).toBe(status);
   });
 
+  it("claims a row whose retry count matches the run's", async () => {
+    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
+
+    await expect(run(claimResumeForParse({ ...JOB, retryCount: 1 }))).resolves.toBe("parse");
+
+    expect((await row(JOB.resumeId)).status).toBe("processing");
+  });
+
+  it("skips a row that was swept and retried since this run started", async () => {
+    // The first run (retryCount 0) outlived the sweep; the user's retry queued the row again
+    // under retryCount 1 and started its own run. The old run must not parse it a second time.
+    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
+
+    await expect(run(claimResumeForParse({ ...JOB, retryCount: 0 }))).resolves.toBe("skipped");
+
+    expect(await row(JOB.resumeId)).toMatchObject({ status: "queued", retryCount: 1 });
+    expect(pushes).toEqual([]);
+  });
+
+  it("does not check the retry count of a run started before it was in the payload", async () => {
+    await seed(JOB.resumeId, { status: "queued", retryCount: 1 });
+
+    await expect(run(claimResumeForParse(JOB))).resolves.toBe("parse");
+  });
+
   it("completes from an identical earlier parse without calling the AI", async () => {
     await seed("earlier", { status: "completed", parsedContent: CONTENT });
     await seed(JOB.resumeId, { status: "queued" });
@@ -251,6 +276,39 @@ describe("parseResumePdf", () => {
 
     await expect(run(parseResumePdf(JOB, ENV))).resolves.toBeNull();
     expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
+  });
+
+  it("does not parse a row that a sweep and a retry handed to a newer run", async () => {
+    // Run 0 claimed the row and kept retrying its parse step past the 90-minute sweep. The
+    // user's retry (retryCount 1) was claimed by run 1, so the row is `processing` again.
+    await seed(JOB.resumeId, { status: "processing", retryCount: 1, totalAttempts: 1 });
+    objects.set(JOB.r2Key, pdfBuffer());
+
+    await expect(run(parseResumePdf({ ...JOB, retryCount: 0 }, ENV))).resolves.toBeNull();
+
+    expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
+    expect((await row(JOB.resumeId)).totalAttempts).toBe(1);
+
+    await expect(run(parseResumePdf({ ...JOB, retryCount: 1 }, ENV))).resolves.not.toBeNull();
+    expect((await row(JOB.resumeId)).totalAttempts).toBe(2);
+  });
+
+  it("does not record a failure on a row that was retried while the AI call ran", async () => {
+    await seed(JOB.resumeId, { status: "processing" });
+    objects.set(JOB.r2Key, pdfBuffer());
+    mocks.parseResumeWithAi.mockReturnValue(
+      Effect.promise(() =>
+        db.update(resumes).set({ retryCount: 1 }).where(eq(resumes.id, JOB.resumeId)),
+      ).pipe(
+        Effect.andThen(
+          Effect.fail(new PdfInvalid({ message: "PDF is encrypted", reason: "encrypted" })),
+        ),
+      ),
+    );
+
+    await expect(run(parseResumePdf({ ...JOB, retryCount: 0 }, ENV))).rejects.toThrow();
+
+    expect(await row(JOB.resumeId)).toMatchObject({ errorMessage: null, lastAttemptError: null });
   });
 
   it("fails permanently and records it when the PDF is missing", async () => {
@@ -426,6 +484,16 @@ describe("markResumeParseFailed", () => {
     expect(webhookBodies).toEqual([
       expect.objectContaining({ resumeId: JOB.resumeId, totalAttempts: 4 }),
     ]);
+  });
+
+  it("leaves a row alone when a sweep and a retry handed it to a newer run", async () => {
+    await seed(JOB.resumeId, { status: "processing", retryCount: 1 });
+
+    await run(markResumeParseFailed({ ...JOB, retryCount: 0 }, stored, "webhook"));
+
+    expect((await row(JOB.resumeId)).status).toBe("processing");
+    expect(pushes).toEqual([]);
+    expect(webhookBodies).toEqual([]);
   });
 
   it("keeps a friendlier message written by the parse step", async () => {

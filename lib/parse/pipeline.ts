@@ -39,7 +39,22 @@ export type ResumeParseJob = {
   userId: string;
   r2Key: string;
   fileHash: string;
+  /**
+   * The row's `retry_count` when this run was started. A run whose count no longer matches was
+   * superseded by a sweep and a manual retry: it must not claim the row, count an attempt on it,
+   * record a failure on it or fail it. Absent on runs started before the field existed, which
+   * skip the check.
+   */
+  retryCount?: number;
 };
+
+/** The row this run owns: its id, and its retry count when the run recorded one. */
+function ownsRow(job: ResumeParseJob) {
+  return and(
+    eq(resumes.id, job.resumeId),
+    job.retryCount === undefined ? undefined : eq(resumes.retryCount, job.retryCount),
+  );
+}
 
 export type ParsedResume = {
   parsedContent: ResumeContent;
@@ -139,17 +154,16 @@ export function claimResumeForParse(job: ResumeParseJob) {
           .update(resumes)
           .set({ status: "processing", queuedAt: new Date().toISOString() })
           .where(
-            and(
-              eq(resumes.id, job.resumeId),
-              inArray(resumes.status, ["queued", "pending_claim", "processing"]),
-            ),
+            and(ownsRow(job), inArray(resumes.status, ["queued", "pending_claim", "processing"])),
           )
           .returning({ id: resumes.id }),
       ),
     );
 
     if (claimed.length === 0) {
-      log("info", "resume not claimable in current status, skipping", { resumeId: job.resumeId });
+      log("info", "resume not claimable in current status or retry, skipping", {
+        resumeId: job.resumeId,
+      });
 
       return "skipped" as const;
     }
@@ -204,7 +218,7 @@ export function parseResumePdf(job: ResumeParseJob, env: CloudflareEnv) {
               errorMessage: failure.userMessage,
               lastAttemptError: JSON.stringify(toParseErrorJson(failure)),
             })
-            .where(and(ne(resumes.status, "completed"), eq(resumes.id, job.resumeId))),
+            .where(and(ne(resumes.status, "completed"), ownsRow(job))),
         ),
       ).pipe(Effect.catchTags({ DbFailed: dropFailure, DbConflict: dropFailure }));
     };
@@ -215,7 +229,7 @@ export function parseResumePdf(job: ResumeParseJob, env: CloudflareEnv) {
           handle
             .update(resumes)
             .set({ totalAttempts: sql`${resumes.totalAttempts} + 1` })
-            .where(and(eq(resumes.id, job.resumeId), eq(resumes.status, "processing")))
+            .where(and(ownsRow(job), eq(resumes.status, "processing")))
             .returning({ id: resumes.id }),
         ),
       ),
@@ -324,7 +338,7 @@ export function markResumeParseFailed(
             lastAttemptError: JSON.stringify(storedError),
             updatedAt: new Date().toISOString(),
           })
-          .where(and(ne(resumes.status, "completed"), eq(resumes.id, job.resumeId)))
+          .where(and(ne(resumes.status, "completed"), ownsRow(job)))
           .returning({
             totalAttempts: resumes.totalAttempts,
             errorMessage: resumes.errorMessage,
