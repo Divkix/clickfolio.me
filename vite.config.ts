@@ -245,7 +245,6 @@ export default defineConfig(() => {
     test: {
       environment: "node",
       globals: true,
-      setupFiles: ["./tests/setup.ts"],
       alias: {
         "@": resolve(import.meta.dirname, "./"),
         "cloudflare:workers": resolve(

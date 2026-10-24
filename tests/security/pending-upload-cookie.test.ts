@@ -1,23 +1,28 @@
+import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   createSignedCookieValue,
   decodePendingUploadCookie,
   parseSignedCookieValue,
 } from "@/lib/utils/pending-upload-cookie";
-import { mockImportKey } from "../mocks/crypto";
 
 const SECRET = "test-pending-upload-secret";
 
 const KEY = "temp/11111111-1111-4111-8111-111111111111/resume.pdf";
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
 describe("pending upload cookie", () => {
-  it("round-trips a signed key", async () => {
+  it("round-trips a key signed with HMAC-SHA256", async () => {
     const value = await createSignedCookieValue(KEY, SECRET);
+    const [tempKey, expiresAt, signature] = value.split("|");
 
+    expect(signature).toBe(
+      createHmac("sha256", SECRET).update(`${tempKey}|${expiresAt}`).digest("base64"),
+    );
     expect(await parseSignedCookieValue(value, SECRET)).toEqual({ tempKey: KEY });
   });
 
@@ -54,19 +59,19 @@ describe("pending upload cookie", () => {
     ["an empty signature", `${KEY}|123|`],
     ["an empty value", ""],
   ])("rejects %s without checking a signature", async (_label, value) => {
-    mockImportKey.mockClear();
+    const importKey = vi.spyOn(crypto.subtle, "importKey");
 
     expect(await parseSignedCookieValue(value, SECRET)).toBeNull();
-    expect(mockImportKey).not.toHaveBeenCalled();
+    expect(importKey).not.toHaveBeenCalled();
   });
 
   it("derives the HMAC key on every call instead of caching it", async () => {
-    mockImportKey.mockClear();
+    const importKey = vi.spyOn(crypto.subtle, "importKey");
 
     await createSignedCookieValue(KEY, SECRET);
     await createSignedCookieValue(KEY, SECRET);
 
-    expect(mockImportKey).toHaveBeenCalledTimes(2);
+    expect(importKey).toHaveBeenCalledTimes(2);
   });
 });
 
