@@ -273,32 +273,38 @@ function toResult(decision: Decision): IPRateLimitResult {
   return { allowed: false, remaining: decision.remaining, message: decision.message };
 }
 
+function unavailableResult(unavailable: RateLimitUnavailable): IPRateLimitResult {
+  return {
+    allowed: false,
+    remaining: { hourly: 0, daily: 0 },
+    message: unavailable.message,
+    unavailable: true,
+    retryAfterSeconds: unavailable.retryAfterSeconds,
+  };
+}
+
 /** Promise edge for routes not yet under `runRoute`; they move to `checkIPRateLimitEffect`. */
 export function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   return runLimiter(
     uploadDecision(ip).pipe(
       Effect.map(toResult),
       Effect.catchTag("RateLimitUnavailable", (unavailable) =>
-        Effect.succeed<IPRateLimitResult>({
-          allowed: false,
-          remaining: { hourly: 0, daily: 0 },
-          message: unavailable.message,
-          unavailable: true,
-          retryAfterSeconds: unavailable.retryAfterSeconds,
-        }),
+        Effect.succeed(unavailableResult(unavailable)),
       ),
     ),
   );
 }
 
-/** Promise edge for routes not yet under `runRoute`; they move to `checkHandleRateLimitEffect`. */
+/**
+ * Promise edge for routes not yet under `runRoute`; they move to `checkHandleRateLimitEffect`.
+ * A store outage refuses the check (`unavailable`): a handle probe must not run unmetered.
+ */
 export function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
   return runLimiter(
     handleCheckDecision(ip).pipe(
       Effect.map(toResult),
-      // Unchanged for now: the next commit makes this fail closed.
-      Effect.catchTag("RateLimitUnavailable", () =>
-        Effect.succeed<IPRateLimitResult>({ allowed: true, remaining: { hourly: 1, daily: 1 } }),
+      Effect.catchTag("RateLimitUnavailable", (unavailable) =>
+        Effect.succeed(unavailableResult(unavailable)),
       ),
     ),
   );

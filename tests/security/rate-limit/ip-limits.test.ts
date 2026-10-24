@@ -336,12 +336,18 @@ describe("Promise edges", () => {
     });
   });
 
-  it("still fail open for handle checks when the store is down", async () => {
+  it("fail closed for handle checks when the store is down", async () => {
     const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    vi.spyOn(console, "error").mockImplementation(() => {});
     store.set("db", brokenDb);
 
-    expect((await checkHandleRateLimit(IP)).allowed).toBe(true);
+    expect(await checkHandleRateLimit(IP)).toMatchObject({
+      allowed: false,
+      unavailable: true,
+      retryAfterSeconds: 60,
+      message: expect.stringContaining("temporarily unavailable"),
+    });
+    expect(logLines(error)[0]).toMatchObject({ level: "error", limiter: "handle_check" });
   });
 });
