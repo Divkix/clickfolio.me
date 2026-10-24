@@ -121,16 +121,14 @@ describe("cleanup against real SQL", () => {
     await addResume("still_failed", "failed", LONG_AGO);
     const { bucket, del } = fakeBucket();
 
-    // The user retries between the cleanup's SELECT and its guarded DELETE.
+    // The user retries between the cleanup's SELECT and its guarded DELETE. updatedAt stays
+    // stale, so only the status guard can save the row.
     const racing: PgQueryable = Object.create(db, {
       delete: {
         value: (table: typeof resumes) => ({
           where: (condition: SQL | undefined) => ({
             returning: async (fields: { id: typeof resumes.id; r2Key: typeof resumes.r2Key }) => {
-              await db
-                .update(resumes)
-                .set({ status: "queued", updatedAt: new Date().toISOString() })
-                .where(eq(resumes.id, "retried"));
+              await db.update(resumes).set({ status: "queued" }).where(eq(resumes.id, "retried"));
 
               return db.delete(table).where(condition).returning(fields);
             },
