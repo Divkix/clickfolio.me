@@ -9,7 +9,7 @@ import {
 } from "cloudflare:workers";
 import { classifyParseError, decodeParseError } from "../parse/errors";
 import { toParseErrorJson } from "../parse/failures";
-import { runStep } from "./run-step";
+import { runWorkflowStep } from "./run-workflow-step";
 import { sendResumeFailureEmail } from "../parse/email";
 import {
   claimResumeForParse,
@@ -127,7 +127,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<CloudflareEnv, Resum
       const parsed = await tracedStep("parse", PARSE_STEP, (context) => {
         parseAttempts = context.attempt;
 
-        return runStep(
+        return runWorkflowStep(
           parseResumePdf(job, this.env).pipe(
             Effect.tapCause((cause) =>
               Effect.sync(() => {

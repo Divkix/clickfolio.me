@@ -3,16 +3,23 @@ import { NonRetryableError } from "cloudflare:workflows";
 import { describeFailure } from "@/lib/effect/failure-map";
 import type { ServerFailure } from "@/lib/effect/failures";
 import type { UnknownRecord } from "@/lib/types/json";
+import { isParseFailure, toParseErrorJson, type ParseFailure } from "@/lib/parse/failures";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 
 /**
- * `runStep` for steps that fail with a server failure rather than a ParseFailure. Execute
- * only inside step.do: Workflows owns retries and the journal, so nothing here retries.
- * A retryable failure throws a plain Error (the engine retries it); anything else throws
- * NonRetryableError, which ends the step. Defects keep their identity.
+ * The one adapter between an Effect and `step.do`. Execute only inside step.do: Workflows owns
+ * retries and the journal, so nothing here retries. A retryable failure throws a plain Error
+ * (the engine retries it); anything else throws NonRetryableError, which ends the step. Defects
+ * keep their identity.
+ *
+ * A ParseFailure keeps its wire metadata in `cause` (`toParseErrorJson`), which the parse
+ * workflow's failure handler reads back to store the error type; it is not logged here because
+ * that handler logs the outcome once. Any other failure is logged and its `cause` names it.
  */
-export async function runWorkflowStep<A>(effect: Effect.Effect<A, ServerFailure>): Promise<A> {
+export async function runWorkflowStep<A>(
+  effect: Effect.Effect<A, ServerFailure | ParseFailure>,
+): Promise<A> {
   const exit = await Effect.runPromiseExit(effect);
 
   if (Exit.isSuccess(exit)) return exit.value;
@@ -24,6 +31,18 @@ export async function runWorkflowStep<A>(effect: Effect.Effect<A, ServerFailure>
   for (const reason of exit.cause.reasons) {
     if (!Cause.isFailReason(reason)) continue;
     const failure = reason.error;
+
+    if (isParseFailure(failure)) {
+      const error = failure.retryable
+        ? new Error(failure.message)
+        : new NonRetryableError(`${failure.wireType}: ${failure.message}`);
+
+      // Keep the engine's default NonRetryableError name; the cause also retains the wire
+      // metadata if recording the parse attempt failed.
+      error.cause = toParseErrorJson(failure);
+      throw error;
+    }
+
     const { retryable, logLevel } = describeFailure(failure);
     const fields = { failure: failure._tag, retryable };
     const entry: UnknownRecord = { ...fields };
