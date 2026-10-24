@@ -89,18 +89,34 @@ function WizardError({ message }: { message: string }) {
   );
 }
 
-function useWizardInit(initialStart: Exclude<WizardStart, { kind: "redirect-waiting" }>) {
+function initialStepId(kind: WizardStart["kind"], ownerHandle: string | null): WizardStepId {
+  switch (kind) {
+    case "upload":
+      return "upload";
+    case "review":
+      return ownerHandle ? "review" : "handle";
+    default:
+      return "handle";
+  }
+}
+
+function useWizardInit(
+  initialStart: Exclude<WizardStart, { kind: "redirect-waiting" }>,
+  ownerHandle: string | null,
+) {
   const router = useRouter();
   const [loading, setLoading] = useState(initialStart.kind === "claim-first");
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(initialStart.kind === "upload");
   const claimRef = useRef<Promise<WizardStart> | null>(null);
   const navigateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // An owner who already has a handle skips straight to review, unless they typed a new one on the home page.
+  const contentStepRef = useRef<WizardStepId>(ownerHandle ? "review" : "handle");
 
   const [state, setState] = useState<WizardState>({
-    currentStepId: initialStart.kind === "upload" ? "upload" : "handle",
+    currentStepId: initialStepId(initialStart.kind, ownerHandle),
     resumeData: initialStart.kind === "review" ? initialStart.content : null,
-    handle: "",
+    handle: ownerHandle ?? "",
     privacySettings: {
       show_phone: false,
       show_address: false,
@@ -113,10 +129,15 @@ function useWizardInit(initialStart: Exclude<WizardStart, { kind: "redirect-wait
   useEffect(() => {
     const desiredHandle = readDesiredHandle();
 
-    if (desiredHandle) {
-      setState((prev) => (prev.handle ? prev : { ...prev, handle: desiredHandle }));
+    if (desiredHandle && desiredHandle !== ownerHandle) {
+      contentStepRef.current = "handle";
+      setState((prev) => ({
+        ...prev,
+        handle: desiredHandle,
+        currentStepId: prev.currentStepId === "review" ? "handle" : prev.currentStepId,
+      }));
     }
-  }, []);
+  }, [ownerHandle]);
 
   useEffect(() => {
     if (initialStart.kind !== "claim-first") return;
@@ -138,7 +159,11 @@ function useWizardInit(initialStart: Exclude<WizardStart, { kind: "redirect-wait
         }
 
         if (start.kind === "review") {
-          setState((prev) => ({ ...prev, resumeData: start.content }));
+          setState((prev) => ({
+            ...prev,
+            resumeData: start.content,
+            currentStepId: contentStepRef.current,
+          }));
         } else {
           setNeedsUpload(true);
           setState((prev) => ({ ...prev, currentStepId: "upload" }));
@@ -174,11 +199,15 @@ function useWizardInit(initialStart: Exclude<WizardStart, { kind: "redirect-wait
 
 export default function WizardClient({
   initialStart,
+  ownerHandle,
 }: {
   initialStart: Exclude<WizardStart, { kind: "redirect-waiting" }>;
+  ownerHandle: string | null;
 }) {
-  const { router, loading, error, setError, needsUpload, state, setState } =
-    useWizardInit(initialStart);
+  const { router, loading, error, setError, needsUpload, state, setState } = useWizardInit(
+    initialStart,
+    ownerHandle,
+  );
 
   const [showLiveModal, setShowLiveModal] = useState(false);
 

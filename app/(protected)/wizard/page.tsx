@@ -17,5 +17,5 @@ export default async function WizardPage() {
     redirect(`/waiting?resume_id=${initialStart.resumeId}`);
   }
 
-  return <WizardClient initialStart={initialStart} />;
+  return <WizardClient initialStart={initialStart} ownerHandle={session.user.handle} />;
 }
