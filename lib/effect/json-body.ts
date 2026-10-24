@@ -33,8 +33,10 @@ export function readJsonBody<S extends z.ZodType>(
   return Effect.gen(function* () {
     const body = yield* Effect.tryPromise({
       try: () => readJsonWithLimit(request),
-      // The stream broke mid-read (client went away): nothing usable arrived.
-      catch: () => new InvalidInput({ message: "Could not read the request body" }),
+      // The stream broke mid-read: the client went away, or the body was already consumed and
+      // something server-side failed. Keep the cause: `logFailure` logs it, the visitor only sees
+      // the fixed message.
+      catch: (cause) => new InvalidInput({ message: "Could not read the request body", cause }),
     });
 
     if (!body.ok) {
