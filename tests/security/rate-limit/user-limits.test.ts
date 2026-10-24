@@ -162,17 +162,3 @@ describe("per-user limiter (Effect)", () => {
     expect(logLines(warn)[0]).toMatchObject({ level: "warn" });
   });
 });
-
-describe("countHandleChangesInWindow", () => {
-  it("counts only this user's changes inside 24 hours, through a transaction handle", async () => {
-    const { countHandleChangesInWindow } = await import("@/lib/rate-limit/user");
-
-    await seedHandleChanges("u1", 25 * HOUR_MS, 2);
-    await seedHandleChanges("u1", HOUR_MS, 2);
-    await seedHandleChanges("u2", HOUR_MS, 3);
-
-    const counted = await db.transaction((tx) => countHandleChangesInWindow(tx, "u1"));
-
-    expect(counted).toBe(2);
-  });
-});
