@@ -51,7 +51,7 @@ export type R2KeyPage = { readonly keys: readonly string[]; readonly cursor: str
 
 type R2StoreService = {
   /** The whole object. A missing key is `R2ObjectMissing`; an outage is `R2Failed`. */
-  readonly get: (key: string) => Effect.Effect<Uint8Array, R2Failed | R2ObjectMissing>;
+  readonly get: (key: string) => Effect.Effect<Uint8Array<ArrayBuffer>, R2Failed | R2ObjectMissing>;
   /** Never retry a timed-out put: the write may still land. */
   readonly put: (
     key: string,

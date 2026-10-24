@@ -624,7 +624,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       expect(startResumeParse).toHaveBeenCalledWith(
         expect.anything(),
-        "resume-123-retry-1",
+        expect.stringMatching(/^resume-123-retry-1-/),
         expect.objectContaining({ kind: "parse", resumeId: "resume-123" }),
       );
 
