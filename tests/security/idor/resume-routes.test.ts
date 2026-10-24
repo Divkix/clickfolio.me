@@ -1,890 +1,325 @@
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { parseWorkflow } from "../../helpers/parse-workflow";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { resumes, siteData, user } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
+import { createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
+import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
+import { startResumeParse } from "../../helpers/parse-workflow";
 
-const session = vi.hoisted(() => ({ read: vi.fn() }));
-
-const mockFindFirst = vi.fn();
-
-const mockSelect = vi.fn().mockReturnThis();
-
-const mockFrom = vi.fn().mockReturnThis();
-
-const mockWhere = vi.fn().mockReturnThis();
-
-const mockLimit = vi.fn();
-
-const mockOrderBy = vi.fn().mockReturnThis();
-
-const mockReturning = vi.fn().mockResolvedValue([{ id: "resume-a-001" }]);
-
-const mockUpdate = vi.fn().mockReturnValue({
-  set: vi.fn().mockReturnValue({
-    where: vi.fn().mockReturnValue({
-      returning: mockReturning,
-    }),
-  }),
-});
-
-const mockInsert = vi.fn().mockReturnValue({
-  values: vi.fn().mockResolvedValue(undefined),
-});
-
-const mockDb = {
-  query: {
-    resumes: {
-      findFirst: mockFindFirst,
-    },
-  },
-  select: mockSelect,
-  from: mockFrom,
-  where: mockWhere,
-  limit: mockLimit,
-  orderBy: mockOrderBy,
-  update: mockUpdate,
-  insert: mockInsert,
-};
+const mocks = vi.hoisted(() => ({
+  db: vi.fn(),
+  userId: "user-b",
+  bucketGet: vi.fn(),
+}));
 
 vi.mock("cloudflare:workers", async () => ({
   env: {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    PENDING_UPLOAD_SECRET: "ownership-test-secret",
     CLICKFOLIO_PARSE_WORKFLOW: (await import("../../helpers/parse-workflow")).parseWorkflow,
+    CLICKFOLIO_R2_BUCKET: { get: mocks.bucketGet },
   },
 }));
 
-vi.mock("@/lib/db", () => ({ getDb: () => mockDb }));
+vi.mock("@/lib/db", () => ({ getDb: () => mocks.db() }));
 
 vi.mock("@/lib/auth/clerk", async (importOriginal) => {
   const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
+  const { DEFAULT_PRIVACY_SETTINGS: privacySettings } = await import("@/lib/utils/privacy");
 
   return {
     ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
-    authenticate: authenticateStub(() => session.read()),
-  };
-});
+    authenticate: authenticateStub(async () => {
+      const id = mocks.userId;
 
-vi.mock("drizzle-orm", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("drizzle-orm")>();
+      if (!id) return { error: new Response(null, { status: 401 }) };
 
-  return {
-    ...actual,
-    eq: vi.fn((_col, val) => val),
-    desc: vi.fn(() => "desc"),
-    gte: vi.fn(() => "gte"),
-    and: vi.fn(() => "and"),
-    isNotNull: vi.fn(() => "isNotNull"),
-    ne: vi.fn(() => "ne"),
-    lt: vi.fn(() => "lt"),
-    inArray: vi.fn(() => "inArray"),
-  };
-});
-
-vi.mock("@/lib/db/schema", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/db/schema")>();
-
-  return {
-    ...actual,
-    resumes: {
-      id: "id",
-      userId: "userId",
-      status: "status",
-      errorMessage: "errorMessage",
-      retryCount: "retryCount",
-      totalAttempts: "totalAttempts",
-      createdAt: "createdAt",
-      r2Key: "r2Key",
-      lastAttemptError: "lastAttemptError",
-      fileHash: "fileHash",
-      parsedContent: "parsedContent",
-      queuedAt: "queuedAt",
-    },
-    siteData: {
-      id: "id",
-      userId: "userId",
-      resumeId: "resumeId",
-      content: "content",
-      themeId: "themeId",
-      lastPublishedAt: "lastPublishedAt",
-      updatedAt: "updatedAt",
-    },
-    user: {
-      id: "id",
-      referralCount: "referralCount",
-      isPro: "isPro",
-    },
-  };
-});
-
-vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
-
-  return {
-    ...actual,
-    hasExceededMaxAttempts: vi.fn(() => false),
-    isPermanentErrorType: vi.fn(() => false),
-    RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 6 },
-  };
-});
-
-vi.mock("@/lib/templates/theme-ids", () => ({
-  isValidThemeId: vi.fn(() => true),
-  THEME_IDS: ["minimalist_editorial", "glass_morphic"],
-}));
-
-vi.mock("@/lib/utils/security-headers", () => ({
-  createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
-    return new Response(JSON.stringify({ error }), { status });
-  }),
-  createSuccessResponse: vi.fn((data: JsonValue) => {
-    return new Response(JSON.stringify(data), { status: 200 });
-  }),
-  ERROR_CODES: {
-    UNAUTHORIZED: "UNAUTHORIZED",
-    FORBIDDEN: "FORBIDDEN",
-    NOT_FOUND: "NOT_FOUND",
-    BAD_REQUEST: "BAD_REQUEST",
-    INTERNAL_ERROR: "INTERNAL_ERROR",
-    RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
-    VALIDATION_ERROR: "VALIDATION_ERROR",
-    DATABASE_ERROR: "DATABASE_ERROR",
-    EXTERNAL_SERVICE_ERROR: "EXTERNAL_SERVICE_ERROR",
-  },
-}));
-
-vi.mock("@/lib/utils/validation", () => ({
-  validateRequestSize: vi.fn(() => ({ valid: true })),
-  MAX_FILE_SIZE: 5 * 1024 * 1024,
-  MAX_FILE_SIZE_LABEL: "5MB",
-  readJsonWithLimit: vi.fn(async (req: Request) => {
-    try {
-      return { ok: true, data: await req.json() };
-    } catch {
-      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
-    }
-  }),
-}));
-
-const mockedAuth = session.read;
-
-function createValidResumeContent() {
-  return {
-    full_name: "Test User",
-    headline: "Software Engineer",
-    summary: "Experienced software engineer with a passion for building great products.",
-    contact: {
-      email: "test@example.com",
-      phone: "+1-555-0123",
-      location: "San Francisco, CA",
-      linkedin: "",
-      github: "",
-      website: "",
-      behance: "",
-      dribbble: "",
-    },
-    experience: [
-      {
-        title: "Senior Developer",
-        company: "Tech Corp",
-        location: "Remote",
-        start_date: "2020-01",
-        end_date: "Present",
-        description: "Led development of key features",
-        highlights: ["Shipped v2.0", "Improved performance by 50%"],
-      },
-    ],
-    education: [
-      {
-        degree: "BS Computer Science",
-        institution: "University",
-        location: "City",
-        graduation_date: "2015",
-        gpa: "",
-      },
-    ],
-    skills: [
-      {
-        category: "Languages",
-        items: ["TypeScript", "Python"],
-      },
-    ],
-    certifications: [],
-    projects: [],
-  };
-}
-
-interface SiteContentFixture {
-  name: string;
-  contact: { email: string; phone?: string; location?: string };
-}
-
-function authedAs(userId: string) {
-  mockedAuth.mockResolvedValue({
-    user: {
-      id: userId,
-      email: `${userId}@test.com`,
-      name: "Test User",
-      image: null,
-      handle: "testuser",
-      headline: null,
-      privacySettings: DEFAULT_PRIVACY_SETTINGS,
-      onboardingCompleted: true,
-      role: "mid_level",
-    },
-    // SAFETY: getDb is mocked to the select/update chains above; PostgresJsDatabase cannot
-    // be constructed in a unit test, and the routes only run the stubbed query chains.
-    db: mockDb as never,
-    dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
-    // SAFETY: these routes only read HYPERDRIVE and the parse queue through env; the rest
-    // of CloudflareEnv is intentionally absent and never dereferenced.
-    env: {
-      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      CLICKFOLIO_PARSE_WORKFLOW: parseWorkflow,
-    } as never,
-    error: null,
-  });
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  mockUpdate.mockReturnValue({
-    set: vi.fn().mockReturnValue({
-      where: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([{ id: "resume-a-001" }]),
-      }),
-    }),
-  });
-});
-
-describe("IDOR - Resume Routes Security", () => {
-  // SAFETY: update/update-theme read a version snapshot before the guarded write;
-  // queue one row per select so the chain mock's .limit() resolves a row, not the chain.
-  function queueVersionSnapshot(row: JsonValue = {}) {
-    // SAFETY: mockSelect is a this-returning vi.fn(), so its queued value cannot match the
-    // select().from().where().limit() chain the route awaits without a single cast.
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([row]),
-        }),
-      }),
-    } as never);
-  }
-
-  describe("PUT /api/resume/update", () => {
-    it("returns 403 when User A tries to edit User B's resume via content injection", async () => {
-      authedAs("user-a");
-      queueVersionSnapshot();
-
-      const mockUpdateSet = vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
-      mockUpdate.mockReturnValue({
-        set: mockUpdateSet,
-      });
-
-      const { PUT } = await import("@/app/api/resume/update/route");
-
-      const request = new Request("http://localhost:3000/api/resume/update", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: createValidResumeContent(),
-        }),
-      });
-
-      const response = await PUT(request);
-
-      expect(response.status).toBe(404);
-    });
-
-    it("prevents cross-user resume update via database row-level enforcement", async () => {
-      authedAs("user-a");
-      queueVersionSnapshot();
-
-      const mockUpdateSet = vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
-      mockUpdate.mockReturnValue({
-        set: mockUpdateSet,
-      });
-
-      const { PUT } = await import("@/app/api/resume/update/route");
-
-      const request = new Request("http://localhost:3000/api/resume/update", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: createValidResumeContent(),
-        }),
-      });
-
-      const response = await PUT(request);
-
-      expect(response.status).toBe(404);
-    });
-  });
-
-  describe("POST /api/resume/update-theme", () => {
-    it("returns 403 when User A tries to change User B's theme via userId manipulation", async () => {
-      authedAs("user-a");
-      queueVersionSnapshot();
-
-      const mockUpdateSet = vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
-      mockUpdate.mockReturnValue({
-        set: mockUpdateSet,
-      });
-
-      const { POST } = await import("@/app/api/resume/update-theme/route");
-
-      const request = new Request("http://localhost:3000/api/resume/update-theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme_id: "glass_morphic" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(404);
-    });
-
-    it("returns 401 when theme update attempted without authentication", async () => {
-      mockedAuth.mockResolvedValue({
-        user: null,
-        db: null,
-        dbUser: null,
-        env: null,
-        error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
-      });
-
-      const { POST } = await import("@/app/api/resume/update-theme/route");
-
-      const request = new Request("http://localhost:3000/api/resume/update-theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme_id: "minimalist_editorial" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(401);
-    });
-  });
-
-  describe("POST /api/resume/claim", () => {
-    it("returns 403 when attempting to claim someone else's upload key (missing cookie)", async () => {
-      authedAs("user-a");
-
-      const maliciousKey = "temp/user-b-uuid/resume.pdf";
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: maliciousKey }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-      const body: { error: string } = await response.json();
-      expect(body.error).toContain("Unauthorized upload attempt");
-    });
-
-    it("blocks claim with temp key from another user session (cookie key mismatch)", async () => {
-      authedAs("user-a");
-
-      const stolenKey = "temp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/other-user-resume.pdf";
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: stolenKey }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it("prevents claim of leaked temp upload key from another user (missing cookie)", async () => {
-      authedAs("user-a");
-
-      const leakedKey = "temp/stolen-uuid/resume.pdf";
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: leakedKey }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it("returns 400 for claim with invalid key format", async () => {
-      authedAs("user-a");
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "users/user-b/something.pdf" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-    });
-  });
-
-  describe("GET /api/resume/status", () => {
-    it("returns 403 when User A tries to access User B's resume status", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "resume-b-001",
-        userId: "user-b",
-        status: "processing",
-        errorMessage: null,
-        retryCount: 0,
-        totalAttempts: 1,
-        createdAt: new Date().toISOString(),
-      });
-
-      const { GET } = await import("@/app/api/resume/status/route");
-      const request = new Request("http://localhost:3000/api/resume/status?resume_id=resume-b-001");
-      const response = await GET(request);
-
-      expect(response.status).toBe(403);
-      const body: { error: string } = await response.json();
-      expect(body.error).toContain("permission");
-    });
-
-    it("returns 200 when user accesses their own resume status", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "resume-a-001",
-        userId: "user-a",
-        status: "processing",
-        errorMessage: null,
-        retryCount: 0,
-        totalAttempts: 1,
-        createdAt: new Date().toISOString(),
-      });
-
-      const { GET } = await import("@/app/api/resume/status/route");
-      const request = new Request("http://localhost:3000/api/resume/status?resume_id=resume-a-001");
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-    });
-
-    it("returns 404 for non-existent resume ID", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue(null);
-
-      const { GET } = await import("@/app/api/resume/status/route");
-
-      const request = new Request(
-        "http://localhost:3000/api/resume/status?resume_id=nonexistent-id",
-      );
-
-      const response = await GET(request);
-
-      expect(response.status).toBe(404);
-    });
-
-    it("blocks resume ID enumeration attacks via sequential ID guessing", async () => {
-      authedAs("user-a");
-
-      const sequentialIds = ["resume-1", "resume-2", "resume-3", "resume-001", "resume-999"];
-
-      for (const id of sequentialIds) {
-        mockFindFirst.mockResolvedValue({
+      return {
+        error: null,
+        user: {
           id,
-          userId: "user-other",
-          status: "completed",
-          errorMessage: null,
-          retryCount: 0,
-          totalAttempts: 1,
-          createdAt: new Date().toISOString(),
-        });
-
-        const { GET } = await import("@/app/api/resume/status/route");
-        const request = new Request(`http://localhost:3000/api/resume/status?resume_id=${id}`);
-        const response = await GET(request);
-
-        expect(response.status).toBe(403);
-        vi.clearAllMocks();
-        authedAs("user-a");
-      }
-    });
-
-    it("rejects malformed resume IDs", async () => {
-      authedAs("user-a");
-      mockFindFirst.mockResolvedValue(undefined);
-
-      const { GET } = await import("@/app/api/resume/status/route");
-
-      const malformedIds = [
-        ["", 400],
-        ["   ", 404],
-        ["../../etc/passwd", 404],
-        ["<script>", 404],
-        ["' OR 1=1 --", 404],
-      ] as const;
-
-      for (const [id, expectedStatus] of malformedIds) {
-        const request = new Request(
-          `http://localhost:3000/api/resume/status?resume_id=${encodeURIComponent(id)}`,
-        );
-
-        const response = await GET(request);
-        expect(response.status).toBe(expectedStatus);
-      }
-    });
-
-    it("prevents status check for pending resume of other user", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "pending-resume-b",
-        userId: "user-b",
-        status: "pending_claim",
-        errorMessage: null,
-        retryCount: 0,
-        totalAttempts: 1,
-        createdAt: new Date().toISOString(),
-      });
-
-      const { GET } = await import("@/app/api/resume/status/route");
-
-      const request = new Request(
-        "http://localhost:3000/api/resume/status?resume_id=pending-resume-b",
-      );
-
-      const response = await GET(request);
-
-      expect(response.status).toBe(403);
-    });
-  });
-
-  describe("POST /api/resume/retry", () => {
-    it("returns 403 when User A tries to retry User B's failed resume", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "resume-b-001",
-        userId: "user-b",
-        r2Key: "users/user-b/timestamp/resume.pdf",
-        status: "failed",
-        retryCount: 0,
-        totalAttempts: 1,
-        lastAttemptError: null,
-        fileHash: "hash123",
-      });
-
-      const { POST } = await import("@/app/api/resume/retry/route");
-
-      const request = new Request("http://localhost:3000/api/resume/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume_id: "resume-b-001" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it("returns 200 when user retries their own failed resume", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "resume-a-001",
-        userId: "user-a",
-        r2Key: "users/user-a/timestamp/resume.pdf",
-        status: "failed",
-        retryCount: 0,
-        totalAttempts: 1,
-        lastAttemptError: null,
-        fileHash: "hash123",
-      });
-
-      mockReturning.mockResolvedValue([{ id: "resume-a-001" }]);
-
-      const { POST } = await import("@/app/api/resume/retry/route");
-
-      const request = new Request("http://localhost:3000/api/resume/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume_id: "resume-a-001" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-    });
-
-    it("returns 404 for retry with deleted resume ID", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue(null);
-
-      const { POST } = await import("@/app/api/resume/retry/route");
-
-      const request = new Request("http://localhost:3000/api/resume/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume_id: "deleted-resume-id" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(404);
-    });
-
-    it("prevents retry of non-failed resume", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "resume-a-001",
-        userId: "user-a",
-        r2Key: "users/user-a/timestamp/resume.pdf",
-        status: "completed",
-        retryCount: 0,
-        totalAttempts: 1,
-        lastAttemptError: null,
-        fileHash: "hash123",
-      });
-
-      const { POST } = await import("@/app/api/resume/retry/route");
-
-      const request = new Request("http://localhost:3000/api/resume/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume_id: "resume-a-001" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-    });
-  });
-
-  describe("GET /api/site-data/[handle]", () => {
-    it("returns filtered content when accessing without permission", async () => {
-      const privacySettings = {
-        show_phone: false,
-        show_address: false,
-        hide_from_search: false,
-        show_in_directory: true,
-      };
-
-      expect(privacySettings.show_phone).toBe(false);
-      expect(privacySettings.show_address).toBe(false);
-    });
-
-    it("removes private fields based on privacy settings", async () => {
-      const content: SiteContentFixture = {
-        name: "John Doe",
-        contact: {
-          email: "john@example.com",
-          phone: "555-1234",
-          location: "123 Private St, Secret City",
+          email: `${id}@example.com`,
+          name: id,
+          image: null,
+          handle: id,
+          headline: null,
+          privacySettings,
+          onboardingCompleted: true,
+          role: "mid_level",
         },
+        dbUser: { id, handle: id, clerkId: `clerk-${id}` },
       };
+    }),
+  };
+});
 
-      const privacySettings = {
-        show_phone: false,
-        show_address: false,
-      };
+vi.mock("@/lib/utils/revalidate", () => ({ revalidatePublicProfilePages: vi.fn() }));
 
-      const filtered = { ...content };
+vi.mock("@/lib/seo/indexnow-runtime", () => ({ notifyIndexNowForProfiles: vi.fn() }));
 
-      if (!privacySettings.show_phone && filtered.contact) {
-        delete filtered.contact.phone;
+const NOW = "2026-01-01T00:00:00.000Z";
+const TEMP_KEY = "temp/owner-a/resume.pdf";
+const editedContent = { ...INDEXABLE_CONTENT, headline: "Updated owner headline" };
+let testDb: Awaited<ReturnType<typeof createTestDb>>;
+let db: TestDb;
+
+beforeAll(async () => {
+  testDb = await createTestDb();
+  db = testDb.db;
+});
+
+afterAll(async () => {
+  await testDb.close();
+});
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await testDb.reset();
+  mocks.db.mockReturnValue(db);
+  mocks.userId = "user-b";
+  mocks.bucketGet.mockResolvedValue(null);
+  await db.insert(user).values(
+    ["user-a", "user-b"].map((id) => ({
+      id,
+      clerkId: `clerk-${id}`,
+      email: `${id}@example.com`,
+      name: id,
+      handle: id,
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
+      createdAt: NOW,
+      updatedAt: NOW,
+    })),
+  );
+  await db.insert(resumes).values({
+    id: "resume-a",
+    userId: "user-a",
+    r2Key: TEMP_KEY,
+    fileHash: "owner-a-file-hash",
+    status: "failed",
+    errorMessage: "Temporary parsing failure",
+    totalAttempts: 1,
+    createdAt: NOW,
+    parsedContent: INDEXABLE_CONTENT,
+  });
+  await db.insert(siteData).values({
+    id: "site-a",
+    userId: "user-a",
+    resumeId: "resume-a",
+    content: INDEXABLE_CONTENT,
+    contentIndexable: true,
+    themeId: "minimalist_editorial",
+    createdAt: NOW,
+    updatedAt: NOW,
+  });
+});
+
+function jsonRequest(path: string, method: string, body: JsonValue, cookie?: string) {
+  const headers = new Headers({ "Content-Type": "application/json" });
+
+  if (cookie) headers.set("Cookie", `pending_upload=${encodeURIComponent(cookie)}`);
+
+  return new Request(`https://clickfolio.me/api/resume/${path}`, {
+    method,
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
+async function updateContent() {
+  const { PUT } = await import("@/app/api/resume/update/route");
+
+  return PUT(
+    jsonRequest("update", "PUT", {
+      content: editedContent,
+      userId: "user-a",
+      resume_id: "resume-a",
+    }),
+  );
+}
+
+async function updateTheme() {
+  const { POST } = await import("@/app/api/resume/update-theme/route");
+
+  return POST(
+    jsonRequest("update-theme", "POST", {
+      theme_id: "glass",
+      userId: "user-a",
+      resume_id: "resume-a",
+    }),
+  );
+}
+
+async function status(id = "resume-a") {
+  const { GET } = await import("@/app/api/resume/status/route");
+
+  return GET(
+    new Request(`https://clickfolio.me/api/resume/status?resume_id=${encodeURIComponent(id)}`),
+  );
+}
+
+async function retry(id = "resume-a") {
+  const { POST } = await import("@/app/api/resume/retry/route");
+
+  return POST(jsonRequest("retry", "POST", { resume_id: id }));
+}
+
+async function claim(key = TEMP_KEY, cookie?: string) {
+  const { POST } = await import("@/app/api/resume/claim/route");
+
+  return POST(jsonRequest("claim", "POST", { key }, cookie));
+}
+
+async function persistedData() {
+  return {
+    users: await db.select().from(user).orderBy(user.id),
+    resumes: await db.select().from(resumes).orderBy(resumes.id),
+    sites: await db.select().from(siteData).orderBy(siteData.id),
+  };
+}
+
+describe("resume route ownership with real SQL", () => {
+  it("returns 404 for B's content update despite injected A identifiers; A can update", async () => {
+    const before = await persistedData();
+
+    expect((await updateContent()).status).toBe(404);
+    expect(await persistedData()).toEqual(before);
+
+    mocks.userId = "user-a";
+    expect((await updateContent()).status).toBe(200);
+    const [site] = await db.select().from(siteData).where(eq(siteData.userId, "user-a"));
+
+    expect(site?.content).toMatchObject(editedContent);
+    expect(site?.resumeId).toBe("resume-a");
+  });
+
+  it("returns 404 for B's theme update despite injected A identifiers; A can update", async () => {
+    const before = await persistedData();
+
+    expect((await updateTheme()).status).toBe(404);
+    expect(await persistedData()).toEqual(before);
+
+    mocks.userId = "user-a";
+    expect((await updateTheme()).status).toBe(200);
+    const [site] = await db.select().from(siteData).where(eq(siteData.userId, "user-a"));
+
+    expect(site?.themeId).toBe("glass");
+    expect(site?.content).toEqual(INDEXABLE_CONTENT);
+  });
+
+  it.each(["pending_claim", "processing", "completed", "failed"] as const)(
+    "denies B access to A's %s status without changing data; A can read it",
+    async (resumeStatus) => {
+      await db.update(resumes).set({ status: resumeStatus }).where(eq(resumes.id, "resume-a"));
+      const before = await persistedData();
+      const denied = await status();
+
+      expect(denied.status).toBe(403);
+      expect(await denied.json()).toMatchObject({ error: expect.stringContaining("permission") });
+      expect(await persistedData()).toEqual(before);
+
+      mocks.userId = "user-a";
+      const allowed = await status();
+
+      expect(allowed.status).toBe(200);
+
+      if (resumeStatus === "completed") {
+        expect(await allowed.json()).toMatchObject({ parsed_content: INDEXABLE_CONTENT });
       }
 
-      if (!privacySettings.show_address && filtered.contact) {
-        filtered.contact.location = "Secret City";
-      }
+      expect(await persistedData()).toEqual(before);
+    },
+  );
 
-      expect(filtered.contact).not.toHaveProperty("phone");
-      expect(filtered.contact.location).toBe("Secret City");
+  it("denies B's retry without changing A's row or starting a workflow; A can retry", async () => {
+    const before = await persistedData();
+
+    expect((await retry()).status).toBe(403);
+    expect(await persistedData()).toEqual(before);
+    expect(startResumeParse).not.toHaveBeenCalled();
+
+    mocks.userId = "user-a";
+    const allowed = await retry();
+
+    expect(allowed.status).toBe(200);
+    expect(await allowed.json()).toMatchObject({
+      resume_id: "resume-a",
+      status: "queued",
+      retry_count: 1,
     });
+    const [row] = await db.select().from(resumes).where(eq(resumes.id, "resume-a"));
+
+    expect(row).toMatchObject({
+      userId: "user-a",
+      status: "queued",
+      retryCount: 1,
+      errorMessage: null,
+    });
+    expect(startResumeParse).toHaveBeenCalledTimes(1);
   });
 
-  describe("IDOR Prevention at Database Level", () => {
-    it("enforces row-level security via userId filters on all queries", async () => {
-      const { eq } = await import("drizzle-orm");
+  it("does not disclose A's existing claim to B even with its signed cookie; A can recover it", async () => {
+    const cookie = await createSignedCookieValue(TEMP_KEY, "ownership-test-secret");
+    const before = await persistedData();
 
-      // @ts-expect-error - Testing mock function call
-      eq("resumes.userId", "user-a");
-      expect(eq).toHaveBeenCalledWith("resumes.userId", "user-a");
-    });
+    expect((await claim(TEMP_KEY, cookie)).status).toBe(404);
+    expect(await persistedData()).toEqual(before);
+    expect(startResumeParse).not.toHaveBeenCalled();
 
-    it("uses UUIDs instead of sequential IDs preventing enumeration", async () => {
-      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    mocks.userId = "user-a";
+    const allowed = await claim(TEMP_KEY, cookie);
 
-      const realUuid = crypto.randomUUID();
-      expect(uuidPattern.test(realUuid)).toBe(true);
-    });
+    expect(allowed.status).toBe(200);
+    expect(await allowed.json()).toMatchObject({ resume_id: "resume-a", already_claimed: true });
+    expect(await persistedData()).toEqual(before);
   });
 
-  describe("Bulk IDOR Test", () => {
-    it("concurrent access attempts are all blocked for unauthorized resources", async () => {
-      authedAs("attacker");
+  it("rejects A's upload key without a cookie or with B's valid, mismatched cookie", async () => {
+    const before = await persistedData();
+    const cookie = await createSignedCookieValue("temp/user-b/resume.pdf", "ownership-test-secret");
 
-      const targets = ["user-1", "user-2", "user-3", "user-4", "user-5"];
-
-      const { GET } = await import("@/app/api/resume/status/route");
-
-      const results = await Promise.all(
-        targets.map(async (targetUser) => {
-          mockFindFirst.mockResolvedValue({
-            id: `resume-${targetUser}`,
-            userId: targetUser,
-            status: "completed",
-            errorMessage: null,
-            retryCount: 0,
-            totalAttempts: 1,
-            createdAt: new Date().toISOString(),
-          });
-
-          const request = new Request(
-            `http://localhost:3000/api/resume/status?resume_id=resume-${targetUser}`,
-          );
-
-          return GET(request);
-        }),
-      );
-
-      for (const response of results) {
-        expect(response.status).toBe(403);
-      }
-    });
+    expect((await claim()).status).toBe(403);
+    expect((await claim(TEMP_KEY, cookie)).status).toBe(403);
+    expect((await claim("users/user-a/resume.pdf")).status).toBe(400);
+    expect(await persistedData()).toEqual(before);
   });
 
-  describe("IDOR via Race Condition", () => {
-    it("concurrent access with session switching is blocked", async () => {
-      authedAs("attacker");
+  it.each([
+    ["content update", updateContent],
+    ["theme update", updateTheme],
+    ["status", () => status()],
+    ["retry", () => retry()],
+    ["claim", () => claim()],
+  ] as const)("requires authentication for %s", async (_name, call) => {
+    mocks.userId = "";
+    const before = await persistedData();
 
-      mockFindFirst.mockResolvedValue({
-        id: "victim-resume",
-        userId: "victim",
-        status: "completed",
-        errorMessage: null,
-        retryCount: 0,
-        totalAttempts: 1,
-        createdAt: new Date().toISOString(),
-      });
-
-      const { GET } = await import("@/app/api/resume/status/route");
-
-      const request = new Request(
-        "http://localhost:3000/api/resume/status?resume_id=victim-resume",
-      );
-
-      const response = await GET(request);
-
-      expect(response.status).toBe(403);
-    });
+    expect((await call()).status).toBe(401);
+    expect(await persistedData()).toEqual(before);
   });
 
-  describe("Expired Session IDOR", () => {
-    it("IDOR with expired session returns 401", async () => {
-      mockedAuth.mockResolvedValue({
-        user: null,
-        db: null,
-        dbUser: null,
-        env: null,
-        error: new Response(JSON.stringify({ error: "Session expired" }), { status: 401 }),
-      });
+  it.each(["missing-resume", "   ", "../../etc/passwd", "<script>", "' OR 1=1 --"])(
+    "returns 404 for unknown status ID %s without touching owner data",
+    async (id) => {
+      const before = await persistedData();
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      expect((await status(id)).status).toBe(404);
+      expect(await persistedData()).toEqual(before);
+    },
+  );
 
-      const request = new Request(
-        "http://localhost:3000/api/resume/status?resume_id=any-resume-id",
-      );
-
-      const response = await GET(request);
-
-      expect(response.status).toBe(401);
-    });
+  it("requires a status ID and returns 404 for a retry of a missing row", async () => {
+    expect((await status("")).status).toBe(400);
+    expect((await retry("deleted-resume")).status).toBe(404);
   });
 
-  describe("IDOR in Resume ID Parameters", () => {
-    it("blocks access via query parameter when not owner", async () => {
-      authedAs("user-a");
+  it("rejects the owner's retry of a completed resume without changing it", async () => {
+    mocks.userId = "user-a";
+    await db.update(resumes).set({ status: "completed" }).where(eq(resumes.id, "resume-a"));
+    const before = await persistedData();
 
-      mockFindFirst.mockResolvedValue({
-        id: "target-resume",
-        userId: "user-b",
-        status: "completed",
-        errorMessage: null,
-        retryCount: 0,
-        totalAttempts: 1,
-        createdAt: new Date().toISOString(),
-      });
-
-      const { GET } = await import("@/app/api/resume/status/route");
-
-      const request = new Request(
-        "http://localhost:3000/api/resume/status?resume_id=target-resume",
-      );
-
-      const response = await GET(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it("blocks access via body parameter when not owner", async () => {
-      authedAs("user-a");
-
-      mockFindFirst.mockResolvedValue({
-        id: "target-resume",
-        userId: "user-b",
-        r2Key: "users/user-b/timestamp/resume.pdf",
-        status: "failed",
-        retryCount: 0,
-        totalAttempts: 1,
-        lastAttemptError: null,
-        fileHash: "hash123",
-      });
-
-      const { POST } = await import("@/app/api/resume/retry/route");
-
-      const request = new Request("http://localhost:3000/api/resume/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume_id: "target-resume" }),
-      });
-
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-    });
+    expect((await retry()).status).toBe(400);
+    expect(await persistedData()).toEqual(before);
+    expect(startResumeParse).not.toHaveBeenCalled();
   });
 });
