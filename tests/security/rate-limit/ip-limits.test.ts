@@ -12,7 +12,7 @@ import {
 } from "vite-plus/test";
 import { Db } from "@/lib/effect/db";
 import { RateLimited, RateLimitUnavailable } from "@/lib/effect/failures";
-import { uploadRateLimits } from "@/lib/db/schema";
+import { rateLimitLocks, uploadRateLimits } from "@/lib/db/schema";
 import { sha256Hex } from "@/lib/utils/hash";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
@@ -169,8 +169,8 @@ describe("upload limiter (Effect)", () => {
     );
   });
 
-  // PGlite serializes transactions on one connection, so this cannot prove the advisory lock
-  // works under real concurrency; it pins the count-then-insert arithmetic under a burst.
+  // PGlite serializes transactions on one connection, so this cannot prove the row lock blocks
+  // concurrent transactions; it pins the count-then-insert arithmetic under a burst.
   it("admits exactly the limit from a burst of 15 simultaneous requests", async () => {
     const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
 
@@ -234,6 +234,40 @@ describe("upload limiter (Effect)", () => {
 
     expect(await fail(checkIPRateLimitEffect(IP))).toBeInstanceOf(RateLimited);
     expect(logLines(warn)[0]).toMatchObject({ level: "warn" });
+  });
+});
+
+describe("row lock", () => {
+  it("seeds every lock slot and meters through the locked row", async () => {
+    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+
+    const slots = await db
+      .select({ slot: rateLimitLocks.slot })
+      .from(rateLimitLocks)
+      .orderBy(rateLimitLocks.slot);
+
+    expect(slots.map(({ slot }) => slot)).toEqual(Array.from({ length: 256 }, (_, i) => i));
+    expect(await run(checkIPRateLimitEffect(IP))).toMatchObject({
+      remaining: { hourly: 9, daily: 49 },
+    });
+    expect(await rowCount(IP, "upload")).toBe(1);
+  });
+
+  it("fails closed when no lock slot is seeded", async () => {
+    const { checkIPRateLimitEffect } = await import("@/lib/rate-limit/ip");
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const seeded = await db.select({ slot: rateLimitLocks.slot }).from(rateLimitLocks);
+
+    await db.delete(rateLimitLocks);
+
+    try {
+      const refusal = await fail(checkIPRateLimitEffect(IP));
+
+      expect(refusal).toBeInstanceOf(RateLimitUnavailable);
+      expect(logLines(error)[0]).toMatchObject({ msg: "Rate limit store failed" });
+    } finally {
+      await db.insert(rateLimitLocks).values(seeded);
+    }
   });
 });
 

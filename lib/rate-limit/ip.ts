@@ -8,7 +8,7 @@ import {
   type DbConflict,
   type DbFailed,
 } from "@/lib/effect/failures";
-import { uploadRateLimits } from "@/lib/db/schema";
+import { rateLimitLocks, uploadRateLimits } from "@/lib/db/schema";
 import { sha256Hex } from "@/lib/utils/hash";
 import { limitsBypassed } from "./bypass";
 import { storeDown } from "./store-failure";
@@ -24,6 +24,9 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 const UNKNOWN_IP = "unknown";
+
+/** Seeded rows in `rate_limit_locks`; must match migrations_pg/0013_seed-rate-limit-locks.sql. */
+const RATE_LIMIT_LOCK_SLOTS = 256;
 
 const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
 
@@ -70,10 +73,13 @@ async function hashIP(ip: string): Promise<string> {
 }
 
 /**
- * Counts this address's recent actions and records one more, in a single transaction. The
- * advisory lock is held until commit, so concurrent requests from one address queue up: the
- * count statement that follows takes a fresh snapshot after the lock is granted, and so sees
- * every row a previous holder committed. A burst cannot read the same below-limit count.
+ * Counts this address's recent actions and records one more, in a single transaction.
+ *
+ * The transaction first takes a `FOR UPDATE` row lock on one of the fixed `rate_limit_locks`
+ * slots (Hyperdrive does not support advisory locks) and holds it until commit. Concurrent
+ * requests that hash to the same slot queue up there: the count statement follows the lock and
+ * takes a fresh snapshot, so it sees every row a previous holder committed. A burst cannot read
+ * the same below-limit count, and a hash collision only adds serialization.
  */
 function meterAction(
   ipHash: string,
@@ -81,9 +87,21 @@ function meterAction(
 ): Effect.Effect<Metered, DbFailed | DbConflict, Db> {
   return Db.use((service) =>
     service.transaction(`rate-limit.ip.${meter.actionType}`, async (tx): Promise<Metered> => {
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${meter.actionType}`}))`,
-      );
+      const locked = await tx
+        .select({ slot: rateLimitLocks.slot })
+        .from(rateLimitLocks)
+        .where(
+          eq(
+            rateLimitLocks.slot,
+            sql`abs(hashtext(${`${ipHash}||${meter.actionType}`})::bigint) % ${RATE_LIMIT_LOCK_SLOTS}`,
+          ),
+        )
+        .for("update");
+
+      if (locked.length === 0) {
+        // An unseeded slot would silently skip the lock, so refuse instead of racing the count.
+        throw new Error("rate limit lock slot is missing");
+      }
 
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - HOUR_MS).toISOString();
