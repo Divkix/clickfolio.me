@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DEMO_RESUME_CONTENT, TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
+import { DEMO_RESUME_CONTENT } from "@/lib/templates/demo-data";
+import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-profiles";
 import type { ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { cn } from "@/lib/utils/cn";

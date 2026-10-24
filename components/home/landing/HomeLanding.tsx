@@ -14,7 +14,7 @@ import { PROFESSIONS } from "@/lib/config/professions";
 import { saveDesiredHandle } from "@/lib/utils/desired-handle";
 import { trackEvent, type CheckedHandleStatus } from "@/lib/telemetry/browser";
 import { handleSchema } from "@/lib/schemas/profile";
-import { DEMO_PROFILES } from "@/lib/templates/demo-data";
+import { DEMO_PROFILES } from "@/lib/templates/demo-profiles";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 import { UploadCTA } from "./UploadCTA";
 import { THEME_COUNT, ThemeMarquee } from "./ThemeMarquee";
