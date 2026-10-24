@@ -42,6 +42,9 @@ lib/telemetry/spans    withSpan/startSpan: custom spans on Cloudflare Workers tr
 proxy.ts               edge gate (replaces middleware.ts): __session presence check
 lib/resume/            single owners: lifecycle.ts (status/retry rules), claim-intake.ts, completion.ts
 lib/parse/pipeline.ts  Workflow step bodies (must be replay-safe)
+lib/effect/            server Effect kit: failures (tagged errors) + failure-map (status/code/retryable/log level),
+                       externalCall (timeout + tagged error + span), TIMEOUT_MS, Db service/layer, edges
+                       (runRoute / runPage / runBackground — the only places that run an Effect)
 lib/parse/email.ts     best-effort parse-failure mail to verified Clerk account owners
 lib/workflows/         Workflow classes + start/trigger helpers (parse, R2 delete)
 lib/durable-objects/   ClickfolioStatusDO (hibernation WebSocket status push)
