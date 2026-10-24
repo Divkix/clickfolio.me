@@ -1,6 +1,6 @@
 import handler from "vinext/server/app-router-entry";
 import worker from "@/worker/index";
-import { verifyClerkToken } from "@/lib/auth/clerk";
+import { verifyToken } from "@clerk/backend";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 import { fakeBatch, fakeMessage } from "@/tests/helpers/queue";
@@ -44,28 +44,30 @@ vi.mock("vinext/server/app-router-entry", () => ({
   },
 }));
 
-const { mockVerifyClerkToken, mockPerformCleanup, mockUserFindFirst, mockResumeFindFirst } =
-  vi.hoisted(() => {
+const { mockVerifyToken, mockPerformCleanup, mockUserFindFirst, mockResumeFindFirst } = vi.hoisted(
+  () => {
     const claims = {
       "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
       "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
     };
 
     return {
-      mockVerifyClerkToken: vi.fn(
-        async (token: string) =>
-          Object.entries(claims).find(([known]) => known === token)?.[1] ?? null,
-      ),
+      // @clerk/backend rejects a bad token with a TokenVerificationError carrying a `reason`.
+      mockVerifyToken: vi.fn(async (token: string, _options?: { secretKey?: string }) => {
+        const found = Object.entries(claims).find(([known]) => known === token)?.[1];
+
+        if (!found) throw Object.assign(new Error("invalid token"), { reason: "token-invalid" });
+
+        return found;
+      }),
       mockPerformCleanup: vi.fn(),
       mockUserFindFirst: vi.fn(),
       mockResumeFindFirst: vi.fn(),
     };
-  });
+  },
+);
 
-vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  verifyClerkToken: mockVerifyClerkToken,
-}));
+vi.mock("@clerk/backend", () => ({ verifyToken: mockVerifyToken }));
 
 vi.mock("@/lib/cron/cleanup", () => ({
   performCleanup: mockPerformCleanup,
@@ -128,6 +130,7 @@ function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
     } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
     CLICKFOLIO_STATUS_DO: makeStatusDo().namespace,
+    CLERK_SECRET_KEY: "sk_test_worker",
     ...overrides,
   } as CloudflareEnv;
 }
@@ -243,7 +246,10 @@ describe("Worker fetch handler", () => {
 
     expect(response.status).toBe(401);
     expect(await response.text()).toBe("Unauthorized: Invalid session");
-    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("tampered-or-expired-jwt");
+    expect(vi.mocked(verifyToken)).toHaveBeenCalledWith(
+      "tampered-or-expired-jwt",
+      expect.anything(),
+    );
   });
 
   it("treats an undecodable __session cookie as no session instead of throwing", async () => {
@@ -255,7 +261,7 @@ describe("Worker fetch handler", () => {
 
     expect(response.status).toBe(401);
     expect(await response.text()).toBe("Unauthorized: Invalid session");
-    expect(vi.mocked(verifyClerkToken)).not.toHaveBeenCalled();
+    expect(vi.mocked(verifyToken)).not.toHaveBeenCalled();
   });
 
   it("falls back to the Authorization header when the __session cookie is undecodable", async () => {
@@ -272,7 +278,49 @@ describe("Worker fetch handler", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1");
+    expect(vi.mocked(verifyToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1", expect.anything());
+  });
+
+  it("answers 503 when Clerk cannot be reached, not a sign-out and not a crash", async () => {
+    // The SDK's own key-set fetch failing surfaces as a plain network error, not a token fault.
+    vi.mocked(verifyToken).mockRejectedValueOnce(new TypeError("fetch failed"));
+
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      makeEnv(),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(503);
+    expect(mockUserFindFirst).not.toHaveBeenCalled();
+  });
+
+  it("answers 503 when the database lookup fails", async () => {
+    mockUserFindFirst.mockRejectedValueOnce(new Error("connection reset"));
+
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      makeEnv(),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(503);
+  });
+
+  it("answers 503 when the status Durable Object cannot be reached", async () => {
+    const statusDo = makeStatusDo();
+    statusDo.forward.mockRejectedValueOnce(new Error("object reset"));
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
+
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      makeEnv({ CLICKFOLIO_STATUS_DO: statusDo.namespace }),
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(503);
+    expect(statusDo.forward).toHaveBeenCalledTimes(1);
   });
 
   it("authenticates via the Authorization Bearer header", async () => {
@@ -305,8 +353,8 @@ describe("Worker fetch handler", () => {
       makeCtx(),
     );
 
-    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1");
+    expect(vi.mocked(verifyToken)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(verifyToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1", expect.anything());
   });
 
   it("returns 401 Unknown user for a valid token with no local PG user row", async () => {

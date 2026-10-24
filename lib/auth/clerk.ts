@@ -5,7 +5,7 @@
  *     request plumbing that vinext's Vite-based runtime does not provide.
  *
  * Session handling is Effect-first (`resolveAuth`, `authenticate`); the Promise functions at the
- * bottom (`verifyClerkToken`, `requireAuthClerk`) exist for callers that have not moved yet.
+ * bottom (`requireAuthClerk`) exist for callers that have not moved yet.
  */
 
 import { env } from "cloudflare:workers";
@@ -215,22 +215,6 @@ export function authenticate(
 
 function clerkLayer(): Layer.Layer<Clerk> {
   return Clerk.layer(env);
-}
-
-/**
- * Claims of a valid token, `null` for an expired or invalid one. Clerk or its key set being
- * unavailable (or the secret key missing) throws the `ClerkFailed` instead of reporting a
- * sign-out. Used by the Worker's WebSocket upgrade.
- */
-export async function verifyClerkToken(token: string): Promise<ClerkClaims | null> {
-  const exit = await runBackground(
-    Clerk.use((clerk) => clerk.verifyToken(token)),
-    clerkLayer(),
-  );
-
-  if (Exit.isSuccess(exit)) return exit.value;
-
-  throw Cause.squash(exit.cause);
 }
 
 type RequireAuthResult =
