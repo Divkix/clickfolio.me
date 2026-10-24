@@ -76,16 +76,16 @@ async function deleteTempObject(r2: R2Bucket, key: string): Promise<void> {
   });
 }
 
-// Unified R2 failure policy: the object write must succeed or the intake fails;
-// temp-cleanup failure is left to the lifecycle rule and the intake proceeds.
-async function moveTempFile(
+// Unified R2 failure policy: the object write must succeed or the intake fails.
+// The temp object is deleted only after the row points at newKey (deleteTempObject
+// at each commit point): until then the row still names tempKey, and a failed
+// update must leave the retry route a file to download.
+async function putFinalObject(
   r2: R2Bucket,
-  tempKey: string,
   newKey: string,
   fileBuffer: ArrayBuffer,
 ): Promise<void> {
   await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
-  await deleteTempObject(r2, tempKey);
 }
 
 export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntakeOutcome> {
@@ -348,7 +348,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
   if (cachedContent) {
     try {
-      await moveTempFile(r2, tempKey, newKey, fileBuffer);
+      await putFinalObject(r2, newKey, fileBuffer);
     } catch (r2Error) {
       log("error", "R2 operations failed for cached resume", { ...errorFields(r2Error) });
 
@@ -356,6 +356,8 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     }
 
     if (await completeFromCachedContent(cachedContent)) {
+      await deleteTempObject(r2, tempKey);
+
       return { kind: "cached", resumeId };
     }
   }
@@ -435,7 +437,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   }
 
   try {
-    await moveTempFile(r2, tempKey, newKey, fileBuffer);
+    await putFinalObject(r2, newKey, fileBuffer);
   } catch (error) {
     log("error", "R2 put error", { ...errorFields(error) });
 
@@ -461,6 +463,9 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
     return failClaim("Failed to update resume status", "DATABASE_ERROR");
   }
+
+  // The row now names newKey, so the temp copy is no longer needed.
+  await deleteTempObject(r2, tempKey);
 
   const failUnstarted = async (): Promise<ClaimIntakeOutcome> => {
     // `failed` with no lastAttemptError stays manually retryable.
