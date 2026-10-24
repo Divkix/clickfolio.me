@@ -63,7 +63,7 @@ type R2StoreService = {
   /** One page of keys under `prefix`; pass the returned cursor for the next page. */
   readonly listPage: (prefix: string, cursor?: string) => Effect.Effect<R2KeyPage, R2Failed>;
   /** Every key under `prefix`, one timed call per page. */
-  readonly listKeys: (prefix: string) => Effect.Effect<readonly string[], R2Failed>;
+  readonly listKeys: (prefix: string) => Effect.Effect<string[], R2Failed>;
 };
 
 function missing(operation: string): R2ObjectMissing {
