@@ -1,15 +1,12 @@
 import { R2 } from "../r2";
 import { log } from "../utils/log";
 import { errorFields } from "../utils/error-fields";
+import { r2DeleteParamsSchema, type R2DeleteParams } from "./r2-delete-params";
 
 // Trigger side of R2DeleteWorkflow. Kept apart from the class so routes can
 // hand off deletions without importing `cloudflare:workers`.
 
-export type R2DeleteParams = {
-  keys: string[];
-  /** Also delete every object under this prefix (listed inside the workflow). */
-  prefix?: string;
-};
+export type { R2DeleteParams };
 
 export type R2DeleteWorkflowBinding = Workflow<R2DeleteParams>;
 
@@ -22,7 +19,8 @@ export async function scheduleR2Deletion(
     throw new Error("CLICKFOLIO_R2_DELETE_WORKFLOW binding not available");
   }
 
-  await workflow.create({ params });
+  // A prefix sweep deletes everything under it: refuse shapes like "" or "users/".
+  await workflow.create({ params: r2DeleteParamsSchema.parse(params) });
 }
 
 /**

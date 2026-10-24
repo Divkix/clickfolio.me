@@ -1,47 +1,60 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import type { R2DeleteParams } from "./r2-delete";
+import { NonRetryableError } from "cloudflare:workflows";
+import { Effect } from "effect";
+import { R2_DELETE_BATCH_LIMIT, R2Store } from "../effect/services/r2-store";
+import { log } from "../utils/log";
+import { r2DeleteParamsSchema, type R2DeleteParams } from "./r2-delete-params";
+import { runWorkflowStep } from "./run-workflow-step";
 
-// R2 `delete()` accepts up to 1000 keys per call and is a no-op for missing keys,
-// so a replayed batch is harmless.
-const DELETE_BATCH_SIZE = 1000;
-
+// R2 `delete()` accepts up to 1000 keys per call and is a no-op for missing keys, so a
+// replayed batch is harmless. That is also why a step may be retried after an R2 timeout:
+// the delete that timed out can only have removed objects that were meant to go.
 const R2_STEP = {
   retries: { limit: 8, delay: "1 minute", backoff: "exponential" },
   timeout: "5 minutes",
 } as const;
 
-async function listPrefix(bucket: R2Bucket, prefix: string): Promise<string[]> {
-  const keys: string[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const page = await bucket.list({ prefix, limit: DELETE_BATCH_SIZE, cursor });
-
-    for (const object of page.objects) keys.push(object.key);
-    // SAFETY: R2 listResult with truncated true guarantees cursor presence per R2 API contract; cast narrows to paginated type for next page.
-    cursor = page.truncated ? (page as R2Objects & { truncated: true }).cursor : undefined;
-  } while (cursor);
-
-  return keys;
-}
-
 /** Durable R2 deletion with per-batch retries. Replaces the `pending_r2_deletions` table and its sweep. */
 export class R2DeleteWorkflow extends WorkflowEntrypoint<CloudflareEnv, R2DeleteParams> {
   async run(event: WorkflowEvent<R2DeleteParams>, step: WorkflowStep): Promise<number> {
-    const { keys, prefix } = event.payload;
-    const bucket = this.env.CLICKFOLIO_R2_BUCKET;
+    // Same schema as scheduling: an unsafe prefix would sweep far more than one account.
+    const params = r2DeleteParamsSchema.safeParse(event.payload);
+
+    if (!params.success) {
+      log("error", "R2 delete workflow refused invalid params", {
+        issueCount: params.error.issues.length,
+      });
+
+      throw new NonRetryableError("Invalid R2 delete params");
+    }
+
+    const { keys, prefix } = params.data;
+    const layer = R2Store.layer(this.env);
 
     const listed = prefix
-      ? await step.do(`list ${prefix}`, R2_STEP, () => listPrefix(bucket, prefix))
+      ? await step.do(`list ${prefix}`, R2_STEP, () =>
+          runWorkflowStep(
+            Effect.provide(
+              R2Store.use((store) => store.listKeys(prefix)),
+              layer,
+            ),
+          ),
+        )
       : [];
 
     const allKeys = [...new Set([...keys, ...listed])];
 
-    for (let start = 0; start < allKeys.length; start += DELETE_BATCH_SIZE) {
-      const batch = allKeys.slice(start, start + DELETE_BATCH_SIZE);
-      await step.do(`delete batch ${start}`, R2_STEP, async () => {
-        await bucket.delete(batch);
-      });
+    for (let start = 0; start < allKeys.length; start += R2_DELETE_BATCH_LIMIT) {
+      const batch = allKeys.slice(start, start + R2_DELETE_BATCH_LIMIT);
+
+      await step.do(`delete batch ${start}`, R2_STEP, () =>
+        runWorkflowStep(
+          Effect.provide(
+            R2Store.use((store) => store.deleteMany(batch)),
+            layer,
+          ),
+        ),
+      );
     }
 
     return allKeys.length;

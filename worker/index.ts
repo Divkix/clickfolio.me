@@ -209,17 +209,11 @@ export default {
   },
 
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
-    const db = getDb(env.HYPERDRIVE);
-
     try {
       switch (controller.cron) {
         case "0 3 * * *": {
-          // Logs its own cleanup_completed / cleanup_failed event.
-          await performCleanup(
-            db,
-            env.CLICKFOLIO_R2_BUCKET ?? null,
-            env.CLICKFOLIO_R2_DELETE_WORKFLOW,
-          );
+          // Logs its own cleanup_completed / cleanup_failed event; builds its own layers.
+          await performCleanup(env);
           break;
         }
 
