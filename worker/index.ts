@@ -87,9 +87,8 @@ export default {
       return handleOtelProxy(request, env, ctx);
     }
 
-    // Manually intercept WebSocket upgrade requests for resume status.
-    // TODO(vinext): Remove once vinext handles WebSocket upgrades upstream;
-    // this auth interception exists only because vinext does not route them.
+    // WebSocket upgrades for resume status are answered here, before vinext: Next.js route
+    // handlers have no WebSocket API, so the app has no route for them.
     if (
       url.pathname === "/ws/resume-status" &&
       request.headers.get("Upgrade")?.toLowerCase() === "websocket"

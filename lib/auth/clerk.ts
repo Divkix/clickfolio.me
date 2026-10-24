@@ -1,8 +1,7 @@
 /**
- * The Workers runtime (nodejs_compat + global_fetch_strictly_public) cannot run
- * @clerk/nextjs middleware reliably, so auth is verified directly:
- *   - NOT `@clerk/nextjs`: its middleware/`auth()` relies on standard Next.js
- *     request plumbing that vinext's Vite-based runtime does not provide.
+ * Sessions are verified here with `@clerk/backend`, not `@clerk/nextjs` middleware, so this module
+ * owns the rules: only the `__session` cookie counts (never `Authorization: Bearer`), an expired or
+ * invalid token is signed out, and an unreachable JWKS or bad secret is `ClerkFailed`.
  *
  * Session handling is Effect-only (`resolveAuth`, `authenticate`).
  */

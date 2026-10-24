@@ -1,7 +1,5 @@
 /**
- * Routes stay `export async function METHOD(req) { return withUserEffect(req, (ctx) => … }`
- * — the const-export form is rejected because vinext (Vite-based, not standard
- * Next.js) has unproven route detection for const-exported handlers.
+ * Routes stay `export async function METHOD(req) { return withUserEffect(req, (ctx) => … }`.
  */
 
 import { env } from "cloudflare:workers";

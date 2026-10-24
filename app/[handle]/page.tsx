@@ -18,8 +18,8 @@ export const dynamicParams = true;
 // purge queue (lib/utils/revalidate.ts); the TTL bounds staleness if a purge fails.
 export const revalidate = 300;
 
-// Empty on purpose: profiles render on first request, but vinext only treats a
-// dynamic route as ISR (edge-cacheable) when it declares generateStaticParams.
+// Empty on purpose: profiles render on first request. As in Next.js, a dynamic route is only
+// ISR (edge-cacheable) when it declares generateStaticParams, even an empty one.
 export function generateStaticParams(): Array<{ handle: string }> {
   return [];
 }
@@ -129,9 +129,10 @@ export default async function HandlePage({ params }: PageProps) {
 
   const rawHandle = decodeURIComponent(rawHandleEncoded);
 
-  // `/handle` → `/@handle` (308). Lives here, not in next.config redirects(): vinext rejects that
-  // lookahead regex as a ReDoS risk and silently drops the rule. Static routes (/blog, /about…)
-  // match before this dynamic segment, and isValidHandleFormat rejects reserved words and dots.
+  // `/handle` → `/@handle` (308). Lives here, not in next.config redirects(): config redirects run
+  // before filesystem routes, so the rule would need a lookahead excluding every static route.
+  // Here static routes (/blog, /about…) match before this dynamic segment, and
+  // isValidHandleFormat rejects reserved words and dots.
   if (!rawHandle.startsWith("@")) {
     if (isValidHandleFormat(rawHandle)) permanentRedirect(`/@${rawHandle}`);
     notFound();
