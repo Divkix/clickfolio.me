@@ -20,7 +20,8 @@ import {
   DbUnavailable,
   R2BindingMissing,
   R2ObjectMissing,
-  R2Throttled,
+  R2Unavailable,
+  R2Rejected,
   toParseErrorJson,
   type ParseFailure,
 } from "./failures";
@@ -197,7 +198,7 @@ export function claimResumeForParse(job: ResumeParseJob) {
 /** A key the bucket does not have, or a bucket that is not bound, will not appear on a retry. */
 function toR2ParseFailure(
   failure: R2Failed | R2KeyMissing,
-): R2ObjectMissing | R2BindingMissing | R2Throttled {
+): R2ObjectMissing | R2BindingMissing | R2Unavailable | R2Rejected {
   // The store's R2ObjectMissing is a different class from the parse one of the same name.
   if (failure instanceof R2KeyMissing) {
     // No key in the message: it ends in the uploader's file name, and the message is logged.
@@ -208,7 +209,11 @@ function toR2ParseFailure(
     return new R2BindingMissing({ message: "R2 binding not available", cause: failure });
   }
 
-  return new R2Throttled({ message: failure.message, cause: failure.cause ?? failure });
+  const details = { message: failure.message, cause: failure.cause ?? failure };
+
+  return failure.kind === "timeout" || failure.kind === "unavailable"
+    ? new R2Unavailable(details)
+    : new R2Rejected(details);
 }
 
 /** One replay-safe parse attempt; the Workflow adapter owns retries. */
