@@ -50,11 +50,12 @@ type Meter = {
   ttlMs: number;
 };
 
+type Window = "hourly" | "daily";
+
 type Metered =
   | { kind: "recorded"; hourly: number; daily: number }
-  /** `oldest` is the oldest row of the full window: when it expires, a slot frees. */
-  | { kind: "hourly-full"; daily: number; oldest: string | null }
-  | { kind: "daily-full"; hourly: number; oldest: string | null };
+  /** `window` is the full window that frees a slot last; `retryAfterSeconds` is when it does. */
+  | { kind: "full"; hourly: number; daily: number; window: Window; retryAfterSeconds: number };
 
 const UPLOAD_METER: Meter = {
   actionType: "upload",
@@ -136,12 +137,34 @@ function meterAction(
       const hourly = counts?.hourly ?? 0;
       const daily = counts?.daily ?? 0;
 
+      // A refusal records nothing, so the counts only fall: the request is admitted once every
+      // full window has freed a slot. The window that frees last names the refusal and its wait.
+      const waits: { window: Window; seconds: number }[] = [];
+
       if (hourly >= meter.hourlyLimit) {
-        return { kind: "hourly-full", daily, oldest: counts?.oldestHourly ?? null };
+        waits.push({
+          window: "hourly",
+          seconds: retryAfterSeconds(counts?.oldestHourly ?? null, HOUR_MS),
+        });
       }
 
       if (meter.dailyLimit !== undefined && daily >= meter.dailyLimit) {
-        return { kind: "daily-full", hourly, oldest: counts?.oldestDaily ?? null };
+        waits.push({
+          window: "daily",
+          seconds: retryAfterSeconds(counts?.oldestDaily ?? null, DAY_MS),
+        });
+      }
+
+      const binding = waits.sort((a, b) => b.seconds - a.seconds)[0];
+
+      if (binding) {
+        return {
+          kind: "full",
+          hourly,
+          daily,
+          window: binding.window,
+          retryAfterSeconds: binding.seconds,
+        };
       }
 
       await tx.insert(uploadRateLimits).values({
@@ -176,30 +199,22 @@ function uploadDecision(ip: string): Effect.Effect<Decision, RateLimitUnavailabl
     Effect.flatMap((ipHash) => meterAction(ipHash, UPLOAD_METER)),
     Effect.mapError(storeDown("upload", UPLOAD_UNAVAILABLE_MESSAGE)),
     Effect.map((metered): Decision => {
-      switch (metered.kind) {
-        case "recorded":
-          return {
-            allowed: true,
-            remaining: {
-              hourly: Math.max(0, HOURLY_LIMIT - metered.hourly),
-              daily: Math.max(0, DAILY_LIMIT - metered.daily),
-            },
-          };
-        case "hourly-full":
-          return {
-            allowed: false,
-            remaining: { hourly: 0, daily: Math.max(0, DAILY_LIMIT - metered.daily) },
-            message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
-            retryAfterSeconds: retryAfterSeconds(metered.oldest, HOUR_MS),
-          };
-        case "daily-full":
-          return {
-            allowed: false,
-            remaining: { hourly: Math.max(0, HOURLY_LIMIT - metered.hourly), daily: 0 },
-            message: `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
-            retryAfterSeconds: retryAfterSeconds(metered.oldest, DAY_MS),
-          };
-      }
+      const remaining = {
+        hourly: Math.max(0, HOURLY_LIMIT - metered.hourly),
+        daily: Math.max(0, DAILY_LIMIT - metered.daily),
+      };
+
+      if (metered.kind === "recorded") return { allowed: true, remaining };
+
+      return {
+        allowed: false,
+        remaining,
+        message:
+          metered.window === "hourly"
+            ? `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`
+            : `Daily upload limit reached. Try again tomorrow. (Limit: ${DAILY_LIMIT}/day)`,
+        retryAfterSeconds: metered.retryAfterSeconds,
+      };
     }),
   );
 }
@@ -227,7 +242,7 @@ function handleCheckDecision(ip: string): Effect.Effect<Decision, RateLimitUnava
         allowed: false,
         remaining: { hourly: 0, daily: 0 },
         message: "Too many handle checks. Please try again later.",
-        retryAfterSeconds: retryAfterSeconds(metered.oldest, HOUR_MS),
+        retryAfterSeconds: metered.retryAfterSeconds,
       };
     }),
   );
