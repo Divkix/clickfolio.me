@@ -8,7 +8,7 @@ import { reportUnhandledError, unexpectedErrorResponse } from "@/lib/api/route";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-type AuthedUserContext = Omit<
+export type AuthedUserContext = Omit<
   Extract<Awaited<ReturnType<typeof requireAuthWithUserValidation>>, { error: null }>,
   "error"
 >;

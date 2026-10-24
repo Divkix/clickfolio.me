@@ -370,3 +370,7 @@ export const claimRequestSchema = z.object({
 export const themeUpdateRequestSchema = z.object({
   theme_id: z.string().min(1),
 });
+
+export const retryRequestSchema = z.object({
+  resume_id: z.string().min(1),
+});

@@ -1043,6 +1043,27 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       expect(response.status).toBe(401);
     });
+
+    it.each([
+      ["no body", undefined],
+      ["a JSON null body", "null"],
+      ["a body without resume_id", "{}"],
+      ["a non-string resume_id", JSON.stringify({ resume_id: 42 })],
+    ])("returns 400, not 500, for %s", async (_label, body) => {
+      authedAs("user-123");
+
+      const { POST } = await import("@/app/api/resume/retry/route");
+
+      const response = await POST(
+        new Request("http://localhost:3000/api/resume/retry", { method: "POST", body }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: "resume_id is required in request body",
+      });
+      expect(mockFindFirst).not.toHaveBeenCalled();
+    });
   });
 
   const validResumeContent = {

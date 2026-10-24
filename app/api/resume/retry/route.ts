@@ -1,7 +1,9 @@
+import { Effect } from "effect";
 import { log, logEvent } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { and, eq, lt, sql } from "drizzle-orm";
-import { withUser } from "@/lib/auth/with-auth";
+import { decodeJsonBody, runRoute } from "@/lib/api/route";
+import { type AuthedUserContext, withUser } from "@/lib/auth/with-auth";
 import { checkRetryEligibilityForRow, getStatusView, RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { resumes } from "@/lib/db/schema";
@@ -12,258 +14,234 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+import { retryRequestSchema } from "@/lib/schemas/resume";
 import { parseInstanceId, startResumeParse } from "@/lib/workflows/resume-parse";
-
-interface RetryRequestBody {
-  resume_id?: string;
-}
 
 export async function POST(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db, env }) => {
-      const userId = authUser.id;
+    (context) =>
+      runRoute(
+        request,
+        Effect.gen(function* () {
+          const { resume_id } = yield* decodeJsonBody(request, retryRequestSchema, {
+            message: "resume_id is required in request body",
+            code: "BAD_REQUEST",
+          });
 
-      const sizeCheck = validateRequestSize(request);
+          return yield* Effect.promise(() => retryResume(context, resume_id));
+        }),
+      ),
+    "You must be logged in to retry resume parsing",
+  );
+}
 
-      if (!sizeCheck.valid) {
+async function retryResume(
+  { user: authUser, db, env }: AuthedUserContext,
+  resume_id: string,
+): Promise<Response> {
+  const userId = authUser.id;
+
+  const resume = await db.query.resumes.findFirst({
+    where: eq(resumes.id, resume_id),
+    columns: {
+      id: true,
+      userId: true,
+      r2Key: true,
+      status: true,
+      errorMessage: true,
+      retryCount: true,
+      totalAttempts: true,
+      lastAttemptError: true,
+      fileHash: true,
+      createdAt: true,
+    },
+  });
+
+  if (!resume) {
+    return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
+  }
+
+  if (resume.userId !== userId) {
+    return createErrorResponse(
+      "You do not have permission to retry this resume",
+      ERROR_CODES.FORBIDDEN,
+      403,
+    );
+  }
+
+  // SAFETY: status/retry fields are validated enum/number columns; casts bridge Drizzle type to lifecycle row.
+  const statusRow = {
+    status: resume.status as ResumeStatus,
+    createdAt: resume.createdAt as string | null,
+    retryCount: resume.retryCount as number,
+    totalAttempts: resume.totalAttempts as number,
+    lastAttemptError: resume.lastAttemptError as string | null,
+  };
+
+  const eligibility = checkRetryEligibilityForRow(statusRow);
+  const isVirtualTimeout = getStatusView(statusRow).isTimedOut;
+
+  if (!eligibility.eligible) {
+    return createErrorResponse(
+      eligibility.reason,
+      ERROR_CODES[eligibility.errorCode],
+      eligibility.httpStatus,
+      eligibility.details,
+    );
+  }
+
+  let fileHash: string;
+
+  if (resume.fileHash) {
+    fileHash = resume.fileHash;
+  } else {
+    const r2Binding = getR2Binding(env);
+
+    if (!r2Binding) {
+      return createErrorResponse(
+        "Storage service unavailable",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500,
+      );
+    }
+
+    let pdfBuffer: Uint8Array;
+
+    try {
+      // SAFETY: r2Key is validated R2 key written only by our upload flow; cast bridges nullable Drizzle type.
+      const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
+
+      if (!fileBuffer) {
         return createErrorResponse(
-          sizeCheck.error || "Request body too large",
-          ERROR_CODES.BAD_REQUEST,
-          413,
+          "Failed to download file for processing",
+          ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+          500,
         );
       }
 
-      const rawBodyResult = await readJsonWithLimit(request);
+      pdfBuffer = fileBuffer;
+    } catch (error) {
+      log("error", "R2 download error:", { ...errorFields(error) });
 
-      if (!rawBodyResult.ok) {
-        return createErrorResponse(
-          rawBodyResult.error,
-          ERROR_CODES.BAD_REQUEST,
-          rawBodyResult.reason === "too_large" ? 413 : 400,
-        );
-      }
+      return createErrorResponse(
+        "Failed to download file for processing",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500,
+      );
+    }
 
-      // SAFETY: rawBodyResult.data is bounded JSON, cast to RetryRequestBody for field access.
-      const body = rawBodyResult.data as RetryRequestBody;
-      const { resume_id } = body;
+    // SAFETY: pdfBuffer is Uint8Array from R2; slice produces ArrayBuffer for sha256Hex.
+    const bufferCopy = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+    ) as ArrayBuffer;
 
-      if (!resume_id) {
-        return createErrorResponse(
-          "resume_id is required in request body",
-          ERROR_CODES.BAD_REQUEST,
-          400,
-        );
-      }
+    fileHash = await sha256Hex(bufferCopy);
+  }
 
-      const resume = await db.query.resumes.findFirst({
-        where: eq(resumes.id, resume_id),
-        columns: {
-          id: true,
-          userId: true,
-          r2Key: true,
-          status: true,
-          errorMessage: true,
-          retryCount: true,
-          totalAttempts: true,
-          lastAttemptError: true,
-          fileHash: true,
-          createdAt: true,
-        },
-      });
+  // SAFETY: retryCount is integer column; cast bridges Drizzle nullable to number.
+  const previousRetryCount = resume.retryCount as number;
+  const nextRetryCount = previousRetryCount + 1;
 
-      if (!resume) {
-        return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
-      }
+  // TOCTOU guard: for a virtual timeout the row is still `waiting_for_cache`
+  // in the DB, so guard on that status; otherwise guard on `failed`.
+  const statusGuard = isVirtualTimeout
+    ? eq(resumes.status, "waiting_for_cache")
+    : eq(resumes.status, "failed");
 
-      if (resume.userId !== userId) {
-        return createErrorResponse(
-          "You do not have permission to retry this resume",
-          ERROR_CODES.FORBIDDEN,
-          403,
-        );
-      }
+  // Increment in SQL, compare-and-set on the value read above: two concurrent
+  // retries of the same row cannot both bump retryCount.
+  const updateResult = await db
+    .update(resumes)
+    .set({
+      status: "queued",
+      errorMessage: null,
+      retryCount: sql`${resumes.retryCount} + 1`,
+      queuedAt: new Date().toISOString(),
+    })
+    .where(
+      and(
+        eq(resumes.id, resume_id),
+        statusGuard,
+        eq(resumes.retryCount, previousRetryCount),
+        lt(resumes.retryCount, RETRY_LIMITS.MANUAL_MAX_RETRIES),
+      ),
+    )
+    .returning({ id: resumes.id });
 
-      // SAFETY: status/retry fields are validated enum/number columns; casts bridge Drizzle type to lifecycle row.
-      const statusRow = {
-        status: resume.status as ResumeStatus,
-        createdAt: resume.createdAt as string | null,
-        retryCount: resume.retryCount as number,
-        totalAttempts: resume.totalAttempts as number,
-        lastAttemptError: resume.lastAttemptError as string | null,
-      };
+  if (updateResult.length === 0) {
+    return createErrorResponse(
+      "Resume was already retried or is no longer in a retryable state",
+      ERROR_CODES.CONFLICT,
+      409,
+    );
+  }
 
-      const eligibility = checkRetryEligibilityForRow(statusRow);
-      const isVirtualTimeout = getStatusView(statusRow).isTimedOut;
-
-      if (!eligibility.eligible) {
-        return createErrorResponse(
-          eligibility.reason,
-          ERROR_CODES[eligibility.errorCode],
-          eligibility.httpStatus,
-          eligibility.details,
-        );
-      }
-
-      let fileHash: string;
-
-      if (resume.fileHash) {
-        fileHash = resume.fileHash;
-      } else {
-        const r2Binding = getR2Binding(env);
-
-        if (!r2Binding) {
-          return createErrorResponse(
-            "Storage service unavailable",
-            ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-            500,
-          );
-        }
-
-        let pdfBuffer: Uint8Array;
-
-        try {
-          // SAFETY: r2Key is validated R2 key written only by our upload flow; cast bridges nullable Drizzle type.
-          const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
-
-          if (!fileBuffer) {
-            return createErrorResponse(
-              "Failed to download file for processing",
-              ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-              500,
-            );
-          }
-
-          pdfBuffer = fileBuffer;
-        } catch (error) {
-          log("error", "R2 download error:", { ...errorFields(error) });
-
-          return createErrorResponse(
-            "Failed to download file for processing",
-            ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-            500,
-          );
-        }
-
-        // SAFETY: pdfBuffer is Uint8Array from R2; slice produces ArrayBuffer for sha256Hex.
-        const bufferCopy = pdfBuffer.buffer.slice(
-          pdfBuffer.byteOffset,
-          pdfBuffer.byteOffset + pdfBuffer.byteLength,
-        ) as ArrayBuffer;
-
-        fileHash = await sha256Hex(bufferCopy);
-      }
-
-      // SAFETY: retryCount is integer column; cast bridges Drizzle nullable to number.
-      const previousRetryCount = resume.retryCount as number;
-      const nextRetryCount = previousRetryCount + 1;
-
-      // TOCTOU guard: for a virtual timeout the row is still `waiting_for_cache`
-      // in the DB, so guard on that status; otherwise guard on `failed`.
-      const statusGuard = isVirtualTimeout
-        ? eq(resumes.status, "waiting_for_cache")
-        : eq(resumes.status, "failed");
-
-      // Increment in SQL, compare-and-set on the value read above: two concurrent
-      // retries of the same row cannot both bump retryCount.
-      const updateResult = await db
+  const rollbackRetryUpdate = async () => {
+    try {
+      // For a virtual timeout the original status was `waiting_for_cache`; a
+      // rollback should restore that, not `failed`.
+      const rollbackStatus = isVirtualTimeout ? "waiting_for_cache" : "failed";
+      // Compare-and-set on (status, retryCount): undo only this request's own
+      // increment, never a concurrent retry that has since taken over the row.
+      await db
         .update(resumes)
         .set({
-          status: "queued",
-          errorMessage: null,
-          retryCount: sql`${resumes.retryCount} + 1`,
-          queuedAt: new Date().toISOString(),
+          // SAFETY: rollbackStatus is validated enum value; cast bridges string to Drizzle insert type.
+          status: rollbackStatus as typeof resumes.$inferInsert.status,
+          errorMessage: resume.errorMessage,
+          retryCount: previousRetryCount,
+          queuedAt: null,
         })
         .where(
           and(
             eq(resumes.id, resume_id),
-            statusGuard,
-            eq(resumes.retryCount, previousRetryCount),
-            lt(resumes.retryCount, RETRY_LIMITS.MANUAL_MAX_RETRIES),
+            eq(resumes.status, "queued"),
+            eq(resumes.retryCount, nextRetryCount),
           ),
-        )
-        .returning({ id: resumes.id });
-
-      if (updateResult.length === 0) {
-        return createErrorResponse(
-          "Resume was already retried or is no longer in a retryable state",
-          ERROR_CODES.CONFLICT,
-          409,
         );
-      }
+    } catch (rollbackError) {
+      log("error", "Failed to roll back retry state:", { ...errorFields(rollbackError) });
+    }
+  };
 
-      const rollbackRetryUpdate = async () => {
-        try {
-          // For a virtual timeout the original status was `waiting_for_cache`; a
-          // rollback should restore that, not `failed`.
-          const rollbackStatus = isVirtualTimeout ? "waiting_for_cache" : "failed";
-          // Compare-and-set on (status, retryCount): undo only this request's own
-          // increment, never a concurrent retry that has since taken over the row.
-          await db
-            .update(resumes)
-            .set({
-              // SAFETY: rollbackStatus is validated enum value; cast bridges string to Drizzle insert type.
-              status: rollbackStatus as typeof resumes.$inferInsert.status,
-              errorMessage: resume.errorMessage,
-              retryCount: previousRetryCount,
-              queuedAt: null,
-            })
-            .where(
-              and(
-                eq(resumes.id, resume_id),
-                eq(resumes.status, "queued"),
-                eq(resumes.retryCount, nextRetryCount),
-              ),
-            );
-        } catch (rollbackError) {
-          log("error", "Failed to roll back retry state:", { ...errorFields(rollbackError) });
-        }
-      };
+  const parseWorkflow = env.CLICKFOLIO_PARSE_WORKFLOW;
 
-      const parseWorkflow = env.CLICKFOLIO_PARSE_WORKFLOW;
+  if (!parseWorkflow) {
+    await rollbackRetryUpdate();
 
-      if (!parseWorkflow) {
-        await rollbackRetryUpdate();
+    return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+  }
 
-        return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
-      }
+  try {
+    // Each retry is its own instance (the retryCount CAS above makes the id unique).
+    // SAFETY: id and r2Key are validated string columns; casts bridge Drizzle type to string for workflow params.
+    await startResumeParse(parseWorkflow, parseInstanceId(resume.id as string, nextRetryCount), {
+      kind: "parse",
+      resumeId: resume.id as string,
+      userId,
+      r2Key: resume.r2Key as string,
+      fileHash,
+    });
+  } catch (workflowError) {
+    await rollbackRetryUpdate();
+    log("error", "Failed to start retry parse workflow:", { ...errorFields(workflowError) });
 
-      try {
-        // Each retry is its own instance (the retryCount CAS above makes the id unique).
-        // SAFETY: id and r2Key are validated string columns; casts bridge Drizzle type to string for workflow params.
-        await startResumeParse(
-          parseWorkflow,
-          parseInstanceId(resume.id as string, nextRetryCount),
-          {
-            kind: "parse",
-            resumeId: resume.id as string,
-            userId,
-            r2Key: resume.r2Key as string,
-            fileHash,
-          },
-        );
-      } catch (workflowError) {
-        await rollbackRetryUpdate();
-        log("error", "Failed to start retry parse workflow:", { ...errorFields(workflowError) });
+    return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+  }
 
-        return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
-      }
+  // SAFETY: id is a validated string PK; cast bridges Drizzle type for log fields.
+  logEvent("resume_parse_retried", {
+    userId,
+    resumeId: resume.id as string,
+    retryCount: nextRetryCount,
+  });
 
-      // SAFETY: id is a validated string PK; cast bridges Drizzle type for log fields.
-      logEvent("resume_parse_retried", {
-        userId,
-        resumeId: resume.id as string,
-        retryCount: nextRetryCount,
-      });
-
-      // SAFETY: id is a validated string PK; cast bridges Drizzle type for response payload.
-      return createSuccessResponse({
-        resume_id: resume.id as string,
-        status: "queued",
-        retry_count: nextRetryCount,
-      });
-    },
-    "You must be logged in to retry resume parsing",
-  );
+  // SAFETY: id is a validated string PK; cast bridges Drizzle type for response payload.
+  return createSuccessResponse({
+    resume_id: resume.id as string,
+    status: "queued",
+    retry_count: nextRetryCount,
+  });
 }
