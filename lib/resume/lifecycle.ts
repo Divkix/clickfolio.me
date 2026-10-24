@@ -15,10 +15,8 @@ export const RETRY_LIMITS = {
 
 export const PERMANENT_ERROR_TYPES = new Set<ParseErrorType>([
   ParseErrorType.INVALID_PDF,
-  ParseErrorType.MALFORMED_RESPONSE,
   ParseErrorType.SERVICE_BINDING_NOT_FOUND,
   ParseErrorType.FILE_NOT_FOUND,
-  ParseErrorType.PARSE_VALIDATION_ERROR,
 ]);
 
 export const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
