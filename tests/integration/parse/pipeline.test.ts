@@ -5,7 +5,7 @@ import type { PgQueryable } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { Db } from "@/lib/effect/db";
-import { DbFailed } from "@/lib/effect/failures";
+import { DbFailed, R2Failed } from "@/lib/effect/failures";
 import { AlertWebhook } from "@/lib/effect/services/alert-webhook";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { StatusChannel } from "@/lib/effect/services/status-channel";
@@ -15,7 +15,8 @@ import {
   PdfInvalid,
   R2BindingMissing,
   R2ObjectMissing,
-  R2Throttled,
+  R2Unavailable,
+  R2Rejected,
   UnknownParseFailure,
   toParseErrorJson,
 } from "@/lib/parse/failures";
@@ -397,15 +398,46 @@ describe("parseResumePdf", () => {
 });
 
 describe("typed parse failure boundaries", () => {
-  it("maps an R2 outage to a retryable throttle", async () => {
+  it("maps an R2 outage to a retryable failure", async () => {
     await seed(JOB.resumeId);
     bucketFailure = new Error("R2 temporarily unavailable");
 
     const failure = await fail(parseResumePdf(JOB, ENV));
 
-    expect(failure).toBeInstanceOf(R2Throttled);
+    expect(failure).toBeInstanceOf(R2Unavailable);
     expect(failure.retryable).toBe(true);
   });
+
+  it.each(["timeout", "unavailable", "rejected", "invalid-response"] as const)(
+    "classifies an R2 %s by kind",
+    async (kind) => {
+      await seed(JOB.resumeId);
+
+      const failure = await fail(
+        parseResumePdf(JOB, ENV),
+        services(
+          Layer.succeed(
+            R2Store,
+            R2Store.of({
+              get: () =>
+                Effect.fail(new R2Failed({ operation: "get", kind, message: "R2 failed" })),
+              put: () => Effect.die("unused"),
+              delete: () => Effect.void,
+              deleteMany: () => Effect.void,
+              head: () => Effect.die("unused"),
+              listPage: () => Effect.succeed({ keys: [], cursor: undefined }),
+              listKeys: () => Effect.succeed([]),
+              ping: () => Effect.void,
+            }),
+          ),
+        ),
+      );
+
+      const retryable = kind === "timeout" || kind === "unavailable";
+      expect(failure).toBeInstanceOf(retryable ? R2Unavailable : R2Rejected);
+      expect(failure.retryable).toBe(retryable);
+    },
+  );
 
   it("maps a missing bucket binding to a permanent failure", async () => {
     await seed(JOB.resumeId);

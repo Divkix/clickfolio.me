@@ -37,9 +37,15 @@ export class AiTimedOut extends Data.TaggedError("AiTimedOut")<FailureDetails> {
   readonly userMessage = "Processing timed out. Please try again.";
 }
 
-export class R2Throttled extends Data.TaggedError("R2Throttled")<FailureDetails> {
+export class R2Unavailable extends Data.TaggedError("R2Unavailable")<FailureDetails> {
   readonly wireType = ParseErrorType.R2_THROTTLE;
   readonly retryable = true;
+  readonly userMessage = GENERIC_MESSAGE;
+}
+
+export class R2Rejected extends Data.TaggedError("R2Rejected")<FailureDetails> {
+  readonly wireType = ParseErrorType.R2_THROTTLE;
+  readonly retryable = false;
   readonly userMessage = GENERIC_MESSAGE;
 }
 
@@ -103,7 +109,8 @@ export type ParseFailure =
   | AiProviderFailed
   | AiProviderRejected
   | AiTimedOut
-  | R2Throttled
+  | R2Unavailable
+  | R2Rejected
   | PdfInvalid
   | R2ObjectMissing
   | R2BindingMissing
@@ -117,7 +124,8 @@ export function isParseFailure(cause: unknown): cause is ParseFailure {
     cause instanceof AiProviderFailed ||
     cause instanceof AiProviderRejected ||
     cause instanceof AiTimedOut ||
-    cause instanceof R2Throttled ||
+    cause instanceof R2Unavailable ||
+    cause instanceof R2Rejected ||
     cause instanceof PdfInvalid ||
     cause instanceof R2ObjectMissing ||
     cause instanceof R2BindingMissing ||
