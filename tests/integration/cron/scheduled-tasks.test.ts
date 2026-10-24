@@ -1,11 +1,12 @@
 import type { Mock } from "vite-plus/test";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { performCleanup } from "@/lib/cron/cleanup";
-import { R2 } from "@/lib/r2";
+import { Layer } from "effect";
+import { runCleanup } from "@/lib/cron/cleanup";
+import { Db } from "@/lib/effect/db";
+import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
+import { R2Store } from "@/lib/effect/services/r2-store";
 
-vi.mock("@/lib/r2", () => ({
-  R2: { delete: vi.fn() },
-}));
+type FakeBucket = Parameters<typeof R2Store.layerFrom>[0];
 
 interface MockCronDb {
   transaction: Mock;
@@ -74,22 +75,36 @@ function asDb(db: MockCronDb): never {
   return db as never;
 }
 
-// SAFETY: the exercised cleanup paths report R2 deletes through the mocked "@/lib/r2" module and
-// never call a method on this parameter, so a bare object satisfies it.
-const R2_BUCKET_STUB = {} as R2Bucket;
-
-function asWorkflow(workflow: MockR2DeleteWorkflow): never {
-  // SAFETY: the cleanup path only calls `create` on the R2DeleteWorkflow binding.
-  return workflow as never;
+function createFakeBucket(): FakeBucket & { delete: Mock } {
+  return {
+    get: vi.fn(async () => null),
+    put: vi.fn(async () => ({ size: 0, etag: "e" })),
+    delete: vi.fn(async () => {}),
+    head: vi.fn(async () => null),
+    list: vi.fn(async () => ({ objects: [], truncated: false as const })),
+  };
 }
 
 describe("Cron Scheduled Tasks", () => {
   let mockDb: MockCronDb;
   let mockR2DeleteWorkflow: MockR2DeleteWorkflow;
+  let mockBucket: ReturnType<typeof createFakeBucket>;
+
+  /** One cleanup run over the mocked database, fake bucket and fake workflow binding. */
+  function performCleanup(db: never) {
+    return runCleanup(
+      Layer.mergeAll(
+        Db.layerFrom(db),
+        R2Store.layerFrom(mockBucket),
+        R2DeleteScheduler.layerFrom(mockR2DeleteWorkflow),
+      ),
+    );
+  }
 
   beforeEach(() => {
     mockDb = createMockDb();
     mockR2DeleteWorkflow = createMockR2DeleteWorkflow();
+    mockBucket = createFakeBucket();
     vi.clearAllMocks();
   });
 
@@ -145,17 +160,13 @@ describe("Cron Scheduled Tasks", () => {
         .mockReturnValueOnce(
           deleteChain(1, [{ id: "resume-failed", r2Key: "uploads/failed.pdf" }]),
         );
-      vi.mocked(R2.delete).mockRejectedValueOnce(new Error("R2 unavailable"));
+      mockBucket.delete.mockRejectedValueOnce(new Error("R2 unavailable"));
 
-      const result = await performCleanup(
-        asDb(mockDb),
-        R2_BUCKET_STUB,
-        asWorkflow(mockR2DeleteWorkflow),
-      );
+      const result = await performCleanup(asDb(mockDb));
 
       expect(result.ok).toBe(true);
       expect(result.deleted.failedResumes).toBe(1);
-      expect(R2.delete).toHaveBeenCalledWith(expect.anything(), "uploads/failed.pdf");
+      expect(mockBucket.delete).toHaveBeenCalledWith("uploads/failed.pdf");
       expect(mockR2DeleteWorkflow.create).toHaveBeenCalledWith({
         params: { keys: ["uploads/failed.pdf"] },
       });
@@ -177,16 +188,12 @@ describe("Cron Scheduled Tasks", () => {
         .mockReturnValueOnce(
           deleteChain(1, [{ id: "resume-failed", r2Key: "uploads/failed.pdf" }]),
         );
-      vi.mocked(R2.delete).mockResolvedValueOnce(undefined);
+      mockBucket.delete.mockResolvedValueOnce(undefined);
 
-      const result = await performCleanup(
-        asDb(mockDb),
-        R2_BUCKET_STUB,
-        asWorkflow(mockR2DeleteWorkflow),
-      );
+      const result = await performCleanup(asDb(mockDb));
 
       expect(result.deleted.failedResumes).toBe(1);
-      expect(R2.delete).toHaveBeenCalledWith(expect.anything(), "uploads/failed.pdf");
+      expect(mockBucket.delete).toHaveBeenCalledWith("uploads/failed.pdf");
       expect(mockR2DeleteWorkflow.create).not.toHaveBeenCalled();
     });
   });
