@@ -173,7 +173,7 @@ describe("POST /api/upload", () => {
   });
 
   it("answers 400 when the client drops the body mid-upload", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const body = new ReadableStream<Uint8Array>({
       pull(controller) {
@@ -195,8 +195,13 @@ describe("POST /api/upload", () => {
 
     const { POST } = await import("@/app/api/upload/route");
     const response = await POST(request);
+    const responseBody = JSON.stringify(await response.json());
 
     expect(response.status).toBe(400);
+    expect(responseBody).not.toContain("client went away");
+    expect(logLines(warn)).toContainEqual(
+      expect.objectContaining({ failure: "InvalidInput", "error.message": "client went away" }),
+    );
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
 });
@@ -232,6 +237,67 @@ describe("/api/upload/pending", () => {
 
     expect(response.status).toBe(500);
     expect(mocks.cookieSet).not.toHaveBeenCalled();
+  });
+
+  it("POST answers 400 when the client drops the body mid-read", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.error(new Error("client went away"));
+      },
+    });
+
+    const request = new Request("https://clickfolio.me/api/upload/pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": "200" },
+      body,
+      // @ts-expect-error duplex is required for streamed request bodies and missing from lib.dom.
+      duplex: "half",
+    });
+
+    const { POST } = await import("@/app/api/upload/pending/route");
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
+  });
+
+  it("POST answers 413 for a declared oversized body before the missing-secret check", async () => {
+    mocks.secret.value = "";
+
+    const { POST } = await import("@/app/api/upload/pending/route");
+
+    const response = await POST(
+      new Request("https://clickfolio.me/api/upload/pending", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Content-Length": "9000000" },
+        body: JSON.stringify({ key: KEY }),
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
+  });
+
+  it("POST answers 400 for malformed JSON", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { POST } = await import("@/app/api/upload/pending/route");
+
+    const response = await POST(
+      new Request("https://clickfolio.me/api/upload/pending", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "not json {",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "Invalid JSON in request body",
+      code: "VALIDATION_ERROR",
+    });
   });
 
   it("GET answers the key of a valid cookie", async () => {

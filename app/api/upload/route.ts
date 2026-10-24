@@ -176,9 +176,9 @@ function upload(request: Request) {
 
     const body = yield* Effect.tryPromise({
       try: () => readUploadBody(request, headers.contentLength),
-      // The client went away mid-upload.
-      catch: (cause) =>
-        new InvalidInput({ message: "Could not read the upload", details: errorFields(cause) }),
+      // The client went away mid-upload. Keep the cause: it is what `logFailure` logs, and the
+      // visitor only sees the fixed message.
+      catch: (cause) => new InvalidInput({ message: "Could not read the upload", cause }),
     });
 
     if (body instanceof Response) return body;

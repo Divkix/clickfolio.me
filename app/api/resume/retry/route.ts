@@ -5,7 +5,8 @@ import { z } from "zod";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { Forbidden, InvalidInput, NotFound, R2Failed } from "@/lib/effect/failures";
+import { Forbidden, NotFound, R2Failed } from "@/lib/effect/failures";
+import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
 import { checkRetryEligibilityForRow, getStatusView, RETRY_LIMITS } from "@/lib/resume/lifecycle";
@@ -17,7 +18,6 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 import { parseInstanceId } from "@/lib/workflows/resume-parse";
 
 const retryRequestSchema = z.object({ resume_id: z.string().min(1) });
@@ -70,51 +70,21 @@ function rollbackRetry(target: RollbackTarget) {
 }
 
 export async function POST(request: Request) {
+  const oversized = oversizedBodyResponse(request);
+
+  if (oversized) return oversized;
+
   return withUserEffect(
     request,
     ({ user: authUser }) =>
       Effect.gen(function* () {
         const userId = authUser.id;
 
-        const sizeCheck = validateRequestSize(request);
-
-        if (!sizeCheck.valid) {
-          return createErrorResponse(
-            sizeCheck.error || "Request body too large",
-            ERROR_CODES.BAD_REQUEST,
-            413,
-          );
-        }
-
-        const rawBodyResult = yield* Effect.tryPromise({
-          try: () => readJsonWithLimit(request),
-          // The client went away mid-request.
-          catch: (cause) =>
-            new InvalidInput({
-              message: "Could not read the request body",
-              details: errorFields(cause),
-            }),
-        });
-
-        if (!rawBodyResult.ok) {
-          return createErrorResponse(
-            rawBodyResult.error,
-            ERROR_CODES.BAD_REQUEST,
-            rawBodyResult.reason === "too_large" ? 413 : 400,
-          );
-        }
-
-        const body = retryRequestSchema.safeParse(rawBodyResult.data);
-
-        if (!body.success) {
-          return createErrorResponse(
-            "resume_id is required in request body",
-            ERROR_CODES.BAD_REQUEST,
-            400,
-          );
-        }
-
-        const resumeId = body.data.resume_id;
+        const { resume_id: resumeId } = yield* readJsonBody(
+          request,
+          retryRequestSchema,
+          "resume_id is required in request body",
+        );
 
         const resume = yield* Db.use((service) =>
           service.query("resume.retry.read", (db) =>
