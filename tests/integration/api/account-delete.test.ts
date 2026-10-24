@@ -12,6 +12,7 @@ import {
 import { handleChanges, resumes, siteData, user } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
 import { NOW, seedUser, signedInAs } from "../../helpers/clerk-session";
+import { logLines } from "../../helpers/log-lines";
 import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
 
 type FakeBucket = {
@@ -344,6 +345,61 @@ describe("POST /api/account/delete", () => {
         { type: "r2", message: "2 stored files could not be deleted yet and will be retried." },
       ],
     });
+  });
+
+  it("does not answer success when the local data could not be removed after Clerk was deleted", async () => {
+    await seedAliceFiles();
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      Object.assign(new Error("connection terminated"), { code: "08006" }),
+    );
+
+    const { POST } = await import("@/app/api/account/delete/route");
+    const response = await POST(deletion());
+    const body: { success?: boolean; error?: string } = await response.json();
+
+    expect(mocks.deleteUser).toHaveBeenCalledWith("clerk-alice");
+    expect(response.status).toBeGreaterThanOrEqual(500);
+    expect(body.success).toBeUndefined();
+    expect(body.error).toContain("sign-in was deleted");
+    expect(body.error).toContain("completed automatically");
+    expect(await userRows("alice")).toHaveLength(1);
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+    expect(logLines(vi.mocked(console.log)).map((line) => line.event)).not.toContain(
+      "account_deleted",
+    );
+  });
+
+  it("hands the whole prefix to the workflow when the local delete fails, so files do not linger", async () => {
+    await seedAliceFiles();
+    vi.spyOn(db, "transaction").mockRejectedValueOnce(
+      Object.assign(new Error("connection terminated"), { code: "08006" }),
+    );
+
+    const { POST } = await import("@/app/api/account/delete/route");
+
+    await POST(deletion());
+
+    expect(mocks.workflowCreate).toHaveBeenCalledWith({
+      params: { keys: [], prefix: "users/alice/" },
+    });
+  });
+
+  it("still answers 200 when the user.deleted webhook removed the rows first", async () => {
+    await seedAliceFiles();
+
+    const realTransaction = db.transaction.bind(db);
+
+    vi.spyOn(db, "transaction").mockImplementationOnce(async (run, config) => {
+      await db.delete(user).where(eq(user.id, "alice"));
+
+      return realTransaction(run, config);
+    });
+
+    const { POST } = await import("@/app/api/account/delete/route");
+    const response = await POST(deletion());
+
+    expect(response.status).toBe(200);
+    expect(bucket.deleted).toContain("users/alice/1700000000/orphan.pdf");
   });
 
   it("sweeps the prefix in the workflow when listing the bucket fails", async () => {

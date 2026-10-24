@@ -26,7 +26,7 @@ import type { R2DeleteParams } from "@/lib/workflows/r2-delete-params";
 import type { AuthenticatedUser } from "@/lib/auth/clerk";
 
 interface DeletionWarning {
-  type: "r2" | "cleanup";
+  type: "r2";
   message: string;
 }
 
@@ -109,73 +109,75 @@ function deleteAccount(request: Request, { user: authUser, dbUser }: Authenticat
     // The cascade removes the resume rows, and the FK stops any new claim from landing
     // for this user while the R2 sweep below runs. Keys must be read before the delete.
     const knownKeys = new Set<string>();
-    let deletedLocally = false;
+    const prefix = `users/${userId}/`;
 
-    yield* Db.use((db) =>
+    const deletedLocally = yield* Db.use((db) =>
       db.transaction("account.delete", async (tx) => {
         for (const key of await collectR2KeysForUser(tx, userId)) knownKeys.add(key);
 
         await tx.delete(user).where(eq(user.id, userId));
       }),
     ).pipe(
-      Effect.map(() => {
-        deletedLocally = true;
-      }),
+      Effect.as(true),
       Effect.catchTags({
         DbFailed: (failure) =>
           Effect.sync(() => {
-            log("error", "Account deletion error", { ...upstreamLogFields(failure) });
-            // The sign-in is already gone, so a retry cannot reach this route; report the
-            // pending cleanup instead of a failure the client cannot act on.
-            warnings.push({
-              type: "cleanup",
-              message: "Your sign-in was deleted, but profile data cleanup is still pending.",
+            log("error", "Account deletion left local data behind", {
+              ...upstreamLogFields(failure),
             });
+
+            return false;
           }),
         DbConflict: (failure) =>
           Effect.sync(() => {
-            log("error", "Account deletion error", { ...errorFields(failure) });
-            warnings.push({
-              type: "cleanup",
-              message: "Your sign-in was deleted, but profile data cleanup is still pending.",
-            });
+            log("error", "Account deletion left local data behind", { ...errorFields(failure) });
+
+            return false;
           }),
       }),
     );
 
-    if (deletedLocally) {
-      notifyIndexNowForProfiles([dbUser.handle]);
-      revalidatePublicProfilePages([dbUser.handle]);
+    if (!deletedLocally) {
+      // The sign-in is gone, so a retry cannot reach this route. The user.deleted webhook
+      // finishes the local cleanup; the files go now so they do not wait on it.
+      yield* scheduleDeletion({ keys: [], prefix }, "sweep");
 
-      // Prefix sweep catches every layout (users/{userId}/{timestamp}/… and
-      // users/{userId}/{resumeId}/…) plus objects whose DB row is already gone.
-      const prefix = `users/${userId}/`;
-
-      yield* R2Store.use((store) => store.listKeys(prefix)).pipe(
-        Effect.map((listed) => {
-          for (const key of listed) knownKeys.add(key);
-        }),
-        Effect.catchTag("R2Failed", (failure) =>
-          Effect.gen(function* () {
-            log("error", "Failed to list R2 objects for the deleted account", {
-              ...upstreamLogFields(failure),
-            });
-            // The workflow re-lists the prefix with retries, so unlisted objects still go.
-            yield* scheduleDeletion({ keys: [], prefix }, "sweep");
-          }),
-        ),
+      return createErrorResponse(
+        "Your sign-in was deleted, but we could not finish removing your profile data. It will be completed automatically; you do not need to try again.",
+        ERROR_CODES.DATABASE_ERROR,
+        500,
       );
+    }
 
-      // Failed keys retry in R2DeleteWorkflow; the warning tells the caller they are not gone yet.
-      const failedKeys = yield* deleteInline([...knownKeys]);
+    notifyIndexNowForProfiles([dbUser.handle]);
+    revalidatePublicProfilePages([dbUser.handle]);
 
-      // A count, not the keys: they end in the uploaded file name.
-      if (failedKeys.length > 0) {
-        warnings.push({
-          type: "r2",
-          message: `${failedKeys.length} stored ${failedKeys.length === 1 ? "file" : "files"} could not be deleted yet and will be retried.`,
-        });
-      }
+    // Prefix sweep catches every layout (users/{userId}/{timestamp}/… and
+    // users/{userId}/{resumeId}/…) plus objects whose DB row is already gone.
+    yield* R2Store.use((store) => store.listKeys(prefix)).pipe(
+      Effect.map((listed) => {
+        for (const key of listed) knownKeys.add(key);
+      }),
+      Effect.catchTag("R2Failed", (failure) =>
+        Effect.gen(function* () {
+          log("error", "Failed to list R2 objects for the deleted account", {
+            ...upstreamLogFields(failure),
+          });
+          // The workflow re-lists the prefix with retries, so unlisted objects still go.
+          yield* scheduleDeletion({ keys: [], prefix }, "sweep");
+        }),
+      ),
+    );
+
+    // Failed keys retry in R2DeleteWorkflow; the warning tells the caller they are not gone yet.
+    const failedKeys = yield* deleteInline([...knownKeys]);
+
+    // A count, not the keys: they end in the uploaded file name.
+    if (failedKeys.length > 0) {
+      warnings.push({
+        type: "r2",
+        message: `${failedKeys.length} stored ${failedKeys.length === 1 ? "file" : "files"} could not be deleted yet and will be retried.`,
+      });
     }
 
     logEvent("account_deleted", { userId, hadR2Warnings: warnings.length > 0 });
