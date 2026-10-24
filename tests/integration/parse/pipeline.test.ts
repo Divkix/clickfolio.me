@@ -20,6 +20,7 @@ import {
   toParseErrorJson,
 } from "@/lib/parse/failures";
 import {
+  announceResumeParseFailure,
   claimResumeForParse,
   completeParsedResume,
   expireWaitingForCache,
@@ -574,26 +575,35 @@ describe("completeParsedResume", () => {
 describe("markResumeParseFailed", () => {
   const stored = toParseErrorJson(new R2ObjectMissing({ message: "Failed to fetch PDF from R2" }));
 
-  it("fails the row, notifies, and alerts with the attempt count", async () => {
+  it("fails the row and reports what to announce, without notifying or alerting", async () => {
     await seed(JOB.resumeId, { totalAttempts: 4 });
 
-    await run(markResumeParseFailed(JOB, stored, "webhook"));
+    const notice = { failure: stored, totalAttempts: 4, waitingIds: [] };
+
+    const first = await run(markResumeParseFailed(JOB, stored));
+
+    expect(pushes).toEqual([]);
+    expect(webhookBodies).toEqual([]);
+    expect(first).toEqual(notice);
 
     // COALESCE supplies the generic message when the parse step wrote none.
     expect(await row(JOB.resumeId)).toMatchObject({
       status: "failed",
       errorMessage: expect.stringContaining("Something went wrong"),
     });
-    expect(pushes).toEqual([{ resumeId: JOB.resumeId, status: "failed" }]);
-    expect(webhookBodies).toEqual([
-      expect.objectContaining({ resumeId: JOB.resumeId, totalAttempts: 4 }),
-    ]);
+
+    // The row update still matches a failed row, so Workflows may re-run the step after its
+    // result was lost: the second run must not send the push or the alert again.
+    expect(await run(markResumeParseFailed(JOB, stored))).toEqual(notice);
+
+    expect(pushes).toEqual([]);
+    expect(webhookBodies).toEqual([]);
   });
 
   it("leaves a row alone when a sweep and a retry handed it to a newer run", async () => {
     await seed(JOB.resumeId, { status: "processing", retryCount: 1 });
 
-    await run(markResumeParseFailed({ ...JOB, retryCount: 0 }, stored, "webhook"));
+    await expect(run(markResumeParseFailed({ ...JOB, retryCount: 0 }, stored))).resolves.toBeNull();
 
     expect((await row(JOB.resumeId)).status).toBe("processing");
     expect(pushes).toEqual([]);
@@ -603,7 +613,7 @@ describe("markResumeParseFailed", () => {
   it("keeps a friendlier message written by the parse step", async () => {
     await seed(JOB.resumeId, { errorMessage: "Your PDF is password-protected." });
 
-    await run(markResumeParseFailed(JOB, stored, "logpush"));
+    await run(markResumeParseFailed(JOB, stored));
 
     expect((await row(JOB.resumeId)).errorMessage).toBe("Your PDF is password-protected.");
   });
@@ -620,7 +630,11 @@ describe("markResumeParseFailed", () => {
       new PdfInvalid({ message: friendly, reason: "scanned-empty" }),
     );
 
-    await run(markResumeParseFailed(JOB, scanned, "webhook"));
+    await expect(run(markResumeParseFailed(JOB, scanned))).resolves.toEqual({
+      failure: scanned,
+      totalAttempts: 1,
+      waitingIds: ["waiting-1", "waiting-2"],
+    });
 
     for (const id of ["waiting-1", "waiting-2"]) {
       const waiting = await row(id);
@@ -631,26 +645,23 @@ describe("markResumeParseFailed", () => {
       });
     }
 
-    expect(pushes.map((push) => push.resumeId).sort()).toEqual([
-      "resume-1",
-      "waiting-1",
-      "waiting-2",
-    ]);
-    expect(webhookBodies).toHaveLength(1);
+    expect(pushes).toEqual([]);
+    expect(webhookBodies).toEqual([]);
   });
 
   it.each([["completed" as const], [null]])(
-    "does nothing more when the row is %s",
+    "returns nothing to announce when the row is %s",
     async (status) => {
       if (status) await seed(JOB.resumeId, { status });
 
-      await run(
-        markResumeParseFailed(
-          JOB,
-          toParseErrorJson(new UnknownParseFailure({ message: "boom" })),
-          "webhook",
+      await expect(
+        run(
+          markResumeParseFailed(
+            JOB,
+            toParseErrorJson(new UnknownParseFailure({ message: "boom" })),
+          ),
         ),
-      );
+      ).resolves.toBeNull();
 
       expect(pushes).toEqual([]);
       expect(webhookBodies).toEqual([]);
@@ -658,17 +669,47 @@ describe("markResumeParseFailed", () => {
       if (status) expect((await row(JOB.resumeId)).status).toBe("completed");
     },
   );
+});
 
-  it("finishes the terminal updates even when notifications and alerting fail", async () => {
-    await seed(JOB.resumeId, { totalAttempts: 4 });
-    await seed("waiting-1", { status: "waiting_for_cache" });
+describe("announceResumeParseFailure", () => {
+  const notice = {
+    failure: toParseErrorJson(new UnknownParseFailure({ message: "failure" })),
+    totalAttempts: 4,
+    waitingIds: ["waiting-1", "waiting-2"],
+  };
+
+  it("pushes the failed status to the row and its waiting rows, then alerts once", async () => {
+    await expect(run(announceResumeParseFailure(JOB, notice, "webhook"))).resolves.toBeUndefined();
+
+    expect(pushes.map((push) => push.resumeId).sort()).toEqual([
+      "resume-1",
+      "waiting-1",
+      "waiting-2",
+    ]);
+    expect(webhookBodies).toEqual([
+      expect.objectContaining({
+        resumeId: JOB.resumeId,
+        totalAttempts: notice.totalAttempts,
+        failureReason: "failure",
+      }),
+    ]);
+  });
+
+  it("still alerts when the status pushes fail", async () => {
     pushFails = true;
+
+    await expect(run(announceResumeParseFailure(JOB, notice, "webhook"))).resolves.toBeUndefined();
+
+    expect(pushes).toEqual([]);
+    expect(webhookBodies).toHaveLength(1);
+  });
+
+  it("resolves when the webhook rejects", async () => {
     webhookFails = true;
 
-    await expect(run(markResumeParseFailed(JOB, stored, "webhook"))).resolves.toBeUndefined();
+    await expect(run(announceResumeParseFailure(JOB, notice, "webhook"))).resolves.toBeUndefined();
 
-    expect((await row(JOB.resumeId)).status).toBe("failed");
-    expect((await row("waiting-1")).status).toBe("failed");
+    expect(pushes).toHaveLength(3);
   });
 });
 

@@ -14,7 +14,8 @@ export { ParseErrorType } from "./error-types";
 
 export type { ParseErrorJson } from "./failures";
 
-const storedErrorSchema = z.object({
+/** The wire shape of a stored parse failure: a jsonb column, a step output and an error cause. */
+export const storedErrorSchema = z.object({
   name: z.string(),
   type: z.enum(ParseErrorType),
   message: z.string(),
