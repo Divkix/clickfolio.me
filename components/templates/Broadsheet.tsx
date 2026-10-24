@@ -138,7 +138,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
           .bs-no-print { display: none !important; }
         }
       `}</style>
-      <main id="main-content" className="bs-root min-h-screen w-full overflow-x-hidden">
+      <main className="bs-root min-h-screen w-full overflow-x-hidden">
         <div className="bs-wrap">
           <div className="bs-strip" aria-hidden="true">
             <span>Résumé</span>
