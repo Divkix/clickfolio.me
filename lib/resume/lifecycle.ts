@@ -1,12 +1,8 @@
-import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import type { UnknownRecord } from "@/lib/types/json";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import type { ERROR_CODES } from "@/lib/utils/security-headers";
 import { z } from "zod";
 import { ParseErrorType } from "@/lib/parse/error-types";
-
-function isString(value: JsonValue): value is string {
-  return z.string().safeParse(value).success;
-}
 
 const MANUAL_MAX_RETRIES = 2;
 const PARSE_MAX_ATTEMPTS = 4;
@@ -51,57 +47,15 @@ export function isPermanentErrorType(errorType: string): errorType is ParseError
   return PERMANENT_ERROR_TYPES.has(errorType as ParseErrorType);
 }
 
-export type ParsedLastAttemptError = {
-  type: string | null;
-  message: string | null;
-  isRetryable: boolean | null;
-  raw: string | null;
-  name?: string | null;
-} | null;
+const lastAttemptErrorSchema = z.object({ type: z.string() });
 
-export function parseLastAttemptError(
-  row: { lastAttemptError: string | null } | string | null,
-): ParsedLastAttemptError {
-  let raw: string | null;
-
-  if (row === null || isString(row)) {
-    // SAFETY: isString guard above ensures row is string; null check handles null case.
-    raw = row as string | null;
-  } else {
-    raw = row.lastAttemptError;
-  }
-
+export function parseLastAttemptError(raw: string | null): { type: string } | null {
   if (!raw) return null;
 
   try {
-    // SAFETY: Parse error JSON is from toParseErrorJson(), with legacy rows using the same wire shape; parse failure falls back to unknown.
-    const parsed = JSON.parse(raw) as {
-      type?: string;
-      message?: string;
-      isRetryable?: boolean;
-      name?: string;
-    };
+    const parsed = lastAttemptErrorSchema.safeParse(JSON.parse(raw));
 
-    if (parsed != null && parsed instanceof Object) {
-      // SAFETY: parsed is non-null object from JSON.parse validated via instanceof Object; Record<string, JsonValue> is safe for parse error fields.
-      const record = parsed as Record<string, JsonValue>;
-
-      return {
-        // SAFETY: z.string guard above ensures record.type is string when present.
-        type: z.string().safeParse(record.type).success ? (record.type as string) : null,
-        // SAFETY: z.string guard above ensures record.message is string when present.
-        message: z.string().safeParse(record.message).success ? (record.message as string) : null,
-        // SAFETY: z.boolean guard above ensures record.isRetryable is boolean when present.
-        isRetryable: z.boolean().safeParse(record.isRetryable).success
-          ? (record.isRetryable as boolean)
-          : null,
-        raw,
-        // SAFETY: z.string guard above ensures record.name is string when present.
-        name: z.string().safeParse(record.name).success ? (record.name as string) : null,
-      };
-    }
-
-    return null;
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
@@ -146,7 +100,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
       reason: `This resume failed with a permanent error (${parsed.type}). Retrying will not help.`,
       errorCode: "VALIDATION_ERROR",
       httpStatus: 400,
-      details: { error_type: parsed.type, error_message: parsed.message },
+      details: { error_type: parsed.type },
     };
   }
 
@@ -160,9 +114,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
     };
   }
 
-  // SAFETY: Drizzle infers retryCount as number|null; row is existing resume with non-null retryCount, safe to narrow to number.
-  if ((row.retryCount as number) >= RETRY_LIMITS.MANUAL_MAX_RETRIES) {
-    // SAFETY: Drizzle infers retryCount as number|null; safe to narrow for retry count display.
+  if (row.retryCount >= RETRY_LIMITS.MANUAL_MAX_RETRIES) {
     return {
       eligible: false,
       reason: "Maximum retry limit reached. Please upload a new resume.",
@@ -170,13 +122,12 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
       httpStatus: 429,
       details: {
         max_retries: RETRY_LIMITS.MANUAL_MAX_RETRIES,
-        current_retry_count: row.retryCount as number,
+        current_retry_count: row.retryCount,
       },
     };
   }
 
-  // SAFETY: Drizzle infers retryCount as number|null; row is existing resume with non-null retryCount, safe to narrow for nextAttempt.
-  return { eligible: true, nextAttempt: (row.retryCount as number) + 1 };
+  return { eligible: true, nextAttempt: row.retryCount + 1 };
 }
 
 export type StatusRow = {
