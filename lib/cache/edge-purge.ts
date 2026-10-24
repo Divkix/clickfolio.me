@@ -1,4 +1,8 @@
+import { Cause, Effect, Exit } from "effect";
 import * as z from "zod";
+import { runBackground } from "@/lib/effect/edges";
+import { InvalidInput, type QueueFailed } from "@/lib/effect/failures";
+import { EdgePurgeQueue } from "@/lib/effect/services/edge-purge-queue";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 
@@ -62,9 +66,40 @@ export function retryDelaySeconds(attempts: number): number {
   return Math.min(FIRST_RETRY_DELAY_SECONDS * 2 ** exponent, MAX_RETRY_DELAY_SECONDS);
 }
 
+/** Producer-side message check: a tag the consumer would drop as malformed never gets sent. */
+function validatedMessages(
+  tags: string[],
+): Effect.Effect<Array<MessageSendRequest<EdgePurgeMessage>>, InvalidInput> {
+  const messages: Array<MessageSendRequest<EdgePurgeMessage>> = [];
+
+  for (let start = 0; start < tags.length; start += MAX_TAGS_PER_PURGE) {
+    const parsed = edgePurgeMessageSchema.safeParse({
+      tags: tags.slice(start, start + MAX_TAGS_PER_PURGE),
+    });
+
+    if (!parsed.success) {
+      return Effect.fail(new InvalidInput({ message: "edge purge tags are not encoded digests" }));
+    }
+
+    messages.push({ body: parsed.data, contentType: "json" });
+  }
+
+  return Effect.succeed(messages);
+}
+
+/** Queues the purge messages for already-deduplicated tags. */
+function sendPurgeMessages(
+  tags: string[],
+): Effect.Effect<void, InvalidInput | QueueFailed, EdgePurgeQueue> {
+  return validatedMessages(tags).pipe(
+    Effect.flatMap((messages) => EdgePurgeQueue.use((queue) => queue.sendBatch(messages))),
+  );
+}
+
 /**
- * Enqueue a purge of encoded tags. Never throws: a purge must not fail the
- * write that triggered it. The short page TTL bounds staleness if this fails.
+ * Enqueue a purge of encoded tags. Never throws: a purge must not fail the write that triggered
+ * it, and the short page TTL bounds staleness if this fails. Every failure is logged with the
+ * tags (digests, not handles). A timed-out send is not retried: it may have landed.
  */
 export async function enqueueEdgePurge(
   queue: Queue<EdgePurgeMessage> | undefined,
@@ -80,22 +115,37 @@ export async function enqueueEdgePurge(
     return;
   }
 
-  const messages: Array<MessageSendRequest<EdgePurgeMessage>> = [];
+  const exit = await runBackground(
+    sendPurgeMessages(unique).pipe(
+      Effect.catchTags({
+        InvalidInput: (failure) =>
+          Effect.sync(() => {
+            log("error", "edge purge enqueue failed", {
+              tags: unique,
+              tag_count: unique.length,
+              ...errorFields(failure),
+            });
+          }),
+        QueueFailed: (failure) =>
+          Effect.sync(() => {
+            log("error", "edge purge enqueue failed", {
+              tags: unique,
+              tag_count: unique.length,
+              operation: failure.operation,
+              kind: failure.kind,
+              ...errorFields(failure.cause ?? failure),
+            });
+          }),
+      }),
+    ),
+    EdgePurgeQueue.layer(queue),
+  );
 
-  for (let start = 0; start < unique.length; start += MAX_TAGS_PER_PURGE) {
-    messages.push({
-      body: { tags: unique.slice(start, start + MAX_TAGS_PER_PURGE) },
-      contentType: "json",
-    });
-  }
-
-  try {
-    await queue.sendBatch(messages);
-  } catch (error) {
+  if (Exit.isFailure(exit)) {
     log("error", "edge purge enqueue failed", {
       tags: unique,
       tag_count: unique.length,
-      ...errorFields(error),
+      ...errorFields(Cause.squash(exit.cause)),
     });
   }
 }

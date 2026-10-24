@@ -12,6 +12,7 @@ import {
   type PurgeResult,
   type PurgeTags,
 } from "@/lib/cache/edge-purge";
+import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { logLines } from "@/tests/helpers/log-lines";
 import { fakeBatch, fakeMessage, fakeQueue } from "@/tests/helpers/queue";
 
@@ -219,6 +220,42 @@ describe("enqueueEdgePurge", () => {
       msg: "edge purge enqueue failed",
       tags,
     });
+  });
+
+  it("logs a timed-out send with its kind and never resends it", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const queue = fakeQueue(vi.fn(() => new Promise<never>(() => {})));
+      const tags = [tag("_N_T_/@alice")];
+
+      const pending = enqueueEdgePurge(queue, tags);
+      await vi.advanceTimersByTimeAsync(TIMEOUT_MS.queue + 1);
+      await pending;
+
+      // The first send may still land, so a second one would only duplicate it.
+      expect(queue.sendBatch).toHaveBeenCalledTimes(1);
+      expect(logLines(error)[0]).toMatchObject({
+        level: "error",
+        msg: "edge purge enqueue failed",
+        kind: "timeout",
+        operation: "queue.edge_purge.send",
+        tags,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("refuses to send a tag the consumer would drop as malformed", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const queue = fakeQueue();
+
+    await expect(enqueueEdgePurge(queue, ["_N_T_/@alice"])).resolves.toBeUndefined();
+
+    expect(queue.sendBatch).not.toHaveBeenCalled();
+    expect(logLines(error)[0]).toMatchObject({ msg: "edge purge enqueue failed" });
   });
 
   it("logs a missing binding instead of throwing", async () => {
