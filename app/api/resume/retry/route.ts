@@ -193,7 +193,9 @@ export async function POST(request: Request) {
         );
       }
 
-      const rollbackRetryUpdate = async () => {
+      // Returns a response only when the rollback itself failed: the row is then left
+      // `queued` with no workflow run, which nothing recovers, so the caller must say so.
+      const rollbackRetryUpdate = async (): Promise<Response | null> => {
         try {
           // For a virtual timeout the original status was `waiting_for_cache`; a
           // rollback should restore that, not `failed`.
@@ -216,15 +218,28 @@ export async function POST(request: Request) {
                 eq(resumes.retryCount, nextRetryCount),
               ),
             );
+
+          return null;
         } catch (rollbackError) {
-          log("error", "Failed to roll back retry state:", { ...errorFields(rollbackError) });
+          log("error", "Retry rollback failed; resume left queued without a workflow run", {
+            resumeId: resume_id,
+            ...errorFields(rollbackError),
+          });
+
+          return createErrorResponse(
+            "The service is temporarily unavailable. Please try again.",
+            ERROR_CODES.DATABASE_ERROR,
+            503,
+          );
         }
       };
 
       const parseWorkflow = env.CLICKFOLIO_PARSE_WORKFLOW;
 
       if (!parseWorkflow) {
-        await rollbackRetryUpdate();
+        const rollbackFailure = await rollbackRetryUpdate();
+
+        if (rollbackFailure) return rollbackFailure;
 
         return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
@@ -244,8 +259,11 @@ export async function POST(request: Request) {
           },
         );
       } catch (workflowError) {
-        await rollbackRetryUpdate();
         log("error", "Failed to start retry parse workflow:", { ...errorFields(workflowError) });
+
+        const rollbackFailure = await rollbackRetryUpdate();
+
+        if (rollbackFailure) return rollbackFailure;
 
         return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
