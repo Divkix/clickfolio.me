@@ -12,8 +12,8 @@ function parseSitemapId(rawId: string): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-function shardProgram(id: number, path: string) {
-  const unavailable = sitemapUnavailable(path);
+function shardProgram(id: number) {
+  const unavailable = sitemapUnavailable("/sitemap/[id].xml");
 
   return generateSitemapEntries(id).pipe(
     Effect.map((entries) => {
@@ -43,9 +43,5 @@ export async function GET(
     return new Response("Invalid sitemap id", { status: 400 });
   }
 
-  return runRoute(
-    request,
-    shardProgram(id, new URL(request.url).pathname),
-    Db.layer(env.HYPERDRIVE),
-  );
+  return runRoute(request, shardProgram(id), Db.layer(env.HYPERDRIVE));
 }

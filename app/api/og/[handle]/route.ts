@@ -158,8 +158,12 @@ async function renderCard(row: CardRow, handle: string): Promise<Response> {
   });
 }
 
-function cardProgram(handle: string, path: string) {
-  const unavailable = retryLater(path, "Image temporarily unavailable", OG_RETRY_AFTER_SECONDS);
+function cardProgram(handle: string) {
+  const unavailable = retryLater(
+    "/api/og/[handle]",
+    "Image temporarily unavailable",
+    OG_RETRY_AFTER_SECONDS,
+  );
 
   return Db.use((service) => service.query("og.profile", (db) => loadCardRow(db, handle))).pipe(
     Effect.flatMap(([row]) => {
@@ -196,9 +200,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ hand
     return renderLastResort();
   }
 
-  return runRoute(
-    request,
-    cardProgram(handle, new URL(request.url).pathname),
-    Db.layer(env.HYPERDRIVE),
-  );
+  return runRoute(request, cardProgram(handle), Db.layer(env.HYPERDRIVE));
 }

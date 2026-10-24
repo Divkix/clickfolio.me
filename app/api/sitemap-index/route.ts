@@ -9,8 +9,8 @@ import {
   sitemapUnavailable,
 } from "@/lib/seo/sitemap";
 
-function indexProgram(path: string) {
-  const unavailable = sitemapUnavailable(path);
+function indexProgram() {
+  const unavailable = sitemapUnavailable("/sitemap.xml");
 
   return getTotalIndexableUserCount().pipe(
     Effect.map(
@@ -28,5 +28,5 @@ function indexProgram(path: string) {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  return runRoute(request, indexProgram(new URL(request.url).pathname), Db.layer(env.HYPERDRIVE));
+  return runRoute(request, indexProgram(), Db.layer(env.HYPERDRIVE));
 }
