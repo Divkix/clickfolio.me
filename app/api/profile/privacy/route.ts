@@ -75,8 +75,17 @@ export async function PUT(request: Request) {
         )
         .returning({ id: user.id });
 
-      if (expectedUpdatedAt && updated.length === 0) {
-        return createErrorResponse("Settings changed elsewhere, reload", ERROR_CODES.CONFLICT, 409);
+      if (updated.length === 0) {
+        if (expectedUpdatedAt) {
+          return createErrorResponse(
+            "Settings changed elsewhere, reload",
+            ERROR_CODES.CONFLICT,
+            409,
+          );
+        }
+
+        // No row written: never report success or revalidate on stale privacy state.
+        return createErrorResponse("User not found", ERROR_CODES.NOT_FOUND, 404);
       }
 
       revalidatePublicProfilePages([dbUser.handle]);

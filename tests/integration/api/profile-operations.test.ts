@@ -307,12 +307,17 @@ function unauthenticated() {
   return error;
 }
 
-function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
+function makeRequest(
+  url: string,
+  method = "GET",
+  body?: JsonValue,
+  extraHeaders: Record<string, string> = {},
+): Request {
   const init: RequestInit = { method };
 
   if (body) {
     init.body = JSON.stringify(body);
-    init.headers = { "Content-Type": "application/json" };
+    init.headers = { "Content-Type": "application/json", ...extraHeaders };
   }
 
   return new Request(url, init);
@@ -644,6 +649,54 @@ describe("Profile API Integration Tests (20 tests)", () => {
         hide_from_search: true,
         show_in_directory: false,
       });
+    });
+
+    it("returns 404 and skips revalidation when the unguarded write matches no row", async () => {
+      authedAs("user-123");
+
+      mockReturning.mockResolvedValueOnce([]);
+
+      const { revalidatePublicProfilePages } = await import("@/lib/utils/revalidate");
+
+      vi.mocked(revalidatePublicProfilePages).mockClear();
+
+      const { PUT } = await import("@/app/api/profile/privacy/route");
+
+      const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: true,
+        show_in_directory: false,
+      });
+
+      const response = await PUT(request);
+
+      expect(response.status).toBe(404);
+      expect(revalidatePublicProfilePages).not.toHaveBeenCalled();
+    });
+
+    it("returns 409 when the If-Unmodified-Since version no longer matches", async () => {
+      authedAs("user-123");
+
+      mockReturning.mockResolvedValueOnce([]);
+
+      const { PUT } = await import("@/app/api/profile/privacy/route");
+
+      const request = makeRequest(
+        "http://localhost:3000/api/profile/privacy",
+        "PUT",
+        {
+          show_phone: false,
+          show_address: false,
+          hide_from_search: true,
+          show_in_directory: false,
+        },
+        { "If-Unmodified-Since": "not-a-date" },
+      );
+
+      const response = await PUT(request);
+
+      expect(response.status).toBe(409);
     });
 
     it("returns 400 for invalid privacy fields (test 12)", async () => {
