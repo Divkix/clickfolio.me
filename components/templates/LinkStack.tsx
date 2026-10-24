@@ -1,3 +1,4 @@
+import { LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -113,7 +114,7 @@ function Bar({ bar, color }: { bar: BarSpec; color: { bg: string; fg: string } }
         href={bar.href}
         className="ls-bar ls-tap"
         style={style}
-        {...(bar.external ? { target: "_blank", rel: "ugc nofollow noopener noreferrer" } : {})}
+        {...(bar.external ? { target: "_blank", rel: LINK_REL } : {})}
       >
         <BarFace bar={bar} icon={<ArrowIcon />} />
       </a>

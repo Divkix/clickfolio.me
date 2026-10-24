@@ -1,3 +1,4 @@
+import { ExternalLink, MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -115,7 +116,7 @@ function Hero({ content, profile }: TemplateProps) {
                 <a
                   href={link.href}
                   target={link.isExternal ? "_blank" : undefined}
-                  rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                  rel={link.isExternal ? LINK_REL : undefined}
                   className={`${SLAB} ${PRESS} flex min-w-0 items-center gap-3 px-4 py-3 font-bold`}
                 >
                   <span className="flex size-5 shrink-0 items-center justify-center">
@@ -257,15 +258,13 @@ function Work({ projects }: { projects: NonNullable<Content["projects"]> }) {
               </ul>
             )}
             {project.url && (
-              <a
+              <ExternalLink
                 href={project.url}
-                target="_blank"
-                rel="ugc nofollow noopener noreferrer"
                 className={`mt-6 inline-flex items-center gap-2 self-start border-[3px] border-black bg-black px-4 py-2 font-bold text-white shadow-[4px_4px_0_0_#1F3BFF] ${PRESS} hover:shadow-[1px_1px_0_0_#1F3BFF]`}
               >
                 Visit {project.title}
                 <ArrowUpRight className="size-4" aria-hidden="true" />
-              </a>
+              </ExternalLink>
             )}
           </li>
         ))}
@@ -348,18 +347,12 @@ function EducationAndCerts({
             {certifications.map((cert) => (
               <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className={`${SLAB} p-5`}>
                 <h3 className="font-heading-nb text-xl leading-tight uppercase">
-                  {cert.url ? (
-                    <a
-                      href={cert.url}
-                      target="_blank"
-                      rel="ugc nofollow noopener noreferrer"
-                      className="underline decoration-[#1F3BFF] decoration-4 underline-offset-4 hover:bg-[#FFD400]"
-                    >
-                      {cert.name}
-                    </a>
-                  ) : (
-                    cert.name
-                  )}
+                  <MaybeLink
+                    href={cert.url}
+                    className="underline decoration-[#1F3BFF] decoration-4 underline-offset-4 hover:bg-[#FFD400]"
+                  >
+                    {cert.name}
+                  </MaybeLink>
                 </h3>
                 {cert.issuer && <p className="mt-1 font-bold">{cert.issuer}</p>}
                 {cert.date && (

@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -160,7 +161,7 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
                           <a
                             href={link.href}
                             target={link.isExternal ? "_blank" : undefined}
-                            rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                            rel={link.isExternal ? LINK_REL : undefined}
                             className="text-white underline decoration-white/60 underline-offset-4 hover:decoration-white focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                           >
                             {link.label}
@@ -257,18 +258,12 @@ export const PersonalBest: React.FC<TemplateProps> = ({ content, profile }) => {
                   <SheetRow
                     key={`${project.title}-${project.year ?? ""}`}
                     primary={
-                      project.url ? (
-                        <a
-                          href={project.url}
-                          target="_blank"
-                          rel="ugc nofollow noopener noreferrer"
-                          className="underline decoration-[#B0372A] underline-offset-4"
-                        >
-                          {project.title}
-                        </a>
-                      ) : (
-                        project.title
-                      )
+                      <MaybeLink
+                        href={project.url}
+                        className="underline decoration-[#B0372A] underline-offset-4"
+                      >
+                        {project.title}
+                      </MaybeLink>
                     }
                     secondary={project.technologies?.join(", ")}
                     figure={project.year ? formatYear(project.year) : null}

@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { cn } from "@/lib/utils/cn";
 import { ShareBar } from "@/components/ShareBar";
@@ -173,18 +174,9 @@ function ProjectsExhibit({
           dates={project.year?.trim() || null}
         >
           <h3 className="text-base font-bold break-words md:text-[17px]">
-            {project.url ? (
-              <a
-                href={project.url}
-                target="_blank"
-                rel="ugc nofollow noopener noreferrer"
-                className={LINK}
-              >
-                {project.title}
-              </a>
-            ) : (
-              project.title
-            )}
+            <MaybeLink href={project.url} className={LINK}>
+              {project.title}
+            </MaybeLink>
           </h3>
           {project.description && <p className="mt-1.5 leading-7">{project.description}</p>}
           {project.technologies && project.technologies.length > 0 && (
@@ -262,18 +254,9 @@ function CertificationsExhibit({
           dates={cert.date?.trim() ? formatShortDate(cert.date) : null}
         >
           <h3 className="text-base font-bold break-words">
-            {cert.url ? (
-              <a
-                href={cert.url}
-                target="_blank"
-                rel="ugc nofollow noopener noreferrer"
-                className={LINK}
-              >
-                {cert.name}
-              </a>
-            ) : (
-              cert.name
-            )}
+            <MaybeLink href={cert.url} className={LINK}>
+              {cert.name}
+            </MaybeLink>
           </h3>
           {cert.issuer && <p className="text-[#6A6358]">Issued by {cert.issuer}</p>}
         </Record>
@@ -403,7 +386,7 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
                       <a
                         href={link.href}
                         target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                        rel={link.isExternal ? LINK_REL : undefined}
                         className={LINK}
                       >
                         {link.label}

@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -12,8 +13,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 type Content = TemplateProps["content"];
 
 type Project = NonNullable<Content["projects"]>[number];
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 function frameNumber(index: number): string {
   return String(index + 1).padStart(2, "0");
@@ -68,13 +67,9 @@ function Frames({ projects }: { projects: NonNullable<Content["projects"]> }) {
           key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
           className="cs-frame"
         >
-          {project.url ? (
-            <a href={project.url} target="_blank" rel={LINK_REL} className="cs-frame-link">
-              <FrameBody project={project} index={index} />
-            </a>
-          ) : (
+          <MaybeLink href={project.url} className="cs-frame-link">
             <FrameBody project={project} index={index} />
-          )}
+          </MaybeLink>
         </figure>
       ))}
     </div>
@@ -309,13 +304,7 @@ export const ContactSheet: React.FC<TemplateProps> = ({ content, profile }) => {
                       {certifications.map((cert) => (
                         <li key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`}>
                           <h3>
-                            {cert.url ? (
-                              <a href={cert.url} target="_blank" rel={LINK_REL}>
-                                {cert.name}
-                              </a>
-                            ) : (
-                              cert.name
-                            )}
+                            <MaybeLink href={cert.url}>{cert.name}</MaybeLink>
                           </h3>
                           {(cert.issuer || cert.date) && (
                             <p>

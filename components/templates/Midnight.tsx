@@ -1,3 +1,4 @@
+import { ExternalLink, LINK_REL } from "./shared/ExternalLink";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -126,7 +127,7 @@ function Header({ content, profile }: TemplateProps) {
               <a
                 href={link.href}
                 target={link.isExternal ? "_blank" : undefined}
-                rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                rel={link.isExternal ? LINK_REL : undefined}
                 className="inline-flex items-center gap-2 text-sm text-[#C9CEE4] hover:text-[#D4B26A] underline decoration-[#D4B26A]/30 underline-offset-4 hover:decoration-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
               >
                 {getContactIcon(link.type, {
@@ -224,15 +225,13 @@ function Projects({ projects }: { projects: ResumeContent["projects"] }) {
             <div className="md:pl-10">
               <h3 className="font-display-mn text-2xl font-semibold text-[#EDE6D6]">
                 {project.url ? (
-                  <a
+                  <ExternalLink
                     href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
                     className="inline-flex items-center gap-1.5 hover:text-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
                   >
                     {project.title}
                     <ArrowUpRight className="w-5 h-5 text-[#D4B26A]" aria-hidden="true" />
-                  </a>
+                  </ExternalLink>
                 ) : (
                   project.title
                 )}
@@ -316,15 +315,13 @@ function Credentials({
               <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
                 <h3 className="font-display-mn text-xl font-semibold text-[#EDE6D6]">
                   {cert.url ? (
-                    <a
+                    <ExternalLink
                       href={cert.url}
-                      target="_blank"
-                      rel="ugc nofollow noopener noreferrer"
                       className="inline-flex items-center gap-1.5 hover:text-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
                     >
                       {cert.name}
                       <ArrowUpRight className="w-4 h-4 text-[#D4B26A]" aria-hidden="true" />
-                    </a>
+                    </ExternalLink>
                   ) : (
                     cert.name
                   )}

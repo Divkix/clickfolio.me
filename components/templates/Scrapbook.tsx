@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -8,8 +9,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // A craft-paper desk: taped index cards, sticky-note skills and a polaroid portrait, tilted a
 // degree or two. Education leads because students usually have more of it than experience.
 // Tilts are fixed by position in the list, so server and client markup always match.
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 function Heading({ children }: { children: React.ReactNode }) {
   return <h2 className="sb-h2">{children}</h2>;
@@ -239,18 +238,9 @@ export const Scrapbook: React.FC<TemplateProps> = ({ content, profile }) => {
                       >
                         <span className="sb-pin" aria-hidden="true" />
                         <h3>
-                          {project.url ? (
-                            <a
-                              href={project.url}
-                              target="_blank"
-                              rel={LINK_REL}
-                              className="sb-link"
-                            >
-                              {project.title}
-                            </a>
-                          ) : (
-                            project.title
-                          )}
+                          <MaybeLink href={project.url} className="sb-link">
+                            {project.title}
+                          </MaybeLink>
                         </h3>
                         {project.year && <p className="sb-when">{formatYear(project.year)}</p>}
                         {project.description && <p className="sb-text">{project.description}</p>}
@@ -303,13 +293,9 @@ export const Scrapbook: React.FC<TemplateProps> = ({ content, profile }) => {
                         {cert.date ? formatShortDate(cert.date) : "Certificate"}
                       </p>
                       <h3>
-                        {cert.url ? (
-                          <a href={cert.url} target="_blank" rel={LINK_REL} className="sb-link">
-                            {cert.name}
-                          </a>
-                        ) : (
-                          cert.name
-                        )}
+                        <MaybeLink href={cert.url} className="sb-link">
+                          {cert.name}
+                        </MaybeLink>
                       </h3>
                       {cert.issuer && <p className="sb-sub">{cert.issuer}</p>}
                     </article>

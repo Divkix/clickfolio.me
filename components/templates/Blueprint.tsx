@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -10,8 +11,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // number that the resume does not contain.
 
 type Content = TemplateProps["content"];
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 function callout(index: number): string {
   return String.fromCharCode(65 + (index % 26));
@@ -218,18 +217,9 @@ export const Blueprint: React.FC<TemplateProps> = ({ content, profile }) => {
                               {project.year ? ` / ${formatYear(project.year)}` : ""}
                             </p>
                             <h3>
-                              {project.url ? (
-                                <a
-                                  href={project.url}
-                                  target="_blank"
-                                  rel={LINK_REL}
-                                  className="bp-link"
-                                >
-                                  {project.title}
-                                </a>
-                              ) : (
-                                project.title
-                              )}
+                              <MaybeLink href={project.url} className="bp-link">
+                                {project.title}
+                              </MaybeLink>
                             </h3>
                             {project.description && (
                               <p className="bp-text">{project.description}</p>
@@ -295,18 +285,9 @@ export const Blueprint: React.FC<TemplateProps> = ({ content, profile }) => {
                               {cert.date ? formatShortDate(cert.date) : "—"}
                             </th>
                             <td>
-                              {cert.url ? (
-                                <a
-                                  href={cert.url}
-                                  target="_blank"
-                                  rel={LINK_REL}
-                                  className="bp-link"
-                                >
-                                  {cert.name}
-                                </a>
-                              ) : (
-                                cert.name
-                              )}
+                              <MaybeLink href={cert.url} className="bp-link">
+                                {cert.name}
+                              </MaybeLink>
                               {cert.issuer && <span className="bp-sub">{cert.issuer}</span>}
                             </td>
                           </tr>

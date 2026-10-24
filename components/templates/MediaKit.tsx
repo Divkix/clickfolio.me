@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -12,8 +13,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // invented: every figure on the page is quoted from the resume text, next to its sentence.
 
 type Content = TemplateProps["content"];
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 // A figure needs a %, $, x or K/M/B marker so years and plain counts are never picked up.
 const METRIC = /\$\d[\d,]*(?:\.\d+)?[kKmMbB]?\+?|\d[\d,]*(?:\.\d+)?(?:%|[xX]|[kKmMbB]\b)\+?/;
@@ -318,18 +317,9 @@ export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
                         )}
                         {figure && <p className="mk-case-fig">{figure}</p>}
                         <h3>
-                          {project.url ? (
-                            <a
-                              href={project.url}
-                              target="_blank"
-                              rel={LINK_REL}
-                              className="mk-link"
-                            >
-                              {project.title}
-                            </a>
-                          ) : (
-                            project.title
-                          )}
+                          <MaybeLink href={project.url} className="mk-link">
+                            {project.title}
+                          </MaybeLink>
                         </h3>
                         {(year || channels.length > 0) && (
                           <p className="mk-case-meta">
@@ -445,18 +435,9 @@ export const MediaKit: React.FC<TemplateProps> = ({ content, profile }) => {
                           return (
                             <li key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`}>
                               <p className="mk-item">
-                                {cert.url ? (
-                                  <a
-                                    href={cert.url}
-                                    target="_blank"
-                                    rel={LINK_REL}
-                                    className="mk-link"
-                                  >
-                                    {cert.name}
-                                  </a>
-                                ) : (
-                                  cert.name
-                                )}
+                                <MaybeLink href={cert.url} className="mk-link">
+                                  {cert.name}
+                                </MaybeLink>
                               </p>
                               {detail && <p className="mk-sub">{detail}</p>}
                             </li>

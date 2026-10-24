@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -259,19 +260,13 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
               <h3
                 className={`pd-display ${roomy ? "text-[clamp(2rem,5vw,4rem)]" : "text-[clamp(1.625rem,3.4vw,2.5rem)]"} font-bold leading-[1.02] tracking-[-0.03em] [overflow-wrap:anywhere]`}
               >
-                {project.url ? (
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="ugc nofollow noopener noreferrer"
-                    className="underline decoration-2 underline-offset-[0.15em] hover:decoration-[3px]"
-                    style={{ textDecorationColor: BLUE }}
-                  >
-                    {project.title}
-                  </a>
-                ) : (
-                  project.title
-                )}
+                <MaybeLink
+                  href={project.url}
+                  className="underline decoration-2 underline-offset-[0.15em] hover:decoration-[3px]"
+                  style={{ textDecorationColor: BLUE }}
+                >
+                  {project.title}
+                </MaybeLink>
               </h3>
               {project.year && (
                 <p className="mt-1 text-[0.9375rem] tabular-nums" style={{ color: MUTED }}>
@@ -409,7 +404,7 @@ export const PitchDeck: React.FC<TemplateProps> = ({ content, profile }) => {
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                    rel={link.isExternal ? LINK_REL : undefined}
                     className="font-medium underline underline-offset-4 hover:decoration-2"
                   >
                     {link.label}

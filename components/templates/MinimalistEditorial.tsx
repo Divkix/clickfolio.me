@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -128,7 +129,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                         <a
                           href={link.href}
                           target={link.isExternal ? "_blank" : undefined}
-                          rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                          rel={link.isExternal ? LINK_REL : undefined}
                           className={LINK}
                         >
                           {link.label}
@@ -178,18 +179,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                   aside={project.year}
                 >
                   <h3 className="text-[1.1875rem] md:text-xl font-semibold leading-snug break-words [text-wrap:unset]">
-                    {project.url ? (
-                      <a
-                        href={project.url}
-                        target="_blank"
-                        rel="ugc nofollow noopener noreferrer"
-                        className={LINK}
-                      >
-                        {project.title}
-                      </a>
-                    ) : (
-                      project.title
-                    )}
+                    <MaybeLink href={project.url} className={LINK}>
+                      {project.title}
+                    </MaybeLink>
                   </h3>
                   {project.description && <p className="mt-2">{project.description}</p>}
                   {project.technologies && project.technologies.length > 0 && (
@@ -243,18 +235,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                   aside={cert.date ? formatShortDate(cert.date) : null}
                 >
                   <h3 className="text-[1.0625rem] md:text-lg font-semibold leading-snug break-words [text-wrap:unset]">
-                    {cert.url ? (
-                      <a
-                        href={cert.url}
-                        target="_blank"
-                        rel="ugc nofollow noopener noreferrer"
-                        className={LINK}
-                      >
-                        {cert.name}
-                      </a>
-                    ) : (
-                      cert.name
-                    )}
+                    <MaybeLink href={cert.url} className={LINK}>
+                      {cert.name}
+                    </MaybeLink>
                   </h3>
                   {cert.issuer && <p className="text-[#6B6B73]">{cert.issuer}</p>}
                 </Entry>

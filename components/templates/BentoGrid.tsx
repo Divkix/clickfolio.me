@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import { MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -255,18 +256,12 @@ function ProjectTiles({ projects }: { projects: NonNullable<Content["projects"]>
             )}
             {project.year && <p className="text-sm text-[#5E6259] tabular-nums">{project.year}</p>}
             <h3 className="font-bento mt-1 text-2xl font-bold leading-tight tracking-[-0.02em] break-words">
-              {project.url ? (
-                <a
-                  href={project.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
-                  className="underline decoration-2 underline-offset-4 decoration-[#1F4E3D]/30 hover:decoration-[#1F4E3D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F4E3D] rounded-sm"
-                >
-                  {project.title}
-                </a>
-              ) : (
-                project.title
-              )}
+              <MaybeLink
+                href={project.url}
+                className="underline decoration-2 underline-offset-4 decoration-[#1F4E3D]/30 hover:decoration-[#1F4E3D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F4E3D] rounded-sm"
+              >
+                {project.title}
+              </MaybeLink>
             </h3>
             {project.description && (
               <p className="mt-2 text-[15px] leading-relaxed">{project.description}</p>
@@ -372,7 +367,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                     <a
                       href={link.href}
                       target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                      rel={link.isExternal ? LINK_REL : undefined}
                       className="inline-flex max-w-full items-center gap-2.5 text-[15px] font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F4E3D] rounded-sm"
                     >
                       <span className="flex shrink-0" style={{ color: PINE }}>
@@ -478,18 +473,12 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 {certifications.map((cert) => (
                   <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className="min-w-0">
                     <h3 className="text-[17px] font-bold leading-snug break-words">
-                      {cert.url ? (
-                        <a
-                          href={cert.url}
-                          target="_blank"
-                          rel="ugc nofollow noopener noreferrer"
-                          className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F5F1] rounded-sm"
-                        >
-                          {cert.name}
-                        </a>
-                      ) : (
-                        cert.name
-                      )}
+                      <MaybeLink
+                        href={cert.url}
+                        className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F5F1] rounded-sm"
+                      >
+                        {cert.name}
+                      </MaybeLink>
                     </h3>
                     {(cert.issuer || cert.date) && (
                       <p className="text-[15px] text-[#F4F5F1]/75 break-words">

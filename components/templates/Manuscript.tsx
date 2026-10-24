@@ -1,3 +1,4 @@
+import { ExternalLink, MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -9,8 +10,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // (kicker, name, headline, summary as an epigraph, colophon at the foot); the right page opens
 // with a Contents list and runs the resume as chapters — roles as titled entries, projects set
 // as a bibliography. The title page sticks while long chapters scroll past.
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 const ROMAN = ["I", "II", "III", "IV", "V"];
 
@@ -95,9 +94,7 @@ export const Manuscript: React.FC<TemplateProps> = ({ content, profile }) => {
             <li key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}>
               {full_name && `${full_name}. `}
               {project.url ? (
-                <a href={project.url} target="_blank" rel={LINK_REL}>
-                  “{project.title}.”
-                </a>
+                <ExternalLink href={project.url}>“{project.title}.”</ExternalLink>
               ) : (
                 <>“{project.title}.”</>
               )}
@@ -146,13 +143,7 @@ export const Manuscript: React.FC<TemplateProps> = ({ content, profile }) => {
                 className="ms-entry"
               >
                 <h5>
-                  {cert.url ? (
-                    <a href={cert.url} target="_blank" rel={LINK_REL}>
-                      {cert.name}
-                    </a>
-                  ) : (
-                    cert.name
-                  )}
+                  <MaybeLink href={cert.url}>{cert.name}</MaybeLink>
                 </h5>
                 {meta && <p className="ms-entry-meta">{meta}</p>}
               </article>

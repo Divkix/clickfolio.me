@@ -1,3 +1,4 @@
+import { ExternalLink, MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -86,7 +87,7 @@ function Hero({ content, profile }: { content: Content; profile: TemplateProps["
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                    rel={link.isExternal ? LINK_REL : undefined}
                     className={`${inkLink} break-all`}
                   >
                     {link.label}
@@ -186,14 +187,12 @@ function Projects({ items }: { items: Content["projects"] }) {
               className={`min-w-0 ${featured ? "md:col-span-2" : ""}`}
             >
               {project.url ? (
-                <a
+                <ExternalLink
                   href={project.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
                   className="group block focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#2D3BFF]"
                 >
                   {body}
-                </a>
+                </ExternalLink>
               ) : (
                 <div className="group">{body}</div>
               )}
@@ -320,18 +319,9 @@ function Credentials({
             {certifications.map((cert) => (
               <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
                 <h3 className="text-lg font-bold break-words">
-                  {cert.url ? (
-                    <a
-                      href={cert.url}
-                      target="_blank"
-                      rel="ugc nofollow noopener noreferrer"
-                      className={inkLink}
-                    >
-                      {cert.name}
-                    </a>
-                  ) : (
-                    cert.name
-                  )}
+                  <MaybeLink href={cert.url} className={inkLink}>
+                    {cert.name}
+                  </MaybeLink>
                 </h3>
                 {cert.issuer && <p className="mt-1">{cert.issuer}</p>}
                 {cert.date && <p className="mt-1 text-[#5B5F68]">{formatShortDate(cert.date)}</p>}
@@ -377,7 +367,7 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                     <a
                       href={link.href}
                       target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                      rel={link.isExternal ? LINK_REL : undefined}
                       className="inline-flex items-center gap-4 text-2xl md:text-5xl font-bold tracking-[-0.02em] break-all hover:underline decoration-[3px] underline-offset-[6px] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-white"
                     >
                       {getContactIcon(link.type, {

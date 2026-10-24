@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -11,8 +12,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 // and degree names, ordered the way nursing writes them: licenses (RN, NP), then degrees (BSN,
 // MSN), then certifications. The prototype's availability pill has no resume field, so it is
 // dropped rather than faked.
-
-const LINK_REL = "ugc nofollow noopener noreferrer";
 
 const LICENSE_ACRONYMS = {
   RN: true,
@@ -217,13 +216,9 @@ export const Rounds: React.FC<TemplateProps> = ({ content, profile }) => {
                       className="rd-lic"
                     >
                       <b>
-                        {cert.url ? (
-                          <a href={cert.url} target="_blank" rel={LINK_REL} className="rd-link">
-                            {cert.name}
-                          </a>
-                        ) : (
-                          cert.name
-                        )}
+                        <MaybeLink href={cert.url} className="rd-link">
+                          {cert.name}
+                        </MaybeLink>
                       </b>
                       {cert.issuer && <span>{cert.issuer}</span>}
                       {cert.date && (
@@ -300,18 +295,9 @@ export const Rounds: React.FC<TemplateProps> = ({ content, profile }) => {
                         className="rd-ed"
                       >
                         <b>
-                          {project.url ? (
-                            <a
-                              href={project.url}
-                              target="_blank"
-                              rel={LINK_REL}
-                              className="rd-link"
-                            >
-                              {project.title}
-                            </a>
-                          ) : (
-                            project.title
-                          )}
+                          <MaybeLink href={project.url} className="rd-link">
+                            {project.title}
+                          </MaybeLink>
                         </b>
                         {project.year && <p className="rd-org">{formatYear(project.year)}</p>}
                         {project.description && <p className="rd-text">{project.description}</p>}

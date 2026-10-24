@@ -1,3 +1,4 @@
+import { MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -47,18 +48,9 @@ function ProjectStories({ projects }: { projects: NonNullable<Content["projects"
           <article key={`${project.title}-${project.year ?? ""}`} className="bs-story">
             <p className="bs-kicker">{project.year ? `Project · ${project.year}` : "Project"}</p>
             <h3>
-              {project.url ? (
-                <a
-                  href={project.url}
-                  target="_blank"
-                  rel="ugc nofollow noopener noreferrer"
-                  className="bs-link"
-                >
-                  {project.title}
-                </a>
-              ) : (
-                project.title
-              )}
+              <MaybeLink href={project.url} className="bs-link">
+                {project.title}
+              </MaybeLink>
             </h3>
             {technologies.length > 0 && <p className="bs-by">{technologies.join(" · ")}</p>}
             {project.description && <p>{project.description}</p>}
@@ -219,17 +211,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
                         {certifications.map((cert) => (
                           <li key={`${cert.name}-${cert.issuer ?? ""}`}>
                             <strong>
-                              {cert.url ? (
-                                <a
-                                  href={cert.url}
-                                  target="_blank"
-                                  rel="ugc nofollow noopener noreferrer"
-                                >
-                                  {cert.name}
-                                </a>
-                              ) : (
-                                cert.name
-                              )}
+                              <MaybeLink href={cert.url}>{cert.name}</MaybeLink>
                             </strong>
                             {(cert.issuer || cert.date) && (
                               <>
@@ -254,7 +236,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
                             <a
                               href={link.href}
                               target={link.isExternal ? "_blank" : undefined}
-                              rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
+                              rel={link.isExternal ? LINK_REL : undefined}
                             >
                               {link.label}
                             </a>
