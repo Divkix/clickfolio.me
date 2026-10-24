@@ -35,6 +35,18 @@ type AiProviderEnv = Pick<
   "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN"
 >;
 
+// Visitors get these fixed strings only: raw messages carry hostnames, bucket names and
+// connection details. The cause goes to the log.
+const UNAVAILABLE = "Service unavailable";
+
+const NOT_CONFIGURED = "Not configured";
+
+function missingR2(): ServiceHealth {
+  log("error", "Health check failed", { service: "r2", reason: "binding missing" });
+
+  return { status: "unhealthy", error: NOT_CONFIGURED };
+}
+
 async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
   const start = Date.now();
 
@@ -44,11 +56,9 @@ async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
 
     return { status: "healthy", latencyMs: Date.now() - start };
   } catch (error) {
-    return {
-      status: "unhealthy",
-      latencyMs: Date.now() - start,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    log("error", "Health check failed", { service: "pg", ...errorFields(error) });
+
+    return { status: "unhealthy", latencyMs: Date.now() - start, error: UNAVAILABLE };
   }
 }
 
@@ -60,26 +70,20 @@ async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
 
     return { status: "healthy", latencyMs: Date.now() - start };
   } catch (error) {
-    return {
-      status: "unhealthy",
-      latencyMs: Date.now() - start,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    log("error", "Health check failed", { service: "r2", ...errorFields(error) });
+
+    return { status: "unhealthy", latencyMs: Date.now() - start, error: UNAVAILABLE };
   }
 }
 
 function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
 
-  if (hasGateway) {
-    return { status: "healthy", error: "Using Cloudflare AI Gateway" };
-  }
+  if (hasGateway) return { status: "healthy" };
 
-  return {
-    status: "unhealthy",
-    error:
-      "Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
-  };
+  log("error", "Health check failed", { service: "aiProvider", reason: "gateway not configured" });
+
+  return { status: "unhealthy", error: NOT_CONFIGURED };
 }
 
 function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
@@ -100,9 +104,7 @@ export async function GET() {
     const r2Binding = getR2Binding(typedEnv);
 
     const [r2Health, pgHealth] = await Promise.all([
-      r2Binding
-        ? checkR2(r2Binding)
-        : Promise.resolve({ status: "unhealthy" as const, error: "R2 binding not available" }),
+      r2Binding ? checkR2(r2Binding) : Promise.resolve(missingR2()),
       checkPg(typedEnv.HYPERDRIVE),
     ]);
 
@@ -126,10 +128,6 @@ export async function GET() {
   } catch (error) {
     log("error", "Health check error:", { ...errorFields(error) });
 
-    return createErrorResponse(
-      error instanceof Error ? error.message : "Unknown error",
-      ERROR_CODES.INTERNAL_ERROR,
-      503,
-    );
+    return createErrorResponse("Health check unavailable", ERROR_CODES.INTERNAL_ERROR, 503);
   }
 }
