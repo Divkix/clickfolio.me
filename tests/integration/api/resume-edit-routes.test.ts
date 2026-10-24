@@ -250,14 +250,17 @@ describe("POST /api/resume/update-theme", () => {
     expect((await POST(post(body))).status).toBe(400);
   });
 
-  it("answers 400 listing the valid themes for an unknown theme_id", async () => {
+  it("answers 400 for an unknown theme_id", async () => {
     await insertUsers();
 
     const { POST } = await import("@/app/api/resume/update-theme/route");
     const response = await POST(post({ theme_id: "nope" }));
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({ details: { valid_themes: expect.any(Array) } });
+    expect(await response.json()).toEqual({
+      error: "Invalid theme_id provided",
+      code: "VALIDATION_ERROR",
+    });
   });
 
   it("answers 404 when the user has no portfolio yet", async () => {

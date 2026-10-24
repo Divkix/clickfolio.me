@@ -148,24 +148,6 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
 }));
 
-vi.mock("@/lib/utils/security-headers", () => ({
-  createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
-    return new Response(JSON.stringify({ error }), { status });
-  }),
-  createSuccessResponse: vi.fn((data: JsonValue) => {
-    return new Response(JSON.stringify(data), { status: 200 });
-  }),
-  ERROR_CODES: {
-    UNAUTHORIZED: "UNAUTHORIZED",
-    BAD_REQUEST: "BAD_REQUEST",
-    NOT_FOUND: "NOT_FOUND",
-    INTERNAL_ERROR: "INTERNAL_ERROR",
-    VALIDATION_ERROR: "VALIDATION_ERROR",
-    EXTERNAL_SERVICE_ERROR: "EXTERNAL_SERVICE_ERROR",
-    RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
-  },
-}));
-
 function makePdfBuffer(content = "fake content"): ArrayBuffer {
   const header = new TextEncoder().encode(`%PDF-1.4 ${content}`);
   const result = new Uint8Array(Math.max(120, header.byteLength));
@@ -259,10 +241,11 @@ describe("POST /api/upload", () => {
     const request = makeUploadRequest(buffer);
 
     const response = await POST(request);
-    const body: { error: string } = await response.json();
+    const body: { error: string; code: string } = await response.json();
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("PDF");
+    expect(body.code).toBe("VALIDATION_ERROR");
   });
 
   it("3. Upload rate limit exceeded → 429 too many requests", async () => {
@@ -333,6 +316,10 @@ describe("POST /api/upload", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Content-Length mismatch",
+      code: "VALIDATION_ERROR",
+    });
   });
 
   it("7. Upload without X-Filename → 400 error", async () => {
@@ -410,6 +397,49 @@ describe("POST /api/upload", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(400);
+  });
+  it("rejects a missing request body through the route failure map", async () => {
+    const { POST } = await import("@/app/api/upload/route");
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Length": "120",
+          "X-Filename": "test.pdf",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Missing request body",
+      code: "VALIDATION_ERROR",
+    });
+  });
+
+  it("rejects a body exceeding the size limit despite an allowed Content-Length", async () => {
+    const { MAX_FILE_SIZE } = await import("@/lib/utils/validation");
+    const { POST } = await import("@/app/api/upload/route");
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Length": "120",
+          "X-Filename": "test.pdf",
+        },
+        body: new Uint8Array(MAX_FILE_SIZE + 1),
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      error: `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`,
+      code: "BAD_REQUEST",
+    });
   });
 });
 

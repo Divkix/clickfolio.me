@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { Effect, Layer } from "effect";
 import { Db } from "@/lib/effect/db";
 import { runRoute } from "@/lib/effect/edges";
-import { InvalidInput } from "@/lib/effect/failures";
+import { InvalidInput, PayloadTooLarge } from "@/lib/effect/failures";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { checkIPRateLimitEffect, getClientIP } from "@/lib/rate-limit/ip";
 import { getOptionalEnvValue } from "@/lib/utils/env";
@@ -90,57 +90,64 @@ function inspectHeaders(request: Request): UploadHeaders | Response {
   return { contentLength, filename };
 }
 
-type UploadBody = { buffer: ArrayBuffer; totalBytes: number } | Response;
+type UploadBody = { buffer: ArrayBuffer; totalBytes: number };
 
 /** Streams the body, stopping as soon as it passes the size limit. */
-async function readUploadBody(request: Request, contentLength: number): Promise<UploadBody> {
-  const reader = request.body?.getReader();
+function readUploadBody(request: Request, contentLength: number) {
+  return Effect.gen(function* () {
+    const reader = request.body?.getReader();
 
-  if (!reader) {
-    return createErrorResponse("Missing request body", ERROR_CODES.BAD_REQUEST, 400);
-  }
-
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
-
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) break;
-
-    if (!value) continue;
-    totalBytes += value.length;
-
-    if (totalBytes > MAX_FILE_SIZE) {
-      await reader.cancel().catch((error) => {
-        log("warn", "upload body cancel failed", { ...errorFields(error) });
-      });
-
-      return createErrorResponse(FILE_TOO_LARGE, ERROR_CODES.BAD_REQUEST, 413);
+    if (!reader) {
+      return yield* Effect.fail(new InvalidInput({ message: "Missing request body" }));
     }
 
-    chunks.push(value);
-  }
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
 
-  const combined = new Uint8Array(totalBytes);
-  let offset = 0;
+    while (true) {
+      const { done, value } = yield* Effect.tryPromise({
+        try: () => reader.read(),
+        catch: (cause) => new InvalidInput({ message: "Could not read the upload", cause }),
+      });
 
-  for (const ch of chunks) {
-    combined.set(ch, offset);
-    offset += ch.length;
-  }
+      if (done) break;
 
-  if (totalBytes !== contentLength) {
-    return createErrorResponse("Content-Length mismatch", ERROR_CODES.BAD_REQUEST, 400);
-  }
+      if (!value) continue;
+      totalBytes += value.length;
 
-  // SAFETY: combined is Uint8Array; slice produces ArrayBuffer for validatePDFBuffer/R2 put.
-  const buffer = combined.buffer.slice(
-    combined.byteOffset,
-    combined.byteOffset + combined.byteLength,
-  ) as ArrayBuffer;
+      if (totalBytes > MAX_FILE_SIZE) {
+        yield* Effect.promise(() =>
+          reader.cancel().catch((error) => {
+            log("warn", "upload body cancel failed", { ...errorFields(error) });
+          }),
+        );
 
-  return { buffer, totalBytes };
+        return yield* Effect.fail(new PayloadTooLarge({ message: FILE_TOO_LARGE }));
+      }
+
+      chunks.push(value);
+    }
+
+    const combined = new Uint8Array(totalBytes);
+    let offset = 0;
+
+    for (const ch of chunks) {
+      combined.set(ch, offset);
+      offset += ch.length;
+    }
+
+    if (totalBytes !== contentLength) {
+      return yield* Effect.fail(new InvalidInput({ message: "Content-Length mismatch" }));
+    }
+
+    // SAFETY: combined is Uint8Array; slice produces ArrayBuffer for validatePDFBuffer/R2 put.
+    const buffer = combined.buffer.slice(
+      combined.byteOffset,
+      combined.byteOffset + combined.byteLength,
+    ) as ArrayBuffer;
+
+    return { buffer, totalBytes } satisfies UploadBody;
+  });
 }
 
 const COOKIE_UNSIGNED_WARNING =
@@ -165,30 +172,17 @@ function pendingUploadCookieHeader(key: string): Effect.Effect<string | null> {
   );
 }
 
-function upload(request: Request) {
+function upload(request: Request, headers: UploadHeaders) {
   return Effect.gen(function* () {
-    const headers = inspectHeaders(request);
-
-    if (headers instanceof Response) return headers;
-
     const rateLimit = yield* checkIPRateLimitEffect(getClientIP(request));
 
-    const body = yield* Effect.tryPromise({
-      try: () => readUploadBody(request, headers.contentLength),
-      // The client went away mid-upload. Keep the cause: it is what `logFailure` logs, and the
-      // visitor only sees the fixed message.
-      catch: (cause) => new InvalidInput({ message: "Could not read the upload", cause }),
-    });
-
-    if (body instanceof Response) return body;
+    const body = yield* readUploadBody(request, headers.contentLength);
 
     const pdfValidation = validatePDFBuffer(body.buffer);
 
     if (!pdfValidation.valid) {
-      return createErrorResponse(
-        pdfValidation.error || "Invalid PDF file",
-        ERROR_CODES.BAD_REQUEST,
-        400,
+      return yield* Effect.fail(
+        new InvalidInput({ message: pdfValidation.error || "Invalid PDF file" }),
       );
     }
 
@@ -250,9 +244,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const headers = inspectHeaders(request);
+
+  if (headers instanceof Response) return headers;
+
   return runRoute(
     request,
-    upload(request),
+    upload(request, headers),
     Layer.mergeAll(Db.layer(env.HYPERDRIVE), R2Store.layer(env)),
   );
 }

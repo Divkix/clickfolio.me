@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, eq, lte } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { Db } from "@/lib/effect/db";
-import { Conflict, NotFound } from "@/lib/effect/failures";
+import { Conflict, InvalidInput, NotFound } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { logEvent } from "@/lib/utils/log";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
@@ -11,12 +11,8 @@ import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import { siteData } from "@/lib/db/schema";
-import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { isValidThemeId } from "@/lib/templates/theme-ids";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 const themeUpdateSchema = z.object({ theme_id: z.string().min(1) });
 
@@ -38,12 +34,7 @@ export async function POST(request: Request) {
         );
 
         if (!isValidThemeId(theme_id)) {
-          return createErrorResponse(
-            "Invalid theme_id provided",
-            ERROR_CODES.VALIDATION_ERROR,
-            400,
-            { valid_themes: [...THEME_IDS] },
-          );
+          return yield* Effect.fail(new InvalidInput({ message: "Invalid theme_id provided" }));
         }
 
         const siteDataRow = yield* Db.use((service) =>

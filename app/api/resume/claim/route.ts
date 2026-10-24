@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { Effect, Layer } from "effect";
 import { z } from "zod";
 import { withUserEffect } from "@/lib/auth/with-auth";
+import { Forbidden } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { R2DeleteScheduler } from "@/lib/effect/services/r2-delete-scheduler";
 import { R2Store } from "@/lib/effect/services/r2-store";
@@ -55,10 +56,10 @@ export async function POST(request: Request) {
           (decodePendingUploadCookie(rawPendingUploadCookie) ?? rawPendingUploadCookie);
 
         if (!pendingUploadCookie) {
-          return createErrorResponse(
-            "Unauthorized upload attempt. Upload verification cookie is missing.",
-            ERROR_CODES.FORBIDDEN,
-            403,
+          return yield* Effect.fail(
+            new Forbidden({
+              message: "Unauthorized upload attempt. Upload verification cookie is missing.",
+            }),
           );
         }
 
@@ -77,20 +78,18 @@ export async function POST(request: Request) {
         );
 
         if (!parsedCookie) {
-          return createErrorResponse(
-            "Unauthorized upload attempt. Invalid or expired upload verification.",
-            ERROR_CODES.FORBIDDEN,
-            403,
+          return yield* Effect.fail(
+            new Forbidden({
+              message: "Unauthorized upload attempt. Invalid or expired upload verification.",
+            }),
           );
         }
 
         if (parsedCookie.tempKey !== key) {
           // Never clear the cookie on mismatch: it may belong to a newer upload than
           // the key in this request, and clearing it would orphan that upload.
-          return createErrorResponse(
-            "Unauthorized upload attempt. Upload key mismatch.",
-            ERROR_CODES.FORBIDDEN,
-            403,
+          return yield* Effect.fail(
+            new Forbidden({ message: "Unauthorized upload attempt. Upload key mismatch." }),
           );
         }
 
