@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
         if (handleTaken) {
           return yield* Effect.fail(
-            new InvalidInput({ message: "This handle is already taken. Please choose another." }),
+            new Conflict({ message: "This handle is already taken. Please choose another." }),
           );
         }
 
