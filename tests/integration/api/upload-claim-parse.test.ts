@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RateLimited } from "@/lib/effect/failures";
 import type { JsonValue } from "@/lib/types/json";
@@ -108,17 +109,6 @@ const mockR2Binding = {
   delete: vi.fn(async (key: string) => {
     mockR2Store.delete(key);
   }),
-  list: vi.fn(),
-};
-
-// Handed to the parse pipeline step, which reaches R2 only through the legacy `mockR2` below.
-const stubR2Binding: R2Bucket = {
-  head: vi.fn(),
-  get: vi.fn(),
-  put: vi.fn(),
-  createMultipartUpload: vi.fn(),
-  resumeMultipartUpload: vi.fn(),
-  delete: vi.fn(),
   list: vi.fn(),
 };
 
