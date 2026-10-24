@@ -1,5 +1,16 @@
 # Effect v4 resume parsing pilot
 
+## Status (2026-10-24): expanded beyond the pilot
+
+The pilot decision below ("stop at this boundary") is superseded. All server code that
+talks to something external now moves to Effect, one area per PR; the rules live in
+AGENTS.md ("Effect (server I/O)"). Differences from the pilot gates:
+
+- Layers are allowed: each external dependency is a `Context.Service` with an owning `Layer`, built per invocation at the edge.
+- Zod stays the only validator; Effect Schema is not introduced.
+- `effect` must never reach the browser bundle. `client-effect-guard` (`vite.config.ts`) fails `pnpm run build` and prints the importer chain.
+- The 25 KiB gzip budget no longer applies per area; re-measure `wrangler deploy --dry-run` in each PR (baseline at `main@3327340b`: 2656.69 KiB gzip).
+
 ## Gates
 
 - Scope: `lib/ai`, parse attempt bodies and their Workflow adapter. No API or Layer migration.

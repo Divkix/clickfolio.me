@@ -1,5 +1,5 @@
 import { mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
 import { visualizer } from "rollup-plugin-visualizer";
@@ -64,6 +64,58 @@ function clientVendorSplit(): Plugin {
 
           return undefined;
         };
+      }
+    },
+  };
+}
+
+// Files inside the effect package or an @effect/* package (flat or pnpm layout).
+const EFFECT_MODULE = /[\\/]node_modules[\\/](?:effect|@effect[\\/][^\\/]+)[\\/]/;
+
+/**
+ * Fails the client build when the browser module graph reaches Effect
+ * (AGENTS.md, "No Effect in client-reachable code"). It reads the graph before
+ * tree-shaking, so a client value import from a module that also imports
+ * effect fails even when the Effect code would be shaken out.
+ */
+function clientEffectGuard(): Plugin {
+  return {
+    name: "client-effect-guard",
+    apply: "build",
+    applyToEnvironment: (environment) => environment.name === "client",
+    buildEnd(error) {
+      if (error) return;
+
+      const root = this.environment.config.root;
+
+      // One importer path from the offending module up to an entry (stops at a cycle).
+      const importerChain = (id: string): string => {
+        const chain: string[] = [];
+
+        for (let current: string | undefined = id; current && !chain.includes(current);) {
+          chain.push(current);
+          const info = this.getModuleInfo(current);
+          current = info?.importers[0] ?? info?.dynamicImporters[0];
+        }
+
+        return chain.map((m) => relative(root, m.replaceAll("\0", ""))).join("\n    imported by ");
+      };
+
+      const offenders: string[] = [];
+
+      for (const id of this.getModuleIds()) {
+        if (EFFECT_MODULE.test(id)) continue;
+
+        const info = this.getModuleInfo(id);
+        const deps = info ? [...info.importedIds, ...info.dynamicallyImportedIds] : [];
+
+        if (deps.some((dep) => EFFECT_MODULE.test(dep))) offenders.push(importerChain(id));
+      }
+
+      if (offenders.length > 0) {
+        this.error(
+          `effect must not reach the client bundle (AGENTS.md, "No Effect in client-reachable code"):\n  ${offenders.join("\n  ")}`,
+        );
       }
     },
   };
@@ -256,6 +308,7 @@ export default defineConfig(() => {
           }),
           clientModuleStubs(),
           clientVendorSplit(),
+          clientEffectGuard(),
         ],
     resolve: isTest
       ? undefined
