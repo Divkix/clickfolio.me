@@ -623,14 +623,20 @@ describe("POST /api/resume/claim - cookie security", () => {
   it("returns 403 when pending_upload cookie key does not match body key", async () => {
     authedAs("user-1");
 
-    const mismatchedCookie = await createSignedCookieValue("temp/uuid-456/other.pdf", TEST_SECRET);
+    const cookieBoundKey = "temp/uuid-456/other.pdf";
+    const mismatchedCookie = await createSignedCookieValue(cookieBoundKey, TEST_SECRET);
 
     const { POST } = await import("@/app/api/resume/claim/route");
     const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, mismatchedCookie));
 
     expect(response.status).toBe(403);
-    const body: { error: string } = await response.json();
+    const text = await response.text();
+    const body: { error: string; code: string } = JSON.parse(text);
     expect(body.error).toContain("Unauthorized upload attempt");
+    expect(body.code).toBe("FORBIDDEN");
+    // Keys carry the uploader's file name and gate claiming (Issue #89): never echo either.
+    expect(text).not.toContain(cookieBoundKey);
+    expect(text).not.toContain(VALID_TEMP_KEY);
   });
 
   it("returns 403 when pending_upload cookie is malformed", async () => {
