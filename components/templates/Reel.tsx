@@ -2,6 +2,7 @@ import { ExternalLink, MaybeLink, LINK_REL } from "./shared/ExternalLink";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import { isOngoing, parseYearMonth, type YearMonth } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -23,26 +24,6 @@ const MAX_ROLE_LANES = 3;
 const MAX_PROJECT_LANES = 2;
 const MARKER_WIDTH = 17;
 
-const MONTH_PREFIXES = [
-  "jan",
-  "feb",
-  "mar",
-  "apr",
-  "may",
-  "jun",
-  "jul",
-  "aug",
-  "sep",
-  "oct",
-  "nov",
-  "dec",
-];
-
-interface YearMonth {
-  year: number;
-  month: number | null;
-}
-
 interface TimelineClip {
   key: string;
   start: number;
@@ -56,45 +37,6 @@ interface TimelineMarker {
   key: string;
   at: number;
   label: string;
-}
-
-// Free-text resume dates: ISO ("2021-05"), "05/2021", "May 2021", "2019", "Summer 2020".
-// Anything without a four-digit year can't be placed and is shown as written.
-function parseYearMonth(raw?: string | null): YearMonth | null {
-  const value = raw?.trim();
-
-  if (!value) return null;
-
-  const iso = /^(\d{4})-(\d{1,2})/.exec(value);
-
-  if (iso) {
-    const month = Number(iso[2]);
-
-    return { year: Number(iso[1]), month: month >= 1 && month <= 12 ? month : null };
-  }
-
-  const slash = /^(\d{1,2})\/(\d{4})$/.exec(value);
-
-  if (slash) {
-    const month = Number(slash[1]);
-
-    return { year: Number(slash[2]), month: month >= 1 && month <= 12 ? month : null };
-  }
-
-  const year = /\b(19|20)\d{2}\b/.exec(value);
-
-  if (!year) return null;
-
-  const lower = value.toLowerCase();
-  const monthIndex = MONTH_PREFIXES.findIndex((prefix) => new RegExp(`\\b${prefix}`).test(lower));
-
-  return { year: Number(year[0]), month: monthIndex >= 0 ? monthIndex + 1 : null };
-}
-
-function isOngoing(end?: string | null): boolean {
-  const value = end?.trim();
-
-  return !value || /present|current|now|today|ongoing/i.test(value);
 }
 
 function startValue(date: YearMonth): number {

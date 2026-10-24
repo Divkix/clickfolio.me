@@ -7,6 +7,50 @@ export function getInitials(name: string): string {
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_PATTERNS = MONTHS.map((month) => new RegExp(`\\b${month}`, "i"));
+
+export interface YearMonth {
+  year: number;
+  month: number | null;
+}
+
+// Timeline placement accepts free-text dates even when only the year can be determined.
+export function parseYearMonth(raw?: string | null): YearMonth | null {
+  const value = raw?.trim();
+
+  if (!value) return null;
+
+  const iso = /^(\d{4})-(\d{1,2})/.exec(value);
+
+  if (iso) {
+    const month = Number(iso[2]);
+
+    return { year: Number(iso[1]), month: month >= 1 && month <= 12 ? month : null };
+  }
+
+  const slash = /^(\d{1,2})\/(\d{4})$/.exec(value);
+
+  if (slash) {
+    const month = Number(slash[1]);
+
+    return { year: Number(slash[2]), month: month >= 1 && month <= 12 ? month : null };
+  }
+
+  const year = /\b(19|20)\d{2}\b/.exec(value);
+
+  if (!year) return null;
+
+  const monthIndex = MONTH_PATTERNS.findIndex((pattern) => pattern.test(value));
+
+  return { year: Number(year[0]), month: monthIndex >= 0 ? monthIndex + 1 : null };
+}
+
+/** A blank end date or a current marker, alone or at the end of a date range. */
+export function isOngoing(end?: string | null): boolean {
+  const value = end?.trim();
+
+  return !value || /(?:^|[-–—]\s*)(?:present|current|now|today|ongoing)$/i.test(value);
+}
 
 // Resume dates are free text ("2021-03", "Mar 2021", "2019", "Summer 2020"). Only reformat the
 // unambiguous shapes; `new Date()` is too lenient (it reads "Summer 2020" as Jan 2020), so

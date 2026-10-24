@@ -3,7 +3,7 @@ import { MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
+import { formatDateRange, formatShortDate, formatYear, isOngoing } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -93,16 +93,10 @@ function buildAreas(has: Record<Area, boolean>) {
   return { mobile, desktop: rows.join(" ") };
 }
 
-function isOngoing(job: Job): boolean {
-  const end = job.end_date?.trim();
-
-  return !end || /^(present|current|now|ongoing)$/i.test(end);
-}
-
 /** The role the "now" tile describes: the ongoing one, or else the latest entry. */
 function pickCurrentRole(experience: Job[]): { job: Job; ongoing: boolean } | null {
   const usable = experience.filter((job) => job.title?.trim());
-  const ongoing = usable.find(isOngoing);
+  const ongoing = usable.find((job) => isOngoing(job.end_date));
 
   if (ongoing) return { job: ongoing, ongoing: true };
 
