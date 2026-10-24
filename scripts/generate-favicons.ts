@@ -1,7 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import pngToIco from "png-to-ico";
-import sharp from "sharp";
+import untypedSharp from "sharp";
+// Type-only, by directory path: vinext/types declares an ambient `sharp` module typed `unknown`
+// (for Next's image types), and an ambient declaration shadows the package's own types.
+import type typedSharp from "../node_modules/sharp";
+
+// SAFETY: the same module; only its ambient type is wrong.
+const sharp = untypedSharp as typeof typedSharp;
 
 const ROOT = join(import.meta.dirname, "..");
 

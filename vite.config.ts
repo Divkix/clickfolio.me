@@ -184,13 +184,17 @@ export default defineConfig(() => {
     test: {
       environment: "node",
       globals: true,
-      alias: {
-        "@": resolve(import.meta.dirname, "./"),
-        "cloudflare:workers": resolve(
-          import.meta.dirname,
-          "lib/stubs/cloudflare-workers-client-stub.mjs",
-        ),
-      },
+      alias: [
+        { find: "@", replacement: resolve(import.meta.dirname, "./") },
+        {
+          find: "cloudflare:workers",
+          replacement: resolve(import.meta.dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+        },
+        // Tests run without the vinext plugin, so point `next/*` at the SSR/client shims it serves
+        // (its RSC build swaps in navigation.react-server). One to one for the modules imported
+        // here; a few differ (next/font/google → font-google).
+        { find: /^next\/(.+)$/, replacement: "vinext/shims/$1" },
+      ],
       exclude: ["node_modules", ".next", "dist", ".worktrees/**"],
       pool: "threads",
       projects: [
