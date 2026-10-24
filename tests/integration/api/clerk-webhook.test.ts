@@ -272,6 +272,150 @@ describe("POST /api/webhooks/clerk", () => {
     });
   });
 
+  it("moves to a verified new primary email and marks it verified", async () => {
+    await seedUser(db, "existing", {
+      clerkId: "user_clerk_1",
+      email: "old@example.com",
+      emailVerified: false,
+    });
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery(
+        "user.updated",
+        clerkUser({
+          primary_email_address_id: "idn_2",
+          email_addresses: [
+            {
+              id: "idn_2",
+              email_address: "new@example.com",
+              verification: { status: "verified" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+
+    const [row] = await usersWhere("user_clerk_1");
+
+    expect(row.email).toBe("new@example.com");
+    expect(row.emailVerified).toBe(true);
+  });
+
+  it("does not adopt an unverified new primary email", async () => {
+    await seedUser(db, "existing", {
+      clerkId: "user_clerk_1",
+      email: "old@example.com",
+      emailVerified: false,
+    });
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery(
+        "user.updated",
+        clerkUser({
+          primary_email_address_id: "idn_2",
+          email_addresses: [
+            {
+              id: "idn_2",
+              email_address: "new@example.com",
+              verification: { status: "unverified" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+
+    const [row] = await usersWhere("user_clerk_1");
+
+    expect(row.email).toBe("old@example.com");
+    expect(row.emailVerified).toBe(false);
+  });
+
+  it("keeps the old email, clears emailVerified, and acks when the address belongs to another account", async () => {
+    await seedUser(db, "existing", {
+      clerkId: "user_clerk_1",
+      email: "old@example.com",
+      emailVerified: true,
+    });
+    await seedUser(db, "other", { email: "taken@example.com" });
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery(
+        "user.updated",
+        clerkUser({
+          first_name: "Grace",
+          primary_email_address_id: "idn_2",
+          email_addresses: [
+            {
+              id: "idn_2",
+              email_address: "taken@example.com",
+              verification: { status: "verified" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    // Acked so Svix does not retry a delivery that can never succeed.
+    expect(response.status).toBe(200);
+
+    const [row] = await usersWhere("user_clerk_1");
+
+    expect(row.email).toBe("old@example.com");
+    expect(row.emailVerified).toBe(false);
+    // Unrelated profile fields still sync.
+    expect(row.name).toBe("Grace Lovelace");
+
+    const [other] = await usersWhere("clerk-other");
+
+    expect(other.email).toBe("taken@example.com");
+
+    const warns = vi
+      .mocked(console.warn)
+      .mock.calls.map((call) => call.join(" "))
+      .join("\n");
+
+    expect(warns).toContain("primary email already belongs to another account");
+    expect(warns).not.toContain("taken@example.com");
+  });
+
+  it("answers 5xx when the user.updated write fails for another reason, so Svix retries", async () => {
+    await seedUser(db, "existing", { clerkId: "user_clerk_1", email: "old@example.com" });
+
+    vi.spyOn(db, "update").mockImplementation(() => {
+      throw new Error("connection refused");
+    });
+
+    const { POST } = await import("@/app/api/webhooks/clerk/route");
+
+    const response = await POST(
+      delivery(
+        "user.updated",
+        clerkUser({
+          primary_email_address_id: "idn_2",
+          email_addresses: [
+            {
+              id: "idn_2",
+              email_address: "new@example.com",
+              verification: { status: "verified" },
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(response.status).toBeGreaterThanOrEqual(500);
+  });
+
   it("treats Clerk's email verification status `verified` as verified", async () => {
     const { POST } = await import("@/app/api/webhooks/clerk/route");
 
