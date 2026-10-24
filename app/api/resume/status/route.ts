@@ -3,14 +3,10 @@ import { eq } from "drizzle-orm";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { Forbidden, NotFound } from "@/lib/effect/failures";
+import { Forbidden, InvalidInput, NotFound } from "@/lib/effect/failures";
 import type { UnknownRecord } from "@/lib/types/json";
 import { getStatusView, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export async function GET(request: Request) {
   return withUserEffect(
@@ -23,10 +19,8 @@ export async function GET(request: Request) {
         const resumeId = searchParams.get("resume_id");
 
         if (!resumeId) {
-          return createErrorResponse(
-            "resume_id parameter is required",
-            ERROR_CODES.BAD_REQUEST,
-            400,
+          return yield* Effect.fail(
+            new InvalidInput({ message: "resume_id parameter is required" }),
           );
         }
 

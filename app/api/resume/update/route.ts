@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { z } from "zod";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { Db } from "@/lib/effect/db";
-import { Conflict, NotFound } from "@/lib/effect/failures";
+import { Conflict, InvalidInput, NotFound } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
@@ -17,11 +17,7 @@ import { extractPreviewFields } from "@/lib/utils/preview-fields";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 const updateRequestSchema = z.object({ content: z.json().optional() });
 
@@ -41,11 +37,8 @@ export async function PUT(request: Request) {
         const validation = resumeContentSchemaStrict.safeParse(body.content);
 
         if (!validation.success) {
-          return createErrorResponse(
-            "Validation failed. Please check your input.",
-            ERROR_CODES.VALIDATION_ERROR,
-            400,
-            validation.error.issues,
+          return yield* Effect.fail(
+            new InvalidInput({ message: "Validation failed. Please check your input." }),
           );
         }
 

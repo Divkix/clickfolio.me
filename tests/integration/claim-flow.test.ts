@@ -296,7 +296,10 @@ describe("POST /api/resume/claim", () => {
     const response = await claim();
 
     expect(response.status).toBe(404);
-    expect(await response.json()).toMatchObject({ error: expect.stringContaining("not found") });
+    expect(await response.json()).toEqual({
+      error: "File not found. The upload may have expired.",
+      code: "NOT_FOUND",
+    });
   });
 
   it("answers already_claimed when the file is gone but a claim of it exists", async () => {
@@ -328,7 +331,10 @@ describe("POST /api/resume/claim", () => {
     const response = await claim();
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({ error: "Invalid PDF format" });
+    expect(await response.json()).toEqual({
+      error: "Invalid PDF format",
+      code: "VALIDATION_ERROR",
+    });
     expect(await readClaimed()).toHaveLength(0);
   });
 

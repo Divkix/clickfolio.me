@@ -5,7 +5,7 @@ import { z } from "zod";
 import { withUserEffect } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { Forbidden, NotFound, R2Failed } from "@/lib/effect/failures";
+import { Conflict, Forbidden, InvalidInput, NotFound, R2Failed } from "@/lib/effect/failures";
 import { oversizedBodyResponse, readJsonBody } from "@/lib/effect/json-body";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
@@ -128,6 +128,11 @@ export async function POST(request: Request) {
         const isVirtualTimeout = getStatusView(statusRow).isTimedOut;
 
         if (!eligibility.eligible) {
+          if (eligibility.httpStatus === 400) {
+            return yield* Effect.fail(new InvalidInput({ message: eligibility.reason }));
+          }
+
+          // These caps never expire: RateLimited would invent a misleading Retry-After.
           return createErrorResponse(
             eligibility.reason,
             ERROR_CODES[eligibility.errorCode],
@@ -172,10 +177,10 @@ export async function POST(request: Request) {
         );
 
         if (updateResult.length === 0) {
-          return createErrorResponse(
-            "Resume was already retried or is no longer in a retryable state",
-            ERROR_CODES.CONFLICT,
-            409,
+          return yield* Effect.fail(
+            new Conflict({
+              message: "Resume was already retried or is no longer in a retryable state",
+            }),
           );
         }
 

@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
+import { InvalidInput, NotFound } from "@/lib/effect/failures";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { WorkflowStarter } from "@/lib/effect/services/workflow-starter";
 import { readQuotaIn, requireQuota } from "@/lib/rate-limit/user";
@@ -10,7 +11,6 @@ import { shouldSyncDisplayName } from "@/lib/resume/completion";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import type { ResumeContent } from "@/lib/types/database";
 import { sha256Hex } from "@/lib/utils/hash";
-import { ERROR_CODES } from "@/lib/utils/security-headers";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { normalizePrivacySettings } from "@/lib/utils/privacy";
@@ -36,24 +36,25 @@ export type ClaimIntakeOutcome =
   | {
       kind: "error";
       message: string;
-      code: keyof typeof ERROR_CODES;
-      httpStatus: number;
+      code: "DATABASE_ERROR";
+      httpStatus: 500;
     };
 
 type ClaimError = Extract<ClaimIntakeOutcome, { kind: "error" }>;
 
 type CachedOutcome = Extract<ClaimIntakeOutcome, { kind: "cached" }>;
 
-function claimError(message: string, code: ClaimError["code"], httpStatus: number): ClaimError {
-  return { kind: "error", message, code, httpStatus };
+// Specific 500 messages cannot pass through failure-map's deliberately generic upstream errors.
+function claimError(message: string): ClaimError {
+  return { kind: "error", message, code: "DATABASE_ERROR", httpStatus: 500 };
 }
 
 function alreadyClaimed(existing: { id: string; status: string }): ClaimIntakeOutcome {
   return { kind: "already_claimed", resumeId: existing.id, status: existing.status };
 }
 
-const rowRemoved = (): ClaimError =>
-  claimError("Resume was removed while claiming it", "NOT_FOUND", 404);
+const rowRemoved = () =>
+  Effect.fail(new NotFound({ message: "Resume was removed while claiming it" }));
 
 /** What every step after the arbitration row needs to know about this claim. */
 type Claim = {
@@ -147,8 +148,8 @@ function markFailed(resumeId: string, errorMessage: string) {
 }
 
 // Fails the claim with the message the caller receives as an outcome.
-function failClaim(claim: Claim, message: string, code: ClaimError["code"]) {
-  return markFailed(claim.resumeId, message).pipe(Effect.as(claimError(message, code, 500)));
+function failClaim(claim: Claim, message: string) {
+  return markFailed(claim.resumeId, message).pipe(Effect.as(claimError(message)));
 }
 
 // An identical earlier file this user already parsed, if any.
@@ -291,19 +292,21 @@ function loadTempFile(userId: string, tempKey: string) {
 
       if (existing) return alreadyClaimed(existing);
 
-      return claimError("File not found. The upload may have expired.", "VALIDATION_ERROR", 404);
+      return yield* Effect.fail(
+        new NotFound({ message: "File not found. The upload may have expired." }),
+      );
     }
 
     if (bytes.byteLength > MAX_FILE_SIZE) {
-      return claimError(
-        `File size exceeds ${MAX_FILE_SIZE_LABEL} limit (${Math.round(bytes.byteLength / 1024 / 1024)}MB)`,
-        "VALIDATION_ERROR",
-        400,
+      return yield* Effect.fail(
+        new InvalidInput({
+          message: `File size exceeds ${MAX_FILE_SIZE_LABEL} limit (${Math.round(bytes.byteLength / 1024 / 1024)}MB)`,
+        }),
       );
     }
 
     if (!String.fromCharCode(...bytes.slice(0, 5)).startsWith("%PDF-")) {
-      return claimError("Invalid PDF format", "VALIDATION_ERROR", 400);
+      return yield* Effect.fail(new InvalidInput({ message: "Invalid PDF format" }));
     }
 
     const fileHash = yield* Effect.promise(() => sha256Hex(bytes));
@@ -444,7 +447,7 @@ function waitForCache(claim: Claim) {
     if (waiting.length === 0) {
       yield* discardObjectsIfRowGone(claim);
 
-      return rowRemoved();
+      return yield* rowRemoved();
     }
 
     yield* deleteTempObject(tempKey);
@@ -461,7 +464,7 @@ function waitForCache(claim: Claim) {
 
     // The row itself may have been deleted mid-move (account deletion cascade):
     // the sweep may already have run, so drop the copy instead of orphaning it.
-    if (yield* discardObjectsIfRowGone(claim)) return rowRemoved();
+    if (yield* discardObjectsIfRowGone(claim)) return yield* rowRemoved();
 
     // Durable timer: fails the row if no identical parse completes it in time.
     // Best-effort — the status view already presents the timeout virtually.
@@ -512,7 +515,7 @@ function queueParse(claim: Claim) {
       // the account sweep may already have missed the object, so remove it.
       yield* discardObjectsIfRowGone(claim);
 
-      return yield* failClaim(claim, "Failed to update resume status", "DATABASE_ERROR");
+      return yield* failClaim(claim, "Failed to update resume status");
     }
 
     // The row now names newKey, so the temp copy is no longer needed.
