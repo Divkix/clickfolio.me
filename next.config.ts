@@ -14,11 +14,13 @@ const nextConfig: NextConfig = {
   // Keeps trailing-slash API paths (e.g. `/base/`) distinct from their bare form.
   skipTrailingSlashRedirect: true,
 
-  // Render metadata in <head> for every request. ISR caches one HTML for all user agents, so a
-  // streamed render (title/OG tags in <body>) would otherwise be served to crawlers too.
+  // Render metadata in <head> for every user agent. vinext already does this for renders it may
+  // store (ISR); this also covers dynamic pages such as /explore, whose metadata depends on
+  // searchParams and would otherwise stream into <body> for crawlers missing from Next's bot list.
   htmlLimitedBots: /.*/,
 
-  // Rewrites for sitemap index (vinext generateSitemaps doesn't create sitemap index)
+  // Sitemap index and its pages are route handlers: generateSitemaps() (Next.js and vinext) emits
+  // the per-id sitemaps but no index at /sitemap.xml.
   async rewrites() {
     return [
       {

@@ -1,4 +1,3 @@
-import { mkdirSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
@@ -9,14 +8,12 @@ import { defineConfig, type Plugin } from "vite-plus";
 /**
  * Vite plugin that stubs server-only modules for client environments.
  * - `cloudflare:workers` — Workers-only module imported by server code, absent in the browser
- * - `node:async_hooks` — vinext's headers.js shim imports AsyncLocalStorage,
- *   which Vite externalizes to a browser stub that lacks the named export
+ *
+ * `node:async_hooks` needs no entry: vinext's own `vinext:async-hooks-stub` serves the client one.
  */
 function clientModuleStubs(): Plugin {
   const stubs = {
     "cloudflare:workers": resolve("lib/stubs/cloudflare-workers-client-stub.mjs"),
-    "node:async_hooks": resolve("lib/stubs/async-hooks-client-stub.mjs"),
-    async_hooks: resolve("lib/stubs/async-hooks-client-stub.mjs"),
   } satisfies Record<string, string>;
 
   return {
@@ -29,42 +26,6 @@ function clientModuleStubs(): Plugin {
       }
 
       return null;
-    },
-  };
-}
-
-/**
- * Vite plugin that extends vinext's client manualChunks to split heavy vendor
- * deps into their own chunks — keeps the main client bundle under 500 KB.
- *
- * vinext intentionally only splits React/scheduler into "framework" and its own
- * shims into "vinext", leaving all other vendor code to Rollup's default splitting.
- * This works well for most apps, but ours pulls radix-ui and react-hook-form
- * into a single mega-chunk. We wrap vinext's function to split those specific
- * packages out while preserving all other vinext chunking decisions.
- */
-function clientVendorSplit(): Plugin {
-  return {
-    name: "client-vendor-split",
-    configResolved(config) {
-      const clientEnv = config.environments?.client;
-      const output = clientEnv?.build?.rollupOptions?.output;
-
-      if (output && output instanceof Object && !Array.isArray(output)) {
-        const original = output.manualChunks;
-        output.manualChunks = (id: string, cause: unknown) => {
-          if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
-
-          if (id.includes("node_modules/react-hook-form")) return "vendor-forms";
-
-          if (original instanceof Function) {
-            // SAFETY: original is Rollup manualChunks from vinext; signature (id: string, cause: unknown) => string | undefined matches our wrapper — cast bridges untyped config.
-            return (original as (id: string, cause: unknown) => string | undefined)(id, cause);
-          }
-
-          return undefined;
-        };
-      }
     },
   };
 }
@@ -117,27 +78,6 @@ function clientEffectGuard(): Plugin {
           `effect must not reach the client bundle (AGENTS.md, "No Effect in client-reachable code"):\n  ${offenders.join("\n  ")}`,
         );
       }
-    },
-  };
-}
-
-/**
- * Workaround for vinext cloudflare-build bug: the plugin writes
- * dist/client/_headers via writeFileSync without creating the directory first.
- * This plugin ensures the output directory exists before writeBundle hooks fire.
- * Remove once vinext fixes this upstream.
- */
-function ensureClientDir(): Plugin {
-  return {
-    name: "ensure-client-dir",
-    enforce: "pre",
-    writeBundle: {
-      order: "pre",
-      handler() {
-        if (this.environment?.name === "client") {
-          mkdirSync("dist/client", { recursive: true });
-        }
-      },
     },
   };
 }
@@ -293,7 +233,6 @@ export default defineConfig(() => {
     plugins: isTest
       ? []
       : [
-          ensureClientDir(),
           vinext({
             // Edge-cached ISR on Workers Cache; purges go through a queue
             // (lib/cache/queued-cdn-adapter.ts, worker/index.ts `queue`).
@@ -308,7 +247,6 @@ export default defineConfig(() => {
             viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
           }),
           clientModuleStubs(),
-          clientVendorSplit(),
           clientEffectGuard(),
         ],
     optimizeDeps: {
@@ -317,23 +255,12 @@ export default defineConfig(() => {
     build: isTest
       ? undefined
       : {
-          rollupOptions: {
+          rolldownOptions: {
             plugins: [
               ...(process.env.ANALYZE === "true"
                 ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
                 : []),
             ],
-            onwarn(warning, warn) {
-              if (
-                warning.code === "MISSING_EXPORT" &&
-                warning.message?.includes('"middleware"') &&
-                warning.message?.includes("proxy.ts")
-              ) {
-                return;
-              }
-
-              warn(warning);
-            },
           },
         },
   };
