@@ -278,6 +278,39 @@ describe("parseResumePdf", () => {
     expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
   });
 
+  it("does not parse a row that a sweep and a retry handed to a newer run", async () => {
+    // Run 0 claimed the row and kept retrying its parse step past the 90-minute sweep. The
+    // user's retry (retryCount 1) was claimed by run 1, so the row is `processing` again.
+    await seed(JOB.resumeId, { status: "processing", retryCount: 1, totalAttempts: 1 });
+    objects.set(JOB.r2Key, pdfBuffer());
+
+    await expect(run(parseResumePdf({ ...JOB, retryCount: 0 }, ENV))).resolves.toBeNull();
+
+    expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
+    expect((await row(JOB.resumeId)).totalAttempts).toBe(1);
+
+    await expect(run(parseResumePdf({ ...JOB, retryCount: 1 }, ENV))).resolves.not.toBeNull();
+    expect((await row(JOB.resumeId)).totalAttempts).toBe(2);
+  });
+
+  it("does not record a failure on a row that was retried while the AI call ran", async () => {
+    await seed(JOB.resumeId, { status: "processing" });
+    objects.set(JOB.r2Key, pdfBuffer());
+    mocks.parseResumeWithAi.mockReturnValue(
+      Effect.promise(() =>
+        db.update(resumes).set({ retryCount: 1 }).where(eq(resumes.id, JOB.resumeId)),
+      ).pipe(
+        Effect.andThen(
+          Effect.fail(new PdfInvalid({ message: "PDF is encrypted", reason: "encrypted" })),
+        ),
+      ),
+    );
+
+    await expect(run(parseResumePdf({ ...JOB, retryCount: 0 }, ENV))).rejects.toThrow();
+
+    expect(await row(JOB.resumeId)).toMatchObject({ errorMessage: null, lastAttemptError: null });
+  });
+
   it("fails permanently and records it when the PDF is missing", async () => {
     await seed(JOB.resumeId);
 
@@ -451,6 +484,16 @@ describe("markResumeParseFailed", () => {
     expect(webhookBodies).toEqual([
       expect.objectContaining({ resumeId: JOB.resumeId, totalAttempts: 4 }),
     ]);
+  });
+
+  it("leaves a row alone when a sweep and a retry handed it to a newer run", async () => {
+    await seed(JOB.resumeId, { status: "processing", retryCount: 1 });
+
+    await run(markResumeParseFailed({ ...JOB, retryCount: 0 }, stored, "webhook"));
+
+    expect((await row(JOB.resumeId)).status).toBe("processing");
+    expect(pushes).toEqual([]);
+    expect(webhookBodies).toEqual([]);
   });
 
   it("keeps a friendlier message written by the parse step", async () => {

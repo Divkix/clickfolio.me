@@ -5,7 +5,8 @@ import { resumes, user } from "@/lib/db/schema";
 import { runStrandedSweep } from "@/lib/cron/stranded-resumes";
 import { Db } from "@/lib/effect/db";
 import { StatusChannel } from "@/lib/effect/services/status-channel";
-import { claimResumeForParse } from "@/lib/parse/pipeline";
+import { R2Store } from "@/lib/effect/services/r2-store";
+import { claimResumeForParse, parseResumePdf } from "@/lib/parse/pipeline";
 import {
   checkRetryEligibility,
   STRANDED_PROCESSING_MESSAGE,
@@ -43,6 +44,21 @@ const statusNamespace = {
     },
   }),
 };
+
+function unused(): never {
+  throw new Error("not used by the sweep");
+}
+
+const emptyBucket = {
+  get: async () => null,
+  put: async () => unused(),
+  delete: async () => unused(),
+  head: async () => unused(),
+  list: async () => unused(),
+};
+
+// SAFETY: parseResumePdf reads the env only after the attempt guard; these tests stop before it.
+const ENV = {} as CloudflareEnv;
 
 const layer = () => Layer.mergeAll(Db.layerFrom(db), StatusChannel.layerFrom(statusNamespace));
 
@@ -193,6 +209,73 @@ describe("runStrandedSweep: rows that started and never finished", () => {
     });
     expect(STRANDED_PROCESSING_MESSAGE).toBe("Processing took too long. Please try again.");
     expect(checkRetryEligibility(swept).eligible).toBe(true);
+  });
+
+  it("keeps the attempts and the last error a stuck run left behind", async () => {
+    // One run's worth of parse attempts (the step retries 3 times) that ended in a transient error.
+    const transient = JSON.stringify({
+      type: "ai_provider_error",
+      message: "AI provider returned an error",
+      isRetryable: true,
+    });
+
+    await seed("slow", {
+      status: "processing",
+      queuedAt: minutesAgo(91),
+      totalAttempts: 4,
+      lastAttemptError: transient,
+    });
+
+    await sweep();
+
+    const swept = await row("slow");
+
+    expect(swept).toMatchObject({ lastAttemptError: transient, totalAttempts: 4 });
+    expect(checkRetryEligibility(swept)).toEqual({ eligible: true, nextAttempt: 1 });
+  });
+
+  it("leaves the existing retry limits in force", async () => {
+    await seed("spent", {
+      status: "processing",
+      queuedAt: minutesAgo(91),
+      retryCount: 2,
+      totalAttempts: 6,
+    });
+    await seed("permanent", {
+      status: "processing",
+      queuedAt: minutesAgo(91),
+      lastAttemptError: JSON.stringify({ type: "invalid_pdf", message: "Not a PDF" }),
+    });
+
+    await sweep();
+
+    expect(checkRetryEligibility(await row("spent")).eligible).toBe(false);
+    expect(checkRetryEligibility(await row("permanent")).eligible).toBe(false);
+  });
+
+  it("hands a swept, retried row to the new run only", async () => {
+    // Run 0 claimed the row and is still retrying its parse step when the sweep fails the row.
+    // The user retries; run 1 claims it. Run 0's next attempt must find the row is not its own.
+    await seed("slow", { status: "processing", queuedAt: minutesAgo(91) });
+
+    await sweep();
+
+    await db
+      .update(resumes)
+      .set({ status: "queued", retryCount: 1, errorMessage: null, queuedAt: minutesAgo(0) })
+      .where(eq(resumes.id, "slow"));
+
+    const job = { resumeId: "slow", userId: USER_ID, r2Key: "k", fileHash: "a".repeat(64) };
+
+    const run = <A, E>(program: Effect.Effect<A, E, Db | StatusChannel | R2Store>) =>
+      Effect.runPromise(
+        Effect.provide(program, Layer.mergeAll(layer(), R2Store.layerFrom(emptyBucket))),
+      );
+
+    await expect(run(claimResumeForParse({ ...job, retryCount: 1 }))).resolves.toBe("parse");
+    await expect(run(parseResumePdf({ ...job, retryCount: 0 }, ENV))).resolves.toBeNull();
+
+    expect(await row("slow")).toMatchObject({ status: "processing", totalAttempts: 0 });
   });
 
   it("leaves a processing row at 30 minutes alone", async () => {
