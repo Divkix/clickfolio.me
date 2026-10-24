@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  // scripts/ is the entry point because app/ is imported by vinext at build time.
+  // scripts/ are tsx CLIs, which no plugin knows about; app/ route files come from the Next.js plugin.
   // lib/cache/queued-cdn-adapter.ts is loaded by path from vite.config.ts (vinext cache.cdn.adapter).
   "entry": ["scripts/**/*.ts", "lib/cache/queued-cdn-adapter.ts"],
   "project": [
@@ -13,7 +13,11 @@
   ],
   "ignore": [],
   "ignoreBinaries": [],
-  // `cloudflare:workers` imports read as a package named "cloudflare" (a runtime builtin, not installed).
-  "ignoreDependencies": ["cloudflare", "postcss"],
+  // Imported but not installed:
+  // - `cloudflare:workers` reads as a package named "cloudflare" (a runtime builtin).
+  // - `next` and `next/*` are served by vinext (its shims at runtime, `vinext/types` for types).
+  "ignoreDependencies": ["cloudflare", "next", "postcss"],
+  // The Next.js plugin (app/ route files as entries) only turns itself on when package.json lists `next`.
+  "next": true,
   "ignoreExportsUsedInFile": true,
 }
