@@ -13,14 +13,21 @@ import { resumes, user } from "@/lib/db/schema";
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import type { JsonValue } from "@/lib/types/json";
 import { sha256Hex } from "@/lib/utils/hash";
+import type { ResumeParseParams } from "@/lib/workflows/resume-parse-params";
+import type { ParseWorkflow } from "../../helpers/parse-workflow";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
 const mocks = vi.hoisted(() => ({
   db: vi.fn(),
   log: vi.fn(),
-  startResumeParse: vi.fn(),
+  startResumeParse:
+    vi.fn<(workflow: ParseWorkflow, id: string, params: ResumeParseParams) => Promise<void>>(),
   bucketGet: vi.fn(),
   bound: { workflow: true },
+  /** Instance ids the fake Workflow already holds; Workflows rejects a create that repeats one. */
+  instances: new Set<string>(),
+  /** The instance lookup failing is what makes a persisted-then-failed create ambiguous. */
+  lookupFails: false,
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -30,14 +37,21 @@ vi.mock("cloudflare:workers", () => ({
       if (!mocks.bound.workflow) return undefined;
 
       // The real WorkflowStarter calls this binding; `mocks.startResumeParse` records the start.
-      const workflow = {
-        create: async ({ id, params }: { id: string; params: unknown }) => {
+      const workflow: ParseWorkflow = {
+        create: async ({ id, params }) => {
+          if (mocks.instances.has(id)) throw new Error("instance.already_exists");
+
           await mocks.startResumeParse(workflow, id, params);
+          mocks.instances.add(id);
 
           return { id };
         },
-        get: async () => {
-          throw new Error("instance.not_found");
+        get: async (id: string) => {
+          if (mocks.lookupFails) throw new Error("instance lookup unavailable");
+
+          if (!mocks.instances.has(id)) throw new Error("instance.not_found");
+
+          return { id };
         },
       };
 
@@ -144,6 +158,8 @@ beforeEach(async () => {
   mocks.db.mockReset().mockImplementation(() => db);
   mocks.log.mockReset();
   mocks.bound.workflow = true;
+  mocks.instances.clear();
+  mocks.lookupFails = false;
   mocks.startResumeParse.mockReset().mockResolvedValue(undefined);
   mocks.bucketGet.mockReset();
 
@@ -301,6 +317,32 @@ describe("POST /api/resume/retry when the workflow cannot start", () => {
     expect(response.status).toBe(504);
     expect(mocks.startResumeParse).toHaveBeenCalledTimes(1);
     expect(await readRow()).toMatchObject({ status: "failed", retryCount: 0 });
+  });
+
+  it("starts a fresh run when an ambiguous start burned its instance id", async () => {
+    mocks.lookupFails = true;
+    // The create persisted the instance before failing, and the lookup that could have confirmed
+    // it failed too: the route rolls back, leaving that instance id taken.
+    mocks.startResumeParse.mockImplementationOnce(async (_workflow, id) => {
+      mocks.instances.add(id);
+      throw new Error("Workflow unavailable");
+    });
+    await insertResume();
+
+    expect((await retry()).status).toBe(503);
+    expect(await readRow()).toMatchObject({ status: "failed", retryCount: 0 });
+
+    mocks.lookupFails = false;
+
+    const second = await retry();
+
+    expect(second.status).toBe(200);
+
+    const attempted = mocks.startResumeParse.mock.calls.map((call) => call[1]);
+
+    expect(attempted).toHaveLength(2);
+    expect(attempted[0]).not.toBe(attempted[1]);
+    expect(await readRow()).toMatchObject({ status: "queued", retryCount: 1 });
   });
 
   it("answers 503 and logs the stranded row when the rollback itself fails", async () => {

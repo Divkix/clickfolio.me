@@ -33,7 +33,15 @@ export function parseRunAttributes(instanceId: string, resumeId: string) {
   };
 }
 
-/** Instance id of the first parse run; each manual retry gets its own id. */
+/**
+ * Instance id for one parse start. Workflows only accepts an id that is unique within the Workflow,
+ * and a start can burn its id without using it (create persisted the instance, then the create and
+ * the confirming lookup both failed), so the id cannot be derived from row state: every start gets
+ * its own. `retryCount` stays in the readable prefix and in the params, where the ownership guard
+ * reads it. 81 characters for a UUID resume id, inside the 100-character limit.
+ */
 export function parseInstanceId(resumeId: string, retryCount = 0): string {
-  return retryCount > 0 ? `${resumeId}-retry-${retryCount}` : resumeId;
+  const run = retryCount > 0 ? `${resumeId}-retry-${retryCount}` : resumeId;
+
+  return `${run}-${crypto.randomUUID()}`;
 }

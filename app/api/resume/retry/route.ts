@@ -208,9 +208,10 @@ export async function POST(request: Request) {
           );
         }
 
-        // Each retry is its own instance (the retryCount CAS above makes the id unique). A start
-        // that fails or times out is given up on: the row goes back to its previous state and
-        // the pipeline's status-guarded steps make a late-starting run a no-op.
+        // Each start gets a fresh instance id: a start that failed after Workflows persisted the
+        // instance leaves that id burned while the rollback restores the row, so a retry cannot
+        // reuse it. A start that fails or times out is given up on: the row goes back to its
+        // previous state and the pipeline's status-guarded steps make a late-starting run a no-op.
         yield* WorkflowStarter.use((starter) =>
           starter.startResumeParse(parseInstanceId(resume.id, nextRetryCount), {
             kind: "parse",
