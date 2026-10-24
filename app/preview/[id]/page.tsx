@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DEMO_RESUME_CONTENT } from "@/lib/templates/demo-data";
 import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-profiles";
-import type { ThemeId } from "@/lib/templates/theme-ids";
+import { isValidThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { cn } from "@/lib/utils/cn";
 
@@ -14,16 +14,15 @@ export const revalidate = 604800;
 
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  // SAFETY: id is validated ThemeId via isValidThemeId or known demo-data keys; cast bridges string to ThemeId.
-  const themeId = id as ThemeId;
-  const content = DEMO_RESUME_CONTENT[themeId];
 
-  if (!content) {
+  if (!isValidThemeId(id)) {
     notFound();
   }
 
-  const Template = await getTemplate(themeId);
-  const bg = TEMPLATE_BACKGROUNDS[themeId];
+  const content = DEMO_RESUME_CONTENT[id];
+
+  const Template = await getTemplate(id);
+  const bg = TEMPLATE_BACKGROUNDS[id];
 
   const profile = {
     avatar_url: null,
