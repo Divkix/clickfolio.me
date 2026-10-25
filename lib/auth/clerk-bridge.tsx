@@ -42,6 +42,9 @@ function SessionSync({ onChange }: Pick<ClerkBridgeProps, "onChange">) {
     [clerk, data, isLoaded, onChange],
   );
 
+  // clerk-js failed to load (blocked or offline); SessionProvider's boundary reports it.
+  if (clerk.status === "error") throw new Error("clerk-js failed to load");
+
   return null;
 }
 

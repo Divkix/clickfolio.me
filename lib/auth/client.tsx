@@ -44,6 +44,15 @@ interface SessionContextValue extends UseSessionResult {
 // `@clerk/react` is ~35 KB gzip; loading it once the page is idle keeps it off the first paint.
 const ClerkBridge = lazy(() => import("./clerk-bridge"));
 
+// sonner stays out of the entry chunk; it only loads when a click finds Clerk unavailable.
+function notifyClerkUnavailable(): void {
+  void import("sonner").then(({ toast }) =>
+    toast.error("Sign-in couldn't load. Reload the page and try again.", {
+      id: "clerk-unavailable",
+    }),
+  );
+}
+
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({
@@ -52,7 +61,8 @@ export function SessionProvider({
 }: Readonly<{ publishableKey: string; children: ReactNode }>) {
   const [loadClerk, setLoadClerk] = useState(false);
   const [snapshot, setSnapshot] = useState<ClerkSnapshot | null>(null);
-  const waiting = useRef<((clerk: BrowserClerk) => void)[]>([]);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const waiting = useRef<PromiseWithResolvers<BrowserClerk>[]>([]);
 
   useEffect(() => {
     void whenIdle().then(() => setLoadClerk(true));
@@ -61,20 +71,22 @@ export function SessionProvider({
   useEffect(() => {
     if (!snapshot || snapshot.isPending) return;
 
-    for (const resolve of waiting.current.splice(0)) resolve(snapshot.clerk);
+    for (const { resolve } of waiting.current.splice(0)) resolve(snapshot.clerk);
   }, [snapshot]);
 
   const getClerk = useCallback((): Promise<BrowserClerk> => {
     if (snapshot && !snapshot.isPending) return Promise.resolve(snapshot.clerk);
 
+    if (loadError !== null) return Promise.reject(loadError);
+
     setLoadClerk(true);
 
-    const { promise, resolve } = Promise.withResolvers<BrowserClerk>();
+    const waiter = Promise.withResolvers<BrowserClerk>();
 
-    waiting.current.push(resolve);
+    waiting.current.push(waiter);
 
-    return promise;
-  }, [snapshot]);
+    return waiter.promise;
+  }, [snapshot, loadError]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
@@ -93,7 +105,12 @@ export function SessionProvider({
         <CatchBoundary
           getResetKey={() => publishableKey}
           errorComponent={() => null}
-          onCatch={(error) => log("error", "Clerk failed to load", { ...errorFields(error) })}
+          onCatch={(error) => {
+            log("error", "Clerk failed to load", { ...errorFields(error) });
+            setLoadError(error);
+
+            for (const { reject } of waiting.current.splice(0)) reject(error);
+          }}
         >
           <Suspense>
             <ClerkBridge publishableKey={publishableKey} onChange={setSnapshot} />
@@ -118,7 +135,8 @@ export function useSession(): UseSessionResult {
 
 /**
  * Opens Clerk's sign-in modal; a click before Clerk has loaded waits for it. Clerk won't open
- * sign-in over an existing session, so a signed-in visitor goes straight to the redirect.
+ * sign-in over an existing session, so a signed-in visitor goes straight to the redirect. If
+ * Clerk failed to load, the click shows a toast asking for a reload.
  */
 export function SignInButton({
   fallbackRedirectUrl,
@@ -130,10 +148,12 @@ export function SignInButton({
   return (
     <Slot
       onClick={() =>
-        void getClerk().then((clerk) =>
-          clerk.user
-            ? navigate({ href: fallbackRedirectUrl })
-            : clerk.openSignIn({ fallbackRedirectUrl }),
+        void getClerk().then(
+          (clerk) =>
+            clerk.user
+              ? navigate({ href: fallbackRedirectUrl })
+              : clerk.openSignIn({ fallbackRedirectUrl }),
+          notifyClerkUnavailable,
         )
       }
     >
@@ -145,5 +165,16 @@ export function SignInButton({
 export function useSignOut(): () => Promise<void> {
   const { getClerk } = useSessionContext();
 
-  return useCallback(() => getClerk().then((clerk) => clerk.signOut()), [getClerk]);
+  return useCallback(
+    () =>
+      getClerk().then(
+        (clerk) => clerk.signOut(),
+        (error) => {
+          notifyClerkUnavailable();
+
+          throw error;
+        },
+      ),
+    [getClerk],
+  );
 }
