@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
-import { defineConfig } from "vite-plus";
+import { defineConfig, type Plugin } from "vite-plus";
 
 const IGNORE_PATTERNS = [
   "dist/**",
@@ -30,6 +30,29 @@ function deployEnv(): "production" | "preview" | "development" {
   if (!process.env.WORKERS_CI) return "development";
 
   return process.env.WORKERS_CI_BRANCH === "main" ? "production" : "preview";
+}
+
+/**
+ * @hyperdx/browser 0.26 flushes its log batch on `unload`, which Chrome deprecates (Lighthouse
+ * "deprecations") and which keeps pages out of the back/forward cache. `pagehide` fires in every
+ * case `unload` did. The build fails once an SDK upgrade drops the listener, so this goes with it.
+ */
+function hyperdxPagehideFlush(): Plugin {
+  const unload = 'addEventListener("unload"';
+
+  return {
+    name: "hyperdx-pagehide-flush",
+    transform: {
+      filter: { id: /[\\/]@hyperdx[\\/]browser[\\/]build[\\/]index\.js$/ },
+      handler(code) {
+        if (!code.includes(unload)) {
+          this.error("@hyperdx/browser no longer listens for unload: remove hyperdxPagehideFlush");
+        }
+
+        return { code: code.replace(unload, 'addEventListener("pagehide"'), map: null };
+      },
+    },
+  };
 }
 
 export default defineConfig(() => {
@@ -170,6 +193,7 @@ export default defineConfig(() => {
           }),
           viteReact(),
           tailwindcss(),
+          hyperdxPagehideFlush(),
         ],
     resolve: {
       tsconfigPaths: true,
