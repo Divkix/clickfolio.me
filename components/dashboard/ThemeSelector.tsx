@@ -3,7 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { THEME_CHROME } from "@/lib/templates/theme-chrome";
-import { THEME_IDS, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
+import { previewSrcSet, THEME_IDS, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { ThemeTemplate } from "@/lib/templates/theme-registry";
 import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
@@ -157,6 +157,8 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
                 <div className="aspect-4/3 bg-muted overflow-hidden relative">
                   <img
                     src={meta.preview}
+                    srcSet={previewSrcSet(meta.preview)}
+                    sizes="(min-width: 768px) 144px, 112px"
                     alt={`${meta.name} preview`}
                     className="w-full h-full object-cover object-top"
                     loading="lazy"

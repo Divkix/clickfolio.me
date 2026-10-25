@@ -12,6 +12,7 @@ import {
 } from "@/lib/seo/json-ld";
 import { publicPageHead } from "@/lib/seo/page-metadata";
 import {
+  previewSrcSet,
   THEME_IDS,
   THEME_METADATA,
   type ThemeId,
@@ -107,6 +108,8 @@ function ThemePage() {
           <figure className="mb-12">
             <img
               src={details.preview}
+              srcSet={previewSrcSet(details.preview)}
+              sizes="(min-width: 1152px) 1104px, 100vw"
               alt={`${details.name} resume website preview: ${details.description}`}
               width={2560}
               height={1600}

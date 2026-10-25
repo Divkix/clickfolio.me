@@ -10,7 +10,13 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { publicPageHead } from "@/lib/seo/page-metadata";
-import { THEME_IDS, THEME_METADATA, themeSlug, TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
+import {
+  previewSrcSet,
+  THEME_IDS,
+  THEME_METADATA,
+  themeSlug,
+  TEMPLATE_COUNT,
+} from "@/lib/templates/theme-ids";
 
 const title = "Resume Website Templates";
 
@@ -76,10 +82,13 @@ function TemplatesPage() {
                   >
                     <img
                       src={theme.preview}
+                      srcSet={previewSrcSet(theme.preview)}
+                      sizes="(min-width: 1152px) 347px, (min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
                       alt={`${theme.name} resume website preview: ${theme.description}`}
                       width={2560}
                       height={1600}
                       loading={index < 3 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : undefined}
                       decoding="async"
                       className="mb-5 h-auto w-full rounded-md border border-border"
                     />
