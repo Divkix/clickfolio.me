@@ -69,7 +69,7 @@ export function LegalPage({
           { label: breadcrumbLabel, href: breadcrumbHref },
         ]}
       />
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <main id="main-content" className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <article className="max-w-3xl mx-auto">
           <div className="mb-12 text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 tracking-tight">

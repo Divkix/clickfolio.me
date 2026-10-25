@@ -48,7 +48,7 @@ function FAQPage() {
 
       <SiteHeader />
 
-      <main className="flex-1 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <main id="main-content" className="flex-1 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-wide text-brand">Support</p>

@@ -152,7 +152,8 @@
 
   --brand: oklch(68.0894% 0.168985 275.0318);
   --brand-hover: oklch(73.4902% 0.137937 276.5335);
-  --brand-active: oklch(62.5661% 0.175986 274.3544);
+  /* Still darker than --brand for the pressed state, but 4.5:1 as text on --brand-subtle. */
+  --brand-active: oklch(65% 0.175986 274.3544);
   --brand-subtle: oklch(25.2418% 0.056643 275.8351);
   --brand-foreground: oklch(16.969% 0.010543 276.3187);
 

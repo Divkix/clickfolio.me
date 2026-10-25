@@ -149,7 +149,7 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
             <span className="text-muted-foreground">You’ll confirm it after upload.</span>
           )}
         </p>
-        <div className="flex shrink-0 gap-1.5">
+        <div className="flex shrink-0">
           {themes.map((theme, i) => (
             <button
               key={theme.id}
@@ -160,12 +160,16 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
                 setTouched(true);
                 setIndex(i);
               }}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index
-                  ? "w-5 bg-foreground"
-                  : "w-1.5 bg-border-strong hover:bg-muted-foreground"
-              }`}
-            />
+              className="group flex size-6 items-center justify-center"
+            >
+              <span
+                className={`h-1.5 rounded-full transition-all ${
+                  i === index
+                    ? "w-5 bg-foreground"
+                    : "w-1.5 bg-border-strong group-hover:bg-muted-foreground"
+                }`}
+              />
+            </button>
           ))}
         </div>
       </div>
