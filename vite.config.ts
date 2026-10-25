@@ -223,9 +223,6 @@ export default defineConfig(() => {
       // ngrok tunnels for testing the dev server from other devices.
       allowedHosts: [".ngrok-free.app"],
     },
-    optimizeDeps: {
-      exclude: ["lucide-react"],
-    },
     build: isTest
       ? undefined
       : {
