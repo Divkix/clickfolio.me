@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface NavLink {
-  href: "/explore" | "/templates/" | "/blog/" | "/faq" | "/about";
+  href: "/explore" | "/templates" | "/blog" | "/faq" | "/about";
   label: string;
 }
 

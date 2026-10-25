@@ -65,7 +65,7 @@ export function RoleTemplates({ slug }: { slug: string }) {
         ))}
       </ul>
       <p className="mt-4 text-muted-foreground">
-        <Link className="underline" to="/templates/">
+        <Link className="underline" to="/templates">
           Browse all {TEMPLATE_COUNT} free templates
         </Link>
       </p>
