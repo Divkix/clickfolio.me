@@ -1,5 +1,5 @@
 // Single source of truth for career level. Pure module (no drizzle/zod) so it is safe for the
-// DB schema, drizzle-kit, Zod schemas, and client components alike. `criteria` is the rubric
+// DB schema, drizzle-kit, Zod schemas, and client code alike. `criteria` is the rubric
 // Jev classifies against (lib/ai/career.ts): one sentence of observable evidence per level.
 export const ROLES = {
   student: {

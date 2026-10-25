@@ -61,7 +61,7 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 ### Trade-offs
 
 - **No `fs` Module**: Must use R2 for file operations
-- **No `next/image`-style optimizer**: Use `<img>` with CSS instead
+- **No image optimizer**: Use `<img>` with CSS instead
 - **No DB in the Worker gate**: The Worker entry only strips/forwards requests; pages and APIs authenticate themselves
 - **Bundle Size**: Keep dependencies minimal
 

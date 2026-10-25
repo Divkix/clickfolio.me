@@ -26,7 +26,7 @@ describe("encodedProfileRedirect", () => {
 });
 
 describe("withoutProfileCredentials", () => {
-  it.each(["/@alice", "/%40alice", "/@alice.md", "/@alice?_rsc=1"])(
+  it.each(["/@alice", "/%40alice", "/@alice.md", "/@alice?ref=share"])(
     "drops the session from GET %s",
     (path) => {
       const stripped = strip(

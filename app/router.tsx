@@ -11,8 +11,8 @@ export function getRouter() {
     trailingSlash: "preserve",
     defaultErrorComponent: ErrorPage,
     defaultNotFoundComponent: NotFoundPage,
-    // An unmatched path is the root 404, like Next's not-found.tsx. The default ("fuzzy") runs
-    // the loader of the deepest partial match, so `/for/x` reached the bare-handle redirect.
+    // An unmatched path renders the root 404. The default ("fuzzy") runs the loader of the
+    // deepest partial match, so `/for/x` reached the bare-handle redirect.
     notFoundMode: "root",
   });
 }
