@@ -23,13 +23,14 @@ const ALL_TEMPLATE_ROUTES = THEME_IDS.map((id) => `/templates/${themeSlug(id)}`)
 const ALL_EXAMPLE_ROUTES = EXAMPLE_GALLERIES.map((gallery) => `/examples/${gallery.slug}`);
 
 /**
- * Source files outside a route's own `app/<route>/` folder that change what the route renders.
+ * Source files outside a route's own file that change what the route renders.
  * Shared chrome (header, footer, ui/) is deliberately absent: it touches every page equally and
  * says nothing about the page's content.
  */
 const CONTENT_SOURCES: ReadonlyArray<{ prefix: string; routes: readonly string[] }> = [
-  { prefix: "app/templates/[theme]/", routes: ALL_TEMPLATE_ROUTES },
-  { prefix: "app/examples/[slug]/", routes: ALL_EXAMPLE_ROUTES },
+  { prefix: "app/routes/templates/$theme.tsx", routes: ALL_TEMPLATE_ROUTES },
+  { prefix: "app/routes/examples/$slug.tsx", routes: ALL_EXAMPLE_ROUTES },
+  { prefix: "lib/data/example-page.ts", routes: ALL_EXAMPLE_ROUTES },
   { prefix: "lib/examples/galleries.ts", routes: ALL_EXAMPLE_ROUTES },
   {
     prefix: "lib/templates/theme-ids.ts",
@@ -42,20 +43,33 @@ const CONTENT_SOURCES: ReadonlyArray<{ prefix: string; routes: readonly string[]
   { prefix: "lib/config/professions.ts", routes: ["/", ...ALL_PROFESSION_ROUTES] },
 ];
 
+const ROUTES_DIR = "app/routes/";
+
 /**
- * Tracked route owning an `app/` file: `app/(group)/about/page.tsx` → `/about`, and a file nested
- * below a tracked route (`app/about/_parts/x.tsx`) → `/about`. Only `app/page.tsx` maps to `/`;
- * other root files (layout, error, globals.css) belong to every page.
+ * Tracked route owning a route file: `app/routes/about.tsx` → `/about`, `blog/index.tsx` and the
+ * `blog/route.tsx` layout → `/blog`, `llms[.]txt.ts` → `/llms.txt`, and a file nested below a
+ * tracked route (`about/-parts/x.tsx`) → `/about`. `(group)` and `_pathless` folders add no
+ * segment; `__root.tsx` and pathless layout files wrap many pages and map to none.
  */
 function appFileRoute(file: string, tracked: ReadonlySet<string>): string | null {
-  if (!file.startsWith("app/")) return null;
+  if (!file.startsWith(ROUTES_DIR)) return null;
 
-  if (file === "app/page.tsx") return tracked.has("/") ? "/" : null;
+  const parts = file
+    .slice(ROUTES_DIR.length)
+    .replace(/\.tsx?$/, "")
+    .split("/");
 
-  const segments = file
-    .split("/")
-    .slice(1, -1)
-    .filter((segment) => !/^\(.*\)$/.test(segment));
+  const name = parts.pop() ?? "";
+
+  if (name.startsWith("_")) return null;
+
+  if (name !== "index" && name !== "route") parts.push(name);
+
+  const segments = parts
+    .filter((segment) => !segment.startsWith("_") && !/^\(.*\)$/.test(segment))
+    .map((segment) => segment.replaceAll("[.]", "."));
+
+  if (segments.length === 0) return tracked.has("/") ? "/" : null;
 
   if (segments[0] === "api") return null;
 
