@@ -6,8 +6,6 @@ import { z } from "zod";
 // and a thrown error never carries the API host, a path, the website id or a token, because
 // `externalCall` copies the message into logs.
 
-const WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ?? "";
-
 /** One HTTP hop (a login or a GET). The caller's outer timeout bounds the whole chain. */
 const HOP_TIMEOUT_MS = 5_000;
 
@@ -225,7 +223,7 @@ async function umamiGet<T>(
 
   const res = await send(
     "request",
-    `${env.UMAMI_API_URL}/api/websites/${WEBSITE_ID}/${endpoint}?${params.toString()}`,
+    `${env.UMAMI_API_URL}/api/websites/${env.UMAMI_WEBSITE_ID}/${endpoint}?${params.toString()}`,
     { headers: { Authorization: `Bearer ${token}` } },
     hopSignal(signal),
   );

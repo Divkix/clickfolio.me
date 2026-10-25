@@ -148,14 +148,13 @@
     //
     // ===== REQUIRED CONFIG (non-secret) =====
     //   APP_URL                            # canonical site URL (e.g. https://clickfolio.me)
-    //   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY  # public Clerk key — set in CF Workers dashboard/build env
+    //   CLERK_PUBLISHABLE_KEY              # public Clerk key (pk_…), read at request time
     //
     // ===== OPTIONAL: parse-failure alerting (defaults to Cloudflare Logpush) =====
     //   wrangler secret put ALERT_CHANNEL       # logpush | webhook
     //   wrangler secret put ALERT_WEBHOOK_URL   # Slack/Discord webhook URL
     //
     // ===== ANALYTICS (Umami) =====
-    //   wrangler secret put NEXT_PUBLIC_UMAMI_WEBSITE_ID
     //   wrangler secret put UMAMI_API_URL
     //   wrangler secret put UMAMI_USERNAME
     //   wrangler secret put UMAMI_PASSWORD
@@ -170,7 +169,9 @@
     "NODE_ENV": "production",
     "APP_URL": "https://clickfolio.me",
     "EMAIL_FROM": "notifications@clickfolio.me",
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
+    "CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
+    // Public: the tracker script prints it in every page.
+    "UMAMI_WEBSITE_ID": "1a0515d6-8471-4a14-8581-3fdc3929ff0c",
     "AI_MODEL": "openai/gpt-6-luna:nitro",
     "AI_REASONING_EFFORT": "medium",
     // Browser telemetry ingest (/otel proxy). The key is the secret OTEL_BROWSER_INGEST_KEY.
