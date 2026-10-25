@@ -1,5 +1,5 @@
 import { Slot } from "@radix-ui/react-slot";
-import { CatchBoundary } from "@tanstack/react-router";
+import { CatchBoundary, useNavigate } from "@tanstack/react-router";
 import {
   createContext,
   lazy,
@@ -37,7 +37,7 @@ interface UseSessionResult {
 }
 
 interface SessionContextValue extends UseSessionResult {
-  /** Resolves once Clerk is mounted, loading it now if the idle callback has not yet. */
+  /** Resolves once Clerk has loaded, loading it now if the idle callback has not yet. */
   getClerk: () => Promise<BrowserClerk>;
 }
 
@@ -59,13 +59,13 @@ export function SessionProvider({
   }, []);
 
   useEffect(() => {
-    if (!snapshot) return;
+    if (!snapshot || snapshot.isPending) return;
 
     for (const resolve of waiting.current.splice(0)) resolve(snapshot.clerk);
   }, [snapshot]);
 
   const getClerk = useCallback((): Promise<BrowserClerk> => {
-    if (snapshot) return Promise.resolve(snapshot.clerk);
+    if (snapshot && !snapshot.isPending) return Promise.resolve(snapshot.clerk);
 
     setLoadClerk(true);
 
@@ -116,16 +116,26 @@ export function useSession(): UseSessionResult {
   return useSessionContext();
 }
 
-/** Opens Clerk's sign-in modal; a click before Clerk has loaded waits for it. */
+/**
+ * Opens Clerk's sign-in modal; a click before Clerk has loaded waits for it. Clerk won't open
+ * sign-in over an existing session, so a signed-in visitor goes straight to the redirect.
+ */
 export function SignInButton({
   fallbackRedirectUrl,
   children,
 }: Readonly<{ fallbackRedirectUrl: string; children: ReactElement }>) {
   const { getClerk } = useSessionContext();
+  const navigate = useNavigate();
 
   return (
     <Slot
-      onClick={() => void getClerk().then((clerk) => clerk.openSignIn({ fallbackRedirectUrl }))}
+      onClick={() =>
+        void getClerk().then((clerk) =>
+          clerk.user
+            ? navigate({ href: fallbackRedirectUrl })
+            : clerk.openSignIn({ fallbackRedirectUrl }),
+        )
+      }
     >
       {children}
     </Slot>

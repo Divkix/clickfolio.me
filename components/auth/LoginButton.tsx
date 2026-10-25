@@ -22,7 +22,7 @@ export function LoginButton() {
 
   return (
     <SignInButton fallbackRedirectUrl="/dashboard">
-      <Button type="button" loading={isPending} className="whitespace-nowrap">
+      <Button type="button" className="whitespace-nowrap">
         Sign in
       </Button>
     </SignInButton>
