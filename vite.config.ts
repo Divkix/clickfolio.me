@@ -5,29 +5,6 @@ import viteReact from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig, type Plugin } from "vite-plus";
 
-/**
- * Vite plugin that stubs server-only modules for client environments.
- * - `cloudflare:workers` — Workers-only module imported by server code, absent in the browser
- */
-function clientModuleStubs(): Plugin {
-  const stubs = {
-    "cloudflare:workers": resolve("lib/stubs/cloudflare-workers-client-stub.mjs"),
-  } satisfies Record<string, string>;
-
-  return {
-    name: "client-module-stubs",
-    enforce: "pre",
-    resolveId(id) {
-      if (this.environment?.name === "client" && id in stubs) {
-        // SAFETY: id in stubs guard guarantees id is a key of the stubs record.
-        return stubs[id as keyof typeof stubs];
-      }
-
-      return null;
-    },
-  };
-}
-
 // Files inside the effect package or an @effect/* package (flat or pnpm layout).
 const EFFECT_MODULE = /[\\/]node_modules[\\/](?:effect|@effect[\\/][^\\/]+)[\\/]/;
 
@@ -183,10 +160,11 @@ export default defineConfig(() => {
     test: {
       environment: "node",
       globals: true,
+      // Node has no `cloudflare:workers`; suites that need bindings `vi.mock` it.
       alias: [
         {
           find: "cloudflare:workers",
-          replacement: resolve(import.meta.dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+          replacement: resolve(import.meta.dirname, "tests/helpers/cloudflare-workers.mjs"),
         },
       ],
       exclude: ["node_modules", "dist", ".worktrees/**"],
@@ -223,7 +201,6 @@ export default defineConfig(() => {
           "**/*.test.{ts,tsx}",
           "**/node_modules/**",
           "tests/**",
-          "lib/stubs/**",
           "app/routeTree.gen.ts",
         ],
         thresholds: { branches: 62, functions: 64, lines: 61, statements: 61 },
@@ -235,7 +212,6 @@ export default defineConfig(() => {
           cloudflare({ viteEnvironment: { name: "ssr" } }),
           tanstackStart({ srcDirectory: "app" }),
           viteReact(),
-          clientModuleStubs(),
           clientEffectGuard(),
         ],
     resolve: {
