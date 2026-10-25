@@ -2,7 +2,7 @@ import { CheckCircle2, Palette } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
+import { previewSrcSet, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { cn } from "@/lib/utils/cn";
 
 interface ThemeStepProps {
@@ -101,6 +101,8 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                     >
                       <img
                         src={meta.preview}
+                        srcSet={previewSrcSet(meta.preview)}
+                        sizes="(min-width: 768px) 50vw, 100vw"
                         alt={`${meta.name} preview`}
                         className="w-full h-full object-cover object-top"
                         loading="lazy"

@@ -2,7 +2,7 @@
 // Hover pauses a row; reduced motion stops it (globals.css).
 
 import { DEMO_PROFILES } from "@/lib/templates/demo-profiles";
-import { THEME_METADATA } from "@/lib/templates/theme-ids";
+import { previewSrcSet, THEME_METADATA } from "@/lib/templates/theme-ids";
 
 const previews = DEMO_PROFILES.map((profile) => ({
   src: THEME_METADATA[profile.id].preview,
@@ -27,6 +27,8 @@ function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
             <li key={item.src} className="w-64 shrink-0 sm:w-80">
               <img
                 src={item.src}
+                srcSet={previewSrcSet(item.src)}
+                sizes="(min-width: 640px) 320px, 256px"
                 alt={duplicate ? "" : `${item.theme} design`}
                 loading="lazy"
                 decoding="async"

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { saveDesiredHandle } from "@/lib/utils/desired-handle";
 import { trackEvent, type CheckedHandleStatus } from "@/lib/telemetry/browser";
 import { handleSchema } from "@/lib/schemas/profile";
+import { previewSrcSet } from "@/lib/templates/theme-ids";
 import { UploadCTA } from "./UploadCTA";
 
 interface PreviewTheme {
@@ -115,10 +116,12 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
           </label>
         </div>
         <img
-          key={selected.id}
           src={selected.preview}
+          srcSet={previewSrcSet(selected.preview)}
+          sizes="(min-width: 1280px) 692px, (min-width: 1024px) 54vw, 100vw"
           alt={`${selected.person}'s site in the ${selected.name} design`}
-          className="animate-fade-in-up aspect-16/10 w-full object-cover object-top"
+          fetchPriority="high"
+          className="aspect-16/10 w-full object-cover object-top"
         />
       </figure>
 

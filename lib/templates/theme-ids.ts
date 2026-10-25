@@ -312,3 +312,13 @@ export const THEME_METADATA = {
     readonly preview: string;
   }
 >;
+
+/** Widths of the downscaled preview copies (`scripts/generate-preview-variants.ts`). */
+export const PREVIEW_WIDTHS = [640, 960, 1280] as const;
+
+/** `srcSet` for a 2560w theme preview: its downscaled copies plus the original. */
+export function previewSrcSet(preview: string): string {
+  const base = preview.replace(/\.webp$/, "");
+
+  return [...PREVIEW_WIDTHS.map((w) => `${base}-${w}w.webp ${w}w`), `${preview} 2560w`].join(", ");
+}

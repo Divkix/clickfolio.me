@@ -22,7 +22,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { siteConfig } from "@/lib/config/site";
 import { dashboardPageData } from "@/lib/data/owner-pages";
 import { type Resume, type siteData } from "@/lib/db/schema";
-import { resolveThemeId, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
+import {
+  previewSrcSet,
+  resolveThemeId,
+  THEME_METADATA,
+  type ThemeId,
+} from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
@@ -197,6 +202,8 @@ function SiteHero({ handle, themeId, updatedAt }: SiteHeroProps) {
       >
         <img
           src={theme.preview}
+          srcSet={previewSrcSet(theme.preview)}
+          sizes="(min-width: 768px) 320px, (min-width: 640px) 256px, 100vw"
           alt={`${theme.name} theme preview`}
           className="aspect-[16/10] w-full object-cover object-top"
         />

@@ -1,11 +1,15 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import {
   DEFAULT_THEME,
   isValidThemeId,
+  previewSrcSet,
   REMOVED_THEME_REPLACEMENTS,
   replacementForRemovedTheme,
   resolveThemeId,
   THEME_IDS,
+  THEME_METADATA,
 } from "@/lib/templates/theme-ids";
 
 describe("resolveThemeId", () => {
@@ -49,5 +53,16 @@ describe("replacementForRemovedTheme", () => {
     expect(replacementForRemovedTheme(DEFAULT_THEME)).toBeNull();
     expect(replacementForRemovedTheme("not_a_theme")).toBeNull();
     expect(replacementForRemovedTheme("__proto__")).toBeNull();
+  });
+});
+
+describe("previewSrcSet", () => {
+  it("lists only preview files that ship in public/", () => {
+    for (const id of THEME_IDS) {
+      for (const candidate of previewSrcSet(THEME_METADATA[id].preview).split(", ")) {
+        const [path = ""] = candidate.split(" ");
+        expect(existsSync(join("public", path)), path).toBe(true);
+      }
+    }
   });
 });
