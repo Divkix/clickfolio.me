@@ -114,7 +114,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
 
           <div className="mt-8 text-center">
             <Link
-              to="/blog/"
+              to="/blog"
               className="inline-flex min-h-11 items-center gap-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />

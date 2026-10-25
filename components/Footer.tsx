@@ -6,14 +6,14 @@ import { currentYear } from "@/lib/utils/format";
 const FOOTER_LINKS = [
   ...linkOptions([
     { to: "/explore", label: "Explore" },
-    { to: "/templates/", label: "Templates" },
+    { to: "/templates", label: "Templates" },
   ]),
   ...EXAMPLE_GALLERIES.map((gallery) => ({
     ...linkOptions({ to: "/examples/$slug", params: { slug: gallery.slug } }),
     label: gallery.title,
   })),
   ...linkOptions([
-    { to: "/blog/", label: "Blog" },
+    { to: "/blog", label: "Blog" },
     { to: "/faq", label: "FAQ" },
     { to: "/contact", label: "Contact" },
     { to: "/about", label: "About" },
