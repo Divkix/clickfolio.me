@@ -6,8 +6,10 @@ export const SECURITY_HEADERS = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
   // 'unsafe-inline': the SSR hydration scripts are inline and the Worker issues no nonces.
+  // 'wasm-unsafe-eval': the telemetry SDK's long.js compiles a small WebAssembly module; it allows
+  // WebAssembly compilation only, never JS eval.
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://analytics.divkix.me https://clerk.clickfolio.me https://*.clerk.accounts.dev https://challenges.cloudflare.com https://*.protect.clerk.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://analytics.divkix.me https://accounts.google.com https://clerk.clickfolio.me https://*.clerk.accounts.dev https://*.protect.clerk.com:*; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.protect.clerk.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://analytics.divkix.me https://clerk.clickfolio.me https://*.clerk.accounts.dev https://challenges.cloudflare.com https://*.protect.clerk.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://analytics.divkix.me https://accounts.google.com https://clerk.clickfolio.me https://*.clerk.accounts.dev https://*.protect.clerk.com:*; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.protect.clerk.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
 } as const;
 
 export function createErrorResponse<T>(
