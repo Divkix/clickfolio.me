@@ -21,7 +21,7 @@ vi.mock("@/lib/utils/log", () => ({ log: mocks.log }));
 
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => ({ data: null, isPending: true }),
-  useClerk: () => ({ signOut: vi.fn() }),
+  useSignOut: () => vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {

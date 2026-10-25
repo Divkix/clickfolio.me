@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { TelemetryIdentity } from "@/components/analytics/TelemetryIdentity";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
-import { ClerkProvider } from "@/lib/auth/client";
+import { SessionProvider } from "@/lib/auth/client";
 import { siteConfig } from "@/lib/config/site";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import jetbrainsMonoCss from "@fontsource-variable/jetbrains-mono/index.css?url";
@@ -77,7 +77,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
           enableSystem
           disableTransitionOnChange
         >
-          <ClerkProvider publishableKey={clerkPublishableKey}>
+          <SessionProvider publishableKey={clerkPublishableKey}>
             <a
               href="#main-content"
               className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand focus:text-brand-foreground focus:rounded-md"
@@ -87,7 +87,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
             {children}
             <Toaster />
             <TelemetryIdentity />
-          </ClerkProvider>
+          </SessionProvider>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{

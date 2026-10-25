@@ -2,7 +2,7 @@ import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, Shield, X } from 
 import { Link, useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import type { LinkProps } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
-import { useClerk, useSession } from "@/lib/auth/client";
+import { useSession, useSignOut } from "@/lib/auth/client";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -15,12 +15,12 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
   const pathname = useLocation({ select: (location) => location.pathname });
   const router = useRouter();
   const navigate = useNavigate();
-  const clerk = useClerk();
+  const signOut = useSignOut();
 
   const { data: session } = useSession();
 
   const handleLogout = async () => {
-    await clerk.signOut();
+    await signOut();
     await navigate({ to: "/" });
     await router.invalidate();
   };

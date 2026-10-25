@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useClerk } from "@/lib/auth/client";
+import { useSignOut } from "@/lib/auth/client";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 
@@ -27,7 +27,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   const [confirmation, setConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const clerk = useClerk();
+  const signOut = useSignOut();
 
   const emailMatches = confirmation.toLowerCase() === userEmail.toLowerCase();
 
@@ -65,7 +65,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
 
       toast.success("Your account has been deleted");
       setIsDialogOpen(false);
-      await clerk.signOut();
+      await signOut();
       void navigate({ to: "/" }).then(() => router.invalidate());
     } catch (err) {
       log("error", "Account deletion error", { ...errorFields(err) });

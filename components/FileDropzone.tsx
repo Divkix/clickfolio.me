@@ -452,7 +452,7 @@ function UploadComplete({
               </p>
             ) : (
               <>
-                <SignInButton mode="modal" fallbackRedirectUrl="/wizard">
+                <SignInButton fallbackRedirectUrl="/wizard">
                   <Button type="button" disabled={claiming} className="w-full max-w-xs">
                     Sign in to Publish
                   </Button>
