@@ -1,84 +1,10 @@
-import { relative, resolve } from "node:path";
+import { resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
-import { defineConfig, type Plugin } from "vite-plus";
-
-/**
- * Vite plugin that stubs server-only modules for client environments.
- * - `cloudflare:workers` — Workers-only module imported by server code, absent in the browser
- */
-function clientModuleStubs(): Plugin {
-  const stubs = {
-    "cloudflare:workers": resolve("lib/stubs/cloudflare-workers-client-stub.mjs"),
-  } satisfies Record<string, string>;
-
-  return {
-    name: "client-module-stubs",
-    enforce: "pre",
-    resolveId(id) {
-      if (this.environment?.name === "client" && id in stubs) {
-        // SAFETY: id in stubs guard guarantees id is a key of the stubs record.
-        return stubs[id as keyof typeof stubs];
-      }
-
-      return null;
-    },
-  };
-}
-
-// Files inside the effect package or an @effect/* package (flat or pnpm layout).
-const EFFECT_MODULE = /[\\/]node_modules[\\/](?:effect|@effect[\\/][^\\/]+)[\\/]/;
-
-/**
- * Fails the client build when the browser module graph reaches Effect
- * (AGENTS.md, "No Effect in client-reachable code"). It reads the graph before
- * tree-shaking, so a client value import from a module that also imports
- * effect fails even when the Effect code would be shaken out.
- */
-function clientEffectGuard(): Plugin {
-  return {
-    name: "client-effect-guard",
-    apply: "build",
-    applyToEnvironment: (environment) => environment.name === "client",
-    buildEnd(error) {
-      if (error) return;
-
-      const root = this.environment.config.root;
-
-      // One importer path from the offending module up to an entry (stops at a cycle).
-      const importerChain = (id: string): string => {
-        const chain: string[] = [];
-
-        for (let current: string | undefined = id; current && !chain.includes(current);) {
-          chain.push(current);
-          const info = this.getModuleInfo(current);
-          current = info?.importers[0] ?? info?.dynamicImporters[0];
-        }
-
-        return chain.map((m) => relative(root, m.replaceAll("\0", ""))).join("\n    imported by ");
-      };
-
-      const offenders: string[] = [];
-
-      for (const id of this.getModuleIds()) {
-        if (EFFECT_MODULE.test(id)) continue;
-
-        const info = this.getModuleInfo(id);
-        const deps = info ? [...info.importedIds, ...info.dynamicallyImportedIds] : [];
-
-        if (deps.some((dep) => EFFECT_MODULE.test(dep))) offenders.push(importerChain(id));
-      }
-
-      if (offenders.length > 0) {
-        this.error(
-          `effect must not reach the client bundle (AGENTS.md, "No Effect in client-reachable code"):\n  ${offenders.join("\n  ")}`,
-        );
-      }
-    },
-  };
-}
+import { defineConfig } from "vite-plus";
 
 const IGNORE_PATTERNS = [
   "dist/**",
@@ -183,10 +109,11 @@ export default defineConfig(() => {
     test: {
       environment: "node",
       globals: true,
+      // Node has no `cloudflare:workers`; suites that need bindings `vi.mock` it.
       alias: [
         {
           find: "cloudflare:workers",
-          replacement: resolve(import.meta.dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+          replacement: resolve(import.meta.dirname, "tests/helpers/cloudflare-workers.mjs"),
         },
       ],
       exclude: ["node_modules", "dist", ".worktrees/**"],
@@ -223,7 +150,6 @@ export default defineConfig(() => {
           "**/*.test.{ts,tsx}",
           "**/node_modules/**",
           "tests/**",
-          "lib/stubs/**",
           "app/routeTree.gen.ts",
         ],
         thresholds: { branches: 62, functions: 64, lines: 61, statements: 61 },
@@ -233,10 +159,17 @@ export default defineConfig(() => {
       ? []
       : [
           cloudflare({ viteEnvironment: { name: "ssr" } }),
-          tanstackStart({ srcDirectory: "app" }),
+          tanstackStart({
+            srcDirectory: "app",
+            importProtection: {
+              // Client code also lives outside `app/`.
+              include: ["app/**", "components/**", "hooks/**", "lib/**"],
+              // AGENTS.md, "No Effect in client-reachable code".
+              client: { specifiers: [/^effect(?:\/|$)/, /^@effect\//] },
+            },
+          }),
           viteReact(),
-          clientModuleStubs(),
-          clientEffectGuard(),
+          tailwindcss(),
         ],
     resolve: {
       tsconfigPaths: true,
@@ -244,9 +177,6 @@ export default defineConfig(() => {
     server: {
       // ngrok tunnels for testing the dev server from other devices.
       allowedHosts: [".ngrok-free.app"],
-    },
-    optimizeDeps: {
-      exclude: ["lucide-react"],
     },
     build: isTest
       ? undefined

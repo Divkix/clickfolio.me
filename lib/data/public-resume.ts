@@ -72,7 +72,7 @@ interface ProfileRow {
 
 /**
  * The request's only query: every column either projection below reads, so
- * `generateMetadata` and the page body can share one row.
+ * the route's `head()` and the page body can share one row.
  */
 function findResumeRow(db: PgQueryable, handle: string): Promise<ProfileRow | undefined> {
   return db.query.user.findFirst({

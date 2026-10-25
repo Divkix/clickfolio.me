@@ -1,14 +1,15 @@
 import { Effect } from "effect";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 import { runRoute } from "@/lib/effect/edges";
 import { logLines } from "../../helpers/log-lines";
 
-// SAFETY: the Umami client reads only these three env fields.
+// SAFETY: the Umami client reads only these four env fields.
 const env = {
   UMAMI_API_URL: "https://umami.invalid-host.test",
   UMAMI_USERNAME: "admin-user",
   UMAMI_PASSWORD: "admin-password",
+  UMAMI_WEBSITE_ID: "site-id-123",
 } as CloudflareEnv;
 
 const WINDOW = { startAt: 1, endAt: 2 };
@@ -68,13 +69,8 @@ function isLogin(url: string): boolean {
   return url.endsWith("/api/auth/login");
 }
 
-beforeEach(() => {
-  vi.stubEnv("NEXT_PUBLIC_UMAMI_WEBSITE_ID", "site-id-123");
-});
-
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });

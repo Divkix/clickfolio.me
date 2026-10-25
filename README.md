@@ -61,7 +61,7 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 ### Trade-offs
 
 - **No `fs` Module**: Must use R2 for file operations
-- **No `next/image`-style optimizer**: Use `<img>` with CSS instead
+- **No image optimizer**: Use `<img>` with CSS instead
 - **No DB in the Worker gate**: The Worker entry only strips/forwards requests; pages and APIs authenticate themselves
 - **Bundle Size**: Keep dependencies minimal
 
@@ -191,7 +191,8 @@ pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
 
 Set the public values in `wrangler.jsonc` → `vars`, not as secrets:
 
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` = your Clerk publishable key (`pk_…`)
+- `CLERK_PUBLISHABLE_KEY` = your Clerk publishable key (`pk_…`)
+- `UMAMI_WEBSITE_ID` = your Umami website id (public; the tracker script prints it)
 - `APP_URL` = `https://your-domain.com`
 
 **Step 8: Deploy**
@@ -298,7 +299,7 @@ Create `.dev.vars` for development:
 APP_URL=http://localhost:3000
 PENDING_UPLOAD_SECRET=your-generated-secret
 
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_…
+CLERK_PUBLISHABLE_KEY=pk_test_…
 CLERK_SECRET_KEY=sk_test_…
 CLERK_WEBHOOK_SECRET=whsec_…
 
@@ -598,7 +599,7 @@ pnpm run build       # Fix errors and rebuild
 
 ### Auth Redirect Issues / Users Missing After Sign-Up
 
-1. Verify `CLERK_SECRET_KEY` / `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` match the same Clerk application
+1. Verify `CLERK_SECRET_KEY` / `CLERK_PUBLISHABLE_KEY` match the same Clerk application
 2. Confirm the Clerk webhook points at `/api/webhooks/clerk` and `CLERK_WEBHOOK_SECRET` matches — a signed-in user with no synced row gets 404s until the webhook lands
 3. Clear browser cookies
 

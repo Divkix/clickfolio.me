@@ -8,7 +8,7 @@ AGENTS.md ("Effect (server I/O)"). Differences from the pilot gates:
 
 - Layers are allowed: each external dependency is a `Context.Service` with an owning `Layer`, built per invocation at the edge.
 - Zod stays the only validator; Effect Schema is not introduced.
-- `effect` must never reach the browser bundle. `client-effect-guard` (`vite.config.ts`) fails `pnpm run build` and prints the importer chain.
+- `effect` must never reach the browser bundle. Start's import protection (`importProtection` in `vite.config.ts`) fails `pnpm run build` and prints the import trace.
 - The 25 KiB gzip budget no longer applies per area; re-measure `wrangler deploy --dry-run` in each PR (baseline at `main@3327340b`: 2656.69 KiB gzip).
 
 ## Gates

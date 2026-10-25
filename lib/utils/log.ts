@@ -1,3 +1,4 @@
+import { createIsomorphicFn } from "@tanstack/react-start";
 import * as workers from "cloudflare:workers";
 import type { UnknownRecord } from "@/lib/types/json";
 
@@ -13,16 +14,23 @@ type Deployment = {
 let deployment: Deployment | undefined;
 
 /**
+ * The Worker's version metadata. The client build compiles this to a no-op and drops the
+ * `cloudflare:workers` import; test mocks may omit `env` entirely.
+ */
+const versionMetadata = createIsomorphicFn().server(() =>
+  "env" in workers ? workers.env.CF_VERSION_METADATA : undefined,
+);
+
+/**
  * Which build wrote the line. `service.version` and `deployment.environment`
  * match the browser SDK's resource attributes (lib/telemetry/browser.ts; the
  * SDK writes the pre-`deployment.environment.name` key). The version id is what
  * `wrangler rollback` takes, named as on Cloudflare's exported spans
  * (https://developers.cloudflare.com/workers/observability/traces/spans-and-attributes/).
- * Client bundles get an empty stub `env`; test mocks may omit `env` entirely.
  */
 function deploymentFields(): Deployment {
   if (deployment) return deployment;
-  const metadata = "env" in workers ? workers.env.CF_VERSION_METADATA : undefined;
+  const metadata = versionMetadata();
 
   deployment = {
     "service.version": __APP_VERSION__,

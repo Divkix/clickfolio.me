@@ -14,8 +14,8 @@ import appCss from "../globals.css?url";
 
 /** Runtime vars the browser needs; read per request so one build serves every environment. */
 const getPublicConfig = createServerFn({ method: "GET" }).handler(() => ({
-  clerkPublishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-  umamiWebsiteId: getOptionalEnvValue(env, "NEXT_PUBLIC_UMAMI_WEBSITE_ID") ?? "",
+  clerkPublishableKey: env.CLERK_PUBLISHABLE_KEY,
+  umamiWebsiteId: getOptionalEnvValue(env, "UMAMI_WEBSITE_ID") ?? "",
 }));
 
 export const Route = createRootRoute({

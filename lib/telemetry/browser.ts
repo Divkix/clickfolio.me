@@ -5,10 +5,9 @@
  * gzip) loads once the page is idle; calls made earlier wait for it and are
  * dropped if it never loads.
  */
-// Relative imports: instrumentation-client.ts imports this as a root entry.
 import type HyperDXBrowser from "@hyperdx/browser";
 // Type only: error-fields pulls in zod/mini, which must stay out of the entry chunk.
-import type { ErrorFields } from "../utils/error-fields";
+import type { ErrorFields } from "@/lib/utils/error-fields";
 
 type HyperDX = typeof HyperDXBrowser;
 

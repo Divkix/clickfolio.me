@@ -341,7 +341,7 @@ function notFoundNote(origin: string): string {
 }
 
 interface MarkdownResponseInput {
-  /** The HTML response produced by the app router. */
+  /** The HTML response produced by the app. */
   response: Response;
   /** Its decoded body. */
   html: string;
