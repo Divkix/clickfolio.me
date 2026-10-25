@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vite-plus/test";
 import { BLOG_POSTS, buildBlogPostMetadata } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
@@ -27,5 +28,13 @@ describe("blog page heads", () => {
         { name: "twitter:image", content: `${siteConfig.url}/api/og/home` },
       ]),
     );
+  });
+
+  it("has exactly one route file per post", () => {
+    const routes = readdirSync(new URL("../../app/routes/blog", import.meta.url))
+      .filter((file) => file !== "index.tsx" && file !== "route.tsx")
+      .map((file) => file.replace(/\.tsx$/, ""));
+
+    expect(routes.toSorted()).toEqual(BLOG_POSTS.map((post) => post.slug).toSorted());
   });
 });
