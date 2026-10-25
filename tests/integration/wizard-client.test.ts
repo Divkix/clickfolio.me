@@ -1,10 +1,14 @@
+import type * as TanStackRouter from "@tanstack/react-router";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vite-plus/test";
 import WizardClient from "@/components/wizard/WizardClient";
 import { INDEXABLE_CONTENT } from "../helpers/pglite-db";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof TanStackRouter>()),
+  useNavigate: () => vi.fn(),
+}));
 
 describe("wizard initial client render", () => {
   it("opens a returning owner's preloaded content at review without a loading phase", () => {

@@ -1,32 +1,55 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { EXAMPLES_CACHE_TAG, profileCacheTag } from "@/lib/cache/edge-cache";
+import type { EdgePurgeMessage } from "@/lib/cache/edge-purge";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { logLines } from "@/tests/helpers/log-lines";
+import { fakeQueue } from "@/tests/helpers/queue";
 
-const { revalidatePathMock } = vi.hoisted(() => ({ revalidatePathMock: vi.fn() }));
+const mocks = vi.hoisted(() => {
+  const pending: Array<Promise<unknown>> = [];
 
-vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
+  return {
+    queue: vi.fn<() => Queue<EdgePurgeMessage> | undefined>(),
+    pending,
+    waitUntil: vi.fn<(promise: Promise<unknown>) => void>(),
+  };
+});
+
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    get EDGE_PURGE_QUEUE() {
+      return mocks.queue();
+    },
+  },
+  waitUntil: mocks.waitUntil,
+}));
 
 afterEach(() => {
-  revalidatePathMock.mockReset();
+  mocks.pending.length = 0;
+  mocks.waitUntil.mockReset();
   vi.restoreAllMocks();
 });
 
 describe("revalidatePublicProfilePages", () => {
-  it("flushes the directory, each profile and the galleries", () => {
-    revalidatePublicProfilePages(["alice", null, undefined, "bob"]);
+  it("queues a purge of each profile page and the galleries after the response", async () => {
+    const queue = fakeQueue();
+    mocks.queue.mockReturnValue(queue);
+    mocks.waitUntil.mockImplementation((promise) => mocks.pending.push(promise));
 
-    expect(revalidatePathMock.mock.calls).toEqual([
-      ["/explore"],
-      ["/@alice"],
-      ["/@bob"],
-      ["/examples/[slug]", "page"],
-    ]);
+    revalidatePublicProfilePages(["alice", null, undefined, "bob"]);
+    await Promise.all(mocks.pending);
+
+    expect(queue.sendBatch).toHaveBeenCalledTimes(1);
+    const [[messages]] = queue.sendBatch.mock.calls;
+    expect([...messages].flatMap((message) => message.body.tags).sort()).toEqual(
+      [EXAMPLES_CACHE_TAG, profileCacheTag("alice"), profileCacheTag("bob")].sort(),
+    );
   });
 
-  it("logs a failed revalidation instead of failing the write that triggered it", () => {
+  it("logs a failed purge instead of failing the write that triggered it", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    revalidatePathMock.mockImplementation(() => {
-      throw new Error("no request store");
+    mocks.waitUntil.mockImplementation(() => {
+      throw new Error("no request context");
     });
 
     expect(() => revalidatePublicProfilePages(["alice"])).not.toThrow();

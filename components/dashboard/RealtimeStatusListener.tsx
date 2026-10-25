@@ -1,7 +1,5 @@
-"use client";
-
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useResumeWebSocket } from "@/hooks/useResumeWebSocket";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
@@ -43,7 +41,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
         refreshDebounceRef.current = setTimeout(() => {
           if (hasRefreshedRef.current) return;
           hasRefreshedRef.current = true;
-          router.refresh();
+          void router.invalidate();
         }, 200);
       }
     },

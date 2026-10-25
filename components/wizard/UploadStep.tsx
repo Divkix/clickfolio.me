@@ -1,5 +1,3 @@
-"use client";
-
 import { Loader2, Upload } from "lucide-react";
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { useCallback, useEffect, useRef } from "react";

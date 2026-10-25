@@ -1,6 +1,7 @@
+import { isRedirect } from "@tanstack/react-router";
 import { verifyToken } from "@clerk/backend";
 import { eq } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { getRequest } from "@tanstack/react-start/server";
 import { Effect } from "effect";
 import {
   afterAll,
@@ -34,17 +35,7 @@ vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
 }));
 
-vi.mock("next/headers", () => ({
-  cookies: vi.fn(),
-}));
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw Object.assign(new Error("NEXT_REDIRECT"), {
-      digest: `NEXT_REDIRECT;replace;${path};307;`,
-    });
-  }),
-}));
+vi.mock("@tanstack/react-start/server", () => ({ getRequest: vi.fn() }));
 
 vi.mock("cloudflare:workers", () => ({
   env: {
@@ -60,7 +51,7 @@ vi.mock("@/lib/db", () => ({
 
 const mockVerifyToken = vi.mocked(verifyToken);
 
-const mockCookies = vi.mocked(cookies);
+const mockGetRequest = vi.mocked(getRequest);
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;
@@ -71,11 +62,14 @@ function tokenError(reason: string): Error {
   return Object.assign(new Error(`Clerk said ${reason}`), { reason });
 }
 
+let sessionRequest = new Request("https://clickfolio.me");
+
+/** Signs in both entry points: the request a route receives and Start's request store pages read. */
 function signedInAs(clerkId: string | null) {
-  // SAFETY: the code under test only calls get() on the cookie store.
-  mockCookies.mockResolvedValue({
-    get: (name: string) => (name === "__session" && clerkId ? { name, value: "jwt" } : undefined),
-  } as never);
+  sessionRequest = new Request("https://clickfolio.me", {
+    headers: clerkId ? { Cookie: "__session=jwt" } : {},
+  });
+  mockGetRequest.mockReturnValue(sessionRequest);
 
   if (clerkId) {
     mockVerifyToken.mockResolvedValue({
@@ -132,7 +126,7 @@ describe("withUserEffect", () => {
     await seedUser("user_a");
     signedInAs("user_a");
 
-    const response = await withUserEffect(undefined, (context) =>
+    const response = await withUserEffect(sessionRequest, (context) =>
       Db.use((service) => service.query("test.count", (handle) => handle.select().from(user))).pipe(
         Effect.map((rows) =>
           createSuccessResponse({
@@ -155,7 +149,7 @@ describe("withUserEffect", () => {
   it("answers 401 with the caller's message when signed out", async () => {
     signedInAs(null);
 
-    const response = await withUserEffect(undefined, () => ok, "Sign in to continue");
+    const response = await withUserEffect(sessionRequest, () => ok, "Sign in to continue");
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Sign in to continue", code: "UNAUTHORIZED" });
@@ -166,7 +160,7 @@ describe("withUserEffect", () => {
     signedInAs("user_a");
     mockVerifyToken.mockRejectedValue(tokenError("token-expired"));
 
-    const response = await withUserEffect(undefined, () => ok);
+    const response = await withUserEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(401);
   });
@@ -174,7 +168,7 @@ describe("withUserEffect", () => {
   it("answers 404 when the JWT is valid but the user row does not exist yet", async () => {
     signedInAs("user_missing");
 
-    const response = await withUserEffect(undefined, () => ok);
+    const response = await withUserEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
@@ -188,29 +182,10 @@ describe("withUserEffect", () => {
     signedInAs("user_a");
     mockVerifyToken.mockRejectedValue(tokenError("jwk-remote-failed-to-load"));
 
-    const response = await withUserEffect(undefined, () => ok);
+    const response = await withUserEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: "EXTERNAL_SERVICE_ERROR" });
-  });
-
-  it("lets a dynamic-usage signal from cookies() unwind instead of failing the request", async () => {
-    const signal = Object.assign(new Error("DYNAMIC_SERVER_USAGE"), {
-      digest: "DYNAMIC_SERVER_USAGE",
-    });
-
-    mockCookies.mockRejectedValue(signal);
-
-    await expect(withUserEffect(undefined, () => ok)).rejects.toBe(signal);
-  });
-
-  it("answers 500 and logs when cookies() itself breaks, rather than reading as signed out", async () => {
-    mockCookies.mockRejectedValue(new Error("cookie store exploded"));
-
-    const response = await withUserEffect(undefined, () => ok);
-
-    expect(response.status).toBe(500);
-    expect(console.error).toHaveBeenCalled();
   });
 });
 
@@ -219,7 +194,7 @@ describe("withAdminEffect", () => {
     await seedUser("user_admin", true);
     signedInAs("user_admin");
 
-    const response = await withAdminEffect(undefined, (context) =>
+    const response = await withAdminEffect(sessionRequest, (context) =>
       Effect.succeed(createSuccessResponse({ id: context.user.id })),
     );
 
@@ -231,7 +206,7 @@ describe("withAdminEffect", () => {
     await seedUser("user_a");
     signedInAs("user_a");
 
-    const response = await withAdminEffect(undefined, () => ok);
+    const response = await withAdminEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ error: "Admin access required", code: "FORBIDDEN" });
@@ -240,7 +215,7 @@ describe("withAdminEffect", () => {
   it("answers 401 when signed out", async () => {
     signedInAs(null);
 
-    const response = await withAdminEffect(undefined, () => ok);
+    const response = await withAdminEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(401);
   });
@@ -249,18 +224,18 @@ describe("withAdminEffect", () => {
     await seedUser("user_admin", true);
     signedInAs("user_admin");
 
-    expect((await withAdminEffect(undefined, () => ok)).status).toBe(200);
+    expect((await withAdminEffect(sessionRequest, () => ok)).status).toBe(200);
 
     await db.update(user).set({ isAdmin: false }).where(eq(user.clerkId, "user_admin"));
 
-    expect((await withAdminEffect(undefined, () => ok)).status).toBe(403);
+    expect((await withAdminEffect(sessionRequest, () => ok)).status).toBe(403);
   });
 
   it("answers 503 when Clerk is unavailable instead of denying as signed out", async () => {
     signedInAs("user_admin");
     mockVerifyToken.mockRejectedValue(new TypeError("fetch failed"));
 
-    const response = await withAdminEffect(undefined, () => ok);
+    const response = await withAdminEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(503);
   });
@@ -296,24 +271,12 @@ describe("getServerSession", () => {
     await expect(getServerSession()).rejects.toThrow(/temporarily unavailable/);
   });
 
-  it("passes a dynamic-usage signal from cookies() through untouched", async () => {
-    const signal = Object.assign(new Error("DYNAMIC_SERVER_USAGE"), {
-      digest: "DYNAMIC_SERVER_USAGE",
+  it("fails rather than reading as signed out when getRequest() itself breaks", async () => {
+    mockGetRequest.mockImplementation(() => {
+      throw new Error("request context exploded");
     });
 
-    mockCookies.mockRejectedValue(signal);
-
-    await expect(getServerSession()).rejects.toBe(signal);
-  });
-
-  it("passes a redirect signal from cookies() through untouched", async () => {
-    const signal = Object.assign(new Error("NEXT_REDIRECT"), {
-      digest: "NEXT_REDIRECT;replace;/;307;",
-    });
-
-    mockCookies.mockRejectedValue(signal);
-
-    await expect(getServerSession()).rejects.toBe(signal);
+    await expect(getServerSession()).rejects.toThrow();
   });
 });
 
@@ -321,18 +284,18 @@ describe("requireAdminAuth", () => {
   it("redirects a signed-out visitor home, outside any Effect", async () => {
     signedInAs(null);
 
-    await expect(requireAdminAuth()).rejects.toMatchObject({
-      digest: "NEXT_REDIRECT;replace;/;307;",
-    });
+    await expect(requireAdminAuth()).rejects.toSatisfy(
+      (cause: unknown) => isRedirect(cause) && cause.options.to === "/",
+    );
   });
 
   it("redirects a non-admin to the dashboard", async () => {
     await seedUser("user_a");
     signedInAs("user_a");
 
-    await expect(requireAdminAuth()).rejects.toMatchObject({
-      digest: "NEXT_REDIRECT;replace;/dashboard;307;",
-    });
+    await expect(requireAdminAuth()).rejects.toSatisfy(
+      (cause: unknown) => isRedirect(cause) && cause.options.to === "/dashboard",
+    );
   });
 
   it("returns the admin", async () => {
@@ -346,8 +309,6 @@ describe("requireAdminAuth", () => {
     signedInAs("user_admin");
     mockVerifyToken.mockRejectedValue(new TypeError("fetch failed"));
 
-    await expect(requireAdminAuth()).rejects.not.toMatchObject({
-      digest: expect.stringContaining("NEXT_REDIRECT"),
-    });
+    await expect(requireAdminAuth()).rejects.toThrow(/temporarily unavailable/);
   });
 });

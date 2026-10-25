@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import {
   afterAll,
   afterEach,
@@ -106,7 +107,7 @@ describe("GET /api/admin/analytics", () => {
   it("builds the dashboard from validated Umami data", async () => {
     stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
-    const { GET } = await import("@/app/api/admin/analytics/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/analytics?period=7d"));
 
     expect(response.status).toBe(200);
@@ -125,7 +126,7 @@ describe("GET /api/admin/analytics", () => {
   it("answers 400 for an unknown period without calling Umami", async () => {
     const fetchMock = stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
-    const { GET } = await import("@/app/api/admin/analytics/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/analytics?period=1y"));
 
     expect(response.status).toBe(400);
@@ -137,7 +138,7 @@ describe("GET /api/admin/analytics", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     stubUmami(() => json({}, 502));
 
-    const { GET } = await import("@/app/api/admin/analytics/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/analytics"));
 
     expect(response.status).toBe(503);
@@ -150,7 +151,7 @@ describe("GET /api/admin/analytics", () => {
       endpoint === "stats" ? json({ pageviews: "many" }) : json(umamiBody(endpoint, path)),
     );
 
-    const { GET } = await import("@/app/api/admin/analytics/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/analytics"));
 
     expect(response.status).toBe(502);
@@ -161,7 +162,7 @@ describe("GET /api/admin/analytics", () => {
       error: new Response(JSON.stringify({ error: "Admin access required" }), { status: 403 }),
     });
 
-    const { GET } = await import("@/app/api/admin/analytics/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/analytics"));
 
     expect(response.status).toBe(403);
@@ -201,7 +202,7 @@ describe("GET /api/analytics/stats", () => {
   it("sums the current and previous handles", async () => {
     const fetchMock = stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=7d"));
 
     expect(response.status).toBe(200);
@@ -233,7 +234,7 @@ describe("GET /api/analytics/stats", () => {
     const fetchMock = stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
     // Load the route after installing the auth, database and upstream mocks.
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
 
     expect(response.status).toBe(200);
@@ -251,7 +252,7 @@ describe("GET /api/analytics/stats", () => {
     const select = vi.spyOn(db, "select");
     stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
 
     expect(response.status).toBe(200);
@@ -268,7 +269,7 @@ describe("GET /api/analytics/stats", () => {
       error: null,
     });
 
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
 
     expect(await response.json()).toMatchObject({ totalViews: 0, viewsByDay: [] });
@@ -278,7 +279,7 @@ describe("GET /api/analytics/stats", () => {
   it("answers 400 for an unknown period", async () => {
     stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=1y"));
 
     expect(response.status).toBe(400);
@@ -294,7 +295,7 @@ describe("GET /api/analytics/stats", () => {
       endpoint === "metrics" ? json({}, 500) : json(umamiBody(endpoint, path)),
     );
 
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
 
     expect(response.status).toBe(503);
@@ -309,7 +310,7 @@ describe("GET /api/analytics/stats", () => {
 
     const fetchMock = stubUmami((endpoint, path) => json(umamiBody(endpoint, path)));
 
-    const { GET } = await import("@/app/api/analytics/stats/route");
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats"));
 
     expect(response.status).toBe(503);

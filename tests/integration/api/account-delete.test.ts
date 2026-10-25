@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import {
   afterAll,
@@ -11,7 +12,7 @@ import {
 } from "vite-plus/test";
 import { handleChanges, resumes, siteData, user } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
-import { NOW, seedUser, signedInAs } from "../../helpers/clerk-session";
+import { NOW, seedUser, sessionRequest, signedInAs } from "../../helpers/clerk-session";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
 
@@ -45,8 +46,6 @@ vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
   createClerkClient: vi.fn(() => ({ users: { deleteUser: mocks.deleteUser } })),
 }));
-
-vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 
 const bucket: FakeBucket = { objects: new Set(), deleted: [], failDeletes: false, failList: false };
 
@@ -139,7 +138,7 @@ afterEach(() => {
 });
 
 function deletion(body: JsonValue = { confirmation: "alice@example.com" }): Request {
-  return new Request("https://clickfolio.me/api/account/delete", {
+  return sessionRequest("https://clickfolio.me/api/account/delete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -193,7 +192,7 @@ describe("POST /api/account/delete", () => {
       return {};
     });
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(200);
@@ -205,7 +204,7 @@ describe("POST /api/account/delete", () => {
   it("removes every row of the user and every R2 object under their prefix, and only theirs", async () => {
     await seedAliceFiles();
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
     const body: { warnings?: unknown } = await response.json();
 
@@ -232,7 +231,7 @@ describe("POST /api/account/delete", () => {
     await seedAliceFiles();
     mocks.deleteUser.mockRejectedValue(Object.assign(new Error("clerk down"), { status: 503 }));
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBeGreaterThanOrEqual(500);
@@ -245,7 +244,7 @@ describe("POST /api/account/delete", () => {
     await seedAliceFiles();
     mocks.deleteUser.mockRejectedValue(Object.assign(new Error("not found"), { status: 404 }));
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(200);
@@ -253,7 +252,7 @@ describe("POST /api/account/delete", () => {
   });
 
   it("refuses a confirmation that is not the account email, before touching Clerk", async () => {
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion({ confirmation: "bob@example.com" }));
 
     expect(response.status).toBe(400);
@@ -264,7 +263,7 @@ describe("POST /api/account/delete", () => {
   });
 
   it("accepts the confirmation in any letter case", async () => {
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion({ confirmation: "Alice@Example.com" }));
 
     expect(response.status).toBe(200);
@@ -273,7 +272,7 @@ describe("POST /api/account/delete", () => {
   it.each([{}, { confirmation: "not-an-email" }])(
     "answers 400 for the invalid body %j",
     async (body) => {
-      const { POST } = await import("@/app/api/account/delete/route");
+      const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
       const response = await POST(deletion(body));
 
       expect(response.status).toBe(400);
@@ -284,7 +283,7 @@ describe("POST /api/account/delete", () => {
   it("answers 500 without deleting anything when storage is not bound", async () => {
     mocks.state.bucketBound = false;
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(500);
@@ -295,7 +294,7 @@ describe("POST /api/account/delete", () => {
   it("answers 5xx without deleting anything when the Clerk secret is not configured", async () => {
     mocks.state.secretKey = undefined;
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     // Sign-in verification already needs the key, so the request stops before the route runs.
@@ -307,7 +306,7 @@ describe("POST /api/account/delete", () => {
   it("answers 401 when signed out", async () => {
     signedInAs(null);
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(401);
@@ -318,7 +317,7 @@ describe("POST /api/account/delete", () => {
     await seedAliceFiles();
     bucket.failDeletes = true;
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(200);
@@ -334,7 +333,7 @@ describe("POST /api/account/delete", () => {
     await seedAliceFiles();
     bucket.failDeletes = true;
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
     const text = await response.text();
 
@@ -355,7 +354,7 @@ describe("POST /api/account/delete", () => {
       Object.assign(new Error("connection terminated"), { code: "08006" }),
     );
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
     const body: { success?: boolean; error?: string } = await response.json();
 
@@ -377,7 +376,7 @@ describe("POST /api/account/delete", () => {
       Object.assign(new Error("connection terminated"), { code: "08006" }),
     );
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
 
     await POST(deletion());
 
@@ -397,7 +396,7 @@ describe("POST /api/account/delete", () => {
       return realTransaction(run, config);
     });
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(200);
@@ -408,7 +407,7 @@ describe("POST /api/account/delete", () => {
     await seedAliceFiles();
     bucket.failList = true;
 
-    const { POST } = await import("@/app/api/account/delete/route");
+    const POST = serverHandler((await import("@/app/routes/api/account/delete")).Route, "POST");
     const response = await POST(deletion());
 
     expect(response.status).toBe(200);

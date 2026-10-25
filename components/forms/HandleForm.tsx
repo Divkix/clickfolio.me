@@ -1,8 +1,6 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Copy, Link2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -74,7 +72,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
       await response.json();
 
       toast.success("Handle updated successfully!");
-      router.refresh();
+      void router.invalidate();
     } catch (err) {
       log("error", "Handle update error", { ...errorFields(err) });
       toast.error(err instanceof Error ? err.message : "Failed to update handle");

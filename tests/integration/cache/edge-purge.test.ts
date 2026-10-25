@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { encodeCloudflareCacheTag } from "@vinext/cloudflare/cache/cdn-adapter.runtime";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { encodeCacheTag } from "@/lib/cache/edge-cache";
 import {
   EDGE_PURGE_MAX_RETRIES,
   MAX_TAGS_PER_PURGE,
@@ -16,7 +16,7 @@ import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { logLines } from "@/tests/helpers/log-lines";
 import { fakeBatch, fakeMessage, fakeQueue } from "@/tests/helpers/queue";
 
-const tag = (raw: string) => encodeCloudflareCacheTag(raw);
+const tag = (raw: string) => encodeCacheTag(raw);
 
 const ok: PurgeResult = { success: true, errors: [] };
 

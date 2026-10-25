@@ -135,7 +135,7 @@ ${publicUrlSection()}
 
 ### Platform
 - **Runtime**: Cloudflare Workers (edge compute)
-- **Framework**: vinext (Vite-based Next.js on Workers)
+- **Framework**: TanStack Start (React, Vite) on Workers
 - **Language**: TypeScript
 
 ### Storage

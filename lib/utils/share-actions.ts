@@ -1,5 +1,3 @@
-"use client";
-
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { useCallback, useMemo } from "react";

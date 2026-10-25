@@ -227,16 +227,6 @@ describe("Clerk.verifyToken", () => {
     expect(failure).toMatchObject({ kind: "timeout" });
     expect(describeFailure(failure)).toMatchObject({ status: 504 });
   });
-
-  it("lets a thrown framework signal unwind as a defect", async () => {
-    const signal = Object.assign(new Error("DYNAMIC_SERVER_USAGE"), {
-      digest: "DYNAMIC_SERVER_USAGE",
-    });
-
-    mockVerifyToken.mockRejectedValue(signal);
-
-    await expect(verify("jwt")).rejects.toBe(signal);
-  });
 });
 
 function remove(clerkId: string, layerEnv: CloudflareEnv = env) {

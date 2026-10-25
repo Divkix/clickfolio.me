@@ -14,10 +14,8 @@
 /coverage
 *.lcov
 
-# vinext / next.js
-/.next/
-/out/
-/.vinext/
+# TanStack Start / Router temp files
+/.tanstack/
 
 # production
 /build

@@ -1,8 +1,6 @@
-"use client";
-
 import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, Shield, X } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useNavigate, useRouter } from "@tanstack/react-router";
+import type { LinkProps } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
 import { useClerk, useSession } from "@/lib/auth/client";
 
@@ -14,16 +12,17 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProps) {
-  const pathname = usePathname();
+  const pathname = useLocation({ select: (location) => location.pathname });
   const router = useRouter();
+  const navigate = useNavigate();
   const clerk = useClerk();
 
   const { data: session } = useSession();
 
   const handleLogout = async () => {
     await clerk.signOut();
-    router.push("/");
-    router.refresh();
+    await navigate({ to: "/" });
+    await router.invalidate();
   };
 
   const getInitials = () => {
@@ -64,7 +63,7 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
       icon: Settings,
       exact: false,
     },
-  ];
+  ] satisfies { name: string; href: LinkProps["to"]; icon: typeof Home; exact: boolean }[];
 
   const isActive = (href: string, exact: boolean) => {
     if (exact) {
@@ -105,7 +104,7 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
         )}
 
         <div className="px-5 h-16 flex items-center">
-          <Link href="/" aria-label="clickfolio.me home">
+          <Link to="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </Link>
         </div>
@@ -117,7 +116,7 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
 
             return (
               <Link
-                href={item.href}
+                to={item.href}
                 key={item.href}
                 onClick={() => onClose?.()}
                 aria-current={active ? "page" : undefined}
@@ -140,8 +139,9 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
           {(handle || isAdmin) && <div className="h-px bg-border mx-3 my-3" />}
 
           {handle && (
-            <a
-              href={`/@${handle}`}
+            <Link
+              to="/@{$handle}"
+              params={{ handle }}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
@@ -149,12 +149,12 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
             >
               <ExternalLink size={18} aria-hidden="true" />
               <span>View Site</span>
-            </a>
+            </Link>
           )}
 
           {isAdmin && (
             <Link
-              href="/admin"
+              to="/admin"
               onClick={() => onClose?.()}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
             >

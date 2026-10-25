@@ -1,15 +1,13 @@
 import { relative, resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
-import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-cdn-adapter";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
-import vinext from "vinext";
 import { defineConfig, type Plugin } from "vite-plus";
 
 /**
  * Vite plugin that stubs server-only modules for client environments.
  * - `cloudflare:workers` — Workers-only module imported by server code, absent in the browser
- *
- * `node:async_hooks` needs no entry: vinext's own `vinext:async-hooks-stub` serves the client one.
  */
 function clientModuleStubs(): Plugin {
   const stubs = {
@@ -85,6 +83,7 @@ function clientEffectGuard(): Plugin {
 const IGNORE_PATTERNS = [
   "dist/**",
   "lib/cloudflare-env.d.ts",
+  "app/routeTree.gen.ts",
   ".agent/**",
   ".agents/**",
   ".claude/**",
@@ -185,17 +184,12 @@ export default defineConfig(() => {
       environment: "node",
       globals: true,
       alias: [
-        { find: "@", replacement: resolve(import.meta.dirname, "./") },
         {
           find: "cloudflare:workers",
           replacement: resolve(import.meta.dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
         },
-        // Tests run without the vinext plugin, so point `next/*` at the SSR/client shims it serves
-        // (its RSC build swaps in navigation.react-server). One to one for the modules imported
-        // here; a few differ (next/font/google → font-google).
-        { find: /^next\/(.+)$/, replacement: "vinext/shims/$1" },
       ],
-      exclude: ["node_modules", ".next", "dist", ".worktrees/**"],
+      exclude: ["node_modules", "dist", ".worktrees/**"],
       pool: "threads",
       projects: [
         {
@@ -230,6 +224,7 @@ export default defineConfig(() => {
           "**/node_modules/**",
           "tests/**",
           "lib/stubs/**",
+          "app/routeTree.gen.ts",
         ],
         thresholds: { branches: 62, functions: 64, lines: 61, statements: 61 },
       },
@@ -237,22 +232,19 @@ export default defineConfig(() => {
     plugins: isTest
       ? []
       : [
-          vinext({
-            // Edge-cached ISR on Workers Cache; purges go through a queue
-            // (lib/cache/queued-cdn-adapter.ts, worker/index.ts `queue`).
-            cache: {
-              cdn: {
-                ...workersCacheCdnAdapter(),
-                adapter: resolve("lib/cache/queued-cdn-adapter.ts"),
-              },
-            },
-          }),
-          cloudflare({
-            viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-          }),
+          cloudflare({ viteEnvironment: { name: "ssr" } }),
+          tanstackStart({ srcDirectory: "app" }),
+          viteReact(),
           clientModuleStubs(),
           clientEffectGuard(),
         ],
+    resolve: {
+      tsconfigPaths: true,
+    },
+    server: {
+      // ngrok tunnels for testing the dev server from other devices.
+      allowedHosts: [".ngrok-free.app"],
+    },
     optimizeDeps: {
       exclude: ["lucide-react"],
     },

@@ -1,7 +1,5 @@
-"use client";
-
 import { Sparkles, X } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/client";
 import type { ThemeChrome } from "@/lib/templates/theme-chrome";
@@ -66,8 +64,6 @@ export function CreateYoursCTA({ handle, profileId, styles }: CreateYoursCTAProp
     return null;
   }
 
-  const ctaUrl = `/?utm_source=resume&utm_medium=cta&utm_campaign=${encodeURIComponent(handle)}`;
-
   return (
     <div
       className={cn(
@@ -78,7 +74,8 @@ export function CreateYoursCTA({ handle, profileId, styles }: CreateYoursCTAProp
       <Sparkles className="size-4 shrink-0" aria-hidden="true" />
       <span className="text-sm font-medium hidden sm:inline">Like this resume?</span>
       <Link
-        href={ctaUrl}
+        to="/"
+        search={{ utm_source: "resume", utm_medium: "cta", utm_campaign: handle }}
         className={cn(
           "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200",
           styles.button,

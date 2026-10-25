@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RateLimited } from "@/lib/effect/failures";
@@ -127,14 +128,6 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({
-    get: vi.fn().mockReturnValue(undefined),
-    set: vi.fn(),
-    delete: vi.fn(),
-  }),
-}));
-
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockReturnValue(mockDb),
 }));
@@ -206,7 +199,7 @@ describe("POST /api/upload", () => {
   beforeEach(resetAll);
 
   it("1. Anonymous upload → success (file stored in R2, temp key returned)", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
     const request = makeUploadRequest(buffer);
     const info = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -236,7 +229,7 @@ describe("POST /api/upload", () => {
   });
 
   it("2. Upload with invalid PDF → rejected (400 bad request)", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makeInvalidBuffer();
     const request = makeUploadRequest(buffer);
 
@@ -254,7 +247,7 @@ describe("POST /api/upload", () => {
       Effect.fail(new RateLimited({ message: "Rate limit exceeded", retryAfterSeconds: 3600 })),
     );
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
     const request = makeUploadRequest(buffer);
 
@@ -264,7 +257,7 @@ describe("POST /api/upload", () => {
   });
 
   it("4. Upload without Content-Type → 400 error", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
 
     const request = new Request("http://localhost:3000/api/upload", {
@@ -282,7 +275,7 @@ describe("POST /api/upload", () => {
   });
 
   it("5. Upload without Content-Length → 411 error", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
 
     const request = new Request("http://localhost:3000/api/upload", {
@@ -300,7 +293,7 @@ describe("POST /api/upload", () => {
   });
 
   it("6. Upload with mismatched Content-Length → 400 error", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
 
     const request = new Request("http://localhost:3000/api/upload", {
@@ -323,7 +316,7 @@ describe("POST /api/upload", () => {
   });
 
   it("7. Upload without X-Filename → 400 error", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
 
     const request = new Request("http://localhost:3000/api/upload", {
@@ -341,7 +334,7 @@ describe("POST /api/upload", () => {
   });
 
   it("8. Upload with filename too long → 400 error", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const buffer = makePdfBuffer();
     const longFilename = `${"a".repeat(300)}.pdf`;
 
@@ -362,7 +355,7 @@ describe("POST /api/upload", () => {
 
   it("9. Upload file too large → 413 error", async () => {
     const { MAX_FILE_SIZE } = await import("@/lib/utils/validation");
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const largeSize = MAX_FILE_SIZE + 1;
 
     const request = new Request("http://localhost:3000/api/upload", {
@@ -381,7 +374,7 @@ describe("POST /api/upload", () => {
   });
 
   it("10. Upload file too small → 400 error", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const tinyBuffer = new ArrayBuffer(50);
 
     const request = new Request("http://localhost:3000/api/upload", {
@@ -399,7 +392,7 @@ describe("POST /api/upload", () => {
     expect(response.status).toBe(400);
   });
   it("rejects a missing request body through the route failure map", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
 
     const response = await POST(
       new Request("http://localhost:3000/api/upload", {
@@ -421,7 +414,7 @@ describe("POST /api/upload", () => {
 
   it("rejects a body exceeding the size limit despite an allowed Content-Length", async () => {
     const { MAX_FILE_SIZE } = await import("@/lib/utils/validation");
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
 
     const response = await POST(
       new Request("http://localhost:3000/api/upload", {
@@ -447,7 +440,7 @@ describe("POST /api/resume/claim", () => {
   beforeEach(resetAll);
 
   it("12. Claim without auth → 401 unauthorized", async () => {
-    const { POST } = await import("@/app/api/resume/claim/route");
+    const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
     const response = await POST(makeClaimRequest("temp/test/file.pdf"));
 
     expect(response.status).toBe(401);

@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import type * as DrizzleOrm from "drizzle-orm";
 import type { JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -342,7 +343,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         createdAt: new Date().toISOString(),
       });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -356,7 +357,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
       mockFindFirst.mockResolvedValue(null);
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=nonexistent");
       const response = await GET(request);
 
@@ -376,7 +377,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         createdAt: new Date().toISOString(),
       });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -398,7 +399,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         createdAt: new Date(Date.now() - 5000).toISOString(),
       });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -432,7 +433,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
           parsedContent,
         });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -455,7 +456,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         createdAt: new Date().toISOString(),
       });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -469,7 +470,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 401 when not authenticated (test 12)", async () => {
       unauthenticated();
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -479,7 +480,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 400 when resume_id is missing (validation)", async () => {
       authedAs("user-123");
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status");
       const response = await GET(request);
 
@@ -491,7 +492,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 400 when key is missing (validation error)", async () => {
       authedAs("user-123");
 
-      const { POST } = await import("@/app/api/resume/claim/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {});
       const response = await POST(request);
 
@@ -501,7 +502,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 400 when key does not start with temp/ (test 14)", async () => {
       authedAs("user-123");
 
-      const { POST } = await import("@/app/api/resume/claim/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
         key: "users/hack/resume.pdf",
@@ -516,7 +517,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
       mockedValidateRequestSize.mockReturnValue({ valid: false, error: "Request too large" });
 
-      const { POST } = await import("@/app/api/resume/claim/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
         key: "temp/uuid/resume.pdf",
@@ -530,7 +531,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 401 when not authenticated", async () => {
       unauthenticated();
 
-      const { POST } = await import("@/app/api/resume/claim/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
         key: "temp/uuid/resume.pdf",
@@ -560,7 +561,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         fileHash: "abc123hash",
       });
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -605,7 +606,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockReturning.mockResolvedValue([]);
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -638,7 +639,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         fileHash: "abc123hash",
       });
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -680,7 +681,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         fileHash: "abc123hash",
       });
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -695,7 +696,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
       mockFindFirst.mockResolvedValue(null);
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "nonexistent",
@@ -720,7 +721,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         fileHash: "abc123hash",
       });
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -748,7 +749,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         fileHash: "abc123hash",
       });
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -762,7 +763,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 401 when not authenticated", async () => {
       unauthenticated();
 
-      const { POST } = await import("@/app/api/resume/retry/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
@@ -817,7 +818,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
       ]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
@@ -843,7 +844,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         { id: "site-data-123", lastPublishedAt: new Date().toISOString(), content: thinContent },
       ]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const response = await PUT(
         makeRequest("http://localhost:3000/api/resume/update", "PUT", { content: thinContent }),
@@ -864,7 +865,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
       ]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const response = await PUT(
         makeRequest("http://localhost:3000/api/resume/update", "PUT", {
@@ -888,7 +889,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
       ]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const response = await PUT(
         makeRequest("http://localhost:3000/api/resume/update", "PUT", {
@@ -904,7 +905,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 401 when not authenticated (test 12)", async () => {
       unauthenticated();
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
@@ -918,7 +919,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 400 with malformed content (test 15)", async () => {
       authedAs("user-123");
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: {
@@ -938,7 +939,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
       mockedValidateRequestSize.mockReturnValue({ valid: false, error: "Request body too large" });
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
@@ -954,7 +955,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockReturning.mockResolvedValue([]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
@@ -973,7 +974,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockLimit.mockResolvedValue([{ updatedAt: "2026-01-01T00:00:00.000Z" }]);
       mockReturning.mockResolvedValue([]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
@@ -993,7 +994,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockReturning.mockResolvedValue([{ themeId: "bento", content: validResumeContent }]);
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
@@ -1014,7 +1018,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
         { themeId: "bento", content: { ...validResumeContent, headline: "Your headline" } },
       ]);
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const response = await POST(
         makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
@@ -1032,7 +1039,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
       auth.user.privacySettings = { ...DEFAULT_PRIVACY_SETTINGS, hide_from_search: true };
       mockReturning.mockResolvedValue([{ themeId: "bento", content: validResumeContent }]);
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const response = await POST(
         makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
@@ -1048,7 +1058,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 400 for invalid theme ID (test 14)", async () => {
       authedAs("user-123");
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "invalid_theme_id",
@@ -1062,7 +1075,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("rejects a removed theme id even though reads still resolve it", async () => {
       authedAs("user-123");
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const response = await POST(
         makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
@@ -1079,7 +1095,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockReturning.mockResolvedValue([{ themeId: "bold_corporate", content: validResumeContent }]);
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bold_corporate",
@@ -1097,7 +1116,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockReturning.mockResolvedValue([]);
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
@@ -1114,7 +1136,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockLimit.mockResolvedValue([{ updatedAt: "2026-01-01T00:00:00.000Z" }]);
       mockReturning.mockResolvedValue([]);
 
-      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const POST = serverHandler(
+        (await import("@/app/routes/api/resume/update-theme")).Route,
+        "POST",
+      );
 
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
@@ -1132,7 +1157,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockFindFirst.mockResolvedValue(null);
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=deleted-id");
       const response = await GET(request);
 
@@ -1146,7 +1171,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("handles JSON parsing errors gracefully", async () => {
       authedAs("user-123");
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = new Request("http://localhost:3000/api/resume/update", {
         method: "PUT",
@@ -1162,7 +1187,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("handles missing request body", async () => {
       authedAs("user-123");
 
-      const { POST } = await import("@/app/api/resume/claim/route");
+      const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
@@ -1188,7 +1213,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         createdAt: new Date().toISOString(),
       });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -1210,7 +1235,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         createdAt: new Date().toISOString(),
       });
 
-      const { GET } = await import("@/app/api/resume/status/route");
+      const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/resume/status?resume_id=resume-123");
       const response = await GET(request);
 
@@ -1245,7 +1270,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
       ]);
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: privacyContent,
@@ -1259,7 +1284,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("handles null/empty content validation (test 22)", async () => {
       authedAs("user-123");
 
-      const { PUT } = await import("@/app/api/resume/update/route");
+      const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: null,

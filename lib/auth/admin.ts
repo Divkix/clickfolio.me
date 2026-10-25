@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
 import type { AuthRow } from "@/lib/auth/clerk";
 import type { Db } from "@/lib/effect/db";
 import {
@@ -24,13 +24,13 @@ export async function requireAdminAuth(): Promise<AdminUser> {
   const session = await getServerSession();
 
   if (!session?.user) {
-    redirect("/");
+    throw redirect({ to: "/" });
   }
 
   const adminUser = adminUserFromSession(session.user);
 
   if (!adminUser.isAdmin) {
-    redirect("/dashboard");
+    throw redirect({ to: "/dashboard" });
   }
 
   return adminUser;
@@ -40,13 +40,15 @@ export async function requireAdminAuth(): Promise<AdminUser> {
  * Admin check for API routes as an Effect. `isAdmin` is read from Postgres on every call, never
  * from the token. `Unauthorized` when signed out, `Forbidden` when signed in without admin.
  */
-export function authenticateAdmin(): Effect.Effect<
+export function authenticateAdmin(
+  request?: Request,
+): Effect.Effect<
   AdminUser,
   Unauthorized | Forbidden | ClerkFailed | DbFailed | DbConflict,
   Clerk | Db
 > {
   return Effect.gen(function* () {
-    const session = yield* findSession();
+    const session = yield* findSession(request);
 
     if (!session?.user) {
       return yield* Effect.fail(new Unauthorized({ message: "Unauthorized" }));

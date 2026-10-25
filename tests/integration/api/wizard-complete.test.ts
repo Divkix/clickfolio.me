@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import {
   afterAll,
@@ -11,7 +12,7 @@ import {
 } from "vite-plus/test";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
-import { NOW, seedUser, signedInAs } from "../../helpers/clerk-session";
+import { NOW, seedUser, sessionRequest, signedInAs } from "../../helpers/clerk-session";
 import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
 
 const mocks = vi.hoisted(() => ({
@@ -21,8 +22,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@clerk/backend", () => ({ verifyToken: vi.fn() }));
-
-vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 
 vi.mock("cloudflare:workers", () => ({
   env: {
@@ -83,7 +82,7 @@ function complete(body: JsonValue, headers: Record<string, string> = {}): Reques
 }
 
 function completeRaw(text: string, headers: Record<string, string> = {}): Request {
-  return new Request("https://clickfolio.me/api/wizard/complete", {
+  return sessionRequest("https://clickfolio.me/api/wizard/complete", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: text,
@@ -112,7 +111,7 @@ async function auditOf(userId: string) {
 
 describe("POST /api/wizard/complete", () => {
   it("first-time onboarding claims the handle, privacy, theme and one audit row", async () => {
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
 
     const response = await POST(complete(validBody()));
 
@@ -143,7 +142,7 @@ describe("POST /api/wizard/complete", () => {
   it("renames an existing handle, audits it and refreshes both public pages", async () => {
     await db.update(user).set({ handle: "old-handle" }).where(eq(user.id, "alice"));
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(200);
@@ -170,7 +169,7 @@ describe("POST /api/wizard/complete", () => {
       updatedAt: NOW,
     });
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(200);
@@ -204,7 +203,7 @@ describe("POST /api/wizard/complete", () => {
       return realTransaction(run, config);
     });
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(200);
@@ -226,7 +225,7 @@ describe("POST /api/wizard/complete", () => {
       })),
     );
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(429);
@@ -255,7 +254,7 @@ describe("POST /api/wizard/complete", () => {
       })),
     );
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(200);
@@ -263,7 +262,7 @@ describe("POST /api/wizard/complete", () => {
   });
 
   it("answers 409 with the same message when another user has the handle", async () => {
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody({ handle: "handle-bob" })));
 
     expect(response.status).toBe(409);
@@ -275,7 +274,7 @@ describe("POST /api/wizard/complete", () => {
   });
 
   it("answers 400 for a reserved handle", async () => {
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody({ handle: "api" })));
 
     expect(response.status).toBe(400);
@@ -294,7 +293,7 @@ describe("POST /api/wizard/complete", () => {
       return realTransaction(run, config);
     });
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(409);
@@ -317,7 +316,7 @@ describe("POST /api/wizard/complete", () => {
       return realTransaction(run, config);
     });
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(409);
@@ -334,7 +333,7 @@ describe("POST /api/wizard/complete", () => {
     validBody({ privacy_settings: { show_phone: "yes" } }),
     {},
   ])("answers 400 for the invalid body %j", async (body) => {
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(body));
 
     expect(response.status).toBe(400);
@@ -347,7 +346,7 @@ describe("POST /api/wizard/complete", () => {
   it("answers 401 when signed out", async () => {
     signedInAs(null);
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(401);
@@ -357,7 +356,7 @@ describe("POST /api/wizard/complete", () => {
   });
 
   it("answers 400 for malformed JSON and 413 for an oversized declared body", async () => {
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
 
     expect((await POST(completeRaw("{nope"))).status).toBe(400);
     expect((await POST(complete(validBody(), { "Content-Length": "9999999" }))).status).toBe(413);
@@ -370,7 +369,7 @@ describe("POST /api/wizard/complete when the database fails", () => {
       Object.assign(new Error("connection terminated"), { code: "08006" }),
     );
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(503);
@@ -394,7 +393,7 @@ describe("POST /api/wizard/complete when the database fails", () => {
       })),
     );
 
-    const { POST } = await import("@/app/api/wizard/complete/route");
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
     const response = await POST(complete(validBody()));
 
     expect(response.status).toBe(429);

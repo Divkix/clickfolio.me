@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { verifyToken } from "@clerk/backend";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -108,7 +109,7 @@ function verifiedAs(clerkId: string) {
 }
 
 async function check(handle: string | null, options: { signedIn?: boolean } = {}) {
-  const { GET } = await import("@/app/api/handle/check/route");
+  const GET = serverHandler((await import("@/app/routes/api/handle/check")).Route, "GET");
 
   const url = new URL("https://clickfolio.me/api/handle/check");
 

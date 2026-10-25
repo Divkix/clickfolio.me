@@ -1,5 +1,3 @@
-"use client";
-
 import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";

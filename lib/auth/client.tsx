@@ -1,5 +1,3 @@
-"use client";
-
 import { ClerkProvider, SignInButton, useAuth, useClerk, useUser } from "@clerk/react";
 import { useMemo } from "react";
 

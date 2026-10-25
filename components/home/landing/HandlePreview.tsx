@@ -1,7 +1,3 @@
-"use client";
-
-// Interactive handle check and rotating preview; the surrounding home shell stays on the server.
-
 import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { saveDesiredHandle } from "@/lib/utils/desired-handle";

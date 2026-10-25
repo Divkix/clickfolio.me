@@ -1,10 +1,13 @@
+import { redirect } from "@tanstack/react-router";
+import { getCookie } from "@tanstack/react-start/server";
 import { env } from "cloudflare:workers";
 import { desc, eq } from "drizzle-orm";
 import { Effect } from "effect";
-import { cookies } from "next/headers";
+import { getServerSession } from "@/lib/auth/session";
 import { loadEditContent } from "@/lib/data/owner-pages";
 import { resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import { getStatusView } from "@/lib/resume/lifecycle";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import { log } from "@/lib/utils/log";
@@ -14,17 +17,15 @@ import { decideWizardStart } from "@/lib/wizard/initial-step";
 /** Read-only initialization: claiming an upload must remain a client POST, never a page render. */
 export function loadWizardPage(userId: string) {
   return Effect.gen(function* () {
-    const cookie = yield* Effect.promise(async () => (await cookies()).get(COOKIE_NAME));
+    const cookie = getCookie(COOKIE_NAME);
     const secret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
 
-    if (cookie?.value && !secret) {
+    if (cookie && !secret) {
       log("error", "PENDING_UPLOAD_SECRET is not configured; pending uploads cannot be verified");
     }
 
     const parsed =
-      cookie?.value && secret
-        ? yield* Effect.promise(() => parseSignedCookieValue(cookie.value, secret))
-        : null;
+      cookie && secret ? yield* Effect.promise(() => parseSignedCookieValue(cookie, secret)) : null;
 
     // The signed cookie stores only the key; claim intake hashes the uploaded bytes.
     const pendingUpload = parsed ? { key: parsed.tempKey, file_hash: null } : null;
@@ -62,4 +63,17 @@ export function loadWizardPage(userId: string) {
 
     return decideWizardStart({ pendingUpload: null, siteContent: null, latestStatus });
   });
+}
+
+export async function wizardPageData() {
+  const session = await getServerSession();
+
+  if (!session) throw redirect({ to: "/" });
+  const initialStart = await runPage(loadWizardPage(session.user.id), Db.layer(env.HYPERDRIVE));
+
+  if (initialStart.kind === "redirect-waiting") {
+    throw redirect({ to: "/waiting", search: { resume_id: initialStart.resumeId } });
+  }
+
+  return { session, initialStart };
 }

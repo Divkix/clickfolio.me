@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
@@ -41,7 +39,7 @@ export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProp
     await response.json();
 
     if (!isAutoSave) {
-      router.refresh();
+      void router.invalidate();
     }
   };
 

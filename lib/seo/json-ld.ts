@@ -1,11 +1,10 @@
-import type { Metadata } from "next";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { authorPersona } from "@/lib/config/author";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
 import { absoluteSiteUrl } from "@/lib/utils/site-url";
-import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
+import { publicPageHead, type PageHead } from "@/lib/seo/page-metadata";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import type { ResumeContent } from "@/lib/types/database";
 import type { UnknownRecord } from "@/lib/types/json";
@@ -487,12 +486,12 @@ export function generateWebPageJsonLd(
   return base;
 }
 
-export function buildRolePageMetadata(params: {
+export function buildRolePageHead(params: {
   title: string;
   description: string;
   path: string;
-}): Metadata {
-  return buildPublicPageMetadata(params);
+}): PageHead {
+  return publicPageHead(params);
 }
 
 export function generateBreadcrumbJsonLd(handle: string, displayName: string) {

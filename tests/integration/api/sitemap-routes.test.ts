@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import {
   afterAll,
   afterEach,
@@ -24,9 +25,9 @@ vi.mock("@/lib/utils/log", async (importOriginal) => ({
   log: mocks.log,
 }));
 
-const { GET: getShard } = await import("@/app/api/sitemap/[id]/route");
+const getShard = serverHandler((await import("@/app/routes/sitemap/{$id}[.]xml")).Route, "GET");
 
-const { GET: getIndex } = await import("@/app/api/sitemap-index/route");
+const getIndex = serverHandler((await import("@/app/routes/sitemap[.]xml")).Route, "GET");
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 
@@ -76,9 +77,7 @@ afterEach(() => {
 });
 
 function shard(id: string) {
-  return getShard(new Request(`https://clickfolio.me/sitemap/${id}.xml`), {
-    params: Promise.resolve({ id }),
-  });
+  return getShard(new Request(`https://clickfolio.me/sitemap/${id}.xml`), { id });
 }
 
 function index() {

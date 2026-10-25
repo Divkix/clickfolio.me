@@ -1,7 +1,6 @@
 import type { Mock } from "vite-plus/test";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { verifyToken } from "@clerk/backend";
-import { cookies } from "next/headers";
 import { env } from "cloudflare:workers";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { user as userTable } from "@/lib/db/schema";
@@ -12,14 +11,8 @@ import { withUserEffect } from "@/lib/auth/with-auth";
 
 const mockVerifyToken = vi.mocked(verifyToken);
 
-const mockCookies = vi.mocked(cookies);
-
 vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
-}));
-
-vi.mock("next/headers", () => ({
-  cookies: vi.fn(),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -69,24 +62,6 @@ beforeEach(() => {
   mockDb = createMockDb();
 
   sessionCookieValue = undefined;
-  // SAFETY: ReadonlyRequestCookies splices two cookie-adapter classes together; the stub
-  // implements only get(), the single lookup path Clerk verification uses in these tests.
-  mockCookies.mockImplementation(
-    async () =>
-      ({
-        get: (name: string) => {
-          if (name === CLERK_SESSION_COOKIE && sessionCookieValue !== undefined) {
-            return { name, value: sessionCookieValue };
-          }
-
-          if (name === "__client") {
-            return { name, value: "uat_client_token" };
-          }
-
-          return undefined;
-        },
-      }) as never,
-  );
 
   mockVerifyToken.mockResolvedValue({
     __raw: "test-jwt",
@@ -102,6 +77,16 @@ beforeEach(() => {
 // What @clerk/backend throws for a token it rejects: a TokenVerificationError with a `reason`.
 function tokenError(reason: string): Error {
   return Object.assign(new Error(`Clerk rejected the token (${reason})`), { reason });
+}
+
+/** A request carrying Clerk's `__client` cookie, plus `__session` when the test sets one. */
+function sessionRequest(): Request {
+  const session =
+    sessionCookieValue !== undefined ? `; ${CLERK_SESSION_COOKIE}=${sessionCookieValue}` : "";
+
+  return new Request("https://clickfolio.me", {
+    headers: { Cookie: `__client=uat_client_token${session}` },
+  });
 }
 
 interface PgRow {
@@ -139,7 +124,7 @@ async function requireAuth(message = "You must be logged in") {
   const seen: AuthenticatedUser[] = [];
 
   const response = await withUserEffect(
-    undefined,
+    sessionRequest(),
     (context) =>
       Effect.sync(() => {
         seen.push(context);

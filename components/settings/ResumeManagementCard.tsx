@@ -1,7 +1,5 @@
-"use client";
-
 import { AlertCircle, Calendar, FileText, Upload } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Button } from "@/components/ui/button";
@@ -132,7 +130,9 @@ export function ResumeManagementCard({
             </div>
             {latestResumeId && (
               <Button asChild size="sm" variant="outline" className="w-full mt-2">
-                <Link href={`/waiting?resume_id=${latestResumeId}`}>Retry Processing</Link>
+                <Link to="/waiting" search={{ resume_id: latestResumeId }}>
+                  Retry Processing
+                </Link>
               </Button>
             )}
           </div>

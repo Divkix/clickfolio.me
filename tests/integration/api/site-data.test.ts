@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import type { Effect } from "effect";
 import {
   afterAll,
@@ -36,7 +37,7 @@ vi.mock("@/lib/utils/log", async (importOriginal) => ({
   log: mocks.log,
 }));
 
-const { GET } = await import("@/app/api/site-data/route");
+const GET = serverHandler((await import("@/app/routes/api/site-data")).Route, "GET");
 
 const NOW = "2026-01-01T00:00:00.000Z";
 

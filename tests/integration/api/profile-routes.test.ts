@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq, sql } from "drizzle-orm";
 import {
   afterAll,
@@ -11,7 +12,7 @@ import {
 } from "vite-plus/test";
 import { handleChanges, user } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
-import { NOW, seedUser, signedInAs } from "../../helpers/clerk-session";
+import { NOW, seedUser, sessionRequest, signedInAs } from "../../helpers/clerk-session";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
 
 const mocks = vi.hoisted(() => ({
@@ -21,8 +22,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@clerk/backend", () => ({ verifyToken: vi.fn() }));
-
-vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 
 vi.mock("cloudflare:workers", () => ({
   env: {
@@ -82,7 +81,7 @@ function put(path: string, body: JsonValue, headers: Record<string, string> = {}
 }
 
 function putRaw(path: string, text: string, headers: Record<string, string> = {}): Request {
-  return new Request(`https://clickfolio.me/api/profile/${path}`, {
+  return sessionRequest(`https://clickfolio.me/api/profile/${path}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...headers },
     body: text,
@@ -113,7 +112,7 @@ async function skipUserUpdates() {
 
 describe("PUT /api/profile/handle", () => {
   it("changes the handle, writes the audit row and refreshes both public pages", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
 
     const response = await PUT(put("handle", { handle: "alice-new" }));
 
@@ -136,7 +135,7 @@ describe("PUT /api/profile/handle", () => {
   });
 
   it("only ever writes the caller's own row, whatever the body says", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
 
     const response = await PUT(put("handle", { handle: "alice-new", id: "bob", user_id: "bob" }));
 
@@ -145,7 +144,7 @@ describe("PUT /api/profile/handle", () => {
   });
 
   it("answers 409 when another user already has the handle", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
 
     const response = await PUT(put("handle", { handle: "handle-bob" }));
 
@@ -167,7 +166,7 @@ describe("PUT /api/profile/handle", () => {
       return realTransaction(run, config);
     });
 
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "handle-race" }));
 
     expect(response.status).toBe(409);
@@ -180,7 +179,7 @@ describe("PUT /api/profile/handle", () => {
   it.each(["ab", "a".repeat(31), "Has-Caps", "-leading", "double--hyphen"])(
     "answers 400 for the malformed handle %j",
     async (handle) => {
-      const { PUT } = await import("@/app/api/profile/handle/route");
+      const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
       const response = await PUT(put("handle", { handle }));
 
       expect(response.status).toBe(400);
@@ -192,7 +191,7 @@ describe("PUT /api/profile/handle", () => {
   );
 
   it("answers 400 for a reserved handle", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "api" }));
 
     expect(response.status).toBe(400);
@@ -203,7 +202,7 @@ describe("PUT /api/profile/handle", () => {
   });
 
   it("answers 400 when the handle is unchanged", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "handle-alice" }));
 
     expect(response.status).toBe(400);
@@ -226,7 +225,7 @@ describe("PUT /api/profile/handle", () => {
       })),
     );
 
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "alice-fourth" }));
 
     expect(response.status).toBe(429);
@@ -250,7 +249,7 @@ describe("PUT /api/profile/handle", () => {
       })),
     );
 
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "alice-fourth" }));
 
     expect(response.status).toBe(200);
@@ -259,14 +258,14 @@ describe("PUT /api/profile/handle", () => {
   it("answers 401 when signed out", async () => {
     signedInAs(null);
 
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "alice-new" }));
 
     expect(response.status).toBe(401);
   });
 
   it("answers 400 for a body that is not JSON", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(putRaw("handle", "{not json"));
 
     expect(response.status).toBe(400);
@@ -274,7 +273,7 @@ describe("PUT /api/profile/handle", () => {
   });
 
   it("answers 413 when Content-Length is over the limit", async () => {
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "x" }, { "Content-Length": "9999999" }));
 
     expect(response.status).toBe(413);
@@ -290,7 +289,7 @@ describe("PUT /api/profile/privacy", () => {
   };
 
   it("keeps the jsonb settings and the show_in_directory column in step", async () => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     const response = await PUT(put("privacy", settings));
     const body = await response.json();
@@ -307,7 +306,7 @@ describe("PUT /api/profile/privacy", () => {
   });
 
   it("never touches another user's settings", async () => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     await PUT(put("privacy", { ...settings, id: "bob", user_id: "bob" }));
 
@@ -318,7 +317,7 @@ describe("PUT /api/profile/privacy", () => {
   });
 
   it("writes when If-Unmodified-Since still matches the stored version", async () => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     const response = await PUT(put("privacy", settings, { "If-Unmodified-Since": NOW }));
 
@@ -327,7 +326,7 @@ describe("PUT /api/profile/privacy", () => {
   });
 
   it("answers 409 and writes nothing when the version moved on", async () => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     const response = await PUT(
       put("privacy", settings, { "If-Unmodified-Since": "2025-12-31T00:00:00.000Z" }),
@@ -345,7 +344,7 @@ describe("PUT /api/profile/privacy", () => {
   it("answers 404 and revalidates nothing when the unguarded write matches no row", async () => {
     await skipUserUpdates();
 
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     const response = await PUT(put("privacy", settings));
 
@@ -357,7 +356,7 @@ describe("PUT /api/profile/privacy", () => {
   });
 
   it("answers 500, not 409, for an If-Unmodified-Since that is not a timestamp", async () => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     const response = await PUT(put("privacy", settings, { "If-Unmodified-Since": "garbage" }));
 
@@ -370,7 +369,7 @@ describe("PUT /api/profile/privacy", () => {
     { show_phone: true },
     {},
   ])("answers 400 for invalid settings %j", async (body) => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
     const response = await PUT(put("privacy", body));
 
     expect(response.status).toBe(400);
@@ -383,14 +382,14 @@ describe("PUT /api/profile/privacy", () => {
   it("answers 401 when signed out", async () => {
     signedInAs(null);
 
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
     const response = await PUT(put("privacy", settings));
 
     expect(response.status).toBe(401);
   });
 
   it("answers 400 for malformed JSON", async () => {
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
     const response = await PUT(putRaw("privacy", "{oops"));
 
     expect(response.status).toBe(400);
@@ -399,7 +398,7 @@ describe("PUT /api/profile/privacy", () => {
 
 describe("PUT /api/profile/role", () => {
   it("sets the role and marks it as chosen by the user", async () => {
-    const { PUT } = await import("@/app/api/profile/role/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/role")).Route, "PUT");
 
     const response = await PUT(put("role", { role: "senior" }));
 
@@ -415,7 +414,7 @@ describe("PUT /api/profile/role", () => {
   it("updates freelance status without touching the role or its source", async () => {
     await db.update(user).set({ role: "manager", roleSource: "ai" }).where(eq(user.id, "alice"));
 
-    const { PUT } = await import("@/app/api/profile/role/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/role")).Route, "PUT");
     const response = await PUT(put("role", { isFreelance: true }));
 
     expect(response.status).toBe(200);
@@ -426,7 +425,7 @@ describe("PUT /api/profile/role", () => {
   });
 
   it("never touches another user's row", async () => {
-    const { PUT } = await import("@/app/api/profile/role/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/role")).Route, "PUT");
 
     await PUT(put("role", { role: "senior", id: "bob" }));
 
@@ -436,7 +435,7 @@ describe("PUT /api/profile/role", () => {
   it.each([{ role: "wizard" }, {}, { isFreelance: "yes" }])(
     "answers 400 for the invalid body %j",
     async (body) => {
-      const { PUT } = await import("@/app/api/profile/role/route");
+      const PUT = serverHandler((await import("@/app/routes/api/profile/role")).Route, "PUT");
       const response = await PUT(put("role", body));
 
       expect(response.status).toBe(400);
@@ -450,7 +449,7 @@ describe("PUT /api/profile/role", () => {
   it("answers 401 when signed out", async () => {
     signedInAs(null);
 
-    const { PUT } = await import("@/app/api/profile/role/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/role")).Route, "PUT");
     const response = await PUT(put("role", { role: "senior" }));
 
     expect(response.status).toBe(401);
@@ -465,7 +464,7 @@ describe("profile routes when the database fails", () => {
       throw unavailable();
     });
 
-    const { PUT } = await import("@/app/api/profile/privacy/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
 
     const response = await PUT(
       put("privacy", {
@@ -487,7 +486,7 @@ describe("profile routes when the database fails", () => {
       throw unavailable();
     });
 
-    const { PUT } = await import("@/app/api/profile/role/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/role")).Route, "PUT");
     const response = await PUT(put("role", { role: "senior" }));
 
     expect(response.status).toBe(503);
@@ -496,7 +495,7 @@ describe("profile routes when the database fails", () => {
   it("answers 503 when the handle transaction fails, and records nothing", async () => {
     vi.spyOn(db, "transaction").mockRejectedValueOnce(unavailable());
 
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "alice-new" }));
 
     expect(response.status).toBe(503);
@@ -517,7 +516,7 @@ describe("profile routes when the database fails", () => {
       })),
     );
 
-    const { PUT } = await import("@/app/api/profile/handle/route");
+    const PUT = serverHandler((await import("@/app/routes/api/profile/handle")).Route, "PUT");
     const response = await PUT(put("handle", { handle: "alice-fourth" }));
 
     expect(response.status).toBe(429);

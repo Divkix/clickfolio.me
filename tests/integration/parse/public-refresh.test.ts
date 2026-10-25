@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { Effect, Layer } from "effect";
-import { publicProfileTags } from "@/lib/cache/public-profile-paths";
+import { publicProfileTags } from "@/lib/cache/edge-cache";
 import { siteConfig } from "@/lib/config/site";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
 import { siteData, user } from "@/lib/db/schema";

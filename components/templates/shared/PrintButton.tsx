@@ -1,5 +1,3 @@
-"use client";
-
 import { Printer } from "lucide-react";
 
 export function PrintButton({ className }: { className?: string }) {

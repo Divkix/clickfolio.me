@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { createResumeStatusSocket, type ResumeStatusSocketHandle } from "@/lib/realtime/socket";

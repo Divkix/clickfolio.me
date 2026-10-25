@@ -73,20 +73,12 @@ function service(rpc: PurgeTags): CachePurgeService {
   };
 }
 
-/** Workers Cache purge through the `VinextCachedResponse` entrypoint, the only one that can reach the cache. */
+/** Workers Cache purge through the `CachedPages` entrypoint, the only one that can reach the cache. */
 export class CachePurge extends Context.Service<CachePurge, CachePurgeService>()(
   "clickfolio/CachePurge",
 ) {
   static layer(ctx: ExecutionContext): Layer.Layer<CachePurge> {
-    return Layer.sync(CachePurge, () =>
-      service(async (tags) => {
-        const cached = ctx.exports.VinextCachedResponse({ props: {} });
-
-        // RPC types turn purge's `Promise<unknown>` into `never`; the call still returns a
-        // promise of ctx.cache.purge()'s result (undefined without a cache), validated above.
-        return Promise.resolve(cached.purge({ tags }));
-      }),
-    );
+    return Layer.sync(CachePurge, () => service((tags) => ctx.exports.CachedPages.purge({ tags })));
   }
 
   /** For tests: any function standing in for the RPC. */

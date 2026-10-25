@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import type { MetadataRoute } from "next";
 import { z } from "zod";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
@@ -10,6 +9,7 @@ import { retryLater } from "@/lib/effect/retry-later";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { getStaticLastmod } from "@/lib/seo/lastmod";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
+import type { ChangeFrequency } from "@/lib/seo/static-pages";
 import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
@@ -17,6 +17,15 @@ import { escapeXml } from "@/lib/utils/xml";
 const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
 export const URLS_PER_SITEMAP = 50000;
+
+type SitemapEntry = {
+  url: string;
+  lastModified?: string | Date;
+  changeFrequency?: ChangeFrequency;
+  priority?: number;
+};
+
+type Sitemap = SitemapEntry[];
 
 export const STATIC_SITEMAP_ENTRY_COUNT =
   STATIC_PAGES.length +
@@ -85,13 +94,10 @@ function staticPageLastmod(
  * pre-commit hook). `/explore` lists portfolios, so it moves with the newest publish when the DB
  * supplied one; otherwise it falls back to the newest blog date.
  */
-function buildStaticSitemapEntries(
-  baseUrl: string,
-  newestPortfolioPublish: Date | null,
-): MetadataRoute.Sitemap {
+function buildStaticSitemapEntries(baseUrl: string, newestPortfolioPublish: Date | null): Sitemap {
   const newestBlogPost = getNewestBlogPostDate();
 
-  const entries: MetadataRoute.Sitemap = STATIC_PAGES.map((page) => ({
+  const entries: Sitemap = STATIC_PAGES.map((page) => ({
     url: page.path === "/" ? baseUrl : `${baseUrl}${page.path}`,
     lastModified: staticPageLastmod(page.path, newestPortfolioPublish, newestBlogPost),
     changeFrequency: page.changeFrequency,
@@ -142,7 +148,7 @@ function buildStaticSitemapEntries(
 type UserWindow = Awaited<ReturnType<typeof getIndexableProfileWindow>>;
 
 function userSitemapEntries(profiles: UserWindow["profiles"], baseUrl: string) {
-  const userEntries: MetadataRoute.Sitemap = [];
+  const userEntries: Sitemap = [];
 
   for (const entry of profiles) {
     if (!entry.handle) continue;
@@ -168,7 +174,7 @@ function userSitemapEntries(profiles: UserWindow["profiles"], baseUrl: string) {
  */
 export function generateSitemapEntries(
   id: number,
-): Effect.Effect<MetadataRoute.Sitemap | null, DbFailed | DbConflict, Db> {
+): Effect.Effect<Sitemap | null, DbFailed | DbConflict, Db> {
   if (!Number.isInteger(id) || id < 0) {
     return Effect.succeed([]);
   }
@@ -223,16 +229,14 @@ ${sitemaps}
 </sitemapindex>`;
 }
 
-function formatLastModified(
-  lastModified: MetadataRoute.Sitemap[number]["lastModified"],
-): string | null {
+function formatLastModified(lastModified: SitemapEntry["lastModified"]): string | null {
   if (!lastModified) return null;
   const date = lastModified instanceof Date ? lastModified : new Date(lastModified);
 
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export function buildSitemapXml(entries: MetadataRoute.Sitemap): string {
+export function buildSitemapXml(entries: Sitemap): string {
   const urls = entries
     .map((entry) => {
       const lastModified = formatLastModified(entry.lastModified);

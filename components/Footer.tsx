@@ -1,21 +1,25 @@
-import Link from "next/link";
+import { Link, linkOptions } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { currentYear } from "@/lib/utils/format";
 
 const FOOTER_LINKS = [
-  { href: "/explore", label: "Explore" },
-  { href: "/templates", label: "Templates" },
+  ...linkOptions([
+    { to: "/explore", label: "Explore" },
+    { to: "/templates/", label: "Templates" },
+  ]),
   ...EXAMPLE_GALLERIES.map((gallery) => ({
-    href: `/examples/${gallery.slug}`,
+    ...linkOptions({ to: "/examples/$slug", params: { slug: gallery.slug } }),
     label: gallery.title,
   })),
-  { href: "/blog", label: "Blog" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" },
-  { href: "/about", label: "About" },
-  { href: "/terms", label: "Terms" },
-  { href: "/privacy", label: "Privacy" },
+  ...linkOptions([
+    { to: "/blog/", label: "Blog" },
+    { to: "/faq", label: "FAQ" },
+    { to: "/contact", label: "Contact" },
+    { to: "/about", label: "About" },
+    { to: "/terms", label: "Terms" },
+    { to: "/privacy", label: "Privacy" },
+  ]),
 ];
 
 export function Footer() {
@@ -30,13 +34,13 @@ export function Footer() {
             className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
             aria-label="Footer"
           >
-            {FOOTER_LINKS.map((link) => (
+            {FOOTER_LINKS.map(({ label, ...link }) => (
               <Link
-                key={link.href}
-                href={link.href}
+                key={label}
+                {...link}
                 className="inline-flex min-h-11 items-center px-2 text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
               >
-                {link.label}
+                {label}
               </Link>
             ))}
           </nav>

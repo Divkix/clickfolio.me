@@ -1,4 +1,4 @@
-declare module "*.css";
+/// <reference types="vite/client" />
 
 declare global {
   interface Window {

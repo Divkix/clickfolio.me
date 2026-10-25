@@ -1,8 +1,5 @@
-"use client";
-
 import { ArrowLeft, Menu, RefreshCw } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -16,14 +13,14 @@ const PAGE_TITLES = {
 } as const satisfies Record<string, string>;
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
-  const pathname = usePathname();
+  const pathname = useLocation({ select: (location) => location.pathname });
   const router = useRouter();
 
   // SAFETY: pathname is a string route path; page titles map covers admin routes with fallback to "Admin".
   const title = PAGE_TITLES[pathname as keyof typeof PAGE_TITLES] || "Admin";
 
   const handleRefresh = () => {
-    router.refresh();
+    void router.invalidate();
   };
 
   return (
@@ -54,7 +51,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           </button>
 
           <Link
-            href="/dashboard"
+            to="/dashboard"
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
           >
             <ArrowLeft size={16} aria-hidden="true" />

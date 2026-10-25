@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+import type { LinkProps } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { z } from "zod";
 
@@ -8,7 +10,8 @@ interface StatCardProps {
   iconColorClass: string;
   iconBgClass: string;
   change?: number;
-  href?: string;
+  to?: LinkProps["to"];
+  search?: LinkProps["search"];
 }
 
 export function StatCard({
@@ -18,7 +21,8 @@ export function StatCard({
   iconColorClass,
   iconBgClass,
   change,
-  href,
+  to,
+  search,
 }: StatCardProps) {
   // SAFETY: zod safeParse guarantees value is number/string before cast; preserves validated type.
   const content = (
@@ -52,11 +56,11 @@ export function StatCard({
     </div>
   );
 
-  if (href) {
+  if (to) {
     return (
-      <a href={href} className="block">
+      <Link to={to} search={search} className="block">
         {content}
-      </a>
+      </Link>
     );
   }
 

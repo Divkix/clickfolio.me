@@ -1,5 +1,3 @@
-"use client";
-
 import { Check, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";

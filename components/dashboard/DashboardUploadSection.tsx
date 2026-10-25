@@ -1,5 +1,3 @@
-"use client";
-
 import { Upload } from "lucide-react";
 import { useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";

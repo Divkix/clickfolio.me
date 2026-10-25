@@ -1,14 +1,12 @@
-"use client";
-
 import { Menu } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface NavLink {
-  href: string;
+  href: "/explore" | "/templates/" | "/blog/" | "/faq" | "/about";
   label: string;
 }
 
@@ -32,7 +30,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
           {links.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              to={link.href}
               onClick={() => setOpen(false)}
               className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-surface-2"
             >

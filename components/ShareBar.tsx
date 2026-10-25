@@ -1,5 +1,3 @@
-"use client";
-
 import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";

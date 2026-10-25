@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 
 interface ExplorePaginationProps {
@@ -12,7 +12,7 @@ export function ExplorePagination({ currentPage, totalPages, roleFilter }: Explo
     <div className="mt-12 flex items-center justify-center gap-2">
       {currentPage > 1 && (
         <Button asChild variant="outline" size="sm">
-          <Link href={`/explore?page=${currentPage - 1}${roleFilter ? `&role=${roleFilter}` : ""}`}>
+          <Link to="/explore" search={{ page: currentPage - 1, role: roleFilter || undefined }}>
             Previous
           </Link>
         </Button>
@@ -29,7 +29,8 @@ export function ExplorePagination({ currentPage, totalPages, roleFilter }: Explo
                 {showEllipsis && <span className="px-2 text-muted-foreground">...</span>}
                 <Button asChild variant={page === currentPage ? "default" : "outline"} size="icon">
                   <Link
-                    href={`/explore?page=${page}${roleFilter ? `&role=${roleFilter}` : ""}`}
+                    to="/explore"
+                    search={{ page, role: roleFilter || undefined }}
                     aria-current={page === currentPage ? "page" : undefined}
                   >
                     {page}
@@ -42,7 +43,7 @@ export function ExplorePagination({ currentPage, totalPages, roleFilter }: Explo
 
       {currentPage < totalPages && (
         <Button asChild variant="outline" size="sm">
-          <Link href={`/explore?page=${currentPage + 1}${roleFilter ? `&role=${roleFilter}` : ""}`}>
+          <Link to="/explore" search={{ page: currentPage + 1, role: roleFilter || undefined }}>
             Next
           </Link>
         </Button>

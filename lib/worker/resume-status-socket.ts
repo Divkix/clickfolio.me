@@ -9,9 +9,9 @@ import { DurableObjectFailed } from "../effect/failures";
 import { appLayer } from "../effect/layers";
 import { TIMEOUT_MS } from "../effect/timeouts";
 
-// WebSocket upgrade for /ws/resume-status, answered by the Worker itself because Next.js route
-// handlers have no WebSocket API. The bodies stay plain text: the browser only reads the status of
-// a failed upgrade. A Clerk or database outage is a typed failure and answers 503 through `runRoute`.
+// WebSocket upgrade for /ws/resume-status, answered by the Worker entry ahead of the app. The bodies
+// stay plain text: the browser only reads the status of a failed upgrade. A Clerk or database
+// outage is a typed failure and answers 503 through `runRoute`.
 
 function plain(body: string, status: number): Response {
   return new Response(body, { status });

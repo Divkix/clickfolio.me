@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
@@ -261,7 +262,7 @@ describe("Admin API Integration Tests", () => {
     it("returns Umami analytics data for admin (test 1)", async () => {
       adminAuthed();
 
-      const { GET } = await import("@/app/api/admin/analytics/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/analytics?period=7d");
       const response = await GET(request);
 
@@ -275,7 +276,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 400 for invalid period parameter (test 13)", async () => {
       adminAuthed();
 
-      const { GET } = await import("@/app/api/admin/analytics/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/analytics?period=invalid");
       const response = await GET(request);
 
@@ -287,7 +288,7 @@ describe("Admin API Integration Tests", () => {
     it("filters analytics by date range (test 9)", async () => {
       adminAuthed();
 
-      const { GET } = await import("@/app/api/admin/analytics/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
       const request30d = makeRequest("http://localhost:3000/api/admin/analytics?period=30d");
       const response30d = await GET(request30d);
 
@@ -302,7 +303,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 403 for non-admin users (test 6)", async () => {
       regularUserAuthed();
 
-      const { GET } = await import("@/app/api/admin/analytics/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/analytics");
       const response = await GET(request);
 
@@ -312,7 +313,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 401 when not authenticated (test 7)", async () => {
       unauthenticated();
 
-      const { GET } = await import("@/app/api/admin/analytics/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/analytics");
       const response = await GET(request);
 
@@ -325,7 +326,7 @@ describe("Admin API Integration Tests", () => {
       const { getStats } = await import("@/lib/umami/client");
       vi.mocked(getStats).mockRejectedValueOnce(new Error("Umami API error"));
 
-      const { GET } = await import("@/app/api/admin/analytics/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/analytics");
       const response = await GET(request);
 
@@ -337,7 +338,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 400 for invalid status filter (test 11 edge)", async () => {
       adminAuthed();
 
-      const { GET } = await import("@/app/api/admin/resumes/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/resumes")).Route, "GET");
 
       const request = makeRequest(
         "http://localhost:3000/api/admin/resumes?status=invalid_status&page=1",
@@ -351,7 +352,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 403 for non-admin users (test 6)", async () => {
       regularUserAuthed();
 
-      const { GET } = await import("@/app/api/admin/resumes/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/resumes")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/resumes");
       const response = await GET(request);
 
@@ -361,7 +362,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 401 when not authenticated", async () => {
       unauthenticated();
 
-      const { GET } = await import("@/app/api/admin/resumes/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/resumes")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/resumes");
       const response = await GET(request);
 
@@ -373,7 +374,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 403 for non-admin users (test 6)", async () => {
       regularUserAuthed();
 
-      const { GET } = await import("@/app/api/admin/users/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/users");
       const response = await GET(request);
 
@@ -383,7 +384,7 @@ describe("Admin API Integration Tests", () => {
     it("returns 401 when not authenticated", async () => {
       unauthenticated();
 
-      const { GET } = await import("@/app/api/admin/users/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
       const request = makeRequest("http://localhost:3000/api/admin/users");
       const response = await GET(request);
 
@@ -396,7 +397,7 @@ describe("Admin API Integration Tests", () => {
       const error = new Response(JSON.stringify({ error: "User not found" }), { status: 401 });
       mockedAdminAuth.mockResolvedValue({ error });
 
-      const { GET } = await import("@/app/api/admin/users/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
       const response = await GET(makeRequest("http://localhost:3000/api/admin/users"));
 
       expect(response.status).toBe(401);
@@ -412,16 +413,24 @@ describe("Admin API Integration Tests", () => {
 
       mockedAdminAuth.mockResolvedValue({ user: adminUser, error: null });
 
-      const { GET } = await import("@/app/api/admin/users/route");
+      const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
       await GET(makeRequest("http://localhost:3000/api/admin/users"));
 
       expect(mockedAdminAuth).toHaveBeenCalled();
     });
 
     it("handles all admin routes consistently (test 5-7 combined)", async () => {
-      const { GET: AnalyticsGET } = await import("@/app/api/admin/analytics/route");
-      const { GET: ResumesGET } = await import("@/app/api/admin/resumes/route");
-      const { GET: UsersGET } = await import("@/app/api/admin/users/route");
+      const AnalyticsGET = serverHandler(
+        (await import("@/app/routes/api/admin/analytics")).Route,
+        "GET",
+      );
+
+      const ResumesGET = serverHandler(
+        (await import("@/app/routes/api/admin/resumes")).Route,
+        "GET",
+      );
+
+      const UsersGET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
 
       const routes = [
         { get: AnalyticsGET, path: "/api/admin/analytics" },

@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import { Webhook } from "svix";
 import {
@@ -127,7 +128,7 @@ describe("POST /api/webhooks/clerk", () => {
   it("answers 500 and does nothing when the webhook secret is not configured", async () => {
     mocks.state.secret = undefined;
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
     const response = await POST(delivery("user.created", clerkUser()));
 
     expect(response.status).toBe(500);
@@ -135,7 +136,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("answers 401 for a delivery signed with another secret", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery("user.created", clerkUser(), { secret: `whsec_${btoa("someone-elses-secret")}` }),
@@ -146,7 +147,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("answers 401 when the body was altered after signing", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
     const response = await POST(delivery("user.created", clerkUser(), { tamper: true }));
 
     expect(response.status).toBe(401);
@@ -154,7 +155,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("answers 401 when the Svix headers are missing", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       new Request("https://clickfolio.me/api/webhooks/clerk", {
@@ -169,7 +170,7 @@ describe("POST /api/webhooks/clerk", () => {
   it("answers 500, not 401, when the configured secret is not a valid Svix secret", async () => {
     mocks.state.secret = "not-a-svix-secret";
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
     const response = await POST(delivery("user.created", clerkUser()));
 
     // The sender did nothing wrong: this is our configuration, so Svix keeps retrying.
@@ -183,7 +184,7 @@ describe("POST /api/webhooks/clerk", () => {
     const payload = "{not json";
     const signature = new Webhook(SECRET).sign(id, timestamp, payload);
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       new Request("https://clickfolio.me/api/webhooks/clerk", {
@@ -201,7 +202,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("creates the user row on user.created", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.created", clerkUser()));
 
@@ -228,7 +229,7 @@ describe("POST /api/webhooks/clerk", () => {
     async (eventType) => {
       await seedUser(db, "other", { email: "taken@example.com", emailVerified: true });
 
-      const { POST } = await import("@/app/api/webhooks/clerk/route");
+      const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
       const payload = clerkUser({
         email_addresses: [
@@ -269,7 +270,7 @@ describe("POST /api/webhooks/clerk", () => {
   );
 
   it("uses the external id as the row id when Clerk carries one", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery("user.created", clerkUser({ external_id: "legacy-id-7" })),
@@ -280,7 +281,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("names the user Unnamed and keeps a placeholder email when Clerk sends neither", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -300,7 +301,7 @@ describe("POST /api/webhooks/clerk", () => {
   it("updates the profile of an existing user on user.updated instead of inserting again", async () => {
     await seedUser(db, "existing", { clerkId: "user_clerk_1", name: "Old Name", image: null });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.updated", clerkUser({ first_name: "Grace" })));
 
@@ -324,7 +325,7 @@ describe("POST /api/webhooks/clerk", () => {
       emailVerified: false,
     });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -357,7 +358,7 @@ describe("POST /api/webhooks/clerk", () => {
       emailVerified: false,
     });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -391,7 +392,7 @@ describe("POST /api/webhooks/clerk", () => {
     });
     await seedUser(db, "other", { email: "taken@example.com" });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -440,7 +441,7 @@ describe("POST /api/webhooks/clerk", () => {
       throw new Error("connection refused");
     });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -462,7 +463,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("treats Clerk's email verification status `verified` as verified", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -484,7 +485,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("leaves an unverified primary email unverified", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery(
@@ -508,7 +509,7 @@ describe("POST /api/webhooks/clerk", () => {
   it("adopts a row created before the Clerk id was known, matched by external id", async () => {
     await seedUser(db, "legacy-id-7", { clerkId: null });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery("user.created", clerkUser({ external_id: "legacy-id-7" })),
@@ -528,7 +529,7 @@ describe("POST /api/webhooks/clerk", () => {
       createdAt: NOW,
     });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.deleted", { id: "user_clerk_1", deleted: true }));
 
@@ -553,7 +554,7 @@ describe("POST /api/webhooks/clerk", () => {
       createdAt: NOW,
     });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(
       delivery("user.deleted", { id: "user_clerk_1", external_id: "legacy-id-7", deleted: true }),
@@ -571,7 +572,7 @@ describe("POST /api/webhooks/clerk", () => {
     await seedUser(db, "alice", { clerkId: "user_clerk_1" });
     mocks.workflowCreate.mockRejectedValue(new Error("workflow down"));
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.deleted", { id: "user_clerk_1", deleted: true }));
 
@@ -580,7 +581,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("deleting a user Clerk knew but this app never stored succeeds without scheduling anything", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.deleted", { id: "user_unknown", deleted: true }));
 
@@ -592,7 +593,7 @@ describe("POST /api/webhooks/clerk", () => {
   it("ignores a deactivation, which keeps the account", async () => {
     await seedUser(db, "alice", { clerkId: "user_clerk_1" });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.deleted", { id: "user_clerk_1", deleted: false }));
 
@@ -606,7 +607,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("acknowledges event types it does not handle", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("session.created", { id: "sess_1" }));
 
@@ -619,7 +620,7 @@ describe("POST /api/webhooks/clerk", () => {
   });
 
   it("answers 400 for a verified delivery whose user payload is not a Clerk user", async () => {
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.created", { nope: true }));
 
@@ -632,7 +633,7 @@ describe("POST /api/webhooks/clerk", () => {
       throw new Error("db down");
     });
 
-    const { POST } = await import("@/app/api/webhooks/clerk/route");
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
 
     const response = await POST(delivery("user.created", clerkUser()));
 

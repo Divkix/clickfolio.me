@@ -65,3 +65,7 @@ minimumReleaseAgeExclude:
   - "caniuse-lite@1.0.30001818"
   - "lucide-react@1.61.0"
 trustPolicy: no-downgrade
+# @babel/core (TanStack Start's route/server-function compiler) depends on semver@^6, whose last
+# release predates npm provenance; later 7.x releases carry it, so pnpm reads 6.3.1 as a downgrade.
+trustPolicyExclude:
+  - "semver@6.3.1"

@@ -1,5 +1,6 @@
 import { Cause, Effect, Exit, type Layer } from "effect";
 import * as z from "zod";
+import { ENCODED_CACHE_TAG } from "@/lib/cache/edge-cache";
 import { runBackground } from "@/lib/effect/edges";
 import { describeFailure } from "@/lib/effect/failure-map";
 import { type HttpUpstreamFailed, InvalidInput, type QueueFailed } from "@/lib/effect/failures";
@@ -17,8 +18,8 @@ import { log } from "@/lib/utils/log";
  * https://developers.cloudflare.com/cache/how-to/purge-cache/). Profile edits
  * therefore enqueue their tags and one consumer sends one purge per batch.
  *
- * Tags travel already encoded (`vinext-<32 hex>`, the digest vinext's Workers
- * Cache adapter emits in `Cache-Tag`), so no handle reaches the queue or logs.
+ * Tags travel already encoded (`edge-<32 hex>`, `encodeCacheTag` in edge-cache.ts), so no
+ * handle reaches the queue or logs.
  */
 
 export const MAX_TAGS_PER_PURGE = 100;
@@ -36,10 +37,8 @@ const FIRST_RETRY_DELAY_SECONDS = 30;
 
 const MAX_RETRY_DELAY_SECONDS = 900;
 
-const ENCODED_TAG = /^vinext-[0-9a-f]{32}$/;
-
 const edgePurgeMessageSchema = z.object({
-  tags: z.array(z.string().regex(ENCODED_TAG)).min(1).max(MAX_TAGS_PER_PURGE),
+  tags: z.array(z.string().regex(ENCODED_CACHE_TAG)).min(1).max(MAX_TAGS_PER_PURGE),
 });
 
 export type EdgePurgeMessage = z.infer<typeof edgePurgeMessageSchema>;

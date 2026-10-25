@@ -1,3 +1,9 @@
+import { notFound, redirect } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
+import { runPage } from "@/lib/effect/edges";
+import { appLayer } from "@/lib/effect/layers";
+import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
+import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { eq } from "drizzle-orm";
@@ -233,4 +239,20 @@ export function loadPublicResume(handle: string) {
       metadata: buildResumeMetadata(row, siteData, handle),
     } satisfies PublicResume;
   });
+}
+
+export async function profilePageData(handle: string) {
+  if (!isValidHandleFormat(handle)) throw notFound();
+
+  const resume = await runPage(loadPublicResume(handle), appLayer(env));
+
+  if (!resume) throw notFound();
+
+  return { handle, ...resume, chrome: THEME_CHROME[resume.data.theme_id] };
+}
+
+export function bareHandleRedirect(handle: string): never {
+  if (!isValidHandleFormat(handle)) throw notFound();
+
+  throw redirect({ to: "/@{$handle}", params: { handle }, statusCode: 308 });
 }

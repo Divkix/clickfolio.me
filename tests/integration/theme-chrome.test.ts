@@ -7,6 +7,7 @@ import { SharePopover } from "@/components/SharePopover";
 import { describe, expect, it } from "vite-plus/test";
 import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { THEME_IDS } from "@/lib/templates/theme-ids";
+import { renderWithRouter } from "@/tests/helpers/render-with-router";
 
 // Digests captured from the original component, share and background maps before migration.
 // Each covers every exact literal, without storing hundreds of duplicated style strings.
@@ -42,7 +43,7 @@ describe("theme chrome", () => {
     const bar = renderToStaticMarkup(createElement(ShareBar, props));
     const popover = renderToStaticMarkup(createElement(SharePopover, props));
 
-    const attribution = renderToStaticMarkup(
+    const attribution = renderWithRouter(
       createElement(AttributionWidget, { styles: chrome.attribution }),
     );
 

@@ -135,14 +135,6 @@ describe("runRoute", () => {
       path: "/api/thing",
     });
   });
-
-  it("rethrows framework control flow instead of answering 500", async () => {
-    const redirect = Object.assign(new Error("NEXT_REDIRECT"), {
-      digest: "NEXT_REDIRECT;replace;/;307;",
-    });
-
-    await expect(runRoute(request, Effect.die(redirect), Layer.empty)).rejects.toBe(redirect);
-  });
 });
 
 describe("runPage", () => {
@@ -160,10 +152,10 @@ describe("runPage", () => {
     });
   });
 
-  it("rethrows framework control flow with its identity", async () => {
-    const notFound = Object.assign(new Error("NEXT_NOT_FOUND"), { digest: "NEXT_NOT_FOUND" });
+  it("rethrows a defect with its identity so the error component sees it", async () => {
+    const defect = new Error("boom");
 
-    await expect(runPage(Effect.die(notFound), Layer.empty)).rejects.toBe(notFound);
+    await expect(runPage(Effect.die(defect), Layer.empty)).rejects.toBe(defect);
   });
 });
 

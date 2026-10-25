@@ -1,9 +1,9 @@
 import { createElement } from "react";
 import type * as React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { THEME_CHROME } from "@/lib/templates/theme-chrome";
+import { renderWithRouter } from "@/tests/helpers/render-with-router";
 
 const { useSession } = vi.hoisted(() => ({
   useSession: vi.fn<() => { data: { user: { id: string } } | null }>(),
@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 function render() {
-  return renderToStaticMarkup(
+  return renderWithRouter(
     createElement(CreateYoursCTA, {
       handle: "someone",
       profileId: "owner-id",
@@ -37,7 +37,7 @@ function render() {
 
 describe("portfolio acquisition CTA", () => {
   it.each(Object.values(THEME_CHROME))("renders server-resolved CTA classes", ({ cta: styles }) => {
-    const markup = renderToStaticMarkup(
+    const markup = renderWithRouter(
       createElement(CreateYoursCTA, { handle: "someone", profileId: "owner-id", styles }),
     );
 
@@ -57,5 +57,11 @@ describe("portfolio acquisition CTA", () => {
 
   it("shows for a signed-out visitor", () => {
     expect(render()).toContain("Create yours free");
+  });
+
+  it("links home with the profile's UTM campaign", () => {
+    expect(render()).toContain(
+      'href="/?utm_source=resume&amp;utm_medium=cta&amp;utm_campaign=someone"',
+    );
   });
 });
