@@ -30,7 +30,8 @@ const IGNORED_URLS = [/^https:\/\/clerk\.clickfolio\.me\//, /\.clerk\.accounts\.
 
 let sdk: Promise<HyperDX | null> | undefined;
 
-function whenIdle(): Promise<void> {
+/** Resolves after `load`, once the browser is idle (at most 5 s later). */
+export function whenIdle(): Promise<void> {
   return new Promise((resolve) => {
     const idle = () =>
       "requestIdleCallback" in globalThis
