@@ -1,16 +1,18 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { TelemetryIdentity } from "@/components/analytics/TelemetryIdentity";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/lib/auth/client";
 import { siteConfig } from "@/lib/config/site";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import jetbrainsMonoCss from "@fontsource-variable/jetbrains-mono/index.css?url";
 import onestCss from "@fontsource-variable/onest/index.css?url";
 import appCss from "../globals.css?url";
+
+// sonner replays active toasts to a Toaster that subscribes late, so it can leave the entry chunk.
+const Toaster = lazy(() => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })));
 
 /** Runtime vars the browser needs; read per request so one build serves every environment. */
 const getPublicConfig = createServerFn({ method: "GET" }).handler(() => ({
@@ -85,7 +87,9 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
               Skip to main content
             </a>
             {children}
-            <Toaster />
+            <Suspense>
+              <Toaster />
+            </Suspense>
             <TelemetryIdentity />
           </SessionProvider>
         </ThemeProvider>

@@ -1,20 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 import { Effect } from "effect";
-import type { ZodError } from "zod";
+import type { $ZodError } from "zod/v4/core";
 import { findSession } from "@/lib/auth/session";
 import { runRoute } from "@/lib/effect/edges";
 import { appLayer } from "@/lib/effect/layers";
 import { isHandleTakenEffect, RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { checkHandleRateLimitEffect, getClientIP } from "@/lib/rate-limit/ip";
-import { handleSchema } from "@/lib/schemas/profile";
+import { handleSchema } from "@/lib/schemas/handle";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-function handleFormatErrorMessage(error: ZodError): string {
+function handleFormatErrorMessage(error: $ZodError): string {
   const issues = error.issues;
 
   const failedPatterns = issues.flatMap((issue) =>

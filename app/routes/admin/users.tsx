@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import * as z from "zod/mini";
 import AdminUsersClient from "@/components/admin/AdminUsersClient";
 import { requireAdminAuth } from "@/lib/auth/admin";
 import { loadAdminUsers } from "@/lib/data/admin-users";
@@ -10,8 +10,8 @@ import { runPage } from "@/lib/effect/edges";
 import { privatePageHead } from "@/lib/seo/page-metadata";
 
 const searchSchema = z.object({
-  page: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).catch(1),
-  search: z.string().trim().catch(""),
+  page: z.catch(z.int().check(z.minimum(1), z.maximum(Number.MAX_SAFE_INTEGER)), 1),
+  search: z.catch(z.string().check(z.trim()), ""),
 });
 
 const getUsers = createServerFn({ method: "GET" })

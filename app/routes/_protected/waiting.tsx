@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
-import { z } from "zod";
+import * as z from "zod/mini";
 import { WaitingContent } from "@/components/dashboard/WaitingContent";
 import { ProtectedError } from "@/components/errors/ProtectedError";
 import { waitingPageData } from "@/lib/data/owner-pages";
 
-const waitingSearch = z.object({ resume_id: z.string().optional() });
+const waitingSearch = z.object({ resume_id: z.optional(z.string()) });
 
 const loadWaiting = createServerFn({ method: "GET" })
   .validator(waitingSearch)

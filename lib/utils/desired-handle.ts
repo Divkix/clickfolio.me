@@ -1,4 +1,4 @@
-import { handleSchema } from "@/lib/schemas/profile";
+import { handleSchema } from "@/lib/schemas/handle";
 
 // Handle typed in the home page's address-bar input, carried across the
 // upload → Google sign-in redirect → wizard hop. localStorage (not session)

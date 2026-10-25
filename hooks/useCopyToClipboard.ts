@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/utils/clipboard";
+
+// sonner loads after the first copy, so public profile share bars don't ship it up front.
+async function notify(kind: "success" | "error", message: string): Promise<void> {
+  const { toast } = await import("sonner");
+  toast[kind](message);
+}
 
 interface CopyOptions {
   successMessage: string;
@@ -30,13 +35,13 @@ export function useCopyToClipboard(): UseCopyToClipboardReturn {
       const success = await copyToClipboard(text);
 
       if (!success) {
-        toast.error(opts.errorMessage);
+        await notify("error", opts.errorMessage);
 
         return;
       }
 
       setCopied(true);
-      toast.success(opts.successMessage);
+      await notify("success", opts.successMessage);
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -45,7 +50,7 @@ export function useCopyToClipboard(): UseCopyToClipboardReturn {
       timeoutRef.current = setTimeout(() => setCopied(false), 2000);
       opts.onSuccess?.();
     } catch {
-      toast.error(opts.errorMessage);
+      await notify("error", opts.errorMessage);
     }
   }, []);
 
