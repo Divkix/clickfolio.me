@@ -2,7 +2,7 @@ import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { saveDesiredHandle } from "@/lib/utils/desired-handle";
 import { trackEvent, type CheckedHandleStatus } from "@/lib/telemetry/browser";
-import { handleSchema } from "@/lib/schemas/profile";
+import { handleSchema } from "@/lib/schemas/handle";
 import { previewSrcSet } from "@/lib/templates/theme-ids";
 import { UploadCTA } from "./UploadCTA";
 

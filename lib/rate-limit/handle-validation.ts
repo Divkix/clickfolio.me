@@ -2,7 +2,7 @@ import { and, eq, ne } from "drizzle-orm";
 import type { PgQueryable } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
-import { handleSchema } from "@/lib/schemas/profile";
+import { handleSchema } from "@/lib/schemas/handle";
 
 export const RESERVED_HANDLES = new Set(["api", "_next", "static", "public", "xmlrpc", "adminer"]);
 

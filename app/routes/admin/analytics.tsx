@@ -5,11 +5,11 @@ import { runPage } from "@/lib/effect/edges";
 import { Umami } from "@/lib/effect/services/umami";
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import * as z from "zod/mini";
 import AnalyticsClient from "@/components/admin/AnalyticsClient";
 import { privatePageHead } from "@/lib/seo/page-metadata";
 
-const searchSchema = z.object({ period: z.enum(["7d", "30d", "90d"]).catch("7d") });
+const searchSchema = z.object({ period: z.catch(z.enum(["7d", "30d", "90d"]), "7d") });
 
 const getAnalytics = createServerFn({ method: "GET" })
   .validator(searchSchema)

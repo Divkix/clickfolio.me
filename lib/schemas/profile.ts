@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { USER_ROLES } from "@/lib/config/roles";
-import { noXssPattern } from "@/lib/utils/sanitization";
+import { handleSchema } from "@/lib/schemas/handle";
 
 export const privacySettingsSchema = z.object({
   show_phone: z.boolean({
@@ -33,17 +33,6 @@ export const privacySettingsInputSchema = z.object({
     .optional()
     .default(true),
 });
-
-export const handleSchema = z
-  .string()
-  .trim()
-  .min(3, "Handle must be at least 3 characters")
-  .max(30, "Handle must not exceed 30 characters")
-  .regex(/^[a-z0-9-]+$/, "Handle can only contain lowercase letters, numbers, and hyphens")
-  .regex(/^[a-z0-9]/, "Handle must start with a letter or number")
-  .regex(/[a-z0-9]$/, "Handle must end with a letter or number")
-  .regex(/^(?!.*--)/, "Handle cannot contain consecutive hyphens")
-  .refine(noXssPattern, { message: "Invalid content detected" });
 
 export const handleUpdateSchema = z.object({
   handle: handleSchema,
