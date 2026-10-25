@@ -75,8 +75,8 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.64.0",
     "@electric-sql/pglite": "^0.5.11",
-    "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
@@ -86,7 +86,6 @@
     "drizzle-kit": "^0.31.11",
     "knip": "^6.42.1",
     "png-to-ico": "^3.0.2",
-    "postcss": "^8.5.31",
     "rollup-plugin-visualizer": "^7.1.1",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
