@@ -58,7 +58,7 @@ const signedCookieSchema = z
   .pipe(z.tuple([z.string().min(1), z.string().regex(/^\d+$/), z.string().min(1)]));
 
 /**
- * `cookies().set()` percent-encodes the value (`|` becomes `%7C`) and the raw Cookie header
+ * Cookie values may be percent-encoded (`|` becomes `%7C`); the raw Cookie header
  * keeps that encoding. Null when the value is not valid percent-encoding.
  */
 export function decodePendingUploadCookie(rawValue: string): string | null {

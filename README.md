@@ -6,7 +6,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Cloudflare Workers](https://img.shields.io/badge/Deployed%20on-Cloudflare%20Workers-F38020)](https://workers.cloudflare.com/)
-[![vinext](https://img.shields.io/npm/v/vinext?label=vinext&color=blue)](https://github.com/cloudflare/vinext)
+[![TanStack Start](https://img.shields.io/npm/v/@tanstack/react-start?label=TanStack%20Start&color=blue)](https://tanstack.com/start)
 
 ---
 
@@ -25,7 +25,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 | Layer          | Technology                                                                                                                                                                                          |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**  | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js)                                                                                                                                 |
+| **Framework**  | [TanStack Start](https://tanstack.com/start) (React 19, Vite, file routes + server functions)                                                                                                       |
 | **Runtime**    | [Cloudflare Workers](https://workers.cloudflare.com)                                                                                                                                                |
 | **Database**   | [PlanetScale Postgres](https://planetscale.com) via [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) + [Drizzle ORM](https://orm.drizzle.team) (node-postgres `pg` >= 8.16.3) |
 | **Auth**       | [Clerk](https://clerk.com) (Google OAuth + credentials; prebuilt `<SignIn>/<SignUp>` UI, JWKS-verified session JWTs)                                                                                |
@@ -61,8 +61,8 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 ### Trade-offs
 
 - **No `fs` Module**: Must use R2 for file operations
-- **No Next.js `<Image />` Component**: Use `<img>` with CSS instead
-- **No DB in Middleware**: The edge proxy only checks cookie presence
+- **No `next/image`-style optimizer**: Use `<img>` with CSS instead
+- **No DB in the Worker gate**: The Worker entry only strips/forwards requests; pages and APIs authenticate themselves
 - **Bundle Size**: Keep dependencies minimal
 
 ---
@@ -348,7 +348,7 @@ pnpm run fix              # Oxlint + Oxfmt auto-fix (via vp check --fix)
 pnpm run type-check       # TypeScript check
 
 # Build & Deploy
-pnpm run build            # Vite production build (vinext)
+pnpm run build            # Vite production build (TanStack Start + Cloudflare plugin)
 pnpm run preview          # Local Cloudflare preview
 pnpm run deploy           # build → migrate → NULL backfill → R2 lifecycle → deploy → since backfill → IndexNow (needs DATABASE_URL)
 
@@ -400,30 +400,18 @@ says why. The workflow's header comment documents the full gate and safety model
 
 ```
 app/
-├── api/                 # API routes (webhooks/clerk, upload, resume, etc.)
-├── (admin)/             # Admin dashboard pages
-│   ├── users/       # User management
-│   ├── resumes/     # Resume management
-│   └── analytics/   # Site analytics
-├── (protected)/         # Auth-gated pages
-│   ├── dashboard/       # User dashboard with analytics
-│   ├── edit/            # Resume content editor
-│   ├── settings/        # Privacy & theme settings
-│   ├── themes/          # Theme gallery
-│   ├── waiting/         # AI parsing status (WebSocket)
-│   └── wizard/          # Onboarding wizard
-├── [handle]/            # Public resume viewer /@handle
-├── for/                 # Landing pages by profession
-│   ├── student/
-│   ├── software-engineer/
-│   ├── designer/
-│   ├── product-manager/
-│   ├── marketer/
-│   └── consultant/
-├── blog/                # Blog posts & content marketing
-├── preview/[id]/        # Template preview (before claiming)
-├── page.tsx             # Homepage
-├── layout.tsx           # Root layout (ClerkProvider wrapper)
+├── routes/              # TanStack Router file routes (routeTree.gen.ts is generated)
+│   ├── api/             # Server routes (webhooks/clerk, upload, resume, etc.)
+│   ├── admin/           # Admin dashboard (route.tsx gates; users, resumes, analytics)
+│   ├── _protected/      # Auth-gated pages: dashboard, edit, settings, themes, waiting, wizard
+│   ├── @{$handle}.tsx   # Public resume viewer /@handle
+│   ├── for/             # Landing pages by profession
+│   ├── blog/            # Blog posts & content marketing
+│   ├── preview/         # Template preview (demo data)
+│   ├── index.tsx        # Homepage
+│   └── __root.tsx       # Root document (ClerkProvider, head, scripts)
+├── router.tsx           # Router factory (error/not-found defaults)
+├── client.tsx           # Client entry (hydration + browser telemetry)
 └── globals.css          # Global styles
 
 components/
@@ -451,7 +439,8 @@ lib/
 └── config/              # Site config, FAQ, retry policies
 
 worker/
-└── index.ts             # Custom worker entry (vinext + Workflows + Cron + WebSocket auth)
+├── index.ts             # Worker entry (TanStack Start handler + Workflows + Cron + Queue + WebSocket auth)
+└── cached-pages.ts      # CachedPages entrypoint: Workers Cache for public pages + purges
 
 migrations_pg/
 └── *.sql                # Postgres migrations (drizzle-kit)
@@ -645,7 +634,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [vinext](https://github.com/cloudflare/vinext) - Vite-based Next.js for Cloudflare Workers
+- [TanStack Start](https://tanstack.com/start) - Full-stack React framework on Vite
 - [Clerk](https://clerk.com) - Authentication and user management
 - [PlanetScale](https://planetscale.com) - Serverless Postgres
 - [Drizzle ORM](https://orm.drizzle.team) - Type-safe database access

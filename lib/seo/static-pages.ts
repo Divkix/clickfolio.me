@@ -1,6 +1,11 @@
-import type { MetadataRoute } from "next";
-
-type ChangeFrequency = NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
+export type ChangeFrequency =
+  | "always"
+  | "hourly"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "never";
 
 export interface StaticPage {
   path: string;

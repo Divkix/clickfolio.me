@@ -3,7 +3,7 @@
  * OTLP/HTTP traces and logs to the collector with the ingestion key, which
  * never ships to the client. Plain JSON exports are tagged with the visitor's
  * country from Cloudflare (`request.cf`), never the IP. Handled in the Worker
- * entry ahead of vinext, so it costs no SSR, auth or DB work.
+ * entry ahead of the app, so it costs no SSR, auth or DB work.
  */
 import { Cause, Data, Effect, Exit, Layer } from "effect";
 import { z } from "zod";

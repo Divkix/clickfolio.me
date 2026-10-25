@@ -1,58 +1,44 @@
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { REMOVED_THEME_REPLACEMENTS, themeSlug } from "@/lib/templates/theme-ids";
+import { isNotFound, isRedirect } from "@tanstack/react-router";
+import { describe, expect, it } from "vite-plus/test";
+import { themeIdForSlugOrRedirect } from "@/app/routes/templates/$theme";
+import { REMOVED_THEME_REPLACEMENTS, THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 
-const { notFound, permanentRedirect } = vi.hoisted(() => ({
-  notFound: vi.fn((): never => {
-    throw new Error("NEXT_NOT_FOUND");
-  }),
-  permanentRedirect: vi.fn((url: string): never => {
-    throw new Error(`NEXT_REDIRECT ${url}`);
-  }),
-}));
+function thrownBySlug(slug: string) {
+  try {
+    themeIdForSlugOrRedirect(slug);
+  } catch (error) {
+    return error;
+  }
 
-vi.mock("next/navigation", () => ({ notFound, permanentRedirect }));
+  throw new Error("Expected the theme slug to redirect or be missing");
+}
 
-const params = (theme: string) => ({ params: Promise.resolve({ theme }) });
+describe("/templates/$theme", () => {
+  it("308s every removed theme's slug to its replacement", () => {
+    for (const [removed, replacement] of Object.entries(REMOVED_THEME_REPLACEMENTS)) {
+      const error = thrownBySlug(removed.replaceAll("_", "-"));
+      expect(isRedirect(error)).toBe(true);
 
-const REMOVED_SLUGS = Object.keys(REMOVED_THEME_REPLACEMENTS).map((id) => id.replaceAll("_", "-"));
-
-beforeEach(() => {
-  notFound.mockClear();
-  permanentRedirect.mockClear();
-});
-
-describe("/templates/[theme]", () => {
-  it("308s a removed theme's slug to its replacement", async () => {
-    const { generateMetadata, default: ThemePage } = await import("@/app/templates/[theme]/page");
-
-    await expect(generateMetadata(params("sidebar-photo"))).rejects.toThrow(
-      "NEXT_REDIRECT /templates/bold-corporate",
-    );
-    await expect(ThemePage(params("consulting-brief"))).rejects.toThrow(
-      "NEXT_REDIRECT /templates/classic-ats",
-    );
+      if (!isRedirect(error)) throw error;
+      expect(error.status).toBe(308);
+      expect(error.options.to).toBe("/templates/$theme");
+      expect(error.options.params).toEqual({ theme: themeSlug(replacement) });
+    }
   });
 
-  it("404s unknown and non-kebab slugs", async () => {
-    const { generateMetadata } = await import("@/app/templates/[theme]/page");
-
-    await expect(generateMetadata(params("not-a-theme"))).rejects.toThrow("NEXT_NOT_FOUND");
-    await expect(generateMetadata(params("sidebar_photo"))).rejects.toThrow("NEXT_NOT_FOUND");
-    await expect(generateMetadata(params("case_file"))).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(permanentRedirect).not.toHaveBeenCalled();
+  it("404s unknown and non-kebab slugs", () => {
+    for (const slug of ["not-a-theme", "sidebar_photo", "case_file"]) {
+      expect(isNotFound(thrownBySlug(slug))).toBe(true);
+    }
   });
 
-  it("keeps serving current themes and no longer lists removed ones", async () => {
-    const { generateMetadata, generateStaticParams } = await import("@/app/templates/[theme]/page");
+  it("keeps serving current themes and no longer lists removed ones", () => {
+    const slugs = THEME_IDS.map(themeSlug);
+    expect(themeIdForSlugOrRedirect("case-file")).toBe("case_file");
+    expect(slugs).toContain("case-file");
 
-    const metadata = await generateMetadata(params("case-file"));
-    const slugs = generateStaticParams().map(({ theme }) => theme);
-
-    expect(metadata.alternates?.canonical).toMatch(/\/templates\/case-file$/);
-    expect(slugs).toContain(themeSlug("case_file"));
-
-    for (const slug of REMOVED_SLUGS) {
-      expect(slugs).not.toContain(slug);
+    for (const id of Object.keys(REMOVED_THEME_REPLACEMENTS)) {
+      expect(slugs).not.toContain(id.replaceAll("_", "-"));
     }
   });
 });

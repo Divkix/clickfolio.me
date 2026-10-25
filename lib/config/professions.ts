@@ -7,7 +7,7 @@ export interface Profession {
   themes: readonly ThemeId[];
 }
 
-export const PROFESSIONS: readonly Profession[] = [
+export const PROFESSIONS = [
   {
     slug: "software-engineer",
     label: "Software Engineers",
@@ -52,4 +52,4 @@ export const PROFESSIONS: readonly Profession[] = [
       "minimalist_editorial",
     ],
   },
-] as const;
+] as const satisfies readonly Profession[];

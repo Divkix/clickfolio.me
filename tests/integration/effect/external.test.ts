@@ -1,6 +1,6 @@
-import { Effect, Exit } from "effect";
+import { Effect } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { classifyUpstreamCause, externalCall, isFrameworkSignal } from "@/lib/effect/external";
+import { classifyUpstreamCause, externalCall } from "@/lib/effect/external";
 import { DbFailed, type UpstreamDetails } from "@/lib/effect/failures";
 
 function dbFailed(details: UpstreamDetails) {
@@ -62,25 +62,6 @@ describe("externalCall", () => {
     expect(failure).toMatchObject({ kind: "unavailable" });
     expect(failure.message).not.toContain("person@example.com");
   });
-
-  it("turns a thrown framework signal into a defect instead of a typed failure", async () => {
-    const redirect = Object.assign(new Error("NEXT_REDIRECT"), {
-      digest: "NEXT_REDIRECT;replace;/;307;",
-    });
-
-    const exit = await Effect.runPromiseExit(
-      externalCall({
-        operation: "test.redirect",
-        timeoutMs: 1_000,
-        run: async () => {
-          throw redirect;
-        },
-        fail: dbFailed,
-      }),
-    );
-
-    expect(Exit.isFailure(exit) && exit.cause.reasons.map((r) => r._tag)).toEqual(["Die"]);
-  });
 });
 
 describe("classifyUpstreamCause", () => {
@@ -94,22 +75,5 @@ describe("classifyUpstreamCause", () => {
     [new TypeError("fetch failed"), "unavailable"],
   ])("classifies %o as %s", (cause, kind) => {
     expect(classifyUpstreamCause(cause)).toBe(kind);
-  });
-});
-
-describe("isFrameworkSignal", () => {
-  it.each([
-    "NEXT_REDIRECT;push;/x;307;",
-    "NEXT_NOT_FOUND",
-    "NEXT_HTTP_ERROR_FALLBACK;403",
-    "DYNAMIC_SERVER_USAGE",
-    "BAILOUT_TO_CLIENT_SIDE_RENDERING",
-  ])("recognizes digest %s", (digest) => {
-    expect(isFrameworkSignal(Object.assign(new Error("x"), { digest }))).toBe(true);
-  });
-
-  it("ignores ordinary errors and unrelated digests", () => {
-    expect(isFrameworkSignal(new Error("x"))).toBe(false);
-    expect(isFrameworkSignal(Object.assign(new Error("x"), { digest: "123" }))).toBe(false);
   });
 });

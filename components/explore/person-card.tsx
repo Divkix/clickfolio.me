@@ -1,5 +1,5 @@
 import { Briefcase, ExternalLink, GraduationCap, MapPin } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import type { DirectoryUser } from "@/lib/data/indexable-profiles";
 
@@ -10,7 +10,8 @@ interface PersonCardProps {
 export function PersonCard({ person }: PersonCardProps) {
   return (
     <Link
-      href={`/@${person.handle}`}
+      to="/@{$handle}"
+      params={{ handle: person.handle }}
       className="group min-w-0 overflow-hidden bg-card rounded-xl border border-border shadow-sm p-6 transition-colors hover:border-border-strong hover:bg-surface-2"
     >
       <div className="flex items-start justify-between mb-4">

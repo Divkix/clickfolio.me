@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useSyncExternalStore } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Button } from "@/components/ui/button";

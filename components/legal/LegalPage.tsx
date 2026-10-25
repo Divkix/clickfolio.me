@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
@@ -8,7 +8,7 @@ interface LegalPageProps {
   title: string;
   lastUpdated: string;
   breadcrumbLabel: string;
-  breadcrumbHref: string;
+  breadcrumbHref: "/privacy" | "/terms";
   jsonLd: ReactNode;
   sections: { title: string; body: ReactNode }[];
 }
@@ -48,14 +48,14 @@ export function LegalPage({
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link
-            href="/"
+            to="/"
             className="hover:opacity-80 transition-opacity"
             aria-label="clickfolio.me home"
           >
             <Logo size="md" />
           </Link>
           <Link
-            href="/"
+            to="/"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Back to Home
@@ -116,7 +116,7 @@ export function LegalPage({
 
           <div className="mt-8 text-center">
             <Link
-              href="/"
+              to="/"
               className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <svg

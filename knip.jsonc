@@ -1,8 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  // scripts/ are tsx CLIs, which no plugin knows about; app/ route files come from the Next.js plugin.
-  // lib/cache/queued-cdn-adapter.ts is loaded by path from vite.config.ts (vinext cache.cdn.adapter).
-  "entry": ["scripts/**/*.ts", "lib/cache/queued-cdn-adapter.ts"],
+  // scripts/ are tsx CLIs, which no plugin knows about.
+  "entry": ["scripts/**/*.ts"],
   "project": [
     "app/**/*.{ts,tsx}",
     "app/**/*.css",
@@ -11,13 +10,14 @@
     "lib/**/*.{ts,tsx}",
     "worker/**/*.{ts,tsx}",
   ],
+  // TanStack Start runs with `srcDirectory: "app"` (vite.config.ts); the plugin's defaults assume src/.
+  // The generated route tree imports every route file.
+  "tanstack-router": {
+    "entry": ["app/routeTree.gen.ts", "app/{router,client}.tsx"],
+  },
   "ignore": [],
   "ignoreBinaries": [],
-  // Imported but not installed:
-  // - `cloudflare:workers` reads as a package named "cloudflare" (a runtime builtin).
-  // - `next` and `next/*` are served by vinext (its shims at runtime, `vinext/types` for types).
-  "ignoreDependencies": ["cloudflare", "next", "postcss"],
-  // The Next.js plugin (app/ route files as entries) only turns itself on when package.json lists `next`.
-  "next": true,
+  // Imported but not installed: `cloudflare:workers` reads as a package named "cloudflare" (a runtime builtin).
+  "ignoreDependencies": ["cloudflare", "postcss"],
   "ignoreExportsUsedInFile": true,
 }

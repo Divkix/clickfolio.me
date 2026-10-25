@@ -1,12 +1,10 @@
-"use client";
-
 import { CheckCircle2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { THEME_IDS, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
-import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
+import { ThemeTemplate } from "@/lib/templates/theme-registry";
 import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
@@ -84,7 +82,7 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
       setSavedTheme(selectedTheme);
       setSuccessMessage(`Theme updated to ${THEME_METADATA[selectedTheme].name}`);
 
-      router.refresh();
+      void router.invalidate();
 
       setTimeout(() => {
         setSuccessMessage(null);
@@ -97,7 +95,6 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
     }
   }
 
-  const SelectedTemplate = DYNAMIC_TEMPLATES[selectedTheme];
   const bgConfig = THEME_CHROME[selectedTheme].background;
   const hasChanges = selectedTheme !== savedTheme;
 
@@ -236,7 +233,8 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
             }}
             className="pointer-events-none"
           >
-            <SelectedTemplate
+            <ThemeTemplate
+              themeId={selectedTheme}
               content={initialContent}
               profile={profile}
               share={THEME_CHROME[selectedTheme].share}

@@ -1,15 +1,14 @@
+import { isRedirect } from "@tanstack/react-router";
 import { sql } from "drizzle-orm";
-import { Effect } from "effect";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { AppSession } from "@/lib/auth/session";
 import {
-  loadDashboard,
-  loadEditContent,
-  loadSettings,
-  loadThemeChoice,
+  dashboardPageData,
+  editPageData,
+  settingsPageData,
+  themesPageData,
 } from "@/lib/data/owner-pages";
 import { resumes, siteData, user } from "@/lib/db/schema";
-import { Db } from "@/lib/effect/db";
 import { DbFailed } from "@/lib/effect/failures";
 import type { ResumeContent } from "@/lib/types/database";
 import { getProfileSuggestions } from "@/lib/utils/profile-completeness";
@@ -36,12 +35,6 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   getServerSession: () => Promise.resolve(holder.session),
-}));
-
-vi.mock("next/navigation", () => ({
-  redirect: (path: string): never => {
-    throw new Error(`NEXT_REDIRECT ${path}`);
-  },
 }));
 
 const NOW = "2026-01-01T00:00:00.000Z";
@@ -115,10 +108,6 @@ async function closedDb(): Promise<TestDb> {
   return closed.db;
 }
 
-function runLoader<A, E>(effect: Effect.Effect<A, E, Db>): Promise<A> {
-  return Effect.runPromise(Effect.provide(effect, Db.layerFrom(db)));
-}
-
 beforeAll(async () => {
   testDb = await createTestDb();
   db = testDb.db;
@@ -139,34 +128,27 @@ describe("/edit", () => {
     await seedOwner("owner");
     await seedSite("owner");
 
-    const { default: EditPage } = await import("@/app/(protected)/edit/page");
-
-    await EditPage();
-
-    expect(await runLoader(loadEditContent("owner"))).toEqual(INDEXABLE_CONTENT);
+    expect(await editPageData()).toEqual(INDEXABLE_CONTENT);
   });
 
   it("sends an owner without a site to the dashboard", async () => {
     await seedOwner("owner");
 
-    const { default: EditPage } = await import("@/app/(protected)/edit/page");
-
-    await expect(EditPage()).rejects.toThrow("NEXT_REDIRECT /dashboard");
+    const error = await editPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/dashboard");
   });
 
   it("sends a signed-out visitor home", async () => {
     holder.session = null;
 
-    const { default: EditPage } = await import("@/app/(protected)/edit/page");
-
-    await expect(EditPage()).rejects.toThrow("NEXT_REDIRECT /");
+    const error = await editPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/");
   });
 
   it("throws the typed failure when the database is down, not a redirect", async () => {
     holder.db = await closedDb();
 
-    const { default: EditPage } = await import("@/app/(protected)/edit/page");
-    const error = await EditPage().catch((cause: Error) => cause);
+    const error = await editPageData().catch((cause: Error) => cause);
 
     expect(error).toMatchObject({ cause: expect.any(DbFailed) });
   });
@@ -176,8 +158,7 @@ describe("/edit", () => {
     await seedSite("owner");
     await db.execute(sql`UPDATE site_data SET content = jsonb_set(content, '{skills}', '{}')`);
 
-    const { default: EditPage } = await import("@/app/(protected)/edit/page");
-    const error = await EditPage().catch((cause: Error) => cause);
+    const error = await editPageData().catch((cause: Error) => cause);
 
     expect(error).toMatchObject({ cause: expect.objectContaining({ kind: "invalid-response" }) });
   });
@@ -188,31 +169,34 @@ describe("/themes", () => {
     await seedOwner("owner");
     await seedSite("owner");
 
-    const { default: ThemesPage } = await import("@/app/(protected)/themes/page");
-
-    await ThemesPage();
-
-    expect(await runLoader(loadThemeChoice("owner"))).toEqual({
-      themeId: "minimalist_editorial",
-      content: INDEXABLE_CONTENT,
+    expect(await themesPageData()).toEqual({
+      session: holder.session,
+      choice: {
+        themeId: "minimalist_editorial",
+        content: INDEXABLE_CONTENT,
+      },
     });
   });
 
   it("sends an owner without a site to the dashboard", async () => {
     await seedOwner("owner");
 
-    const { default: ThemesPage } = await import("@/app/(protected)/themes/page");
-
-    await expect(ThemesPage()).rejects.toThrow("NEXT_REDIRECT /dashboard");
+    const error = await themesPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/dashboard");
   });
 
   it("throws the typed failure when the database is down", async () => {
     holder.db = await closedDb();
 
-    const { default: ThemesPage } = await import("@/app/(protected)/themes/page");
-    const error = await ThemesPage().catch((cause: Error) => cause);
+    const error = await themesPageData().catch((cause: Error) => cause);
 
     expect(error).toMatchObject({ cause: expect.any(DbFailed) });
+  });
+
+  it("sends a signed-out visitor home", async () => {
+    holder.session = null;
+    const error = await themesPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/");
   });
 });
 
@@ -221,11 +205,9 @@ describe("/settings", () => {
     await seedOwner("owner");
     await seedResume("owner");
 
-    const { default: SettingsPage } = await import("@/app/(protected)/settings/page");
+    const settings = await settingsPageData();
 
-    await SettingsPage();
-
-    const settings = await runLoader(loadSettings("owner"));
+    expect(settings.session).toEqual(holder.session);
 
     expect(settings.profile).toMatchObject({
       id: "owner",
@@ -237,18 +219,22 @@ describe("/settings", () => {
   });
 
   it("sends a session whose user row is gone to the dashboard", async () => {
-    const { default: SettingsPage } = await import("@/app/(protected)/settings/page");
-
-    await expect(SettingsPage()).rejects.toThrow("NEXT_REDIRECT /dashboard");
+    const error = await settingsPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/dashboard");
   });
 
   it("throws the typed failure when the database is down", async () => {
     holder.db = await closedDb();
 
-    const { default: SettingsPage } = await import("@/app/(protected)/settings/page");
-    const error = await SettingsPage().catch((cause: Error) => cause);
+    const error = await settingsPageData().catch((cause: Error) => cause);
 
     expect(error).toMatchObject({ cause: expect.any(DbFailed) });
+  });
+
+  it("sends a signed-out visitor home", async () => {
+    holder.session = null;
+    const error = await settingsPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/");
   });
 });
 
@@ -256,11 +242,8 @@ describe("/dashboard", () => {
   it("shows the empty state to an owner without a resume", async () => {
     await seedOwner("owner");
 
-    const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
-
-    await DashboardPage();
-
-    expect(await runLoader(loadDashboard("owner"))).toMatchObject({
+    expect(await dashboardPageData()).toMatchObject({
+      session: holder.session,
       userData: { id: "owner", resumes: [], siteData: null },
       content: null,
     });
@@ -271,11 +254,9 @@ describe("/dashboard", () => {
     await seedResume("owner");
     await seedSite("owner");
 
-    const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
+    const dashboard = await dashboardPageData();
 
-    await DashboardPage();
-
-    const dashboard = await runLoader(loadDashboard("owner"));
+    expect(dashboard.session).toEqual(holder.session);
 
     expect(dashboard.content).toEqual(INDEXABLE_CONTENT);
     expect(dashboard.userData?.id).toBe("owner");
@@ -299,9 +280,9 @@ describe("/dashboard", () => {
       updatedAt: NOW,
     });
 
-    const dashboard = await Effect.runPromise(
-      Effect.provide(loadDashboard("owner"), Db.layerFrom(db)),
-    );
+    const dashboard = await dashboardPageData();
+
+    expect(dashboard.content).toEqual(legacy);
 
     if (!dashboard.content) throw new Error("legacy content should load");
 
@@ -317,17 +298,21 @@ describe("/dashboard", () => {
   it("sends an owner who has not finished onboarding to the wizard", async () => {
     await seedOwner("owner", false);
 
-    const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
-
-    await expect(DashboardPage()).rejects.toThrow("NEXT_REDIRECT /wizard");
+    const error = await dashboardPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/wizard");
   });
 
   it("throws the typed failure when the database is down, not the empty state", async () => {
     holder.db = await closedDb();
 
-    const { default: DashboardPage } = await import("@/app/(protected)/dashboard/page");
-    const error = await DashboardPage().catch((cause: Error) => cause);
+    const error = await dashboardPageData().catch((cause: Error) => cause);
 
     expect(error).toMatchObject({ cause: expect.any(DbFailed) });
+  });
+
+  it("sends a signed-out visitor home", async () => {
+    holder.session = null;
+    const error = await dashboardPageData().catch((cause: unknown) => cause);
+    expect(isRedirect(error) && error.options.to).toBe("/");
   });
 });

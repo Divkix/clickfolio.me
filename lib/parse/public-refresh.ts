@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { Effect } from "effect";
+import { publicProfileTags } from "@/lib/cache/edge-cache";
 import { purgeEdgeTags } from "@/lib/cache/edge-purge";
-import { publicProfileTags } from "@/lib/cache/public-profile-paths";
 import { siteConfig } from "@/lib/config/site";
 import { indexableProfileCondition } from "@/lib/data/indexable-profiles";
 import type { PgQueryable } from "@/lib/db";
@@ -59,10 +59,11 @@ function indexableHandles(handles: readonly string[]): Effect.Effect<string[], n
 
 /**
  * After a parse rewrote public site-data: purge the edge-cached pages and tell search engines.
- * A Workflow has no request store, so the purge enqueues the encoded tags itself instead of
- * calling `revalidatePath`. Best effort: a failure is logged and never fails the run. A timed-out
- * enqueue is not resent (it may have landed). The IndexNow ping only runs on the production site
- * (`appUrl`), as it does for request-time changes, and only for profiles that are still indexable.
+ * A Workflow has no request (no `waitUntil`), so this step enqueues the encoded tags itself
+ * instead of calling `revalidatePublicProfilePages`. Best effort: a failure is logged and never
+ * fails the run. A timed-out enqueue is not resent (it may have landed). The IndexNow ping only
+ * runs on the production site (`appUrl`), as it does for request-time changes, and only for
+ * profiles that are still indexable.
  */
 export function refreshPublicProfiles(
   handles: readonly string[],

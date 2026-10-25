@@ -1,9 +1,7 @@
-"use client";
-
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -104,7 +102,7 @@ function useWizardInit(
   initialStart: Exclude<WizardStart, { kind: "redirect-waiting" }>,
   ownerHandle: string | null,
 ) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(initialStart.kind === "claim-first");
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(initialStart.kind === "upload");
@@ -153,7 +151,7 @@ function useWizardInit(
         if (!active) return;
 
         if (start.kind === "redirect-waiting") {
-          router.push(`/waiting?resume_id=${start.resumeId}`);
+          void navigate({ to: "/waiting", search: { resume_id: start.resumeId } });
 
           return;
         }
@@ -180,7 +178,7 @@ function useWizardInit(
 
         if (!active) return;
 
-        navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
+        navigateTimeoutRef.current = setTimeout(() => void navigate({ to: "/dashboard" }), 3000);
       }
     })();
 
@@ -192,9 +190,9 @@ function useWizardInit(
         navigateTimeoutRef.current = null;
       }
     };
-  }, [initialStart, router]);
+  }, [initialStart, navigate]);
 
-  return { router, loading, error, setError, needsUpload, state, setState };
+  return { navigate, loading, error, setError, needsUpload, state, setState };
 }
 
 export default function WizardClient({
@@ -204,7 +202,7 @@ export default function WizardClient({
   initialStart: Exclude<WizardStart, { kind: "redirect-waiting" }>;
   ownerHandle: string | null;
 }) {
-  const { router, loading, error, setError, needsUpload, state, setState } = useWizardInit(
+  const { navigate, loading, error, setError, needsUpload, state, setState } = useWizardInit(
     initialStart,
     ownerHandle,
   );
@@ -304,7 +302,7 @@ export default function WizardClient({
     setShowLiveModal(open);
 
     if (!open) {
-      router.push("/dashboard");
+      void navigate({ to: "/dashboard" });
     }
   };
 

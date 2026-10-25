@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useState } from "react";
 
 function readDismissed(key: string, durationMs: number): boolean {

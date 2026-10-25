@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 interface NoResultsProps {
   roleFilter: string;
@@ -10,7 +10,7 @@ export function NoResults({ roleFilter }: NoResultsProps) {
       <p className="text-muted-foreground text-lg">
         No professionals found.{" "}
         {roleFilter && (
-          <Link href="/explore" className="text-brand hover:underline">
+          <Link to="/explore" className="text-brand hover:underline">
             Clear filters
           </Link>
         )}

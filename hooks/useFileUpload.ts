@@ -1,5 +1,3 @@
-"use client";
-
 import type { ChangeEvent, DragEvent } from "react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";

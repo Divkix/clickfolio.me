@@ -6,9 +6,9 @@
  * Session handling is Effect-only (`resolveAuth`, `authenticate`).
  */
 
+import { getRequest } from "@tanstack/react-start/server";
 import { Effect } from "effect";
 import { eq } from "drizzle-orm";
-import { cookies } from "next/headers";
 import type { User as SchemaUser } from "@/lib/db/schema";
 import { user as userTable } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
@@ -95,18 +95,11 @@ export function extractClerkTokenFromRequest(request: Request): string | null {
 }
 
 /**
- * The __session cookie only: from `request` when given, else from the framework's
- * cookie store. `cookies()` signals "this render is dynamic" by throwing; that is not an auth
- * failure, so it becomes a defect and unwinds the render untouched (edges rethrow it).
+ * The __session cookie only: from `request` when given (the Worker's WebSocket upgrade, which runs
+ * outside TanStack Start), else from the Start request this server function or route serves.
  */
 function readSessionToken(request?: Request): Effect.Effect<string | null> {
-  if (request) return Effect.succeed(extractClerkTokenFromRequest(request));
-
-  return Effect.promise(async () => {
-    const cookieStore = await cookies();
-
-    return cookieStore.get(CLERK_SESSION_COOKIE)?.value ?? null;
-  });
+  return Effect.sync(() => extractClerkTokenFromRequest(request ?? getRequest()));
 }
 
 /**
@@ -154,10 +147,10 @@ export type AuthFailure = Unauthorized | NotFound | ClerkFailed | DbFailed | DbC
  * valid but the user row is missing (webhook lag), which callers treat as an auth failure.
  */
 export function authenticate(
-  options: { readonly unauthorizedMessage?: string } = {},
+  options: { readonly request?: Request; readonly unauthorizedMessage?: string } = {},
 ): Effect.Effect<AuthenticatedUser, AuthFailure, Clerk | Db> {
   return Effect.gen(function* () {
-    const auth = yield* resolveAuth();
+    const auth = yield* resolveAuth(options.request);
 
     if (!auth) {
       return yield* Effect.fail(

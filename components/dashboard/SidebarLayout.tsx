@@ -1,0 +1,65 @@
+import { Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+
+export function SidebarLayout({
+  children,
+  handle,
+  isAdmin,
+}: {
+  children: React.ReactNode;
+  handle: string | null;
+  isAdmin: boolean;
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [sidebarOpen]);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        handle={handle}
+        isAdmin={isAdmin}
+      />
+
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-4 right-4 z-50 p-3 bg-card border border-border rounded-lg shadow-sm md:hidden transition-colors hover:bg-surface-2"
+        aria-label="Open navigation menu"
+      >
+        <Menu size={24} className="text-foreground" />
+      </button>
+
+      <main id="main-content" className="md:ml-60 min-h-screen">
+        {children}
+      </main>
+    </div>
+  );
+}

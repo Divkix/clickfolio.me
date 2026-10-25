@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import {
   afterAll,
@@ -139,7 +140,7 @@ describe("GET /api/resume/status", () => {
   it("answers 400 without a resume_id", async () => {
     await insertUsers();
 
-    const { GET } = await import("@/app/api/resume/status/route");
+    const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
 
     expect((await GET(new Request(url(null)))).status).toBe(400);
   });
@@ -147,7 +148,7 @@ describe("GET /api/resume/status", () => {
   it("answers 401 for a signed-out visitor", async () => {
     mocks.userId.value = "";
 
-    const { GET } = await import("@/app/api/resume/status/route");
+    const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
 
     expect((await GET(new Request(url("resume_1")))).status).toBe(401);
   });
@@ -156,7 +157,7 @@ describe("GET /api/resume/status", () => {
     await insertUsers();
     await insertResume("resume_2", "user_2", "failed");
 
-    const { GET } = await import("@/app/api/resume/status/route");
+    const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
 
     expect((await GET(new Request(url("missing")))).status).toBe(404);
     expect((await GET(new Request(url("resume_2")))).status).toBe(403);
@@ -166,7 +167,7 @@ describe("GET /api/resume/status", () => {
     await insertUsers();
     await insertResume("resume_1", "user_1", "failed");
 
-    const { GET } = await import("@/app/api/resume/status/route");
+    const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
     const response = await GET(new Request(url("resume_1")));
 
     expect(response.status).toBe(200);
@@ -181,7 +182,7 @@ describe("GET /api/resume/status", () => {
     await insertResume("resume_1", "user_1", "completed");
     const findFirst = vi.spyOn(testDb.db.query.resumes, "findFirst");
 
-    const { GET } = await import("@/app/api/resume/status/route");
+    const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
     const response = await GET(new Request(url("resume_1")));
 
     const body: { status: string; progress_pct: number; parsed_content: { full_name: string } } =
@@ -199,7 +200,7 @@ describe("GET /api/resume/status", () => {
     });
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { GET } = await import("@/app/api/resume/status/route");
+    const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
     const response = await GET(new Request(url("resume_1")));
 
     expect(response.status).toBe(503);
@@ -226,7 +227,11 @@ describe("POST /api/resume/update-theme", () => {
     await insertUsers();
     await insertSite();
 
-    const { POST } = await import("@/app/api/resume/update-theme/route");
+    const POST = serverHandler(
+      (await import("@/app/routes/api/resume/update-theme")).Route,
+      "POST",
+    );
+
     const response = await POST(post({ theme_id: "bento" }));
 
     expect(response.status).toBe(200);
@@ -245,7 +250,10 @@ describe("POST /api/resume/update-theme", () => {
   ])("answers 400 for %s", async (_label, body) => {
     await insertUsers();
 
-    const { POST } = await import("@/app/api/resume/update-theme/route");
+    const POST = serverHandler(
+      (await import("@/app/routes/api/resume/update-theme")).Route,
+      "POST",
+    );
 
     expect((await POST(post(body))).status).toBe(400);
   });
@@ -253,7 +261,11 @@ describe("POST /api/resume/update-theme", () => {
   it("answers 400 for an unknown theme_id", async () => {
     await insertUsers();
 
-    const { POST } = await import("@/app/api/resume/update-theme/route");
+    const POST = serverHandler(
+      (await import("@/app/routes/api/resume/update-theme")).Route,
+      "POST",
+    );
+
     const response = await POST(post({ theme_id: "nope" }));
 
     expect(response.status).toBe(400);
@@ -266,7 +278,10 @@ describe("POST /api/resume/update-theme", () => {
   it("answers 404 when the user has no portfolio yet", async () => {
     await insertUsers();
 
-    const { POST } = await import("@/app/api/resume/update-theme/route");
+    const POST = serverHandler(
+      (await import("@/app/routes/api/resume/update-theme")).Route,
+      "POST",
+    );
 
     expect((await POST(post({ theme_id: "bento" }))).status).toBe(404);
   });
@@ -279,7 +294,11 @@ describe("POST /api/resume/update-theme", () => {
     });
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { POST } = await import("@/app/api/resume/update-theme/route");
+    const POST = serverHandler(
+      (await import("@/app/routes/api/resume/update-theme")).Route,
+      "POST",
+    );
+
     const response = await POST(post({ theme_id: "bento" }));
 
     expect(response.status).toBe(503);
@@ -305,7 +324,7 @@ describe("PUT /api/resume/update", () => {
     await insertUsers();
     await insertSite();
 
-    const { PUT } = await import("@/app/api/resume/update/route");
+    const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
     const response = await PUT(put({ content: INDEXABLE_CONTENT }));
 
     expect(response.status).toBe(200);
@@ -321,7 +340,7 @@ describe("PUT /api/resume/update", () => {
     await insertUsers("Unnamed");
     await insertSite();
 
-    const { PUT } = await import("@/app/api/resume/update/route");
+    const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
     expect((await PUT(put({ content: INDEXABLE_CONTENT }))).status).toBe(200);
 
@@ -334,7 +353,7 @@ describe("PUT /api/resume/update", () => {
     await insertUsers();
     await insertSite();
 
-    const { PUT } = await import("@/app/api/resume/update/route");
+    const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
     expect((await PUT(put({ content: { full_name: "" } }))).status).toBe(400);
     expect((await PUT(put(null))).status).toBe(400);
@@ -343,7 +362,7 @@ describe("PUT /api/resume/update", () => {
   it("answers 404 when the user has no portfolio yet", async () => {
     await insertUsers();
 
-    const { PUT } = await import("@/app/api/resume/update/route");
+    const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
     expect((await PUT(put({ content: INDEXABLE_CONTENT }))).status).toBe(404);
   });
@@ -366,7 +385,7 @@ describe("PUT /api/resume/update", () => {
 
     const logged = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const { PUT } = await import("@/app/api/resume/update/route");
+    const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
     const response = await PUT(put({ content: INDEXABLE_CONTENT }));
 
     expect(response.status).toBe(200);
@@ -388,7 +407,7 @@ describe("PUT /api/resume/update", () => {
     });
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { PUT } = await import("@/app/api/resume/update/route");
+    const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
     expect((await PUT(put({ content: INDEXABLE_CONTENT }))).status).toBe(503);
     expect(mocks.revalidate).not.toHaveBeenCalled();

@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { FaqAccordion } from "@/components/Faq";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -114,7 +114,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
 
           <div className="mt-8 text-center">
             <Link
-              href="/blog"
+              to="/blog/"
               className="inline-flex min-h-11 items-center gap-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
@@ -129,7 +129,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
                 {relatedPosts.map((related) => (
                   <Link
                     key={related.slug}
-                    href={`/blog/${related.slug}`}
+                    to={`/blog/${related.slug}`}
                     className="group block rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:bg-surface-2 hover:border-border-strong"
                   >
                     <Badge variant="brand" className="mb-2">

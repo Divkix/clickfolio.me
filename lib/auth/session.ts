@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import { cache } from "react";
 import { Effect } from "effect";
 import { findUserByClerkId, resolveAuth, type AuthRow } from "@/lib/auth/clerk";
 import { Db } from "@/lib/effect/db";
@@ -23,8 +22,8 @@ export interface AppSession {
 /**
  * The signed-in user's session, or `null` when signed out or the user row does not exist yet.
  * Clerk or Postgres being unavailable fails instead of reading as signed out. Redirecting is the
- * caller's job, after the Effect returns. A route passes its `request` so the token comes from
- * that request's __session cookie only; pages leave it out and read the framework's cookie store.
+ * caller's job, after the Effect returns. The token comes from `request`'s __session cookie, or
+ * from the Start request being served when it is left out.
  */
 export function findSession(
   request?: Request,
@@ -62,9 +61,9 @@ export function findSession(
 }
 
 /**
- * Page and layout entry point. A framework signal thrown while reading cookies passes through;
- * an upstream failure throws to the error boundary rather than rendering as signed out.
+ * Page loader entry point: an upstream failure throws to the error component rather than
+ * rendering as signed out.
  */
-export const getServerSession = cache((): Promise<AppSession | null> =>
-  runPage(findSession(), appLayer(env)),
-);
+export function getServerSession(): Promise<AppSession | null> {
+  return runPage(findSession(), appLayer(env));
+}

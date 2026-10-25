@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RateLimitUnavailable } from "@/lib/effect/failures";
@@ -13,10 +14,6 @@ const mocks = vi.hoisted(() => ({
   },
   bound: { value: true },
   secret: { value: "" },
-  cookieGet: vi.fn(),
-  cookieSet: vi.fn(),
-  cookieDelete: vi.fn(),
-  cookies: vi.fn(),
   limiter: vi.fn(),
 }));
 
@@ -34,8 +31,6 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({ getDb: () => ({}) }));
-
-vi.mock("next/headers", () => ({ cookies: mocks.cookies }));
 
 vi.mock("@/lib/rate-limit/ip", () => ({
   checkIPRateLimitEffect: mocks.limiter,
@@ -72,12 +67,6 @@ beforeEach(() => {
   mocks.limiter
     .mockReset()
     .mockReturnValue(Effect.succeed({ remaining: { hourly: 9, daily: 49 } }));
-  mocks.cookieGet.mockReset().mockReturnValue(undefined);
-  mocks.cookieSet.mockReset();
-  mocks.cookieDelete.mockReset();
-  mocks.cookies
-    .mockReset()
-    .mockResolvedValue({ get: mocks.cookieGet, set: mocks.cookieSet, delete: mocks.cookieDelete });
 });
 
 afterEach(() => {
@@ -87,7 +76,7 @@ afterEach(() => {
 
 describe("POST /api/upload", () => {
   it("stores the PDF and sets the signed cookie", async () => {
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
 
     const response = await POST(uploadRequest());
     const body: { key: string } = await response.json();
@@ -101,7 +90,7 @@ describe("POST /api/upload", () => {
   it("answers 503 before touching the rate limit when the bucket is not bound", async () => {
     mocks.bound.value = false;
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const response = await POST(uploadRequest());
 
     expect(response.status).toBe(503);
@@ -114,7 +103,7 @@ describe("POST /api/upload", () => {
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const response = await POST(uploadRequest());
 
     expect(response.status).toBe(503);
@@ -126,7 +115,7 @@ describe("POST /api/upload", () => {
     mocks.bucket.put.mockRejectedValue(new Error("R2 is down"));
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const response = await POST(uploadRequest());
 
     expect(response.status).toBe(503);
@@ -146,7 +135,7 @@ describe("POST /api/upload", () => {
     mocks.bucket.put.mockReturnValue(new Promise(() => {}));
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const pending = POST(uploadRequest());
 
     await vi.advanceTimersByTimeAsync(TIMEOUT_MS.r2 + 1);
@@ -161,7 +150,7 @@ describe("POST /api/upload", () => {
     mocks.secret.value = "";
     const logged = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const response = await POST(uploadRequest());
 
     expect(response.status).toBe(200);
@@ -192,7 +181,7 @@ describe("POST /api/upload", () => {
       duplex: "half",
     });
 
-    const { POST } = await import("@/app/api/upload/route");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
     const response = await POST(request);
     const responseBody = JSON.stringify(await response.json());
 
@@ -208,28 +197,21 @@ describe("POST /api/upload", () => {
 describe("/api/upload/pending", () => {
   it("does not expose a cookie-minting POST handler", async () => {
     // Load after the test's Cloudflare and cookie mocks have been installed.
-    const route = await import("@/app/api/upload/pending/route");
+    const { Route } = await import("@/app/routes/api/upload/pending");
 
-    expect(route).not.toHaveProperty("POST");
+    expect(Route.options.server?.handlers).not.toHaveProperty("POST");
   });
 
   it("DELETE clears the cookie", async () => {
-    const { DELETE } = await import("@/app/api/upload/pending/route");
-    const response = await DELETE();
+    const DELETE = serverHandler((await import("@/app/routes/api/upload/pending")).Route, "DELETE");
+
+    const response = await DELETE(
+      new Request("https://clickfolio.me/api/upload/pending", { method: "DELETE" }),
+    );
 
     expect(response.status).toBe(200);
-    expect(mocks.cookieDelete).toHaveBeenCalledWith("pending_upload");
-  });
-
-  it("DELETE does not claim success when the cookie could not be cleared", async () => {
-    mocks.cookieDelete.mockImplementation(() => {
-      throw new Error("headers already sent");
-    });
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const { DELETE } = await import("@/app/api/upload/pending/route");
-    const response = await DELETE();
-
-    expect(response.status).toBe(500);
+    expect(response.headers.get("Set-Cookie")).toBe(
+      "pending_upload=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    );
   });
 });

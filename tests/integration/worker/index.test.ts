@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import handler from "vinext/server/app-router-entry";
+import handler from "@tanstack/react-start/server-entry";
 import worker from "@/worker/index";
 import { verifyToken } from "@clerk/backend";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -33,14 +33,13 @@ vi.mock("@/lib/workflows/r2-delete-workflow", () => ({
   R2DeleteWorkflow: class R2DeleteWorkflow {},
 }));
 
-// The Workers Cache entrypoints extend `cloudflare:workers` WorkerEntrypoint; the
-// worker only re-exports them.
-vi.mock("@vinext/cloudflare/cache/cdn-adapter.worker", () => ({
-  VinextCachedResponse: class VinextCachedResponse {},
-  VinextUncachedResponse: class VinextUncachedResponse {},
+// The cached-pages entrypoint extends `cloudflare:workers` WorkerEntrypoint; the worker only
+// re-exports it and reaches it through `ctx.exports`.
+vi.mock("@/worker/cached-pages", () => ({
+  CachedPages: class CachedPages {},
 }));
 
-vi.mock("vinext/server/app-router-entry", () => ({
+vi.mock("@tanstack/react-start/server-entry", () => ({
   default: {
     fetch: vi.fn().mockResolvedValue(new Response("OK from handler", { status: 200 })),
   },
@@ -147,13 +146,16 @@ function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
   } as CloudflareEnv;
 }
 
-function makeCtx(): ExecutionContext {
-  // SAFETY: the worker only invokes waitUntil/passThroughOnException; exports, props,
-  // tracing, and abort are runtime-only members these tests never read or call.
-  return {
+function makeCtx(cachedPagesFetch = (request: Request) => handler.fetch(request)) {
+  // SAFETY: the worker only invokes waitUntil/passThroughOnException; props, tracing and
+  // abort are runtime-only members these tests never read or call.
+  const ctx = {
     waitUntil: (_promise: Promise<void>) => {},
     passThroughOnException: () => {},
   } as ExecutionContext;
+
+  // Page reads go through the cached entrypoint; by default it renders, like a cache miss.
+  return Object.assign(ctx, { exports: { CachedPages: { fetch: vi.fn(cachedPagesFetch) } } });
 }
 
 function makeWsRequest(
@@ -199,21 +201,50 @@ describe("Worker fetch handler", () => {
     expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
   });
 
-  it("passes env and ctx to vinext so background work runs under ctx.waitUntil", async () => {
-    const env = makeEnv();
+  it("renders pages through the cached entrypoint and reports its cache status", async () => {
+    const ctx = makeCtx(
+      async () =>
+        new Response("cached", {
+          headers: {
+            "cf-cache-status": "HIT",
+            "Cloudflare-CDN-Cache-Control": "s-maxage=300",
+            "Cache-Tag": "edge-0123456789abcdef0123456789abcdef",
+          },
+        }),
+    );
+
+    const response = await worker.fetch(
+      new Request("https://clickfolio.me/@alice"),
+      makeEnv(),
+      ctx,
+    );
+
+    expect(await response.text()).toBe("cached");
+    expect(response.headers.get("x-edge-cache")).toBe("HIT");
+    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBeNull();
+    expect(response.headers.get("Cache-Tag")).toBeNull();
+    expect(vi.mocked(handler.fetch)).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["GET", "/api/health"],
+    ["GET", "/_serverFn/abc"],
+    ["POST", "/dashboard"],
+  ])("sends %s %s straight to the app, never the cache", async (method, path) => {
     const ctx = makeCtx();
-    const request = new Request("https://clickfolio.me/dashboard");
+    const request = new Request(`https://clickfolio.me${path}`, { method });
 
-    await worker.fetch(request, env, ctx);
+    await worker.fetch(request, makeEnv(), ctx);
 
-    expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(request, env, ctx);
+    expect(ctx.exports.CachedPages.fetch).not.toHaveBeenCalled();
+    expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(request);
   });
 
   it.each([
     ["/otel", 404],
     ["/otel/v1/traces", 405],
     ["/otel/anything", 404],
-  ])("answers %s from the ingest proxy (%i), never vinext", async (path, code) => {
+  ])("answers %s from the ingest proxy (%i), never the app", async (path, code) => {
     const response = await worker.fetch(
       new Request(`https://clickfolio.me${path}`),
       makeEnv(),
@@ -224,7 +255,7 @@ describe("Worker fetch handler", () => {
     expect(vi.mocked(handler.fetch)).not.toHaveBeenCalled();
   });
 
-  it("leaves look-alike paths such as /otelfoo to vinext", async () => {
+  it("leaves look-alike paths such as /otelfoo to the app", async () => {
     await worker.fetch(new Request("https://clickfolio.me/otelfoo"), makeEnv(), makeCtx());
 
     expect(vi.mocked(handler.fetch)).toHaveBeenCalled();
@@ -476,11 +507,7 @@ describe("Worker shared-cache privacy", () => {
 
     await worker.fetch(request, makeEnv(), makeCtx());
 
-    expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(
-      request,
-      expect.anything(),
-      expect.anything(),
-    );
+    expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(request);
   });
 });
 
@@ -495,12 +522,10 @@ describe("Worker edge purge consumer", () => {
       async () => ({ success: true }),
     );
 
-    const entrypoint = vi.fn(() => ({ purge }));
+    // The consumer reads only ctx.exports.CachedPages.
+    const ctx = Object.assign(makeCtx(), { exports: { CachedPages: { purge } } });
 
-    // The consumer reads only ctx.exports.VinextCachedResponse.
-    const ctx = Object.assign(makeCtx(), { exports: { VinextCachedResponse: entrypoint } });
-
-    const tags = ["vinext-0123456789abcdef0123456789abcdef"];
+    const tags = ["edge-0123456789abcdef0123456789abcdef"];
     const message = fakeMessage("m1", { tags });
 
     const done = worker.queue(fakeBatch([message]), makeEnv(), ctx);
@@ -509,7 +534,6 @@ describe("Worker edge purge consumer", () => {
     await done;
     vi.useRealTimers();
 
-    expect(entrypoint).toHaveBeenCalledWith({ props: {} });
     expect(purge).toHaveBeenCalledWith({ tags });
     expect(message.ack).toHaveBeenCalledTimes(1);
   });

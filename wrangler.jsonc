@@ -107,6 +107,12 @@
       },
     ],
   },
+  // Workers Cache runs only in front of `CachedPages` (worker/cached-pages.ts); the default
+  // entrypoint is the gateway and inherits caching off. Pages opt in with `edgeCacheHeaders()`.
+  // https://developers.cloudflare.com/workers/cache/configuration/#per-entrypoint-caching
+  "exports": {
+    "CachedPages": { "type": "worker", "cache": { "enabled": true } },
+  },
   "logpush": false,
   // Version id/tag of the running deployment on every log line (lib/utils/log.ts):
   // https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/

@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import {
   afterAll,
@@ -142,7 +143,7 @@ async function readRow() {
 }
 
 async function retry(body: JsonValue = { resume_id: "resume_1" }) {
-  const { POST } = await import("@/app/api/resume/retry/route");
+  const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
   return POST(
     new Request("https://clickfolio.me/api/resume/retry", {

@@ -1,6 +1,6 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { verifyToken } from "@clerk/backend";
 import { sql } from "drizzle-orm";
-import { cookies } from "next/headers";
 import { z } from "zod";
 import {
   afterAll,
@@ -31,10 +31,6 @@ vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
 }));
 
-vi.mock("next/headers", () => ({
-  cookies: vi.fn(),
-}));
-
 vi.mock("cloudflare:workers", () => ({
   env: {
     CLERK_SECRET_KEY: "sk_test_clickfolio_secret",
@@ -48,8 +44,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 const mockVerifyToken = vi.mocked(verifyToken);
-
-const mockCookies = vi.mocked(cookies);
 
 const NOW = "2026-01-01T00:00:00.000Z";
 
@@ -127,13 +121,13 @@ function verifiedAs(clerkId: string) {
 }
 
 async function latest(signedIn = true) {
-  // SAFETY: the code under test only calls get() on the cookie store.
-  mockCookies.mockResolvedValue({
-    get: (name: string) => (name === "__session" && signedIn ? { name, value: "jwt" } : undefined),
-  } as never);
+  const GET = serverHandler((await import("@/app/routes/api/resume/latest-status")).Route, "GET");
 
-  const { GET } = await import("@/app/api/resume/latest-status/route");
-  const response = await GET(new Request("https://clickfolio.me/api/resume/latest-status"));
+  const response = await GET(
+    new Request("https://clickfolio.me/api/resume/latest-status", {
+      headers: signedIn ? { Cookie: "__session=jwt" } : {},
+    }),
+  );
 
   return { response, body: bodySchema.parse(await response.json()) };
 }

@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import {
   afterAll,
@@ -141,7 +142,7 @@ async function claim(
 
   if (cookie) headers.set("Cookie", `pending_upload=${cookie}`);
 
-  const { POST } = await import("@/app/api/resume/claim/route");
+  const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
   return POST(
     new Request("http://localhost:3000/api/resume/claim", {

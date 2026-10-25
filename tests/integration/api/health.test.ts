@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { z } from "zod";
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
@@ -25,7 +26,7 @@ vi.mock("@/lib/utils/log", async (importOriginal) => ({
   log: mocks.log,
 }));
 
-const { GET } = await import("@/app/api/health/route");
+const GET = serverHandler((await import("@/app/routes/api/health")).Route, "GET");
 
 const serviceSchema = z.object({
   status: z.string(),
@@ -62,7 +63,7 @@ afterEach(() => {
 
 describe("GET /api/health", () => {
   it("reports healthy with 200 when every dependency answers", async () => {
-    const response = await GET();
+    const response = await GET(new Request("https://clickfolio.me/api/health"));
     const body = await readHealth(response);
 
     expect(response.status).toBe(200);
@@ -75,7 +76,7 @@ describe("GET /api/health", () => {
   it("answers 503 and logs the cause when Postgres fails", async () => {
     mocks.execute.mockRejectedValue(new Error("password authentication failed"));
 
-    const response = await GET();
+    const response = await GET(new Request("https://clickfolio.me/api/health"));
     const body = await readHealth(response);
 
     expect(response.status).toBe(503);
@@ -98,7 +99,7 @@ describe("GET /api/health", () => {
     vi.useFakeTimers();
     mocks.list.mockReturnValue(new Promise(() => {}));
 
-    const pending = GET();
+    const pending = GET(new Request("https://clickfolio.me/api/health"));
     await vi.advanceTimersByTimeAsync(TIMEOUT_MS.r2 + 1);
     const response = await pending;
     const body = await readHealth(response);
@@ -117,7 +118,7 @@ describe("GET /api/health", () => {
   it("marks a missing R2 binding unhealthy without naming it", async () => {
     delete mocks.env.CLICKFOLIO_R2_BUCKET;
 
-    const response = await GET();
+    const response = await GET(new Request("https://clickfolio.me/api/health"));
     const body = await readHealth(response);
 
     expect(response.status).toBe(503);

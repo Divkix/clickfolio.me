@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { resumes, siteData, user } from "@/lib/db/schema";
@@ -127,7 +128,7 @@ function jsonRequest(path: string, method: string, body: JsonValue, cookie?: str
 }
 
 async function updateContent() {
-  const { PUT } = await import("@/app/api/resume/update/route");
+  const PUT = serverHandler((await import("@/app/routes/api/resume/update")).Route, "PUT");
 
   return PUT(
     jsonRequest("update", "PUT", {
@@ -139,7 +140,7 @@ async function updateContent() {
 }
 
 async function updateTheme() {
-  const { POST } = await import("@/app/api/resume/update-theme/route");
+  const POST = serverHandler((await import("@/app/routes/api/resume/update-theme")).Route, "POST");
 
   return POST(
     jsonRequest("update-theme", "POST", {
@@ -151,7 +152,7 @@ async function updateTheme() {
 }
 
 async function status(id = "resume-a") {
-  const { GET } = await import("@/app/api/resume/status/route");
+  const GET = serverHandler((await import("@/app/routes/api/resume/status")).Route, "GET");
 
   return GET(
     new Request(`https://clickfolio.me/api/resume/status?resume_id=${encodeURIComponent(id)}`),
@@ -159,13 +160,13 @@ async function status(id = "resume-a") {
 }
 
 async function retry(id = "resume-a") {
-  const { POST } = await import("@/app/api/resume/retry/route");
+  const POST = serverHandler((await import("@/app/routes/api/resume/retry")).Route, "POST");
 
   return POST(jsonRequest("retry", "POST", { resume_id: id }));
 }
 
 async function claim(key = TEMP_KEY, cookie?: string) {
-  const { POST } = await import("@/app/api/resume/claim/route");
+  const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
   return POST(jsonRequest("claim", "POST", { key }, cookie));
 }

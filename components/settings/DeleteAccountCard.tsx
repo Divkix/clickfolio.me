@@ -1,7 +1,5 @@
-"use client";
-
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +22,7 @@ interface DeleteApiResponse {
 
 export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   const router = useRouter();
+  const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -67,8 +66,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
       toast.success("Your account has been deleted");
       setIsDialogOpen(false);
       await clerk.signOut();
-      router.push("/");
-      router.refresh();
+      void navigate({ to: "/" }).then(() => router.invalidate());
     } catch (err) {
       log("error", "Account deletion error", { ...errorFields(err) });
       const errorMessage = "An unexpected error occurred. Please try again.";

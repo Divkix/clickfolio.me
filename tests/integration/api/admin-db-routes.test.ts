@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { eq } from "drizzle-orm";
 import {
   afterAll,
@@ -97,7 +98,7 @@ describe("GET /api/admin/users", () => {
     await insertUser("u2", "Grace", null);
     await insertResume("r1", "u2", "failed");
 
-    const { GET } = await import("@/app/api/admin/users/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/users"));
     const body: { users: { id: string; status: string }[]; total: number } = await response.json();
 
@@ -110,7 +111,7 @@ describe("GET /api/admin/users", () => {
   it("answers an empty page and an unmatched search with an empty list and zero total", async () => {
     await insertUser("u1", "Ada", "ada");
 
-    const { GET } = await import("@/app/api/admin/users/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
 
     const pageResponse = await GET(new Request("https://clickfolio.me/api/admin/users?page=2"));
 
@@ -134,7 +135,7 @@ describe("GET /api/admin/users", () => {
     await insertUser("u1", "100% Real", "real");
     await insertUser("u2", "Someone Else", "else");
 
-    const { GET } = await import("@/app/api/admin/users/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/users?search=%25"));
     const body: { users: { id: string }[]; total: number } = await response.json();
 
@@ -149,7 +150,7 @@ describe("GET /api/admin/users", () => {
       throw Object.assign(new Error("connection terminated"), { code: "08006" });
     });
 
-    const { GET } = await import("@/app/api/admin/users/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/users")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/users"));
 
     expect(response.status).toBe(503);
@@ -164,7 +165,7 @@ describe("GET /api/admin/resumes", () => {
     await insertResume("r1", "u1", "failed");
     await insertResume("r2", "u1", "completed");
 
-    const { GET } = await import("@/app/api/admin/resumes/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/resumes")).Route, "GET");
 
     const response = await GET(
       new Request("https://clickfolio.me/api/admin/resumes?status=failed"),
@@ -186,7 +187,7 @@ describe("GET /api/admin/resumes", () => {
     await insertResume("r-pending", "u1", "pending_claim");
     await insertResume("r-processing", "u1", "processing");
 
-    const { GET } = await import("@/app/api/admin/resumes/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/resumes")).Route, "GET");
 
     const ids = async (status: string) => {
       const response = await GET(
@@ -207,7 +208,7 @@ describe("GET /api/admin/resumes", () => {
   });
 
   it("answers 400 for an unknown status filter", async () => {
-    const { GET } = await import("@/app/api/admin/resumes/route");
+    const GET = serverHandler((await import("@/app/routes/api/admin/resumes")).Route, "GET");
     const response = await GET(new Request("https://clickfolio.me/api/admin/resumes?status=nope"));
 
     expect(response.status).toBe(400);
@@ -220,13 +221,14 @@ describe("GET /api/admin/resumes", () => {
 
 describe("DELETE /api/admin/resumes/[id]", () => {
   async function dismiss(id: string) {
-    const { DELETE } = await import("@/app/api/admin/resumes/[id]/route");
+    const DELETE = serverHandler(
+      (await import("@/app/routes/api/admin/resumes/$id")).Route,
+      "DELETE",
+    );
 
     return DELETE(
       new Request(`https://clickfolio.me/api/admin/resumes/${id}`, { method: "DELETE" }),
-      {
-        params: Promise.resolve({ id }),
-      },
+      { id },
     );
   }
 

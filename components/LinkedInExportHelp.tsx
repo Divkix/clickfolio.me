@@ -1,5 +1,3 @@
-"use client";
-
 import { ExternalLink, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

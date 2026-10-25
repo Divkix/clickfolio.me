@@ -1,7 +1,5 @@
-"use client";
-
 import { ShieldCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { LinkedInExportHelp } from "@/components/LinkedInExportHelp";
@@ -55,6 +53,7 @@ function claimErrorMessage(err: ClaimFailure): string {
 
 export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
   const router = useRouter();
+  const navigate = useNavigate();
   const { data: session, isPending: sessionLoading } = useSession();
   const user = session?.user ?? null;
 
@@ -112,8 +111,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
 
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        router.replace("/dashboard");
-        router.refresh();
+        await navigate({ to: "/dashboard", replace: true });
+        await router.invalidate();
       } catch (err) {
         // SAFETY: caught values are Error-like or Response-like as thrown by fetch/claim;
         // ClaimFailure models the optional status and message the helper reads.
@@ -126,7 +125,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
         toast.error(errorMessage);
       }
     },
-    [router, onOpenChange, setError, setUploadedKey],
+    [navigate, router, onOpenChange, setError, setUploadedKey],
   );
 
   useEffect(() => {

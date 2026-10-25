@@ -1,5 +1,3 @@
-"use client";
-
 interface RoleFilterSelectProps {
   roleFilter: string;
   roleOptions: { value: string; label: string }[];

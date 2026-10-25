@@ -5,7 +5,6 @@ import { log } from "@/lib/utils/log";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { describeFailure } from "./failure-map";
 import { failureDetailFields } from "./failure-fields";
-import { isFrameworkSignal } from "./external";
 import type { ServerFailure } from "./failures";
 
 // The request, page and background edges. Everything else yields services and returns Effects;
@@ -42,17 +41,6 @@ export function failureResponse(failure: ServerFailure): Response {
   return createErrorResponse(userMessage, code, status, undefined, retryAfterSeconds);
 }
 
-/** The first defect of a cause, if any: a bug or a thrown framework signal, never a typed failure. */
-function defectOf<E>(exit: Exit.Exit<unknown, E>): { defect: unknown } | null {
-  if (Exit.isSuccess(exit)) return null;
-
-  for (const reason of exit.cause.reasons) {
-    if (Cause.isDieReason(reason)) return { defect: reason.defect };
-  }
-
-  return null;
-}
-
 function failureOf<E>(exit: Exit.Exit<unknown, E>): E | null {
   if (Exit.isSuccess(exit)) return null;
 
@@ -63,10 +51,7 @@ function failureOf<E>(exit: Exit.Exit<unknown, E>): E | null {
   return null;
 }
 
-/**
- * Route handler edge: typed failures become the standard error body, defects a logged generic 500.
- * Framework signals (`redirect()` and friends) pass through untouched.
- */
+/** Server route edge: typed failures become the standard error body, defects a logged generic 500. */
 export async function runRoute<R>(
   request: Request | undefined,
   program: Effect.Effect<Response, ServerFailure, R>,
@@ -85,10 +70,6 @@ export async function runRoute<R>(
     return failureResponse(failure);
   }
 
-  const crashed = defectOf(exit);
-
-  if (crashed && isFrameworkSignal(crashed.defect)) throw crashed.defect;
-
   log("error", "Unhandled API route error", {
     ...errorFields(Cause.squash(exit.cause)),
     ...fields,
@@ -98,8 +79,9 @@ export async function runRoute<R>(
 }
 
 /**
- * Server component and layout edge: returns the value, or throws so the error boundary renders.
- * Call `redirect()` / `notFound()` on the result, never inside `program`.
+ * Page loader edge (the server function behind a route loader): returns the value, or throws so
+ * the route's error component renders. Throw `redirect()` / `notFound()` on the result, never
+ * inside `program`.
  */
 export async function runPage<A, R>(
   program: Effect.Effect<A, ServerFailure, R>,

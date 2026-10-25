@@ -17,20 +17,9 @@ export type ExternalCall<A, E> = {
   readonly span?: boolean;
 };
 
-// Thrown by redirect(), notFound(), forbidden(), cookies() and friends to unwind the render.
-const FRAMEWORK_DIGEST =
-  /^(?:NEXT_REDIRECT;|NEXT_NOT_FOUND$|NEXT_HTTP_ERROR_FALLBACK;|DYNAMIC_SERVER_USAGE$|BAILOUT_TO_CLIENT_SIDE_RENDERING$)/;
-
-const digestSchema = z.object({ digest: z.string().regex(FRAMEWORK_DIGEST) });
-
 const httpStatusSchema = z.object({ status: z.number() });
 
 const timeoutNameSchema = z.object({ name: z.enum(["AbortError", "TimeoutError"]) });
-
-/** Framework control flow must unwind untouched; it is never an upstream failure. */
-export function isFrameworkSignal(cause: unknown): boolean {
-  return digestSchema.safeParse(cause).success;
-}
 
 /** Aborts and HTTP statuses; anything else is assumed transient and left for the retry owner to judge. */
 export function classifyUpstreamCause(cause: unknown): UpstreamKind {
@@ -52,7 +41,6 @@ export function classifyUpstreamCause(cause: unknown): UpstreamKind {
 /**
  * One external call with an explicit timeout and a tagged failure. A timeout interrupts the
  * wait only; bindings and `pg` finish on their own, so never retry a timed-out write here.
- * Framework control flow thrown inside `run` becomes a defect and unwinds the render.
  */
 export function externalCall<A, E>(call: ExternalCall<A, E>): Effect.Effect<A, E> {
   const classify = call.classify ?? classifyUpstreamCause;
@@ -64,16 +52,13 @@ export function externalCall<A, E>(call: ExternalCall<A, E>): Effect.Effect<A, E
 
       return withTracing ? withSpan(call.operation, {}, start) : start();
     },
-    catch: (cause) => {
-      if (isFrameworkSignal(cause)) throw cause;
-
-      return call.fail({
+    catch: (cause) =>
+      call.fail({
         operation: call.operation,
         kind: classify(cause),
         message: errorFields(cause)["error.message"],
         cause,
-      });
-    },
+      }),
   }).pipe(
     Effect.timeoutOrElse({
       duration: call.timeoutMs,

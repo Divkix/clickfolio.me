@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import { useSession } from "@/lib/auth/client";
 import { setTelemetryUser } from "@/lib/telemetry/browser";

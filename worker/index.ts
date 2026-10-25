@@ -1,7 +1,8 @@
 // eslint-disable-next-line typescript/triple-slash-reference -- required for Cloudflare Workers env types; import-style not supported here
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
-import handler from "vinext/server/app-router-entry";
+import handler from "@tanstack/react-start/server-entry";
+import { stripEdgeHeaders } from "../lib/cache/edge-cache";
 import { processEdgePurgeBatch } from "../lib/cache/edge-purge";
 import { performCleanup } from "../lib/cron/cleanup";
 import { performStrandedSweep } from "../lib/cron/stranded-resumes";
@@ -32,15 +33,38 @@ export { R2DeleteWorkflow } from "../lib/workflows/r2-delete-workflow";
 
 export { ResumeParseWorkflow } from "../lib/workflows/resume-parse-workflow";
 
-// vinext's Workers Cache entrypoints. The build adds these exports itself; naming
-// them here types `ctx.exports.VinextCachedResponse` for the purge consumer.
-export {
-  VinextCachedResponse,
-  VinextUncachedResponse,
-} from "@vinext/cloudflare/cache/cdn-adapter.worker";
+export { CachedPages } from "./cached-pages";
 
 const BLOCKED_PATHS =
   /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i;
+
+/** API routes and server functions never reach the edge cache. */
+const UNCACHED_PATHS = /^\/(?:api|_serverFn)\//;
+
+/**
+ * Renders the app. Page reads go through `CachedPages`, which answers from Workers Cache when the
+ * page opted in; everything else skips that hop. `x-edge-cache` reports the cache status.
+ */
+async function render(request: Request, ctx: ExecutionContext): Promise<Response> {
+  const { pathname } = new URL(request.url);
+
+  if ((request.method !== "GET" && request.method !== "HEAD") || UNCACHED_PATHS.test(pathname)) {
+    return handler.fetch(request);
+  }
+
+  const response = await ctx.exports.CachedPages.fetch(request);
+  const headers = new Headers(response.headers);
+  stripEdgeHeaders(headers);
+  const cacheStatus = response.headers.get("cf-cache-status");
+
+  if (cacheStatus) headers.set("x-edge-cache", cacheStatus);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 /** Adds the security headers, and renders the Markdown representation when the page is HTML. */
 async function markdownPageResponse(response: Response, url: string): Promise<Response> {
@@ -87,8 +111,8 @@ export default {
       return handleOtelProxy(request, env, ctx);
     }
 
-    // WebSocket upgrades for resume status are answered here, before vinext: Next.js route
-    // handlers have no WebSocket API, so the app has no route for them.
+    // WebSocket upgrades for resume status are answered here: the app's server routes have no
+    // WebSocket API, so the app has no route for them.
     if (
       url.pathname === "/ws/resume-status" &&
       request.headers.get("Upgrade")?.toLowerCase() === "websocket"
@@ -107,7 +131,7 @@ export default {
 
       const target = new URL(request.url);
       target.pathname = markdownPath;
-      const appResponse = await handler.fetch(new Request(target, request), env, ctx);
+      const appResponse = await render(new Request(target, request), ctx);
 
       return markdownPageResponse(appResponse, request.url);
     }
@@ -116,13 +140,10 @@ export default {
     // same SSR response. This must stay ahead of the HTML path so no cache or
     // header wrapper can serve HTML to a text/markdown client.
     if (prefersMarkdown(request.headers.get("accept"))) {
-      return markdownPageResponse(await handler.fetch(request, env, ctx), request.url);
+      return markdownPageResponse(await render(request, ctx), request.url);
     }
 
-    // env + ctx let vinext run the request inside its execution context, so
-    // cache writes are registered with ctx.waitUntil instead of being cut off
-    // with the response.
-    const response = await handler.fetch(request, env, ctx);
+    const response = await render(request, ctx);
     const newHeaders = new Headers(response.headers);
 
     for (const [key, value] of Object.entries(SECURITY_HEADERS)) {

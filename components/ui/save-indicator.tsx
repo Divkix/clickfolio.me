@@ -1,5 +1,3 @@
-"use client";
-
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatRelativeTime } from "@/lib/utils/format";

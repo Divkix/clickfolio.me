@@ -1,5 +1,12 @@
+import { redirect } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
 import { count, desc, eq } from "drizzle-orm";
 import { Effect } from "effect";
+import { findSession, getServerSession } from "@/lib/auth/session";
+import { runPage } from "@/lib/effect/edges";
+import { appLayer } from "@/lib/effect/layers";
+import { errorFields } from "@/lib/utils/error-fields";
+import { log } from "@/lib/utils/log";
 import { readStoredContent } from "@/lib/data/stored-content";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
@@ -133,4 +140,80 @@ export function loadSettings(userId: string) {
       { concurrency: "unbounded" },
     ),
   );
+}
+
+export async function dashboardPageData() {
+  const session = await getServerSession();
+
+  if (!session) throw redirect({ to: "/" });
+  const data = await runPage(loadDashboard(session.user.id), Db.layer(env.HYPERDRIVE));
+
+  if (data.userData && !data.userData.onboardingCompleted) {
+    throw redirect({ to: "/wizard" });
+  }
+
+  return { session, ...data };
+}
+
+export async function editPageData() {
+  const session = await getServerSession();
+
+  if (!session) throw redirect({ to: "/" });
+  const content = await runPage(loadEditContent(session.user.id), Db.layer(env.HYPERDRIVE));
+
+  if (!content) throw redirect({ to: "/dashboard" });
+
+  return content;
+}
+
+export async function themesPageData() {
+  const session = await getServerSession();
+
+  if (!session) throw redirect({ to: "/" });
+  const choice = await runPage(loadThemeChoice(session.user.id), Db.layer(env.HYPERDRIVE));
+
+  if (!choice) throw redirect({ to: "/dashboard" });
+
+  return { session, choice };
+}
+
+export async function settingsPageData() {
+  const session = await getServerSession();
+
+  if (!session) throw redirect({ to: "/" });
+  const data = await runPage(loadSettings(session.user.id), Db.layer(env.HYPERDRIVE));
+
+  if (!data.profile) {
+    log("error", "Failed to fetch profile for user:", { userId: session.user.id });
+    throw redirect({ to: "/dashboard" });
+  }
+
+  return { session, ...data, profile: data.profile };
+}
+
+export async function sidebarPageData() {
+  const session = await runPage(
+    findSession().pipe(
+      Effect.catch((error) =>
+        Effect.sync(() => {
+          log("error", "Unable to load sidebar profile", { ...errorFields(error) });
+
+          return null;
+        }),
+      ),
+    ),
+    appLayer(env),
+  );
+
+  return { handle: session?.user.handle ?? null, isAdmin: session?.user.isAdmin ?? false };
+}
+
+export async function waitingPageData(resumeId?: string) {
+  const session = await getServerSession();
+
+  if (!session) throw redirect({ to: "/" });
+
+  if (!resumeId) throw redirect({ to: "/dashboard" });
+
+  return { resumeId };
 }

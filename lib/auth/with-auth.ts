@@ -1,5 +1,6 @@
 /**
- * Routes stay `export async function METHOD(req) { return withUserEffect(req, (ctx) => … }`.
+ * Server route handlers stay `GET: ({ request }) => withUserEffect(request, (ctx) => …)`; the
+ * session is read from that request's `__session` cookie.
  */
 
 import { env } from "cloudflare:workers";
@@ -17,20 +18,20 @@ const DEFAULT_UNAUTHORIZED_MESSAGE = "You must be logged in";
 // join `appLayer`, or are provided inside the handler.
 
 export function withUserEffect(
-  request: Request | undefined,
+  request: Request,
   handler: (context: AuthenticatedUser) => Effect.Effect<Response, ServerFailure, AppServices>,
   unauthorizedMessage: string = DEFAULT_UNAUTHORIZED_MESSAGE,
 ): Promise<Response> {
-  const program = authenticate({ unauthorizedMessage }).pipe(Effect.flatMap(handler));
+  const program = authenticate({ request, unauthorizedMessage }).pipe(Effect.flatMap(handler));
 
   return runRoute(request, program, appLayer(env));
 }
 
 export function withAdminEffect(
-  request: Request | undefined,
+  request: Request,
   handler: (context: { user: AdminUser }) => Effect.Effect<Response, ServerFailure, AppServices>,
 ): Promise<Response> {
-  const program = authenticateAdmin().pipe(Effect.flatMap((user) => handler({ user })));
+  const program = authenticateAdmin(request).pipe(Effect.flatMap((user) => handler({ user })));
 
   return runRoute(request, program, appLayer(env));
 }

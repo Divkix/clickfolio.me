@@ -1,5 +1,3 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { LucideIcon } from "lucide-react";
 import { Eye, Globe, Loader2, MapPin, Phone, Search, SearchX, Users } from "lucide-react";

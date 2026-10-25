@@ -1,6 +1,4 @@
-// Server-rendered home shell; only the preview and upload controls hydrate.
-
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { Footer } from "@/components/Footer";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -104,7 +102,7 @@ export function HomeLanding() {
             {PROFESSIONS.map((role) => (
               <Link
                 key={role.slug}
-                href={`/for/${role.slug}`}
+                to={`/for/${role.slug}`}
                 className="rounded-full border border-border px-3 py-1.5 font-medium transition-colors hover:border-brand hover:text-brand"
               >
                 {role.label}
@@ -153,13 +151,13 @@ export function HomeLanding() {
             </UploadCTA>
             <div className="relative mt-4 flex justify-center gap-2 text-sm">
               <Link
-                href="/explore"
+                to="/explore"
                 className="inline-flex min-h-11 items-center px-3 text-brand-foreground/85 underline underline-offset-4 hover:text-brand-foreground"
               >
                 Browse real portfolios
               </Link>
               <Link
-                href="/blog"
+                to="/blog"
                 className="inline-flex min-h-11 items-center px-3 text-brand-foreground/85 underline underline-offset-4 hover:text-brand-foreground"
               >
                 Read our guides

@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import {
   afterAll,
   afterEach,
@@ -29,7 +30,7 @@ vi.mock("@cf-wasm/resvg/workerd", () => ({
   Resvg: { async: async (svg: string) => mocks.render(svg) },
 }));
 
-const { GET } = await import("@/app/api/og/[handle]/route");
+const GET = serverHandler((await import("@/app/routes/api/og/$handle")).Route, "GET");
 
 const NOW = "2026-01-01T00:00:00.000Z";
 
@@ -98,9 +99,7 @@ afterEach(() => {
 });
 
 function ask(handle: string) {
-  return GET(new Request(`https://clickfolio.me/api/og/${handle}`), {
-    params: Promise.resolve({ handle }),
-  });
+  return GET(new Request(`https://clickfolio.me/api/og/${handle}`), { handle });
 }
 
 describe("GET /api/og/[handle]", () => {

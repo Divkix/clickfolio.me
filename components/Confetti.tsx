@@ -1,5 +1,3 @@
-"use client";
-
 import { Confetti as NeoConfetti } from "@neoconfetti/react";
 import { useEffect, useState } from "react";
 

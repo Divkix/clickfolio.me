@@ -1,3 +1,4 @@
+import { serverHandler } from "@/tests/helpers/server-route";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 interface FakeEnv {
@@ -17,7 +18,7 @@ vi.mock("@/lib/db", () => ({
   getDb: () => ({ execute: mocks.execute }),
 }));
 
-const { GET } = await import("@/app/api/health/route");
+const GET = serverHandler((await import("@/app/routes/api/health")).Route, "GET");
 
 const PG_SECRET = "connect ECONNREFUSED postgres://admin:hunter2@db.internal.example:5432/prod";
 const R2_SECRET = "R2 internal error for bucket clickfolio-secret-bucket";
@@ -37,7 +38,7 @@ describe("GET /api/health never leaks internals", () => {
     mocks.execute.mockRejectedValue(new Error(PG_SECRET));
     mocks.list.mockRejectedValue(new Error(R2_SECRET));
 
-    const response = await GET();
+    const response = await GET(new Request("https://clickfolio.me/api/health"));
     const body = await response.text();
 
     expect(response.status).toBe(503);
@@ -51,7 +52,7 @@ describe("GET /api/health never leaks internals", () => {
     mocks.execute.mockResolvedValue({ rows: [] });
     delete mocks.env.CLICKFOLIO_R2_BUCKET;
 
-    const response = await GET();
+    const response = await GET(new Request("https://clickfolio.me/api/health"));
     const body = await response.text();
 
     expect(response.status).toBe(503);
@@ -69,7 +70,7 @@ describe("GET /api/health never leaks internals", () => {
       },
     });
 
-    const response = await GET();
+    const response = await GET(new Request("https://clickfolio.me/api/health"));
     const body = await response.text();
 
     expect(response.status).toBe(503);

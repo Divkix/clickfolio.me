@@ -1,7 +1,5 @@
-"use client";
-
 import { Check, Copy, ExternalLink, Rocket, XIcon } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useCallback, useSyncExternalStore } from "react";
 import { Confetti } from "@/components/Confetti";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
@@ -116,7 +114,8 @@ export function YouAreLiveModal({ open, onOpenChange, handle }: YouAreLiveModalP
             </div>
 
             <Link
-              href={`/@${handle}`}
+              to="/@{$handle}"
+              params={{ handle }}
               className="inline-flex items-center gap-2 text-brand hover:underline font-medium"
               onClick={() => onOpenChange(false)}
             >

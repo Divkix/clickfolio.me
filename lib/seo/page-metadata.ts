@@ -1,55 +1,52 @@
-import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
 import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 import { absoluteSiteUrl } from "@/lib/utils/site-url";
 
-type PublicOgType = "website" | "article";
+type MetaTag =
+  | { title: string }
+  | { name: string; content: string }
+  | { property: string; content: string };
 
-export const HOME_OG_IMAGE = {
+/** What a route's `head()` returns; nested routes override meta by `name`/`property`. */
+export interface PageHead {
+  meta: MetaTag[];
+  links: Array<{ rel: string; href: string }>;
+}
+
+interface SocialCard {
+  title: string;
+  description: string;
+  url: string;
+  type: "website" | "article" | "profile";
+  image: { url: string; width: number; height: number; alt: string; type: string };
+  /** Extra Open Graph properties, e.g. `profile:username` or `article:published_time`. */
+  properties?: Record<string, string>;
+}
+
+export const NOINDEX = "noindex, nofollow";
+
+export const NOINDEX_FOLLOW = "noindex, follow";
+
+const HOME_OG_IMAGE = {
   url: `${siteConfig.url}/api/og/home`,
   width: 1200,
   height: 630,
   alt: siteConfig.fullName,
   type: "image/png",
-} as const;
+};
 
 const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
 
 const HOME_DESCRIPTION = `Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — ${TEMPLATE_COUNT} free templates, a custom @handle URL, and privacy controls. No signup to start.`;
 
-/**
- * Metadata for the homepage, with its canonical URL set to `/`.
- */
-export const HOME_METADATA: Metadata = {
-  title: {
-    absolute: `Free Resume Website Builder — PDF to Website | ${siteConfig.fullName}`,
-  },
-  description: HOME_DESCRIPTION,
-  alternates: { canonical: siteConfig.url },
-  openGraph: {
-    title: HOME_TITLE,
-    description: HOME_DESCRIPTION,
-    type: "website",
-    url: siteConfig.url,
-    siteName: siteConfig.fullName,
-    images: [HOME_OG_IMAGE],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: HOME_TITLE,
-    description: HOME_DESCRIPTION,
-    images: [HOME_OG_IMAGE.url],
-  },
-};
-
-/** Search results truncate titles past ~60 chars; see `fitTitle`. */
+/** Search results truncate titles past ~60 chars; see `titleTag`. */
 export const MAX_TITLE_LENGTH = 60;
 
 const TITLE_SUFFIX = ` | ${siteConfig.fullName}`;
 
 /**
- * The `<title>` text for `title`: the root layout template appends ` | clickfolio.me`, kept only
- * when the result still fits in `MAX_TITLE_LENGTH` so the page's own words aren't cut off.
+ * The `<title>` text for `title`: ` | clickfolio.me` is appended only when the result still fits
+ * in `MAX_TITLE_LENGTH` so the page's own words aren't cut off.
  */
 export function titleTag(title: string): string {
   const branded = `${title}${TITLE_SUFFIX}`;
@@ -57,9 +54,77 @@ export function titleTag(title: string): string {
   return branded.length <= MAX_TITLE_LENGTH ? branded : title;
 }
 
-/** Metadata `title` that renders as `titleTag(title)`. */
-export function fitTitle(title: string): NonNullable<Metadata["title"]> {
-  return titleTag(title) === title ? { absolute: title } : title;
+/**
+ * The head of one page. `title` is the exact `<title>` text (pass it through `titleTag` for the
+ * branded form); omitted fields fall back to the root route's tags.
+ */
+export function pageHead(input: {
+  title: string;
+  description?: string;
+  canonical?: string;
+  robots?: string;
+  social?: SocialCard;
+  links?: PageHead["links"];
+}): PageHead {
+  const meta: MetaTag[] = [{ title: input.title }];
+  const links = [...(input.links ?? [])];
+
+  if (input.description) meta.push({ name: "description", content: input.description });
+
+  if (input.robots) meta.push({ name: "robots", content: input.robots });
+
+  if (input.canonical) links.unshift({ rel: "canonical", href: input.canonical });
+
+  const social = input.social;
+
+  if (social) {
+    const og = {
+      "og:title": social.title,
+      "og:description": social.description,
+      "og:type": social.type,
+      "og:url": social.url,
+      "og:site_name": siteConfig.fullName,
+      "og:image": social.image.url,
+      "og:image:width": String(social.image.width),
+      "og:image:height": String(social.image.height),
+      "og:image:alt": social.image.alt,
+      "og:image:type": social.image.type,
+      ...social.properties,
+    } satisfies Record<string, string>;
+
+    for (const [property, content] of Object.entries(og)) meta.push({ property, content });
+
+    meta.push(
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: social.title },
+      { name: "twitter:description", content: social.description },
+      { name: "twitter:image", content: social.image.url },
+    );
+  }
+
+  return { meta, links };
+}
+
+/** Head for the homepage, with its canonical URL set to `/`. */
+export const HOME_HEAD = pageHead({
+  title: `Free Resume Website Builder — PDF to Website | ${siteConfig.fullName}`,
+  description: HOME_DESCRIPTION,
+  canonical: siteConfig.url,
+  social: {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    type: "website",
+    url: siteConfig.url,
+    image: HOME_OG_IMAGE,
+  },
+});
+
+/** Head for a signed-in or admin page: never indexed. */
+export function privatePageHead(title?: string): PageHead {
+  return {
+    meta: [...(title ? [{ title: titleTag(title) }] : []), { name: "robots", content: NOINDEX }],
+    links: [],
+  };
 }
 
 /**
@@ -83,35 +148,28 @@ export function buildProfileTitle(fullName: string, headline?: string | null): s
   return `${cut.slice(0, wordEnd).replace(/[\s,;:&|·•—-]+$/, "")}…`;
 }
 
-export function buildPublicPageMetadata(params: {
+export function publicPageHead(params: {
   title: string;
   description: string;
   path: string;
   ogTitle?: string;
-  ogType?: PublicOgType;
-}): Metadata {
+  ogType?: "website" | "article";
+  robots?: string;
+}): PageHead {
   const url = absoluteSiteUrl(params.path);
-  const ogTitle = params.ogTitle ?? params.title;
-  const { title, description } = params;
-  const ogType = params.ogType ?? "website";
+  const { description } = params;
 
-  return {
-    title: fitTitle(title),
+  return pageHead({
+    title: titleTag(params.title),
     description,
-    alternates: { canonical: url },
-    openGraph: {
-      title: ogTitle,
+    canonical: url,
+    robots: params.robots,
+    social: {
+      title: params.ogTitle ?? params.title,
       description,
-      type: ogType,
+      type: params.ogType ?? "website",
       url,
-      siteName: siteConfig.fullName,
-      images: [HOME_OG_IMAGE],
+      image: HOME_OG_IMAGE,
     },
-    twitter: {
-      card: "summary_large_image",
-      title: ogTitle,
-      description,
-      images: [HOME_OG_IMAGE.url],
-    },
-  };
+  });
 }

@@ -1,5 +1,4 @@
 import { verifyToken } from "@clerk/backend";
-import { cookies } from "next/headers";
 import { vi } from "vite-plus/test";
 import { user } from "@/lib/db/schema";
 import type { TestDb } from "./pglite-db";
@@ -7,20 +6,17 @@ import type { TestDb } from "./pglite-db";
 /**
  * Drives the real `withUserEffect` pipeline from a test: the session cookie, Clerk's
  * token verification and the user lookup all run, against whatever database the test points
- * `getDb` at. The test file must mock `@clerk/backend` (with `verifyToken`) and `next/headers`.
+ * `getDb` at. The test file must mock `@clerk/backend` (with `verifyToken`).
  */
 const mockVerifyToken = vi.mocked(verifyToken);
 
-const mockCookies = vi.mocked(cookies);
-
 export const NOW = "2026-01-01T00:00:00.000Z";
 
-/** Signs the next requests in as `clerkId`, or signs them out when `null`. */
+let signedIn = false;
+
+/** Signs the next `sessionRequest`s in as `clerkId`, or signs them out when `null`. */
 export function signedInAs(clerkId: string | null) {
-  // SAFETY: the code under test only calls get() on the cookie store.
-  mockCookies.mockResolvedValue({
-    get: (name: string) => (name === "__session" && clerkId ? { name, value: "jwt" } : undefined),
-  } as never);
+  signedIn = clerkId !== null;
 
   if (clerkId) {
     mockVerifyToken.mockResolvedValue({
@@ -33,6 +29,15 @@ export function signedInAs(clerkId: string | null) {
       iat: Math.floor(Date.now() / 1000),
     });
   }
+}
+
+/** `new Request(url, init)`, carrying the `__session` cookie while `signedInAs` has a user. */
+export function sessionRequest(url: string, init: RequestInit = {}): Request {
+  const headers = new Headers(init.headers);
+
+  if (signedIn) headers.set("Cookie", "__session=jwt");
+
+  return new Request(url, { ...init, headers });
 }
 
 type SeedOverrides = Partial<typeof user.$inferInsert>;

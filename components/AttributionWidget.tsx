@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { siteConfig } from "@/lib/config/site";
 import type { ThemeChrome } from "@/lib/templates/theme-chrome";
 
@@ -9,7 +9,7 @@ interface AttributionWidgetProps {
 export function AttributionWidget({ styles: currentTheme }: AttributionWidgetProps) {
   return (
     <Link
-      href="/"
+      to="/"
       className={`
         group fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30
         px-3 py-2 sm:px-4 sm:py-3 rounded-lg

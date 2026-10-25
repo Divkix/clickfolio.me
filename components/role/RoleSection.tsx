@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { getPostBySlug } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
@@ -57,7 +57,7 @@ export function RoleTemplates({ slug }: { slug: string }) {
       <ul className="space-y-3 text-muted-foreground list-disc pl-5">
         {profession.themes.map((id) => (
           <li key={id}>
-            <Link className="underline" href={`/templates/${themeSlug(id)}`}>
+            <Link className="underline" to="/templates/$theme" params={{ theme: themeSlug(id) }}>
               {THEME_METADATA[id].name}
             </Link>
             {` — ${THEME_METADATA[id].description}`}
@@ -65,13 +65,13 @@ export function RoleTemplates({ slug }: { slug: string }) {
         ))}
       </ul>
       <p className="mt-4 text-muted-foreground">
-        <Link className="underline" href="/templates">
+        <Link className="underline" to="/templates/">
           Browse all {TEMPLATE_COUNT} free templates
         </Link>
       </p>
       {galleries.map((gallery) => (
         <p key={gallery.slug} className="mt-3 text-muted-foreground">
-          <Link className="underline" href={`/examples/${gallery.slug}`}>
+          <Link className="underline" to="/examples/$slug" params={{ slug: gallery.slug }}>
             {gallery.title}
           </Link>
         </p>
@@ -99,7 +99,7 @@ export function RoleGuides({
       <ul className="space-y-3 text-muted-foreground list-disc pl-5">
         {guides.map((guide) => (
           <li key={guide.slug}>
-            <Link className="underline" href={`/blog/${guide.slug}`}>
+            <Link className="underline" to={`/blog/${guide.slug}`}>
               {guide.title}
             </Link>
           </li>

@@ -1,8 +1,6 @@
-"use client";
-
 import { BarChart3, FileText, LayoutDashboard, Users, X } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "@tanstack/react-router";
+import type { LinkProps } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
 
 interface AdminSidebarProps {
@@ -16,10 +14,10 @@ const NAV_ITEMS = [
   { name: "Users", href: "/admin/users", icon: Users, exact: false },
   { name: "Resumes", href: "/admin/resumes", icon: FileText, exact: false },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3, exact: false },
-];
+] satisfies { name: string; href: LinkProps["to"]; icon: typeof Users; exact: boolean }[];
 
 export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps) {
-  const pathname = usePathname();
+  const pathname = useLocation({ select: (location) => location.pathname });
 
   const isActive = (href: string, exact: boolean) => {
     if (exact) return pathname === href;
@@ -56,7 +54,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         </button>
 
         <div className="p-4 border-b border-border">
-          <Link href="/" aria-label="clickfolio.me home">
+          <Link to="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </Link>
           <span className="ml-2 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
@@ -72,7 +70,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 onClick={onClose}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium

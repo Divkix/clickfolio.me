@@ -1,7 +1,10 @@
+import { env } from "cloudflare:workers";
 import { count, eq, sql } from "drizzle-orm";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
+import { requireAdminAuth } from "@/lib/auth/admin";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
+import { runPage } from "@/lib/effect/edges";
 import { Umami } from "@/lib/effect/services/umami";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
 import { errorFields } from "@/lib/utils/error-fields";
@@ -98,4 +101,10 @@ export function loadAdminStats() {
       dailyViews,
     };
   });
+}
+
+export async function adminOverviewPageData() {
+  await requireAdminAuth();
+
+  return runPage(loadAdminStats(), Layer.mergeAll(Db.layer(env.HYPERDRIVE), Umami.layer(env)));
 }

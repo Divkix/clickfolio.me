@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type ReactNode } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { trackEvent, type LandingCtaLocation } from "@/lib/telemetry/browser";

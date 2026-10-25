@@ -1,5 +1,3 @@
-"use client";
-
 import { Eye, EyeOff, Info, MapPin, Phone, Search, Shield, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";

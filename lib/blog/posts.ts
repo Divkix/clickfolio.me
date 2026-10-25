@@ -1,6 +1,5 @@
-import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
-import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
+import { publicPageHead, type PageHead } from "@/lib/seo/page-metadata";
 import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 export interface BlogPostFaq {
@@ -9,7 +8,29 @@ export interface BlogPostFaq {
 }
 
 export interface BlogPostMeta {
-  slug: string;
+  slug:
+    | "ai-portfolio-website-builders"
+    | "ai-resume-parsing-accuracy"
+    | "best-resume-website-builders"
+    | "clickfolio-templates-showcase"
+    | "consultant-portfolio-website"
+    | "creddle-alternatives"
+    | "cv-website-builder"
+    | "designfolio-alternatives"
+    | "how-to-make-a-resume-website"
+    | "linkedin-to-portfolio"
+    | "linkfolio-alternatives"
+    | "pdf-resume-to-website"
+    | "pdf-resume-vs-portfolio"
+    | "personal-resume-website"
+    | "privacy-at-clickfolio"
+    | "product-manager-portfolio-website"
+    | "read-cv-alternatives"
+    | "resume-hosting"
+    | "resume-website-examples"
+    | "resume-website-vs-linkedin"
+    | "resume-writing-tips"
+    | "student-resume-website";
   title: string;
   /** Shorter `<title>` when `title` (the H1) exceeds `MAX_TITLE_LENGTH`. */
   metaTitle?: string;
@@ -642,15 +663,13 @@ export function getPostBySlug(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
 }
 
-export function buildBlogPostMetadata(post: BlogPostMeta): Metadata {
-  return {
-    ...buildPublicPageMetadata({
-      title: post.metaTitle ?? post.title,
-      ogTitle: `${post.title} | ${siteConfig.fullName}`,
-      description: post.description,
-      path: `/blog/${post.slug}`,
-      ogType: "article",
-    }),
-    robots: { index: true, follow: true },
-  };
+export function buildBlogPostMetadata(post: BlogPostMeta): PageHead {
+  return publicPageHead({
+    title: post.metaTitle ?? post.title,
+    ogTitle: `${post.title} | ${siteConfig.fullName}`,
+    description: post.description,
+    path: `/blog/${post.slug}`,
+    ogType: "article",
+    robots: "index, follow",
+  });
 }
