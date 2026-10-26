@@ -9,7 +9,7 @@ import {
   Sparkles,
   Wrench,
 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -228,12 +228,8 @@ export function WaitingContent({ resumeId }: { resumeId: string }) {
                     Try Again
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={() => void navigate({ to: "/dashboard" })}
-                  className="w-full"
-                >
-                  Go to Dashboard
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/dashboard">Go to Dashboard</Link>
                 </Button>
               </div>
             </div>

@@ -41,8 +41,7 @@ function AdminOverviewPage() {
           icon={Loader2}
           iconColorClass="text-warning"
           iconBgClass="bg-warning/10"
-          to="/admin/resumes"
-          search={{ status: "processing", page: 1 }}
+          linkOptions={{ to: "/admin/resumes", search: { status: "processing", page: 1 } }}
         />
         <StatCard
           title="Views Today"

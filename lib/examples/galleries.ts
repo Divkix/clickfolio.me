@@ -1,3 +1,4 @@
+import type { PROFESSIONS } from "@/lib/config/professions";
 import type { ThemeId } from "@/lib/templates/theme-ids";
 
 export interface ExampleGallery {
@@ -6,7 +7,7 @@ export interface ExampleGallery {
   title: string;
   description: string;
   /** /for/<forSlug> role page this gallery pairs with. */
-  forSlug: string;
+  forSlug: (typeof PROFESSIONS)[number]["slug"];
   themes: readonly ThemeId[];
   /**
    * Hand-picked directory profiles. The page re-checks showInDirectory + indexableProfileCondition

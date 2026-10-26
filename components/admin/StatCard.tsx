@@ -1,19 +1,20 @@
 import { Link } from "@tanstack/react-router";
-import type { LinkProps } from "@tanstack/react-router";
+import type { RegisteredRouter, ValidateLinkOptions } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { z } from "zod";
 
-interface StatCardProps {
+interface StatCardProps<TOptions = unknown> {
   title: string;
   value: string | number;
   icon: LucideIcon;
   iconColorClass: string;
   iconBgClass: string;
   change?: number;
-  to?: LinkProps["to"];
-  search?: LinkProps["search"];
+  linkOptions?: ValidateLinkOptions<RegisteredRouter, TOptions>;
 }
 
+export function StatCard<TOptions>(props: StatCardProps<TOptions>): ReactNode;
 export function StatCard({
   title,
   value,
@@ -21,8 +22,7 @@ export function StatCard({
   iconColorClass,
   iconBgClass,
   change,
-  to,
-  search,
+  linkOptions,
 }: StatCardProps) {
   // SAFETY: zod safeParse guarantees value is number/string before cast; preserves validated type.
   const content = (
@@ -56,9 +56,9 @@ export function StatCard({
     </div>
   );
 
-  if (to) {
+  if (linkOptions) {
     return (
-      <Link to={to} search={search} className="block">
+      <Link {...linkOptions} className="block">
         {content}
       </Link>
     );
