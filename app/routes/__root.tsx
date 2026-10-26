@@ -28,7 +28,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
-      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#ffffff" },
+      // Only one theme-color here: HeadContent dedupes meta by `name` and ignores `media`.
+      // The light-mode variant is a static tag in RootDocument's <head>.
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0e0f14" },
       { title: `${siteConfig.fullName} - ${siteConfig.tagline}` },
       {
@@ -70,6 +71,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
         <HeadContent />
       </head>
       <body className="antialiased">

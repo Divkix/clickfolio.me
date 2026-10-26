@@ -34,7 +34,7 @@ export const Route = createFileRoute("/@{$handle}")({
     }
 
     const { handle, metadata } = loaderData;
-    const { full_name, headline, indexable, location, skills, created_at, updated_at } = metadata;
+    const { full_name, headline, indexable, location, skills } = metadata;
     const descParts = [full_name];
 
     if (headline) descParts.push(`— ${headline}`);
@@ -77,11 +77,6 @@ export const Route = createFileRoute("/@{$handle}")({
           : profileProperties,
       },
     });
-
-    head.meta.push(
-      { name: "article:published_time", content: created_at },
-      { name: "article:modified_time", content: updated_at },
-    );
 
     return head;
   },
