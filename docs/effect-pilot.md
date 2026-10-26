@@ -4,7 +4,7 @@
 
 The pilot decision below ("stop at this boundary") is superseded. All server code that
 talks to something external now moves to Effect, one area per PR; the rules live in
-AGENTS.md ("Effect (server I/O)"). Differences from the pilot gates:
+CODING_STANDARDS.md ("Server I/O (Effect)"). Differences from the pilot gates:
 
 - Layers are allowed: each external dependency is a `Context.Service` with an owning `Layer`, built per invocation at the edge.
 - Zod stays the only validator; Effect Schema is not introduced.
