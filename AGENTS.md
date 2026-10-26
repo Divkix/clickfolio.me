@@ -4,7 +4,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 
 ## Done
 
-- `pnpm run verify` (lint, format, types, knip; the pre-commit hook runs it) and `pnpm run test`, or the covering file: `pnpm run test <path>`. CI runs `pnpm run test:coverage`, whose thresholds in `vite.config.ts` sit at the current baseline, so new code ships with tests.
+- `pnpm run verify` (lint, format, types, knip, doc references; the pre-commit hook runs it) and `pnpm run test`, or the covering file: `pnpm run test <path>`. CI runs `pnpm run test:coverage`, whose thresholds in `vite.config.ts` sit at the current baseline, so new code ships with tests.
 - `pnpm run build` as well when touching config, `worker/`, routes, dependencies or anything client code imports: only the build runs Start's import protection.
 - Schema change: commit the `pnpm run db:generate` output; CI rejects drift. `db:push` bypasses migrations (prototyping only).
 - Commit messages: Conventional Commits, `type(scope): summary`.
@@ -42,7 +42,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 
 ## Keeping this file small
 
-Pointers and cross-cutting traps only. A subsystem's rules go in its module header comment, a review-time rule in CODING_STANDARDS.md, a mechanical rule into a lint rule or test.
+Pointers and cross-cutting traps only. A subsystem's rules go in its module header comment, a review-time rule in CODING_STANDARDS.md, a mechanical rule into a lint rule or test. `pnpm run verify` fails when a path or identifier named here or in CODING_STANDARDS.md no longer exists.
 
 <!-- intent-skills:start -->
 
