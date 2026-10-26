@@ -155,7 +155,12 @@ export default defineConfig(() => {
         {
           test: {
             name: "integration",
-            include: ["tests/integration/**/*.test.{ts,tsx}"],
+            // Lint rule tests sit beside the plugin: tsc would follow a tests/ import into their
+            // `.ts`-extension imports, which tsconfig does not allow.
+            include: [
+              "tests/integration/**/*.test.{ts,tsx}",
+              "tools/oxlint/clickfolio/**/*.test.ts",
+            ],
             testTimeout: 10000,
           },
         },

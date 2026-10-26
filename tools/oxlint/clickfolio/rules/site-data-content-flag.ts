@@ -4,6 +4,7 @@ import type { ESTree } from "vite-plus/lint/plugins";
 
 import { propertyName } from "../../anti-slop/effect/shared/tagged-values.ts";
 import { arrayMethodTarget } from "../../anti-slop/shared/array-method.ts";
+import { resolveVariable } from "../../anti-slop/shared/scope.ts";
 
 function hasSiteDataWrite(node: ESTree.Node): boolean {
   while (node.type === "CallExpression" || node.type === "MemberExpression") {
@@ -31,13 +32,14 @@ function hasSiteDataWrite(node: ESTree.Node): boolean {
 }
 
 /** Protect site_data content writes from leaving content_indexable stale.
- * ponytail: objects passed by identifier and raw SQL are not inspected.
+ * Blind spots: payloads built in another function (parameters, call results, imports),
+ * let/var bindings, mutation after construction (values.content = …), and raw SQL.
  */
 export const siteDataContentFlagRule = defineRule({
   meta: {
     type: "problem",
     docs: {
-      description: "Require derived content columns for inline site_data content writes.",
+      description: "Require derived content columns for site_data content writes.",
     },
     messages: {
       directContentWrite:
@@ -45,18 +47,81 @@ export const siteDataContentFlagRule = defineRule({
     },
   },
   create(context) {
-    function reportDirectContentWrite(node: ESTree.Node | null): void {
-      if (node?.type !== "ObjectExpression") return;
+    const reported = new Set<ESTree.ObjectExpression>();
+
+    function resolveObject(
+      node: ESTree.Expression | ESTree.SpreadElement | null,
+    ): ESTree.ObjectExpression | null {
+      const visited = new Set<ESTree.IdentifierReference>();
+
+      while (node?.type === "Identifier") {
+        if (visited.has(node)) return null;
+
+        visited.add(node);
+
+        const variable = resolveVariable(context.sourceCode, node);
+
+        if (variable === null || variable.defs.length !== 1) return null;
+
+        const [definition] = variable.defs;
+
+        if (
+          definition?.type !== "Variable" ||
+          definition.node.type !== "VariableDeclarator" ||
+          definition.node.id.type !== "Identifier" ||
+          definition.parent?.type !== "VariableDeclaration" ||
+          definition.parent.kind !== "const"
+        ) {
+          return null;
+        }
+
+        node = definition.node.init;
+      }
+
+      return node?.type === "ObjectExpression" ? node : null;
+    }
+
+    function reportSpreadContentWrite(
+      node: ESTree.Expression,
+      visited: Set<ESTree.ObjectExpression>,
+    ): void {
+      if (node.type === "ConditionalExpression") {
+        reportSpreadContentWrite(node.consequent, visited);
+        reportSpreadContentWrite(node.alternate, visited);
+      } else if (node.type === "LogicalExpression") {
+        reportSpreadContentWrite(node.right, visited);
+      } else {
+        reportDirectContentWrite(node, visited);
+      }
+    }
+
+    function reportDirectContentWrite(
+      node: ESTree.Expression | ESTree.SpreadElement | null,
+      visited = new Set<ESTree.ObjectExpression>(),
+    ): void {
+      const object = resolveObject(node);
+
+      if (object === null || visited.has(object)) return;
+
+      visited.add(object);
 
       if (
-        node.properties.some(
+        !reported.has(object) &&
+        object.properties.some(
           (property) =>
             property.type === "Property" &&
             !property.computed &&
             propertyName(property) === "content",
         )
       ) {
-        context.report({ node, messageId: "directContentWrite" });
+        reported.add(object);
+        context.report({ node: object, messageId: "directContentWrite" });
+      }
+
+      for (const property of object.properties) {
+        if (property.type === "SpreadElement") {
+          reportSpreadContentWrite(property.argument, visited);
+        }
       }
     }
 
@@ -76,9 +141,11 @@ export const siteDataContentFlagRule = defineRule({
 
         for (const argument of node.arguments) {
           if (method.name === "onConflictDoUpdate") {
-            if (argument.type !== "ObjectExpression") continue;
+            const object = resolveObject(argument);
 
-            for (const property of argument.properties) {
+            if (object === null) continue;
+
+            for (const property of object.properties) {
               if (property.type === "Property" && propertyName(property) === "set") {
                 reportDirectContentWrite(property.value);
               }
