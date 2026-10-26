@@ -6,7 +6,9 @@ import * as schema from "@/lib/db/schema";
 // Sets site_data.content_indexable on rows where it is NULL; `--since <ISO time>` also recomputes
 // rows whose content changed since then. Safe to re-run. deploy.ts runs it after db:migrate, then
 // again with --since after wrangler deploy (the old Worker rewrites content without the flag until
-// the new one is live). Uses the direct DATABASE_URL like drizzle-kit; the Worker never does.
+// the new one is live). After a rollback to a Worker older than the flag, run it with
+// `--since <rollback time>` once new code is back, for the same reason. Uses the direct
+// DATABASE_URL like drizzle-kit; the Worker never does.
 
 const url = process.env.DATABASE_URL;
 

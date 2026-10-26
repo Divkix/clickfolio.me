@@ -1,3 +1,17 @@
+/**
+ * Adding a theme, in order: this list → `THEME_METADATA` (below) → `THEME_CHROME` (theme-chrome.ts:
+ * CTA, attribution, share and preview classes) → `TEMPLATE_LOADERS` (theme-registry.tsx) → resume
+ * demo data (demo-data.ts) and gallery profiles (demo-profiles.ts) → landing copy in theme-pages.ts
+ * (`/templates/<kebab>`) → a route key in lib/seo/lastmod.json → `public/previews/<kebab>.webp`
+ * (1280×800@2x of `/preview/<id>` after fonts load, sharp webp q82) plus its 640/960/1280w copies
+ * (`pnpm exec tsx scripts/generate-preview-variants.ts`). `Record<ThemeId, …>` types catch missing
+ * table entries, theme-ids.test.ts a missing preview; templates-render.test.ts renders every theme.
+ * Recommend it for roles via `PROFESSIONS[].themes` (lib/config/professions.ts).
+ *
+ * Removing one: undo that chain, map the id in `REMOVED_THEME_REPLACEMENTS`, and ship a custom data
+ * migration (`drizzle-kit generate --custom`) remapping `site_data.theme_id`, like
+ * migrations_pg/0011_remap_removed_themes.sql.
+ */
 export const THEME_IDS = [
   "academic_cv",
   "bento",

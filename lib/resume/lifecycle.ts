@@ -4,6 +4,9 @@ import type { ERROR_CODES } from "@/lib/utils/security-headers";
 import { z } from "zod";
 import { ParseErrorType } from "@/lib/parse/error-types";
 
+// Client code imports this module (hooks/useResumeStatus.ts, components/admin/AdminResumesClient.tsx),
+// so it value-imports no `effect`, tagged error class or module that does; the build rejects one.
+
 const MANUAL_MAX_RETRIES = 2;
 const PARSE_MAX_ATTEMPTS = 4;
 

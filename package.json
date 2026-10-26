@@ -12,7 +12,8 @@
     "format": "vp fmt",
     "check": "vp check",
     "knip": "knip",
-    "verify": "pnpm run check && pnpm run type-check && pnpm run knip",
+    "check:docs": "tsx scripts/check-agent-docs.ts",
+    "verify": "pnpm run check && pnpm run type-check && pnpm run knip && pnpm run check:docs",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "vp test run",
@@ -77,6 +78,7 @@
     "@electric-sql/pglite": "^0.5.11",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/intent": "^0.5.6",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
@@ -97,5 +99,10 @@
     "vitest": "catalog:",
     "wrangler": "^4.151.3"
   },
-  "packageManager": "pnpm@12.14.0"
+  "packageManager": "pnpm@12.14.0",
+  "intent": {
+    "skills": [
+      "*"
+    ]
+  }
 }
