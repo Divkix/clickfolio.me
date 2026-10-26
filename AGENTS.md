@@ -32,17 +32,17 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 - **Client/server split**: route files ship to the browser, and `loader`, `beforeLoad` and `head` run on both sides. Code touching `env`, Effect or the DB belongs in `createServerFn(...).handler` or `server.handlers`. `verify` misses a leak and dev swaps in a mock (browser console: `Mocked import used in dev client`); `pnpm run build` fails with the import trace. `Rolldown failed to resolve import "cloudflare:workers"` is the same leak through `env`.
 - **Fonts**: Google Fonts load only through `TemplateFontLinks`. Cloudflare Fonts rewrites `<link rel="stylesheet">` into inline `<style>` at the production edge and breaks hydration (React #418); dev and preview never show it.
 - **Edge cache**: an opted-in page's render is shared by every visitor, so it reads the session client-side (like `OwnerDetector`). Purges reach only the entrypoint that sends them: purge through `ctx.exports.CachedPages.purge`.
-- **Live data**: deleting a `users` row cascade-deletes their published `site_data`. Every `site_data.content` write spreads `siteDataContentColumns(content)` so the stored indexability flag follows. Resume text is stored raw and React escapes it on render (`migrations_pg/0009_decode_html_escaped_location.sql` undid an escaping bug).
+- **Live data**: deleting a `users` row cascade-deletes their published `site_data`. Resume text is stored raw and React escapes it on render (`migrations_pg/0009_decode_html_escaped_location.sql` undid an escaping bug).
 - **Timeouts**: `pg` and bindings ignore abort signals, so a timed-out write may have landed; never retry a timed-out email, queue send, DO notify, R2 put or webhook POST.
 - **Locks**: Hyperdrive rejects advisory locks; serialize with `FOR UPDATE` row locks (see `lib/rate-limit/ip.ts`).
 - **R2 lifecycle**: deploy replaces every bucket rule with `r2-lifecycle.json`, so keep all rules there.
 - **Lockfile**: `ERR_PNPM_OUTDATED_LOCKFILE` after touching `catalog:` deps → run `pnpm install --no-frozen-lockfile` once and commit the lockfile.
 - **Generated files**: `migrations_pg/`, `app/routeTree.gen.ts` (committed so `type-check` runs before a build), `lib/cloudflare-env.d.ts` (`pnpm run cf-typegen`), `lib/seo/lastmod.json` (pre-commit stamps it; `SKIP_LASTMOD=1` for commits that change no page content).
-- **Lint**: when a rule fires, read its source in `tools/oxlint/anti-slop/`. Client code satisfies the Effect rules with a plain `switch` on its own string union, never by importing `Match`.
+- **Lint**: when a rule fires, read its source in `tools/oxlint/anti-slop/` (vendored, generic) or `tools/oxlint/clickfolio/` (this repo's invariants). Client code satisfies the Effect rules with a plain `switch` on its own string union, never by importing `Match`.
 
 ## Keeping this file small
 
-Pointers and cross-cutting traps only. A subsystem's rules go in its module header comment, a review-time rule in CODING_STANDARDS.md, a mechanical rule into a lint rule or test. `pnpm run verify` fails when a path or identifier named here or in CODING_STANDARDS.md no longer exists.
+Pointers and cross-cutting traps only. A subsystem's rules go in its module header comment, a review-time rule in CODING_STANDARDS.md, a mechanical rule into a lint rule (`tools/oxlint/clickfolio/`) or test. `pnpm run verify` fails when a path or identifier named here or in CODING_STANDARDS.md no longer exists.
 
 <!-- intent-skills:start -->
 
