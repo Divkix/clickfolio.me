@@ -18,6 +18,7 @@
   "ignore": [],
   "ignoreBinaries": [],
   // Imported but not installed: `cloudflare:workers` reads as a package named "cloudflare" (a runtime builtin).
-  "ignoreDependencies": ["cloudflare"],
+  // @tanstack/intent is only run as `pnpm exec intent` (AGENTS.md Skill Loading), never imported.
+  "ignoreDependencies": ["cloudflare", "@tanstack/intent"],
   "ignoreExportsUsedInFile": true,
 }
