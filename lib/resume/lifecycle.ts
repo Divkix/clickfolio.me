@@ -1,3 +1,18 @@
+/**
+ * Shared resume status, retry and presentation policy; callers must not re-derive it.
+ * RETRY_LIMITS and PERMANENT_ERROR_TYPES bound manual retries. Invalid model output stops
+ * automatic Workflow retries but remains manually retryable within those limits.
+ *
+ * The stranded sweep fails pending_claim/queued after STRANDED_START_AFTER_MS and processing
+ * after STRANDED_PROCESSING_AFTER_MS, comparing COALESCE(queued_at, created_at) in SQL.
+ * queued_at is refreshed on manual retry and parse claim. The sweep preserves last_attempt_error:
+ * rows without a permanent error remain manually retryable within RETRY_LIMITS. It pushes a
+ * status notice and logs resume_swept per row, never email.
+ *
+ * Parse runs carry the row's retryCount: pipeline ownsRow and completion's retryCount guard
+ * prevent an old run from changing a row superseded by a sweep and manual retry.
+ */
+
 import type { UnknownRecord } from "@/lib/types/json";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import type { ERROR_CODES } from "@/lib/utils/security-headers";
@@ -24,12 +39,6 @@ export const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 export const WAITING_FOR_CACHE_TIMEOUT_MESSAGE =
   "Parsing timed out while waiting for cached result. Please try uploading again.";
 
-/**
- * The stranded-row sweeper (`lib/cron/stranded-resumes.ts`) fails rows that stopped moving.
- * Both ages run from `COALESCE(queued_at, created_at)`: `queued_at` is stamped when the row is
- * queued (again on every manual retry) and again when a parse claims it. A swept row carries no
- * `last_attempt_error`, so `checkRetryEligibility` keeps it retryable.
- */
 export const STRANDED_START_AFTER_MS = 15 * 60 * 1000;
 
 export const STRANDED_PROCESSING_AFTER_MS = 90 * 60 * 1000;

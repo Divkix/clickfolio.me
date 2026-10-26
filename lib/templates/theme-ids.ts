@@ -1,3 +1,16 @@
+/**
+ * Theme maintenance beyond completeness checks: curate demo-data.ts content, add a lightweight
+ * demo-profiles.ts gallery profile, write theme-pages.ts landing copy, recommend suitable roles
+ * through PROFESSIONS[].themes, and update lib/seo/lastmod.json.
+ * Capture public/previews/<kebab>.webp from /preview/<id> after Google Fonts load; use sharp
+ * encoding consistent with scripts/generate-preview-variants.ts, then run that script for variants.
+ * Record<ThemeId, ...> checks complete tables; theme-ids.test.ts checks preview variant files
+ * and replacement resolution; templates-render.test.ts exercises every theme across resume shapes.
+ * Review demo/copy quality and the original preview visually; those checks cannot judge it.
+ * Removal also needs REMOVED_THEME_REPLACEMENTS and a custom Drizzle data migration remapping
+ * site_data.theme_id (see migrations_pg/0011_remap_removed_themes.sql), not just registry deletion.
+ * Read stored ids through resolveThemeId; use TEMPLATE_COUNT rather than counts in copy.
+ */
 export const THEME_IDS = [
   "academic_cv",
   "bento",

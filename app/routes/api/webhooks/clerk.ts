@@ -1,8 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
 /**
- * configure it with `wrangler secret put CLERK_WEBHOOK_SECRET` and point a
- * Clerk Dashboard webhook at https://clickfolio.me/api/webhooks/clerk.
+ * Configure with `wrangler secret put CLERK_WEBHOOK_SECRET` and point a Clerk Dashboard
+ * webhook at https://clickfolio.me/api/webhooks/clerk.
+ * Missing or malformed signing secrets return 500 so Svix retries; only invalid signatures
+ * or timestamps return 401. Configuration failures must not masquerade as bad credentials.
+ * Hard deletion schedules R2 keys and a prefix sweep before cascading the mapped local row.
+ * Delete by that row's id: mapping may match either Clerk id or external id.
  */
+
+import { createFileRoute } from "@tanstack/react-router";
 
 import { env } from "cloudflare:workers";
 import { Effect, Layer } from "effect";

@@ -1,3 +1,11 @@
+/**
+ * Best-effort production-only IndexNow pings for published, renamed, hidden or deleted profiles.
+ * waitUntil keeps submission alive beyond the response; failures are logged, never propagated.
+ * submitProfiles debounces URLs per colo via the Workers Cache for DEBOUNCE_SECONDS in the
+ * IndexNow service. Hide/delete/rename callers pass skipDebounce so a recent publish ping
+ * cannot suppress removal; only accepted submissions mark URLs as debounced.
+ */
+
 import { waitUntil } from "cloudflare:workers";
 import { Cause, Exit } from "effect";
 import { siteConfig } from "@/lib/config/site";
@@ -22,11 +30,6 @@ async function runSubmission(urls: string[], skipDebounce: boolean): Promise<voi
   }
 }
 
-/**
- * Pings IndexNow for portfolios whose public state changed (published, handle changed, privacy
- * changed, deleted). Runs after the response via waitUntil; never throws. Pass `skipDebounce` when
- * the change removes or hides a page, so a recent publish ping cannot suppress it.
- */
 export function notifyIndexNowForProfiles(
   handles: ReadonlyArray<string | null | undefined>,
   { skipDebounce = false }: { skipDebounce?: boolean } = {},

@@ -1,3 +1,13 @@
+/**
+ * Journaled claim → parse → complete; terminal failures run `mark failed`.
+ * Database steps use status-guarded UPDATE ... RETURNING and SQL-side attempt increments;
+ * their retryCount guards keep an older run from touching a manually retried row.
+ * A retried `complete` resolves the owner's handle even after its first commit, so public
+ * refresh still runs. `mark failed` returns a notice; `announce parse failure` journals its
+ * status pushes and alert separately with no retries, avoiding duplicates on DB-step retries.
+ * Failure email likewise runs separately after DB work, without automatic retries.
+ */
+
 import { Cause, Effect } from "effect";
 import type { ParseErrorJson } from "../parse/errors";
 import {
@@ -82,10 +92,6 @@ function tracedSteps(step: WorkflowStep, instanceId: string, resumeId: string): 
     );
 }
 
-/**
- * Resume parse pipeline: claim → parse → complete, with `mark failed` once
- * retries are spent. Replaces the parse queue, its DLQ, and the orphan-recovery cron.
- */
 export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, ResumeParseParams> {
   /**
    * Runs one step's Effect with the layers built for this attempt (never held across steps) and

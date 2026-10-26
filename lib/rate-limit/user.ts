@@ -1,3 +1,10 @@
+/**
+ * Per-user quota reads are not reservations: call readQuotaIn(tx, ...) while the caller's
+ * transaction holds the user-row lock, keeping the counted write under that same lock.
+ * Apply requireQuota afterward, as claim intake, handle changes and wizard completion do.
+ * Store failures remain the caller transaction's own DbFailed and fail closed.
+ * Quota amounts and windows belong to RATE_LIMITS.
+ */
 import { Effect } from "effect";
 import { and, eq, gte, sql } from "drizzle-orm";
 import type { PgQueryable } from "@/lib/db";

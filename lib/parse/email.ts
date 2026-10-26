@@ -1,3 +1,14 @@
+/**
+ * Best-effort permanent parse-failure/cache-expiry mail to verified Clerk account owners,
+ * never resume contact addresses. Skip missing/non-failed resumes and anonymous/unverified owners.
+ * ResumeParseWorkflow journals email in its own step after DB work, with automatic retries
+ * disabled; delivery failures must not block the committed status update.
+ * The EMAIL send_email binding has no idempotency key: a timeout is logged outcome_unknown,
+ * never retried. A crash after provider acceptance but before journaling can still duplicate mail.
+ * Keep EMAIL_FROM and EMAIL.allowed_sender_addresses aligned to the sender on an onboarded
+ * domain. Local sends are simulated unless the binding explicitly enables remote: true.
+ */
+
 import { Effect } from "effect";
 import { eq } from "drizzle-orm";
 import { resumes, user } from "../db/schema";
@@ -9,13 +20,6 @@ import { log } from "../utils/log";
 
 type FailureEmailConfig = { readonly appUrl: string; readonly from: string };
 
-/**
- * Looks up the verified account owner of a failed resume and mails them once. Never retried:
- * the provider has no idempotency key, so a retry after a timeout could send it twice.
- * Resolves `skipped` when there is nobody to tell (resume gone or no longer failed, owner
- * anonymous or unverified); the recipient is always the Clerk account email, never the
- * contact email on the resume.
- */
 export function resumeFailureEmail(resumeId: string, config: FailureEmailConfig) {
   return Effect.gen(function* () {
     const resume = yield* Db.use((db) =>

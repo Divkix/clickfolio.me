@@ -1,3 +1,11 @@
+/**
+ * IP metering must count and insert in one Db.transaction, after a FOR UPDATE lock on
+ * seeded rate_limit_locks: slot = abs(hashtext(bucket)::bigint) % RATE_LIMIT_LOCK_SLOTS,
+ * where bucket is `${ipHash}||${actionType}`. Keep the slot constant aligned with migration 0013.
+ * Hyperdrive rejects advisory locks; the row lock lasts for the pinned transaction.
+ * Store failures fail closed through store-failure.ts as RateLimitUnavailable, never allowance.
+ * getClientIP validates untrusted headers with Zod; invalid or absent addresses share "unknown".
+ */
 import { Effect } from "effect";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";

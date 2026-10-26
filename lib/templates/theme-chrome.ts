@@ -1,3 +1,11 @@
+/**
+ * Keep CTA, share, attribution and preview background styling in this single theme table.
+ * Server-loaded public/preview pages select THEME_CHROME[themeId]; pass the selected cta,
+ * share and attribution entries as props where needed (templates require share).
+ * CreateYoursCTA, ShareBar, SharePopover and AttributionWidget only import its type:
+ * only dashboard ThemeSelector value-imports the full table on the client.
+ * Do not introduce separate per-theme maps in those components.
+ */
 import type { ThemeId } from "@/lib/templates/theme-ids";
 
 export interface ThemeChrome {

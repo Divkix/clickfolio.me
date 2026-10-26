@@ -137,6 +137,9 @@ export function useSession(): UseSessionResult {
  * Opens Clerk's sign-in modal; a click before Clerk has loaded waits for it. Clerk won't open
  * sign-in over an existing session, so a signed-in visitor goes straight to the redirect. If
  * Clerk failed to load, the click shows a toast asking for a reload.
+ *
+ * `isPending` stays true until Clerk loads (idle time or this click), so never disable the child
+ * on it: the click is what loads Clerk early.
  */
 export function SignInButton({
   fallbackRedirectUrl,

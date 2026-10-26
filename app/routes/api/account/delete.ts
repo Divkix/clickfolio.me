@@ -1,3 +1,12 @@
+/**
+ * Delete the Clerk identity first; Clerk.deleteUser treats an upstream 404 as already deleted.
+ * Then read resume R2 keys and delete the users row in one transaction, before sweeping the
+ * user's R2 prefix. Failed R2 batches and prefix listings defer cleanup to R2DeleteWorkflow.
+ * A local DB failure after Clerk deletion returns 500, not success: sign-in is gone, so the
+ * user cannot retry this route; the user.deleted webhook finishes the local cleanup.
+ * Logs and caller warnings describe file counts, never R2 keys containing uploaded filenames.
+ */
+
 import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 import { Effect, Layer } from "effect";
@@ -104,7 +113,7 @@ function deleteAccount(request: Request, { user: authUser, dbUser }: Authenticat
     // Delete the Clerk identity first: if this fails, nothing local has changed and the
     // client can retry. A failure after this point is recovered by the user.deleted
     // webhook, which runs the same local cleanup; retrying this route could not work
-    // because the local user row (and therefore auth) is already gone.
+    // because the Clerk identity used to sign in is already gone.
     yield* Clerk.use((clerk) => clerk.deleteUser(dbUser.clerkId));
 
     // The cascade removes the resume rows, and the FK stops any new claim from landing
