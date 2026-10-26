@@ -14,6 +14,7 @@ permissions:
   contents: read
 
 jobs:
+  # Job names are matched by EXPECTED_CHECKS in dependabot-automerge.yml: rename both together.
   quality:
     name: Code Quality
     runs-on: ubuntu-latest

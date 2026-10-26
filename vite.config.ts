@@ -187,7 +187,7 @@ export default defineConfig(() => {
             importProtection: {
               // Client code also lives outside `app/`.
               include: ["app/**", "components/**", "hooks/**", "lib/**"],
-              // AGENTS.md, "No Effect in client-reachable code".
+              // CODING_STANDARDS.md, "Client bundle".
               client: { specifiers: [/^effect(?:\/|$)/, /^@effect\//] },
             },
           }),

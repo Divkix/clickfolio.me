@@ -576,7 +576,7 @@ To report a vulnerability, open a GitHub issue with the "security" label or cont
 
 ## Contributing
 
-Contributions welcome! See [`AGENTS.md`](AGENTS.md) for branch conventions, commit style, and the `pnpm run ci` quality gate.
+Contributions welcome! See [`AGENTS.md`](AGENTS.md) for the quality gate and repo traps, and [`CODING_STANDARDS.md`](CODING_STANDARDS.md) for what review checks.
 
 ### Quick Contribution Guide
 
