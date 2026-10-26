@@ -2,12 +2,14 @@ import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 import { reportBoundaryError } from "@/lib/telemetry/browser";
 import { AlertTriangle } from "lucide-react";
-import { Link, type ErrorComponentProps } from "@tanstack/react-router";
+import { Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 
 export function ProfileError({ error, reset }: ErrorComponentProps) {
+  const router = useRouter();
+
   useEffect(() => {
     const fields = errorFields(error);
     log("error", "Public profile error:", fields);
@@ -36,7 +38,11 @@ export function ProfileError({ error, reset }: ErrorComponentProps) {
         )}
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button type="button" onClick={reset} className="flex-1">
+          <Button
+            type="button"
+            onClick={() => void router.invalidate().then(reset)}
+            className="flex-1"
+          >
             Try Again
           </Button>
           <Button asChild variant="outline" className="flex-1">
