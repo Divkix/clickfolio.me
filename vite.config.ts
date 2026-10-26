@@ -73,6 +73,7 @@ export default defineConfig(() => {
         { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
         { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
         { name: "anti-slop-effect", specifier: "./tools/oxlint/anti-slop/effect/index.ts" },
+        { name: "clickfolio", specifier: "./tools/oxlint/clickfolio/index.ts" },
       ],
       rules: {
         "vite-plus/prefer-vite-plus-imports": "error",
@@ -102,6 +103,8 @@ export default defineConfig(() => {
         "anti-slop-effect/no-manual-tagged-construction": "error",
         "anti-slop-effect/no-service-constructor-imports": "error",
         "anti-slop-effect/prefer-effect-match": "error",
+        "clickfolio/no-stringified-errors": "error",
+        "clickfolio/site-data-content-flag": "error",
       },
       overrides: [
         {
@@ -116,11 +119,18 @@ export default defineConfig(() => {
             "jsx-a11y/control-has-associated-label": "off",
             "no-control-regex": "off",
             "no-console": "off",
+            "clickfolio/no-stringified-errors": "off",
+            "clickfolio/site-data-content-flag": "off",
           },
         },
         {
           files: ["scripts/**", "lib/utils/log.ts"],
           rules: { "no-console": "off" },
+        },
+        {
+          // CLIs print to a terminal, where errorFields' redaction is not needed.
+          files: ["scripts/**"],
+          rules: { "clickfolio/no-stringified-errors": "off" },
         },
       ],
       ignorePatterns: IGNORE_PATTERNS,

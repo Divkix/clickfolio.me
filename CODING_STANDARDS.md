@@ -26,7 +26,7 @@ Review-time rules. Apply every rule below to each changed hunk and report each v
 - Multi-write → `db.transaction`. Postgres `23505` → 409.
 - Raw SQL through Drizzle `execute` (`rows`, `rowCount`); no Effect SQL.
 - Schema: `timestamptz` with `mode: "string"`; enum-like columns are `text` + a TS union (no PG enums); JSON is `jsonb`, read back without `JSON.parse`.
-- `site_data.content` writes spread `siteDataContentColumns(content)`; list queries (sitemap, `/explore`, `/examples`) filter with `indexableProfileCondition()` and never select `content`.
+- List queries (sitemap, `/explore`, `/examples`) filter with `indexableProfileCondition()` and never select `content`.
 - Directory visibility is dual-written: `showInDirectory` on the user row and `privacySettings.show_in_directory` change together (wizard and privacy routes).
 
 ## Effect (server I/O)
@@ -70,7 +70,6 @@ Review-time rules. Apply every rule below to each changed hunk and report each v
 
 ## Logging and telemetry
 
-- Caught errors are logged as `...errorFields(error)`, never `String(error)`, client code included.
 - No handles, names, emails or R2 keys (they end in the uploaded file name) in log fields, error messages or span attributes; span names and attributes stay low-cardinality.
 - One `logEvent` per outcome; ids and enums named like the surrounding logs (`resumeId`, `errorType`), metrics in snake_case with their unit (`duration_ms`); failure events at `error` or `warn`.
 - Browser funnel events go through `trackEvent`, typed in `ProductEvents` with enums and numbers only.
