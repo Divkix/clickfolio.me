@@ -1,7 +1,8 @@
 set -e
 
-if [ -n "$CI" ]; then
-  echo "CI detected, skipping pre-commit hooks"
+# Only GitHub Actions: agent shells export CI=true, and the gate must still run there.
+if [ -n "$GITHUB_ACTIONS" ]; then
+  echo "GitHub Actions detected, skipping pre-commit hooks"
   exit 0
 fi
 
