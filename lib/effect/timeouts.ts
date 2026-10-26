@@ -1,7 +1,8 @@
 /**
  * Time limits for every external call, in milliseconds. A timeout only stops waiting:
  * `pg` and Cloudflare bindings ignore the abort signal, so the operation can still finish.
- * Never retry a timed-out non-idempotent write (email, queue send, DO notify, R2 put/delete).
+ * Never retry a timed-out non-idempotent write (email, queue send, DO notify, R2 put). R2 deletes
+ * are idempotent, and R2DeleteWorkflow owns their retries.
  * Keep these below the enclosing Workflow step timeout so the typed error surfaces first.
  */
 export const TIMEOUT_MS = {
