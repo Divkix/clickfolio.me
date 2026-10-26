@@ -44,8 +44,6 @@ interface ResumeMetadata {
   indexable: boolean;
   location?: string | null;
   skills?: string[] | null;
-  created_at: string;
-  updated_at: string;
   jsonLdResumeScript: string | null;
   jsonLdBreadcrumbScript: string | null;
 }
@@ -209,8 +207,6 @@ function buildResumeMetadata(
     location,
     skills: parsedSkills.length > 0 ? parsedSkills : null,
     indexable,
-    created_at: siteData.createdAt,
-    updated_at: siteData.updatedAt,
     jsonLdResumeScript,
     jsonLdBreadcrumbScript,
   };

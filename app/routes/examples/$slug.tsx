@@ -8,7 +8,6 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
-import type { PROFESSIONS } from "@/lib/config/professions";
 import { edgeCacheHeaders, EXAMPLES_CACHE_TAG } from "@/lib/cache/edge-cache";
 import { examplePageData } from "@/lib/data/example-page";
 import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
@@ -45,8 +44,6 @@ export const Route = createFileRoute("/examples/$slug")({
 function ExampleGalleryPage() {
   const { gallery, profiles, copy } = Route.useLoaderData();
   const path = `/examples/${gallery.slug}`;
-  // SAFETY: Curated galleries use slugs from the profession catalog.
-  const rolePath = `/for/${gallery.forSlug}` as `/for/${(typeof PROFESSIONS)[number]["slug"]}`;
 
   const itemList = {
     "@context": "https://schema.org",
@@ -131,7 +128,7 @@ function ExampleGalleryPage() {
               </li>
             ))}
           </ul>
-          <Link className="underline" to={rolePath}>
+          <Link className="underline" to={`/for/${gallery.forSlug}`}>
             Learn how to build a portfolio for your role
           </Link>
         </section>

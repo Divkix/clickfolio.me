@@ -1,5 +1,5 @@
 import { BarChart3, Eye, TrendingUp, Users } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AdminTrafficChart } from "@/components/admin/AdminTrafficChart";
 import { HorizontalBarChart } from "@/components/admin/HorizontalBarChart";
@@ -32,8 +32,6 @@ export default function AnalyticsClient({
   data: AdminAnalyticsData;
   period: AnalyticsPeriod;
 }) {
-  const navigate = useNavigate();
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -43,12 +41,11 @@ export default function AnalyticsClient({
         </div>
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {PERIOD_OPTIONS.map((opt) => (
-            <button
+            <Link
               key={opt.value}
-              type="button"
-              onClick={() => {
-                void navigate({ to: "/admin/analytics", search: { period: opt.value } });
-              }}
+              to="/admin/analytics"
+              search={{ period: opt.value }}
+              aria-current={period === opt.value ? "page" : undefined}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"
@@ -56,7 +53,7 @@ export default function AnalyticsClient({
               }`}
             >
               {opt.label}
-            </button>
+            </Link>
           ))}
         </div>
       </div>
