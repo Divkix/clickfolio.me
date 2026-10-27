@@ -1,6 +1,6 @@
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { describe, expect, it } from "vite-plus/test";
-import { themeIdForSlugOrRedirect } from "@/app/routes/templates/$theme";
+import { templatePageHead, themeIdForSlugOrRedirect } from "@/app/routes/templates/$theme";
 import { REMOVED_THEME_REPLACEMENTS, THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 
 function thrownBySlug(slug: string) {
@@ -30,6 +30,10 @@ describe("/templates/$theme", () => {
     for (const slug of ["not-a-theme", "sidebar_photo", "case_file"]) {
       expect(isNotFound(thrownBySlug(slug))).toBe(true);
     }
+  });
+
+  it("renders an empty head when beforeLoad 404ed and left no themeId", () => {
+    expect(templatePageHead(undefined)).toEqual({});
   });
 
   it("keeps serving current themes and no longer lists removed ones", () => {

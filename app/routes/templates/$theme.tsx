@@ -50,17 +50,20 @@ export function themeIdForSlugOrRedirect(slug: string): ThemeId {
   throw notFound();
 }
 
+/** A notFound() from beforeLoad still runs head, without the themeId it would have added. */
+export function templatePageHead(id: ThemeId | undefined) {
+  if (!id) return {};
+
+  return publicPageHead({
+    title: templatePageTitle(id),
+    description: THEME_PAGE_COPY[id].description,
+    path: `/templates/${themeSlug(id)}`,
+  });
+}
+
 export const Route = createFileRoute("/templates/$theme")({
   beforeLoad: ({ params }) => ({ themeId: themeIdForSlugOrRedirect(params.theme) }),
-  head: ({ match }) => {
-    const id = match.context.themeId;
-
-    return publicPageHead({
-      title: templatePageTitle(id),
-      description: THEME_PAGE_COPY[id].description,
-      path: `/templates/${themeSlug(id)}`,
-    });
-  },
+  head: ({ match }) => templatePageHead(match.context.themeId),
   headers: () => edgeCacheHeaders(86400),
   component: ThemePage,
 });
