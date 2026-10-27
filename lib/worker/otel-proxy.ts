@@ -212,7 +212,7 @@ export async function handleOtelProxy(
   // Built from scratch: no client header (authorization, cookies) is forwarded.
   const headers = new Headers({
     "content-type": contentType,
-    authorization: env.OTEL_BROWSER_INGEST_KEY,
+    "uptrace-dsn": env.OTEL_BROWSER_INGEST_KEY,
   });
 
   if (encoding) headers.set("content-encoding", encoding);
