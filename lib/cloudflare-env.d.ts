@@ -9,7 +9,7 @@ interface __BaseEnv_CloudflareEnv {
 	CF_VERSION_METADATA: WorkerVersionMetadata;
 	ASSETS: Fetcher;
 	EMAIL_FROM: "notifications@clickfolio.me";
-	OTEL_COLLECTOR_URL: "https://otel.divkix.me";
+	OTEL_COLLECTOR_URL: "https://api.uptrace.dev";
 	NODE_ENV: string;
 	DISABLE_RATE_LIMITS: string;
 	APP_URL: string;
