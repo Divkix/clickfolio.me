@@ -36,7 +36,7 @@ beforeEach(() => {
 });
 
 describe("browser telemetry", () => {
-  it("loads once, through the same-origin proxy, with replay fully masked", async () => {
+  it("loads once, through the same-origin proxy, without session replay", async () => {
     initBrowserTelemetry();
 
     await vi.waitFor(() => expect(hyperdx.init).toHaveBeenCalledTimes(1));
@@ -46,8 +46,7 @@ describe("browser telemetry", () => {
         service: "clickfolio-web",
         tracePropagationTargets: [],
         advancedNetworkCapture: false,
-        maskAllInputs: true,
-        maskAllText: true,
+        disableReplay: true,
       }),
     );
   });

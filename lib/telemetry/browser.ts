@@ -1,6 +1,6 @@
 /**
- * Browser telemetry (`@hyperdx/browser`): traces, console logs, errors and
- * masked session replay, sent through the same-origin `/otel` ingest proxy
+ * Browser telemetry (`@hyperdx/browser`): traces, console logs and errors (no
+ * session replay), sent through the same-origin `/otel` ingest proxy
  * (`lib/worker/otel-proxy.ts`), which holds the ingestion key. The SDK (~190 KB
  * gzip) loads once the page is idle; calls made earlier wait for it and are
  * dropped if it never loads.
@@ -61,9 +61,8 @@ export function initBrowserTelemetry(): void {
         // Request and response bodies carry resume data and tokens.
         advancedNetworkCapture: false,
         disableIntercom: true,
-        // Personal data renders on almost every page, so replay masks everything.
-        maskAllInputs: true,
-        maskAllText: true,
+        // Personal data renders on almost every page, so no session replay.
+        disableReplay: true,
         otelResourceAttributes: {
           "deployment.environment": __DEPLOY_ENV__,
           "service.version": __APP_VERSION__,
