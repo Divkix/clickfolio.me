@@ -21,7 +21,7 @@ overrides:
   # Vite+ bundles its own Vitest and refuses to run `--coverage` unless the
   # installed coverage provider is the same version (mixed versions fail CI at
   # startup). Both the override and the catalog entry below track the `vitest`
-  # catalog range, so a future bump moves them together.
+  # catalog version, so a future bump moves them together.
   "@vitest/coverage-v8": "catalog:"
   # vite-plus hard-pins its own `vite` dependency to an exact
   # `npm:@voidzero-dev/vite-plus-core@<version>` alias; routing every `vite`
@@ -42,10 +42,10 @@ allowBuilds:
   sharp: true
   workerd: true
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@^1.3.0
-  vitest: ^5.0.5
-  vite-plus: ^1.3.0
-  "@vitest/coverage-v8": ^5.0.5
+  vite: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vitest: 5.0.5
+  vite-plus: 1.4.0
+  "@vitest/coverage-v8": 5.0.5
 peerDependencyRules:
   allowAny:
     - vite
