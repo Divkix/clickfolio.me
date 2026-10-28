@@ -95,8 +95,7 @@ describe("handleOtelProxy", () => {
     const [url, init] = fetchMock.mock.calls[0];
     const headers = new Headers(init.headers);
     expect(url).toBe(`https://collector.test/v1/${signal}`);
-    expect(headers.get("uptrace-dsn")).toBe("ingest-key");
-    expect(headers.get("authorization")).toBeNull();
+    expect(headers.get("authorization")).toBe("ingest-key");
     expect(headers.get("content-type")).toBe("application/x-protobuf");
     expect(headers.get("content-encoding")).toBe("gzip");
     expect(headers.get("cookie")).toBeNull();

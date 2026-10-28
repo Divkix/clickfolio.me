@@ -71,7 +71,7 @@ type BusinessEvent =
 
 /**
  * One line per business event outcome. The name doubles as `msg` and a stable
- * `event` field so it can be filtered in Uptrace. Pass opaque ids, enums and
+ * `event` field so it can be filtered in OpenObserve. Pass opaque ids, enums and
  * numbers (`duration_ms`, `size_bytes`, token counts) only — never emails,
  * names, handles or resume content. Failures keep their error level so
  * existing alerts still see them.

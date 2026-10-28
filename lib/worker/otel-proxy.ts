@@ -209,10 +209,11 @@ export async function handleOtelProxy(
     if (country.success) body = tagCountry(body, country.data);
   }
 
-  // Built from scratch: no client header (authorization, cookies) is forwarded.
+  // Built from scratch: no client header (authorization, cookies) is forwarded;
+  // authorization is only ever the server key.
   const headers = new Headers({
     "content-type": contentType,
-    "uptrace-dsn": env.OTEL_BROWSER_INGEST_KEY,
+    authorization: env.OTEL_BROWSER_INGEST_KEY,
   });
 
   if (encoding) headers.set("content-encoding", encoding);
