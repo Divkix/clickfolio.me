@@ -8,6 +8,8 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 - `pnpm run build` as well when touching config, `worker/`, routes, dependencies or anything client code imports: only the build runs Start's import protection.
 - Schema change: commit the `pnpm run db:generate` output; CI rejects drift. `db:push` bypasses migrations (prototyping only).
 - Commit messages: Conventional Commits, `type(scope): summary`.
+- Dependabot PRs: weekly (Monday 09:00 UTC), 7-day cooldown; Vite+ toolchain minor/patch grouped, other patches grouped, minors and majors one PR each. Nothing merges automatically: the owner reads the changelog, migrates code and merges by hand.
+- `.github/workflows/audit.yml` runs `pnpm audit --audit-level high` every Monday and fails on high/critical advisories: GitHub cannot read pnpm 12's two-document lockfile yet, so Dependabot security alerts are off.
 - Reviewing a diff: apply every rule in [CODING_STANDARDS.md](CODING_STANDARDS.md).
 
 ## Where things live

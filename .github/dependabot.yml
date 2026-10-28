@@ -3,12 +3,15 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 10
-    # Hold every version update for a day so a bad publish can be yanked
-    # (Dependabot's own default is 3 days). Security updates ignore cooldown.
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    # Hold every version update for a week so a bad publish can be yanked.
+    # Security updates ignore cooldown.
     cooldown:
-      default-days: 1
+      default-days: 7
+    open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
     labels:
@@ -27,23 +30,29 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Everything else: minor/patch updates arrive as one group.
-      # Majors stay ungrouped and are never auto-merged.
-      all-minor-patch:
+      # Patches ship as one PR. Minors and majors stay ungrouped, one PR per
+      # package, so each carries its own release notes and CI result.
+      all-patch:
         patterns:
           - "*"
         update-types:
-          - "minor"
           - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
     cooldown:
-      default-days: 1
+      default-days: 7
     commit-message:
       prefix: "chore(ci)"
     labels:
       - "ci"
       - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
