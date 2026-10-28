@@ -8,6 +8,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 - `pnpm run build` as well when touching config, `worker/`, routes, dependencies or anything client code imports: only the build runs Start's import protection.
 - Schema change: commit the `pnpm run db:generate` output; CI rejects drift. `db:push` bypasses migrations (prototyping only).
 - Commit messages: Conventional Commits, `type(scope): summary`.
+- Dependabot PRs: nothing merges automatically. The owner reads the changelog, migrates code and merges by hand.
 - Reviewing a diff: apply every rule in [CODING_STANDARDS.md](CODING_STANDARDS.md).
 
 ## Where things live

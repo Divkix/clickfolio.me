@@ -385,17 +385,8 @@ a day before it is proposed (security updates skip the cooldown). Vite+ toolchai
 packages (`vite-plus`, the `vite` catalog alias, `vitest`, `@vitest/*`,
 `@voidzero-dev/*`) are grouped into one PR because they only move in lockstep.
 
-| Kind                              | What happens                                            |
-| --------------------------------- | ------------------------------------------------------- |
-| minor / patch (grouped per group) | Auto-merged once every required check is green          |
-| major                             | Left open for a human; review is requested from @Divkix |
-
-`.github/workflows/dependabot-automerge.yml` squash-merges only when `Code Quality`,
-`Tests`, `Build`, `CI Success`, `GitGuardian Security Checks` and
-`Workers Builds: clickfolio-me` **and** every other check on the head commit are
-exactly `success`. Anything else (a failure, a skipped check, a moved head, a
-non-Dependabot author) fails closed: the PR stays open for a human and the run log
-says why. The workflow's header comment documents the full gate and safety model.
+Nothing merges automatically: the owner reads each PR's changelog, migrates code
+where needed and merges by hand.
 
 ### Project Structure
 

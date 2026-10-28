@@ -28,7 +28,7 @@ updates:
           - "minor"
           - "patch"
       # Everything else: minor/patch updates arrive as one group.
-      # Majors stay ungrouped and are never auto-merged.
+      # Majors stay ungrouped.
       all-minor-patch:
         patterns:
           - "*"
