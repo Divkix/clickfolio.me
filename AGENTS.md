@@ -4,7 +4,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 
 ## Done
 
-- `pnpm run verify` (lint, format, types, knip, doc references; the pre-commit hook runs it) and `pnpm run test`, or the covering file: `pnpm run test <path>`. CI runs `pnpm run test:coverage`, whose thresholds in `vite.config.ts` sit at the current baseline, so new code ships with tests.
+- `pnpm run verify` (Vite+ core lockstep, lint, format, types, knip, doc references; the pre-commit hook runs it) and `pnpm run test`, or the covering file: `pnpm run test <path>`. CI runs `pnpm run test:coverage`, whose thresholds in `vite.config.ts` sit at the current baseline, so new code ships with tests.
 - `pnpm run build` as well when touching config, `worker/`, routes, dependencies or anything client code imports: only the build runs Start's import protection.
 - Schema change: commit the `pnpm run db:generate` output; CI rejects drift. `db:push` bypasses migrations (prototyping only).
 - Commit messages: Conventional Commits, `type(scope): summary`.
@@ -39,6 +39,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 - **Locks**: Hyperdrive rejects advisory locks; serialize with `FOR UPDATE` row locks (see `lib/rate-limit/ip.ts`).
 - **R2 lifecycle**: deploy replaces every bucket rule with `r2-lifecycle.json`, so keep all rules there.
 - **Lockfile**: `ERR_PNPM_OUTDATED_LOCKFILE` after touching `catalog:` deps → run `pnpm install --no-frozen-lockfile` once and commit the lockfile.
+- **Vite+ core must match `vite-plus`**: the `vite` catalog entry in `pnpm-workspace.yaml` is an `npm:@voidzero-dev/vite-plus-core` alias that Dependabot never bumps, so a `vite-plus`-only bump leaves Vite plugins on the old core. `pnpm run check:vite-plus` (first step of `verify`) fails when the lockfile holds more than one core or one that differs from `vite-plus`; fix it with `pnpm exec vp migrate`, which re-pins both to the same exact version.
 - **Generated files**: `migrations_pg/`, `app/routeTree.gen.ts` (committed so `type-check` runs before a build), `lib/cloudflare-env.d.ts` (`pnpm run cf-typegen`), `lib/seo/lastmod.json` (pre-commit stamps it; `SKIP_LASTMOD=1` for commits that change no page content).
 - **Lint**: when a rule fires, read its source in `tools/oxlint/anti-slop/` (vendored, generic) or `tools/oxlint/clickfolio/` (this repo's invariants). Client code satisfies the Effect rules with a plain `switch` on its own string union, never by importing `Match`.
 
