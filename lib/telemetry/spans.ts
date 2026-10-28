@@ -2,7 +2,7 @@
  * Custom spans on Cloudflare's automatic Workers traces
  * (https://developers.cloudflare.com/workers/observability/traces/custom-spans/).
  * Spans nest by async context, and `console` lines written inside one are
- * attributed to it, so logs and spans share a trace in Uptrace.
+ * attributed to it, so logs and spans share a trace in OpenObserve.
  *
  * Attributes: enums, counts and opaque DB ids only, never PII, SQL values or
  * message text. The runtime doesn't expose trace or span ids yet
