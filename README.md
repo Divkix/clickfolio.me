@@ -380,10 +380,12 @@ Tests cover integration and security flows. CI collects coverage (including
 
 ### Dependency Updates
 
-Dependabot checks daily with a 1-day cooldown, so a just-published release waits
-a day before it is proposed (security updates skip the cooldown). Vite+ toolchain
-packages (`vite-plus`, the `vite` catalog alias, `vitest`, `@vitest/*`,
-`@voidzero-dev/*`) are grouped into one PR because they only move in lockstep.
+Dependabot checks weekly (Monday 09:00 UTC) with a 7-day cooldown, so a
+just-published release waits a week before it is proposed (security updates skip
+the cooldown). Vite+ toolchain packages (`vite-plus`, the `vite` catalog alias,
+`vitest`, `@vitest/*`, `@voidzero-dev/*`) are grouped into one minor/patch PR
+because they only move in lockstep. Other patches arrive as one grouped PR;
+minors and majors get one PR per package. GitHub Actions updates are grouped.
 
 Nothing merges automatically: the owner reads each PR's changelog, migrates code
 where needed and merges by hand.
