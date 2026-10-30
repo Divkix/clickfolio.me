@@ -85,7 +85,7 @@ Rules:
 - Dates: use YYYY-MM when possible. For current roles, OMIT end_date (do not use "Present").
 - URLs: return full https:// URLs when known.
 - Descriptions: preserve original wording. Do not embellish.
-- If bullet points exist, include them in highlights and summarize in description.
+- If bullet points exist, include them in highlights. Set description to an empty string unless it adds information beyond the highlights; never copy a bullet or combine the bullets into description.
 - Skills are an array of { category, items }, not an object.
 - Extract education, skills, certifications, and projects whenever the resume contains them; use an empty array only for a section it does not contain.
 - Do not add fields not in the schema.`;

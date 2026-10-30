@@ -88,6 +88,22 @@ describe("loadPublicResume", () => {
     expect(resume?.data.content.contact?.phone).toBe("+1-555-0100");
   });
 
+  it("drops a stored description that repeats its only achievement bullet", async () => {
+    const achievement = "Built reliable services.";
+    const content = structuredClone(INDEXABLE_CONTENT);
+    content.experience[0] = {
+      ...content.experience[0],
+      description: achievement,
+      highlights: [achievement],
+    };
+    await seedProfile("repeated", content);
+
+    const resume = await run(loadPublicResume("repeated"));
+
+    expect(resume?.data.content.experience[0].description).toBe("");
+    expect(resume?.data.content.experience[0].highlights).toEqual([achievement]);
+  });
+
   it("removes a hidden email from public data, metadata and every template's HTML", async () => {
     await seedProfile("hidden-email", INDEXABLE_CONTENT, { show_email: false });
 

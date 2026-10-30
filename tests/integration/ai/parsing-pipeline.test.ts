@@ -8,6 +8,8 @@ import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
 import { parseWithAiEffect } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai/index";
 import { resumeContentSchema } from "@/lib/schemas/resume";
+import { generateText } from "ai";
+import { extractPdfTextEffect } from "@/lib/ai/pdf-extract";
 
 vi.mock("@ai-sdk/openai-compatible", () => ({
   createOpenAICompatible: vi.fn(() => (modelId: string) => ({
@@ -320,7 +322,7 @@ describe("AI Parsing Pipeline", () => {
       expect(skills[0]).toHaveProperty("items");
     });
 
-    it("should transform experience descriptions from array to string", () => {
+    it("should keep array descriptions only as experience highlights", () => {
       const input = {
         experience: [
           {
@@ -338,8 +340,7 @@ describe("AI Parsing Pipeline", () => {
         "experience",
       );
 
-      expect(experience[0].description).toBeTypeOf("string");
-      expect(experience[0].description).toBe("Built features Fixed bugs");
+      expect(experience[0].description).toBe("");
       expect(experience[0].highlights).toEqual(["Built features", "Fixed bugs"]);
     });
 
@@ -435,6 +436,32 @@ describe("AI Parsing Pipeline", () => {
       const result = await Effect.runPromise(parseResumeWithAi(mockPdfBuffer, mockEnv));
 
       expect(result.full_name).toBe("John Doe");
+    });
+
+    it("removes duplicate experience paragraphs from the parsed resume", async () => {
+      vi.mocked(extractPdfTextEffect).mockReturnValueOnce(
+        Effect.succeed({ text: SAMPLE_RESUME_TEXT, pageCount: 1, source: "generic" }),
+      );
+      const achievement = "Built responsive React applications with TypeScript.";
+      vi.mocked(generateText).mockResolvedValueOnce(
+        textResult(
+          JSON.stringify({
+            ...VALID_AI_RESPONSE,
+            experience: [
+              {
+                ...VALID_AI_RESPONSE.experience[0],
+                description: achievement,
+                highlights: [achievement],
+              },
+            ],
+          }),
+        ),
+      );
+
+      const result = await Effect.runPromise(parseResumeWithAi(new ArrayBuffer(100), mockEnv));
+
+      expect(result.experience[0].description).toBe("");
+      expect(result.experience[0].highlights).toEqual([achievement]);
     });
 
     it("should handle PDF extraction failure gracefully", async () => {

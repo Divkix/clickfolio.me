@@ -55,8 +55,7 @@ export function transformToSchema(data: UnknownRecord): UnknownRecord {
       if (Array.isArray(exp.description)) {
         return {
           ...exp,
-          // SAFETY: Array.isArray guard above ensures exp.description is a string array.
-          description: (exp.description as string[]).join(" "),
+          description: "",
           // SAFETY: Array.isArray guard above ensures exp.description is a string array.
           highlights: exp.description as string[],
         };
