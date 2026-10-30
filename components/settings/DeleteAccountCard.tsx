@@ -63,10 +63,9 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
         });
       }
 
-      toast.success("Your account has been deleted");
       setIsDialogOpen(false);
       await signOut();
-      void navigate({ to: "/" }).then(() => router.invalidate());
+      void navigate({ href: "/?account_deleted=1" }).then(() => router.invalidate());
     } catch (err) {
       log("error", "Account deletion error", { ...errorFields(err) });
       const errorMessage = "An unexpected error occurred. Please try again.";
@@ -95,7 +94,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
             <div className="min-w-0">
               <h3 className="font-semibold text-destructive">Danger Zone</h3>
               <p className="text-sm text-destructive">
-                Delete your account and all data permanently
+                Delete your account, résumé files and public page permanently
               </p>
             </div>
           </div>
@@ -133,6 +132,11 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
                 <li>Your published portfolio page</li>
                 <li>All account settings and preferences</li>
               </ul>
+              <p className="text-sm text-destructive mt-2">
+                Operational diagnostics are not removed early; they expire within 90 days of
+                collection. File deletion is retried automatically if storage is temporarily
+                unavailable.
+              </p>
             </div>
 
             <div className="space-y-2">

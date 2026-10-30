@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Footer } from "@/components/Footer";
+import { AccountDeletedNotice } from "@/components/home/AccountDeletedNotice";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FAQ_ITEMS } from "@/lib/config/faq";
@@ -34,6 +35,7 @@ export function HomeLanding() {
       <SiteHeader />
 
       <main id="main-content" className="flex-1 pb-20 lg:pb-0">
+        <AccountDeletedNotice />
         <section className="relative overflow-hidden">
           <div
             aria-hidden="true"
