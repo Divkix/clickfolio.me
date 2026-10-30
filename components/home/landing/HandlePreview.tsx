@@ -82,7 +82,11 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
   }, [touched, themes.length]);
 
   return (
-    <div onPointerEnter={() => setTouched(true)} onFocusCapture={() => setTouched(true)}>
+    <div
+      className="min-w-0"
+      onPointerEnter={() => setTouched(true)}
+      onFocusCapture={() => setTouched(true)}
+    >
       <figure className="overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-[0_40px_90px_-35px_rgba(42,63,209,0.45)]">
         <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-2.5">
           <span className="flex gap-1.5" aria-hidden="true">
@@ -125,8 +129,8 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
         />
       </figure>
 
-      <div className="mt-4 flex min-h-6 items-center justify-between gap-4 text-sm">
-        <p id="studio-handle-status" aria-live="polite">
+      <div className="mt-4 flex min-h-6 flex-wrap items-center justify-between gap-4 text-sm">
+        <p id="studio-handle-status" className="min-w-0" aria-live="polite">
           {status === "checking" && <span className="text-muted-foreground">Checking…</span>}
           {status === "available" && (
             <span className="font-medium text-success">
@@ -152,7 +156,7 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
             <span className="text-muted-foreground">You’ll confirm it after upload.</span>
           )}
         </p>
-        <div className="flex shrink-0">
+        <div className="flex max-w-full flex-wrap justify-end">
           {themes.map((theme, i) => (
             <button
               key={theme.id}

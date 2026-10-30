@@ -41,8 +41,8 @@ export function HomeLanding() {
             aria-hidden="true"
             className="pointer-events-none absolute -top-40 right-0 h-[560px] w-[760px] rounded-full bg-brand/10 blur-3xl"
           />
-          <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl items-center gap-x-16 gap-y-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-8">
-            <div>
+          <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl grid-cols-1 items-center gap-x-16 gap-y-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-8">
+            <div className="min-w-0">
               <h1 className="text-5xl leading-[0.98] font-semibold sm:text-6xl xl:text-7xl">
                 Your résumé, live on the web in 30 seconds.
               </h1>
