@@ -3,14 +3,20 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { previewSrcSet, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
+import { siteConfig } from "@/lib/config/site";
 import { cn } from "@/lib/utils/cn";
 
 interface ThemeStepProps {
+  handle: string;
   initialTheme?: ThemeId;
   onContinue: (themeId: ThemeId) => void | Promise<void>;
 }
 
-export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }: ThemeStepProps) {
+export function ThemeStep({
+  handle,
+  initialTheme = "minimalist_editorial",
+  onContinue,
+}: ThemeStepProps) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +32,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-[calc(18rem+env(safe-area-inset-bottom))] sm:pb-[calc(12rem+env(safe-area-inset-bottom))]">
       <div className="text-center">
         <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
           <Palette className="w-8 h-8 text-brand" />
@@ -114,31 +120,35 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
             );
           })}
         </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Currently selected:{" "}
-            <span className="font-bold text-brand">{THEME_METADATA[selectedTheme].name}</span>
-          </p>
-        </div>
-
-        <div className="pt-6">
-          <Button
-            onClick={handleContinue}
-            disabled={isSubmitting}
-            loading={isSubmitting}
-            className="w-full"
-            size="lg"
-          >
-            {isSubmitting ? "Completing..." : "Complete Setup"}
-          </Button>
-        </div>
       </div>
 
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground font-medium">
-          You can change your template anytime in dashboard settings.
-        </p>
+      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur-sm px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:left-60">
+        <div className="max-w-4xl mx-auto space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              Selected template:{" "}
+              <span className="font-bold text-brand">{THEME_METADATA[selectedTheme].name}</span>
+            </p>
+            <Button
+              onClick={handleContinue}
+              disabled={isSubmitting}
+              loading={isSubmitting}
+              className="w-full sm:w-auto"
+              size="lg"
+              aria-describedby="publish-visibility-note"
+            >
+              {isSubmitting ? "Publishing..." : "Publish my page"}
+            </Button>
+          </div>
+          <p id="publish-visibility-note" className="text-sm text-muted-foreground">
+            Publishing makes{" "}
+            <span className="font-medium break-all">
+              {siteConfig.domain}/@{handle}
+            </span>{" "}
+            public. Anyone with the link can view it. You can change the template, content and
+            privacy later in your dashboard.
+          </p>
+        </div>
       </div>
     </div>
   );

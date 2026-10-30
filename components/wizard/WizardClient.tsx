@@ -3,7 +3,6 @@ import { errorFields } from "@/lib/utils/error-fields";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardProgress } from "@/components/wizard";
 import { HandleStep } from "@/components/wizard/HandleStep";
@@ -192,6 +191,21 @@ function useWizardInit(
   return { navigate, loading, error, setError, needsUpload, state, setState };
 }
 
+export function focusWizardStep(
+  content: {
+    querySelector(selector: "h1"): Pick<HTMLHeadingElement, "tabIndex" | "focus"> | null;
+    scrollIntoView(options: ScrollIntoViewOptions): void;
+  } | null,
+): void {
+  const heading = content?.querySelector("h1");
+
+  if (!content || !heading) return;
+
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
+  content.scrollIntoView({ block: "start", behavior: "instant" });
+}
+
 export default function WizardClient({
   initialStart,
   ownerHandle,
@@ -205,11 +219,16 @@ export default function WizardClient({
   );
 
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const stepContentRef = useRef<HTMLElement>(null);
 
   const stepOrder = getStepOrder(needsUpload);
   const totalSteps = stepOrder.length;
   const currentStepNumber = stepOrder.indexOf(state.currentStepId) + 1;
   const progress = (currentStepNumber / totalSteps) * 100;
+
+  useEffect(() => {
+    focusWizardStep(stepContentRef.current);
+  }, [loading, state.currentStepId]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -286,6 +305,8 @@ export default function WizardClient({
       log("error", "Error completing wizard:", { ...errorFields(err) });
       const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
+      // Keep toast code out of the wizard's initial browser bundle.
+      const { toast } = await import("sonner");
       toast.error(errorMessage);
     }
   };
@@ -321,7 +342,7 @@ export default function WizardClient({
         hasUploadStep={needsUpload}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-12">
+      <main ref={stepContentRef} className="max-w-5xl mx-auto px-4 py-12 scroll-mt-24">
         {error && stepOrder.indexOf(state.currentStepId) > 0 && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
@@ -351,7 +372,11 @@ export default function WizardClient({
         )}
 
         {state.currentStepId === "theme" && (
-          <ThemeStep initialTheme={state.themeId} onContinue={handleThemeContinue} />
+          <ThemeStep
+            handle={state.handle}
+            initialTheme={state.themeId}
+            onContinue={handleThemeContinue}
+          />
         )}
       </main>
     </div>
