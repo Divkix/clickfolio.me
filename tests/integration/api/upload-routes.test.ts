@@ -87,6 +87,31 @@ describe("POST /api/upload", () => {
     expect(response.headers.get("X-RateLimit-Remaining-Hourly")).toBe("9");
   });
 
+  it("explains a zero-byte PDF before touching upload storage or quota", async () => {
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
+    const response = await POST(uploadRequest(new ArrayBuffer(0)));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "This file is empty. Choose a different PDF.",
+    });
+    expect(mocks.limiter).not.toHaveBeenCalled();
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
+  it("explains an empty body even if the sender claims it contains PDF bytes", async () => {
+    const request = uploadRequest(new ArrayBuffer(0));
+    request.headers.set("Content-Length", "200");
+    const POST = serverHandler((await import("@/app/routes/api/upload")).Route, "POST");
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "This file is empty. Choose a different PDF.",
+    });
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
+  });
+
   it("answers 503 before touching the rate limit when the bucket is not bound", async () => {
     mocks.bound.value = false;
 
