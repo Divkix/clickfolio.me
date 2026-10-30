@@ -174,7 +174,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
               throw new Error(data.error || "Session expired. Please refresh the page.");
             }
 
-            throw new Error(data.error || "Failed to claim resume");
+            throw new Error(data.error || "We couldn't save your résumé. Please try again.");
           }
 
           // SAFETY: fetch JSON is bounded and validated to expected shape

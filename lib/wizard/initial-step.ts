@@ -50,7 +50,8 @@ export async function runClaimThenLoad(pendingUpload: PendingUpload, fetchImpl =
   // SAFETY: The claim endpoint returns this server-controlled wire shape; required fields are checked below.
   const claim = (await response.json()) as ClaimResponse;
 
-  if (!response.ok) throw new Error(claim.error || "Failed to claim resume");
+  if (!response.ok)
+    throw new Error(claim.error || "We couldn't save your résumé. Please try again.");
 
   if (!claim.resume_id) throw new Error("Server error: No resume ID returned");
 

@@ -151,7 +151,7 @@ export const Route = createFileRoute("/api/resume/claim")({
                 ),
               ),
             ),
-          "You must be logged in to claim a resume",
+          "Sign in to add this résumé to your account.",
         );
       },
     },
