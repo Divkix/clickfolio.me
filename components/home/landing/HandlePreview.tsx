@@ -2,7 +2,7 @@ import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { saveDesiredHandle } from "@/lib/utils/desired-handle";
 import { trackEvent, type CheckedHandleStatus } from "@/lib/telemetry/browser";
-import { handleSchema } from "@/lib/schemas/handle";
+import { handleSchema, normalizeHandleInput } from "@/lib/schemas/handle";
 import { previewSrcSet } from "@/lib/templates/theme-ids";
 import { UploadCTA } from "./UploadCTA";
 
@@ -98,7 +98,7 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
             <span className="text-muted-foreground">clickfolio.me/@</span>
             <input
               value={handle}
-              onChange={(event) => setHandle(event.target.value.toLowerCase().replace(/\s/g, ""))}
+              onChange={(event) => setHandle(normalizeHandleInput(event.target.value))}
               placeholder={selected.handle}
               aria-label="Try your handle"
               aria-describedby="studio-handle-status"

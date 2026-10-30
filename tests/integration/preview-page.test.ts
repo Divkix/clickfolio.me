@@ -27,6 +27,11 @@ describe("/preview/$id", () => {
     );
 
     expect(html).toContain(DEMO_RESUME_CONTENT.boardroom.full_name);
-    expect(profile.handle).toBe(content.full_name.toLowerCase().replace(/\s+/g, ""));
+    expect(profile.handle).toBe("danielreyes");
+  });
+
+  it("uses unaccented handles in previews of accented names", () => {
+    expect(previewPageData("gallery_wall").profile.handle).toBe("inesmoreau");
+    expect(previewPageData("link_stack").profile.handle).toBe("zoepatterson");
   });
 });

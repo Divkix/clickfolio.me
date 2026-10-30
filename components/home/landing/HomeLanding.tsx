@@ -5,6 +5,7 @@ import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { PROFESSIONS } from "@/lib/config/professions";
+import { normalizeHandleInput } from "@/lib/schemas/handle";
 import { DEMO_PROFILES } from "@/lib/templates/demo-profiles";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 import { HandlePreview } from "./HandlePreview";
@@ -16,7 +17,7 @@ const themes = DEMO_PROFILES.map((profile) => ({
   name: THEME_METADATA[profile.id].name,
   preview: THEME_METADATA[profile.id].preview,
   person: profile.name,
-  handle: profile.name.toLowerCase().replace(/[^a-z]/g, ""),
+  handle: normalizeHandleInput(profile.name),
 }));
 
 const facts = [

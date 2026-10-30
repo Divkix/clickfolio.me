@@ -1,4 +1,5 @@
 import { notFound } from "@tanstack/react-router";
+import { normalizeHandleInput } from "@/lib/schemas/handle";
 import { DEMO_RESUME_CONTENT } from "@/lib/templates/demo-data";
 import { THEME_CHROME } from "@/lib/templates/theme-chrome";
 import { isValidThemeId } from "@/lib/templates/theme-ids";
@@ -15,7 +16,7 @@ export function previewPageData(id: string) {
     chrome,
     profile: {
       avatar_url: null,
-      handle: content.full_name.toLowerCase().replace(/\s+/g, ""),
+      handle: normalizeHandleInput(content.full_name),
     },
   };
 }

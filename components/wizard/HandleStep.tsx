@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { siteConfig } from "@/lib/config/site";
+import { normalizeHandleInput } from "@/lib/schemas/handle";
 import { log } from "@/lib/utils/log";
 import { errorFields } from "@/lib/utils/error-fields";
 
@@ -207,7 +208,7 @@ function HandleStatus({
 }
 
 export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) {
-  const [handle, setHandle] = useState(initialHandle);
+  const [handle, setHandle] = useState(() => normalizeHandleInput(initialHandle));
 
   const {
     isChecking,
@@ -229,12 +230,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   }, [isAvailable, handle]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/^-+|-+$/g, "")
-      .replace(/-+/g, "-")
-      .slice(0, 30);
+    const value = normalizeHandleInput(e.target.value);
 
     setHandle(value);
 
@@ -290,8 +286,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
               onChange={handleChange}
               placeholder="johnsmith"
               className="pr-10 text-lg"
-              // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus handle input on mount
-              autoFocus
             />
             <HandleStatusIcon
               isChecking={isChecking}
@@ -316,7 +310,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
           <ul className="text-xs text-muted-foreground space-y-1">
             <li className={handle.length >= 3 ? "text-success" : ""}>• At least 3 characters</li>
             <li className={/^[a-z0-9-]+$/.test(handle) ? "text-success" : ""}>
-              • Only lowercase letters, numbers, and hyphens
+              • Only a–z letters, numbers, and hyphens; accents are converted (í → i)
             </li>
             <li className={!/^-|-$/.test(handle) ? "text-success" : ""}>
               • Cannot start or end with a hyphen
