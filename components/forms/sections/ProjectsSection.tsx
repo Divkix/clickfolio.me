@@ -152,9 +152,7 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
                         <FormLabel>Technologies Used</FormLabel>
                         <FormControl>
                           <CommaArrayInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
+                            {...field}
                             placeholder="React, Node.js, PostgreSQL (comma-separated)"
                           />
                         </FormControl>

@@ -5,6 +5,17 @@ const LENIENT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+$/;
 
 const STRICT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const optionalUrlField = (label: string) =>
+  z
+    .string()
+    .trim()
+    .url({ message: "Enter a full URL starting with https:// or http://" })
+    .max(500, `${label} is too long (max 500 characters)`)
+    // Keep the union before sanitization so it preserves the URL validation errors.
+    .or(z.literal(""))
+    .transform(sanitizeUrl)
+    .optional();
+
 const lenientEmailField = z
   .string()
   .trim()
@@ -14,7 +25,6 @@ const lenientEmailField = z
   })
   .transform(sanitizeEmail)
   .optional()
-  .or(z.literal(""))
   .describe("Email address (optional — empty when not found in the resume)");
 
 const strictEmailField = z
@@ -47,53 +57,21 @@ const createContactSchema = (emailField: "lenient" | "strict") =>
       .optional()
       .or(z.literal(""))
       .describe("City, State format preferred"),
-    linkedin: z
-      .string()
-      .trim()
-      .url({ message: "Invalid LinkedIn URL" })
-      .max(500, "LinkedIn URL is too long")
-      .transform(sanitizeUrl)
-      .optional()
-      .or(z.literal(""))
-      .describe(
-        "Full LinkedIn URL. Must start with https://linkedin.com/in/ or https://www.linkedin.com/in/",
-      ),
-    github: z
-      .string()
-      .trim()
-      .url({ message: "Invalid GitHub URL" })
-      .max(500, "GitHub URL is too long")
-      .transform(sanitizeUrl)
-      .optional()
-      .or(z.literal(""))
-      .describe("Full GitHub URL. Must start with https://github.com/"),
-    website: z
-      .string()
-      .trim()
-      .url({ message: "Invalid website URL" })
-      .max(500, "Website URL is too long")
-      .transform(sanitizeUrl)
-      .optional()
-      .or(z.literal(""))
-      .describe("Full website URL. Must start with https:// or http://"),
-    behance: z
-      .string()
-      .trim()
-      .url({ message: "Invalid Behance URL" })
-      .max(500, "Behance URL is too long")
-      .transform(sanitizeUrl)
-      .optional()
-      .or(z.literal(""))
-      .describe("Full Behance URL. Must start with https://behance.net/"),
-    dribbble: z
-      .string()
-      .trim()
-      .url({ message: "Invalid Dribbble URL" })
-      .max(500, "Dribbble URL is too long")
-      .transform(sanitizeUrl)
-      .optional()
-      .or(z.literal(""))
-      .describe("Full Dribbble URL. Must start with https://dribbble.com/"),
+    linkedin: optionalUrlField("LinkedIn URL").describe(
+      "Full LinkedIn URL. Must start with https://linkedin.com/in/ or https://www.linkedin.com/in/",
+    ),
+    github: optionalUrlField("GitHub URL").describe(
+      "Full GitHub URL. Must start with https://github.com/",
+    ),
+    website: optionalUrlField("Website URL").describe(
+      "Full website URL. Must start with https:// or http://",
+    ),
+    behance: optionalUrlField("Behance URL").describe(
+      "Full Behance URL. Must start with https://behance.net/",
+    ),
+    dribbble: optionalUrlField("Dribbble URL").describe(
+      "Full Dribbble URL. Must start with https://dribbble.com/",
+    ),
   });
 
 const contactSchemaLenient = createContactSchema("lenient");
@@ -145,7 +123,15 @@ const experienceSchema = z.object({
     .refine(noXssPattern, { message: "Invalid content detected" })
     .describe("Role description (max 5000 characters). Empty string if the resume has none."),
   highlights: z
-    .array(z.string().trim().max(500).refine(noXssPattern, { message: "Invalid content detected" }))
+    .array(
+      z
+        .string()
+        .trim()
+        .max(500, "Achievement is too long (max 500 characters)")
+        .refine(noXssPattern, {
+          message: "Use plain text without scripts or event handlers",
+        }),
+    )
     .optional()
     .describe("Key achievements or responsibilities (max 500 characters per item)"),
 });
@@ -206,7 +192,9 @@ const skillSchema = z.object({
         .trim()
         .min(1, "Skill cannot be empty")
         .max(100, "Skill is too long")
-        .refine(noXssPattern, { message: "Invalid content detected" }),
+        .refine(noXssPattern, {
+          message: "Use plain text without scripts or event handlers",
+        }),
     )
     .min(1, "At least one skill is required")
     .describe("List of skills in this category. Must have at least one item."),
@@ -236,15 +224,9 @@ const certificationSchema = z.object({
     .optional()
     .or(z.literal(""))
     .describe("Date obtained"),
-  url: z
-    .string()
-    .trim()
-    .url({ message: "Invalid URL" })
-    .max(500, "URL is too long")
-    .transform(sanitizeUrl)
-    .optional()
-    .or(z.literal(""))
-    .describe("Certification URL. Must start with https:// or http://"),
+  url: optionalUrlField("Certification URL").describe(
+    "Certification URL. Must start with https:// or http://",
+  ),
 });
 
 const projectSchema = z.object({
@@ -283,24 +265,12 @@ const projectSchema = z.object({
     )
     .optional()
     .describe("Technologies, frameworks, or tools used"),
-  url: z
-    .string()
-    .trim()
-    .url({ message: "Invalid project URL" })
-    .max(500, "Project URL is too long")
-    .transform(sanitizeUrl)
-    .optional()
-    .or(z.literal(""))
-    .describe("Project URL or demo link. Must start with https:// or http://"),
-  image_url: z
-    .string()
-    .trim()
-    .url({ message: "Invalid image URL" })
-    .max(500, "Image URL is too long")
-    .transform(sanitizeUrl)
-    .optional()
-    .or(z.literal(""))
-    .describe("URL to project screenshot or thumbnail image. Must start with https:// or http://"),
+  url: optionalUrlField("Project URL").describe(
+    "Project URL or demo link. Must start with https:// or http://",
+  ),
+  image_url: optionalUrlField("Image URL").describe(
+    "URL to project screenshot or thumbnail image. Must start with https:// or http://",
+  ),
 });
 
 const createResumeContentSchema = (contactSchema: ReturnType<typeof createContactSchema>) =>

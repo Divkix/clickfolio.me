@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useCallback, useEffect, useEffectEvent, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { get, useForm, type FieldErrors, type SubmitErrorHandler } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -23,9 +23,22 @@ interface EditResumeFormProps {
   onSave: (data: ResumeContent, isAutoSave?: boolean) => Promise<void>;
 }
 
+export function focusInvalidFields(
+  fields: Iterable<Pick<HTMLInputElement, "name" | "scrollIntoView" | "focus">>,
+  errors: FieldErrors,
+) {
+  const invalidFields = Array.from(fields).filter((field) => get(errors, field.name));
+  const firstField = invalidFields[0];
+  firstField?.scrollIntoView({ behavior: "smooth", block: "center" });
+  firstField?.focus({ preventScroll: true });
+
+  return invalidFields.length;
+}
+
 export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -42,6 +55,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
   const form = useForm<ResumeContentFormData>({
     resolver: zodResolver(resumeContentSchemaStrict),
+    shouldFocusError: false,
     defaultValues: {
       ...initialData,
       experience: initialData.experience || [],
@@ -97,11 +111,6 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
           if (result.success) {
             void runAutoSave(result.data, true);
-          } else {
-            const fieldErrors = result.error.issues.map((i) => i.path.join(".")).slice(0, 3);
-            toast.warning(`Fix validation errors: ${fieldErrors.join(", ")}`, {
-              duration: 5000,
-            });
           }
         }, 3000);
       },
@@ -118,9 +127,28 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     await handleSave(data as ResumeContent, false);
   };
 
+  const onInvalid: SubmitErrorHandler<ResumeContentFormData> = (errors) => {
+    const count = focusInvalidFields(
+      formRef.current?.querySelectorAll<HTMLInputElement>("[name]") ?? [],
+      errors,
+    );
+
+    toast.error(
+      count > 0
+        ? `Fix ${count} ${count === 1 ? "field" : "fields"} before publishing`
+        : "Fix the highlighted fields before publishing",
+      { id: "resume-validation" },
+    );
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={(event) => void form.handleSubmit(onSubmit, onInvalid)(event)}
+        className="space-y-6"
+      >
         <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border shadow-sm mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

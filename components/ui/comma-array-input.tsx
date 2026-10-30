@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
-interface CommaArrayInputProps {
+interface CommaArrayInputProps extends Omit<
+  React.ComponentProps<typeof Input>,
+  "value" | "onChange" | "onBlur"
+> {
   value: string[] | undefined;
   onChange: (value: string[]) => void;
   onBlur?: () => void;
-  placeholder?: string;
 }
 
-export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaArrayInputProps) {
+export function CommaArrayInput({ value, onChange, onBlur, ...props }: CommaArrayInputProps) {
   const [text, setText] = useState(() => value?.join(", ") || "");
   const [focused, setFocused] = useState(false);
 
@@ -22,7 +24,7 @@ export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaA
 
   return (
     <Input
-      placeholder={placeholder}
+      {...props}
       value={text}
       onFocus={() => {
         setFocused(true);
