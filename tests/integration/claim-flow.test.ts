@@ -24,6 +24,8 @@ const NOW = "2026-01-01T00:00:00.000Z";
 
 const mocks = vi.hoisted(() => ({
   db: vi.fn(),
+  verifyToken: vi.fn(),
+  getUser: vi.fn<(clerkId: string) => Promise<{ raw: unknown }>>(),
   startResumeParse: vi.fn(),
   revalidate: vi.fn(),
   indexNow: vi.fn(),
@@ -39,6 +41,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("cloudflare:workers", () => ({
   env: {
+    CLERK_SECRET_KEY: "sk_test_clickfolio_secret",
+    APP_URL: "http://localhost:3000",
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
     PENDING_UPLOAD_SECRET: "test-secret-key-for-testing-only",
     get CLICKFOLIO_PARSE_WORKFLOW() {
@@ -72,33 +76,12 @@ vi.mock("@/lib/seo/indexnow-runtime", () => ({
   notifyIndexNowForProfiles: (handles: unknown[]) => mocks.indexNow(handles),
 }));
 
-vi.mock("@/lib/auth/clerk", async (importOriginal) => {
-  const { authenticateStub } = await import("@/tests/helpers/authenticate-stub");
-  const { DEFAULT_PRIVACY_SETTINGS: privacySettings } = await import("@/lib/utils/privacy");
+vi.mock("@clerk/backend", () => ({
+  verifyToken: mocks.verifyToken,
+  createClerkClient: vi.fn(() => ({ users: { getUser: mocks.getUser } })),
+}));
 
-  return {
-    ...(await importOriginal<typeof import("@/lib/auth/clerk")>()),
-    authenticate: authenticateStub(async () => {
-      if (!mocks.auth.signedIn) return { error: new Response(null, { status: 401 }) };
-
-      return {
-        error: null,
-        user: {
-          id: "user_1",
-          email: "avery@example.com",
-          name: "Avery",
-          image: null,
-          handle: "avery",
-          headline: null,
-          privacySettings,
-          onboardingCompleted: true,
-          role: "mid_level",
-        },
-        dbUser: { id: "user_1", handle: "avery", clerkId: "clerk_1" },
-      };
-    }),
-  };
-});
+vi.mock("@tanstack/react-start/server", () => ({ getRequest: vi.fn() }));
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;
@@ -140,7 +123,13 @@ async function claim(
 
   const headers = new Headers({ "Content-Type": "application/json", ...options.headers });
 
-  if (cookie) headers.set("Cookie", `pending_upload=${cookie}`);
+  const cookies = [];
+
+  if (cookie) cookies.push(`pending_upload=${cookie}`);
+
+  if (mocks.auth.signedIn) cookies.push("__session=jwt");
+
+  if (cookies.length > 0) headers.set("Cookie", cookies.join("; "));
 
   const POST = serverHandler((await import("@/app/routes/api/resume/claim")).Route, "POST");
 
@@ -176,6 +165,7 @@ async function insertUsers(handle: string | null = "avery") {
     {
       id: "user_1",
       name: "Avery",
+      clerkId: "clerk_1",
       email: "avery@example.com",
       handle,
       privacySettings: DEFAULT_PRIVACY_SETTINGS,
@@ -251,6 +241,26 @@ beforeEach(async () => {
     for (const one of Array.isArray(key) ? key : [key]) mocks.bucket.objects.delete(one);
   });
   mocks.auth.signedIn = true;
+  mocks.verifyToken.mockReset().mockResolvedValue({
+    __raw: "jwt",
+    iss: "https://clerk.test",
+    sub: "clerk_1",
+    sid: "sess_1",
+    nbf: 0,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    iat: Math.floor(Date.now() / 1000),
+  });
+  mocks.getUser.mockReset().mockResolvedValue({
+    raw: {
+      id: "clerk_1",
+      first_name: "Avery",
+      last_name: null,
+      email_addresses: [
+        { id: "email_1", email_address: "avery@example.com", verification: { status: "verified" } },
+      ],
+      primary_email_address_id: "email_1",
+    },
+  });
   await insertUsers();
 });
 
@@ -264,6 +274,32 @@ describe("POST /api/resume/claim", () => {
     mocks.auth.signedIn = false;
 
     expect((await claim()).status).toBe(401);
+  });
+
+  it("claims a fresh signup's upload before its Clerk webhook creates the user row", async () => {
+    await db.delete(user);
+
+    const response = await claim();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "queued" });
+    expect(await db.select().from(user)).toMatchObject([
+      { id: "clerk_1", clerkId: "clerk_1", email: "avery@example.com", emailVerified: true },
+    ]);
+    const [claimed] = await db.select().from(resumes);
+
+    expect(claimed).toMatchObject({
+      userId: "clerk_1",
+      status: "queued",
+      r2Key: `users/clerk_1/${claimed?.id}/resume.pdf`,
+    });
+    expect(mocks.bucket.objects.has(claimed?.r2Key ?? "")).toBe(true);
+    expect(mocks.startResumeParse).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      expect.objectContaining({ userId: "clerk_1", resumeId: claimed?.id }),
+    );
+    expect(mocks.getUser).toHaveBeenCalledExactlyOnceWith("clerk_1");
   });
 
   it("answers 400 when the key is missing", async () => {

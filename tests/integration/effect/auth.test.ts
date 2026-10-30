@@ -1,5 +1,5 @@
 import { isRedirect } from "@tanstack/react-router";
-import { verifyToken } from "@clerk/backend";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 import { eq } from "drizzle-orm";
 import { getRequest } from "@tanstack/react-start/server";
 import { Effect } from "effect";
@@ -16,7 +16,7 @@ import {
 import { getServerSession } from "@/lib/auth/session";
 import { requireAdminAuth } from "@/lib/auth/admin";
 import { withAdminEffect, withUserEffect } from "@/lib/auth/with-auth";
-import { user } from "@/lib/db/schema";
+import { resumes, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 import { createTestDb, type TestDb } from "../../helpers/pglite-db";
@@ -31,8 +31,13 @@ const holder = vi.hoisted(() => {
   return value;
 });
 
+const mocks = vi.hoisted(() => ({
+  getUser: vi.fn<(clerkId: string) => Promise<{ raw: unknown }>>(),
+}));
+
 vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
+  createClerkClient: vi.fn(() => ({ users: { getUser: mocks.getUser } })),
 }));
 
 vi.mock("@tanstack/react-start/server", () => ({ getRequest: vi.fn() }));
@@ -98,6 +103,26 @@ async function seedUser(clerkId: string, isAdmin = false) {
   });
 }
 
+function clerkUser(clerkId: string, externalId: string | null = null) {
+  return {
+    raw: {
+      id: clerkId,
+      external_id: externalId,
+      first_name: "Ada",
+      last_name: "Lovelace",
+      image_url: "https://img.clerk.test/ada.png",
+      primary_email_address_id: "email_1",
+      email_addresses: [
+        {
+          id: "email_1",
+          email_address: `${clerkId}@example.com`,
+          verification: { status: "verified" },
+        },
+      ],
+    },
+  };
+}
+
 const ok = Effect.sync(() => createSuccessResponse({ ok: true }));
 
 beforeAll(async () => {
@@ -112,6 +137,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  mocks.getUser.mockImplementation(async (clerkId) => clerkUser(clerkId));
   await testDb.reset();
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -144,6 +170,8 @@ describe("withUserEffect", () => {
       clerkId: "user_a",
       rows: 1,
     });
+    expect(mocks.getUser).not.toHaveBeenCalled();
+    expect(createClerkClient).not.toHaveBeenCalled();
   });
 
   it("answers 401 with the caller's message when signed out", async () => {
@@ -154,6 +182,7 @@ describe("withUserEffect", () => {
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Sign in to continue", code: "UNAUTHORIZED" });
     expect(mockVerifyToken).not.toHaveBeenCalled();
+    expect(mocks.getUser).not.toHaveBeenCalled();
   });
 
   it("answers 401 for an expired token", async () => {
@@ -163,10 +192,13 @@ describe("withUserEffect", () => {
     const response = await withUserEffect(sessionRequest, () => ok);
 
     expect(response.status).toBe(401);
+    expect(mocks.getUser).not.toHaveBeenCalled();
   });
 
-  it("answers 404 when the JWT is valid but the user row does not exist yet", async () => {
+  it("answers 404 when a verified token belongs to an identity Clerk deleted", async () => {
     signedInAs("user_missing");
+    mocks.getUser.mockRejectedValue(Object.assign(new Error("not found"), { status: 404 }));
+    const insert = vi.spyOn(db, "insert");
 
     const response = await withUserEffect(sessionRequest, () => ok);
 
@@ -175,6 +207,8 @@ describe("withUserEffect", () => {
       error: "User account not found. Please re-authenticate.",
       code: "NOT_FOUND",
     });
+    expect(insert).not.toHaveBeenCalled();
+    expect(mocks.getUser).toHaveBeenCalledExactlyOnceWith("user_missing");
   });
 
   it("answers 503, not 401, when Clerk's key set cannot be loaded", async () => {
@@ -186,6 +220,112 @@ describe("withUserEffect", () => {
 
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ code: "EXTERNAL_SERVICE_ERROR" });
+  });
+
+  it("provisions a verified identity before its webhook so API handlers can use the row", async () => {
+    signedInAs("user_new");
+
+    const response = await withUserEffect(sessionRequest, ({ user: current, dbUser }) =>
+      Effect.succeed(createSuccessResponse({ user: current, dbUser })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      user: { id: "user_new", name: "Ada Lovelace", onboardingCompleted: false },
+      dbUser: { id: "user_new", clerkId: "user_new", handle: null },
+    });
+    expect(await db.select().from(user)).toMatchObject([
+      { id: "user_new", clerkId: "user_new", emailVerified: true },
+    ]);
+    expect(mocks.getUser).toHaveBeenCalledExactlyOnceWith("user_new");
+
+    expect((await withUserEffect(sessionRequest, () => ok)).status).toBe(200);
+    expect(mocks.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("links the trusted external id without replacing the legacy row or its resumes", async () => {
+    await seedUser("user_legacy");
+    await db.update(user).set({ clerkId: null }).where(eq(user.id, "row-user_legacy"));
+    await db.insert(resumes).values({
+      id: "resume_legacy",
+      userId: "row-user_legacy",
+      r2Key: "users/row-user_legacy/resume.pdf",
+      status: "completed",
+      createdAt: NOW,
+    });
+    signedInAs("user_new");
+    mocks.getUser.mockResolvedValue(clerkUser("user_new", "row-user_legacy"));
+
+    const response = await withUserEffect(sessionRequest, ({ user: current }) =>
+      Effect.succeed(createSuccessResponse({ id: current.id, handle: current.handle })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: "row-user_legacy",
+      handle: "handle-user_legacy",
+    });
+    expect(await db.select().from(user)).toHaveLength(1);
+    expect(await db.select().from(resumes)).toMatchObject([
+      { id: "resume_legacy", userId: "row-user_legacy" },
+    ]);
+  });
+
+  it("uses the row a concurrent webhook inserted after mapping was read, without retrying a write", async () => {
+    signedInAs("user_race");
+    const findFirst = db.query.user.findFirst.bind(db.query.user);
+    const insert = vi.spyOn(db, "insert");
+
+    vi.spyOn(db.query.user, "findFirst").mockImplementationOnce((config) => {
+      const query = findFirst(config);
+      const execute = query.execute.bind(query);
+
+      vi.spyOn(query, "execute").mockImplementationOnce(async () => {
+        const row = await execute();
+
+        await seedUser("user_race");
+
+        return row;
+      });
+
+      return query;
+    });
+
+    const response = await withUserEffect(sessionRequest, ({ user: current }) =>
+      Effect.succeed(createSuccessResponse({ id: current.id })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ id: "row-user_race" });
+    expect(await db.select().from(user)).toHaveLength(1);
+    // One competing insert and one PostgreSQL 23505: never a fallback/retry insert.
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(mocks.getUser).toHaveBeenCalledExactlyOnceWith("user_race");
+  });
+
+  it("does not retry a provisioning write after a database timeout", async () => {
+    signedInAs("user_new");
+
+    const insert = vi.spyOn(db, "insert").mockImplementation(() => {
+      throw Object.assign(new Error("database write timed out"), { name: "TimeoutError" });
+    });
+
+    const response = await withUserEffect(sessionRequest, () => ok);
+
+    expect(response.status).toBe(504);
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(mocks.getUser).toHaveBeenCalledExactlyOnceWith("user_new");
+  });
+
+  it("surfaces a Backend API outage as 503 rather than a missing or signed-out user", async () => {
+    signedInAs("user_new");
+    mocks.getUser.mockRejectedValue(Object.assign(new Error("unavailable"), { status: 503 }));
+
+    const response = await withUserEffect(sessionRequest, () => ok);
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: "EXTERNAL_SERVICE_ERROR" });
+    expect(await db.select().from(user)).toHaveLength(0);
   });
 });
 
@@ -252,7 +392,7 @@ describe("getServerSession", () => {
     expect(session?.session.id).toBe("sess_1");
   });
 
-  it("returns null when signed out, when the token is expired and when the row is missing", async () => {
+  it("returns null when signed out, when the token is expired and when Clerk deleted the identity", async () => {
     signedInAs(null);
     await expect(getServerSession()).resolves.toBeNull();
 
@@ -261,7 +401,32 @@ describe("getServerSession", () => {
     await expect(getServerSession()).resolves.toBeNull();
 
     signedInAs("user_missing");
+    mocks.getUser.mockRejectedValue(Object.assign(new Error("not found"), { status: 404 }));
     await expect(getServerSession()).resolves.toBeNull();
+  });
+
+  it("returns a page session before the new identity's webhook arrives", async () => {
+    signedInAs("user_new");
+
+    await expect(getServerSession()).resolves.toMatchObject({
+      user: {
+        id: "user_new",
+        name: "Ada Lovelace",
+        onboardingCompleted: false,
+        isAdmin: false,
+      },
+      session: { id: "sess_1", userId: "user_new" },
+    });
+    expect(mocks.getUser).toHaveBeenCalledExactlyOnceWith("user_new");
+    expect(await db.select().from(user)).toHaveLength(1);
+  });
+
+  it("throws to the page error boundary when provisioning cannot read Clerk", async () => {
+    signedInAs("user_new");
+    mocks.getUser.mockRejectedValue(Object.assign(new Error("unavailable"), { status: 503 }));
+
+    await expect(getServerSession()).rejects.toThrow(/temporarily unavailable/);
+    expect(await db.select().from(user)).toHaveLength(0);
   });
 
   it("throws to the error boundary when Clerk is down, not null (which would redirect home)", async () => {

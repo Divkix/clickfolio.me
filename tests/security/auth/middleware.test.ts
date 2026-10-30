@@ -11,8 +11,13 @@ import { withUserEffect } from "@/lib/auth/with-auth";
 
 const mockVerifyToken = vi.mocked(verifyToken);
 
+const { getUser } = vi.hoisted(() => ({
+  getUser: vi.fn<(clerkId: string) => Promise<never>>(),
+}));
+
 vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
+  createClerkClient: vi.fn(() => ({ users: { getUser } })),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -58,6 +63,7 @@ let sessionCookieValue: string | undefined;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getUser.mockRejectedValue(Object.assign(new Error("not found"), { status: 404 }));
 
   mockDb = createMockDb();
 
@@ -208,7 +214,7 @@ describe("Authentication Middleware Security", () => {
       expect(result.user).toBeNull();
     });
 
-    it("returns 404 when verified claims have no mapped Postgres row", async () => {
+    it("returns 404 when verified claims belong to an identity Clerk no longer has", async () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([]);
 
@@ -452,7 +458,7 @@ describe("Authentication Middleware Security", () => {
   });
 
   describe("Defense in Depth", () => {
-    it("still requires a live local row even when the JWT verifies", async () => {
+    it("does not recreate an identity Clerk deleted even when its old JWT verifies", async () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([]);
 
