@@ -115,7 +115,7 @@ function HandlePage() {
           ]}
         />
       )}
-      <main id="main-content">
+      <main id="main-content" className="min-h-screen">
         <ThemeTemplate
           themeId={theme_id}
           content={content}
@@ -127,16 +127,24 @@ function HandlePage() {
         />
       </main>
       <OwnerDetector profileId={profile.id} />
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
-        <CreateYoursCTA handle={handle} profileId={profile.id} styles={chrome.cta} />
-      </div>
-      <SharePopover
-        handle={handle}
-        name={content.full_name}
-        title={pageTitle}
-        styles={chrome.share}
-      />
-      <AttributionWidget styles={chrome.attribution} />
+      <footer className="mx-auto w-full max-w-5xl px-4 pt-8 pb-6 sm:px-6 print:hidden">
+        <CreateYoursCTA
+          key={profile.id}
+          handle={handle}
+          profileId={profile.id}
+          styles={chrome.cta}
+        />
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+          <SharePopover
+            handle={handle}
+            name={content.full_name}
+            title={pageTitle}
+            styles={chrome.share}
+            className="relative bottom-auto left-auto sm:left-auto [&_[role=dialog]]:static [&_[role=dialog]]:mt-3 [&_[role=dialog]]:ml-0"
+          />
+          <AttributionWidget styles={chrome.attribution} />
+        </div>
+      </footer>
     </>
   );
 }

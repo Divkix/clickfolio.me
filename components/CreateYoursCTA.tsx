@@ -1,14 +1,10 @@
 import { Sparkles, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/auth/client";
 import type { ThemeChrome } from "@/lib/templates/theme-chrome";
 import { cn } from "@/lib/utils/cn";
 import { useDismissable } from "@/hooks/useDismissable";
-
-const SHOW_DELAY_MS = 3000;
-
-const SCROLL_THRESHOLD = 0.3;
 
 interface CreateYoursCTAProps {
   handle: string;
@@ -20,78 +16,66 @@ export function CreateYoursCTA({ handle, profileId, styles }: CreateYoursCTAProp
   const { data: session } = useSession();
   const [visible, setVisible] = useState(false);
   const [dismissed, dismiss] = useDismissable("cta_dismissed", 7 * 24 * 60 * 60 * 1000);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const isOwnResume = session?.user?.id === profileId;
 
   useEffect(() => {
-    if (dismissed) return;
+    const sentinel = sentinelRef.current;
 
-    let timer: ReturnType<typeof setTimeout>;
-    let hasTriggered = false;
+    if (dismissed || isOwnResume || !sentinel) return;
 
-    const triggerShow = () => {
-      if (!hasTriggered) {
-        hasTriggered = true;
-        setVisible(true);
-        window.removeEventListener("scroll", handleScroll);
-      }
-    };
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
 
-    timer = setTimeout(triggerShow, SHOW_DELAY_MS);
+      setVisible(true);
+      observer.disconnect();
+    });
 
-    const handleScroll = () => {
-      const scrolled = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+    observer.observe(sentinel);
 
-      if (scrolled >= SCROLL_THRESHOLD) {
-        triggerShow();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [dismissed]);
+    return () => observer.disconnect();
+  }, [dismissed, isOwnResume]);
 
   const handleDismiss = useCallback(() => {
     setVisible(false);
     dismiss();
   }, [dismiss]);
 
-  const isOwnResume = session?.user?.id === profileId;
-
-  if (dismissed || !visible || isOwnResume) {
-    return null;
-  }
-
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-full shadow-lg animate-fade-in-up",
-        styles.container,
+    <div ref={sentinelRef} className="flex min-h-px justify-center">
+      {visible && !dismissed && !isOwnResume && (
+        <div
+          className={cn(
+            "flex max-w-full flex-wrap items-center justify-center gap-2 px-3 py-2 rounded-2xl sm:rounded-full shadow-lg animate-fade-in-up",
+            styles.container,
+          )}
+        >
+          <Sparkles className="size-4 shrink-0" aria-hidden="true" />
+          <span className="text-sm font-medium hidden sm:inline">Like this resume?</span>
+          <Link
+            to="/"
+            search={{ utm_source: "resume", utm_medium: "cta", utm_campaign: handle }}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200",
+              styles.button,
+            )}
+          >
+            Create yours free
+            <span aria-hidden="true">→</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            className={cn(
+              "inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors",
+              styles.closeButton,
+            )}
+            aria-label="Dismiss résumé promotion"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </div>
       )}
-    >
-      <Sparkles className="size-4 shrink-0" aria-hidden="true" />
-      <span className="text-sm font-medium hidden sm:inline">Like this resume?</span>
-      <Link
-        to="/"
-        search={{ utm_source: "resume", utm_medium: "cta", utm_campaign: handle }}
-        className={cn(
-          "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200",
-          styles.button,
-        )}
-      >
-        Create yours free
-        <span aria-hidden="true">→</span>
-      </Link>
-      <button
-        type="button"
-        onClick={handleDismiss}
-        className={cn("p-1 rounded-full transition-colors", styles.closeButton)}
-        aria-label="Dismiss"
-      >
-        <X className="size-4" aria-hidden="true" />
-      </button>
     </div>
   );
 }

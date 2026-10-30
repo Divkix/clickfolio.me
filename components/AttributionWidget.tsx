@@ -11,9 +11,9 @@ export function AttributionWidget({ styles: currentTheme }: AttributionWidgetPro
     <Link
       to="/"
       className={`
-        group fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30
+        group relative shrink-0
         px-3 py-2 sm:px-4 sm:py-3 rounded-lg
-        flex items-center gap-2
+        flex items-center gap-2 whitespace-nowrap
         transition-colors duration-300
         overflow-hidden
         ${currentTheme.container}
