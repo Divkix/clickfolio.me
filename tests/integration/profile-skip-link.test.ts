@@ -34,6 +34,7 @@ describe("public profile skip link", () => {
           theme_id: theme,
           privacy_settings: {
             hide_from_search: true,
+            show_email: true,
             show_phone: false,
             show_address: false,
             show_in_directory: false,

@@ -466,8 +466,8 @@ Allows anonymous users to upload before authenticating:
 Before rendering public profiles:
 
 - Phone numbers: Hidden by default
-- Addresses: City/State only (full address hidden)
-- Email: Public (for contact)
+- Addresses: City, region or country only (full street address hidden)
+- Email: Shown by default; owners can hide it in the wizard or Settings
 - User controls visibility in settings
 
 ### Real-time Updates (WebSocket)

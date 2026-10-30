@@ -1,38 +1,25 @@
-import { Eye, EyeOff, Info, MapPin, Phone, Search, Shield, Users } from "lucide-react";
+import { Eye, EyeOff, Info, Mail, MapPin, Phone, Search, Shield, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
 import type { ResumeContent } from "@/lib/types/database";
-import { extractCityState } from "@/lib/utils/privacy";
+import { DEFAULT_PRIVACY_SETTINGS, extractCityState } from "@/lib/utils/privacy";
 
 interface PrivacyStepProps {
   content: ResumeContent;
-  initialSettings?: {
-    show_phone: boolean;
-    show_address: boolean;
-    show_in_directory: boolean;
-    hide_from_search: boolean;
-  };
-  onContinue: (settings: {
-    show_phone: boolean;
-    show_address: boolean;
-    show_in_directory: boolean;
-    hide_from_search: boolean;
-  }) => void;
+  initialSettings?: PrivacySettings;
+  onContinue: (settings: PrivacySettings) => void;
 }
 
 export function PrivacyStep({
   content,
-  initialSettings = {
-    show_phone: false,
-    show_address: false,
-    show_in_directory: true,
-    hide_from_search: false,
-  },
+  initialSettings = DEFAULT_PRIVACY_SETTINGS,
   onContinue,
 }: PrivacyStepProps) {
+  const [showEmail, setShowEmail] = useState(initialSettings.show_email);
   const [showPhone, setShowPhone] = useState(initialSettings.show_phone);
   const [showAddress, setShowAddress] = useState(initialSettings.show_address);
   const [showInDirectory, setShowInDirectory] = useState(initialSettings.show_in_directory);
@@ -40,6 +27,7 @@ export function PrivacyStep({
 
   const handleContinue = () => {
     onContinue({
+      show_email: showEmail,
       show_phone: showPhone,
       show_address: showAddress,
       show_in_directory: showInDirectory,
@@ -57,7 +45,8 @@ export function PrivacyStep({
           Privacy Settings
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Control what information is visible on your public resume. You can change this anytime.
+          Your page will be public to anyone with the link. By default, it is listed in Explore and
+          findable in search engines. Use the switches below to choose what appears.
         </p>
       </div>
 
@@ -67,14 +56,52 @@ export function PrivacyStep({
             <Info className="w-5 h-5 text-info shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-info font-medium">
-                Your email is always visible to potential employers.
+                Email is shown by default; phone and street address are hidden.
               </p>
               <p className="text-xs text-info mt-1">
-                We recommend keeping phone and address hidden for privacy, showing only city/state.
+                You can change these choices now or later in Settings.
               </p>
             </div>
           </div>
         </Card>
+
+        {content.contact.email && (
+          <Card className="p-6 border-border shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="show-email" className="text-base font-semibold text-foreground">
+                    Show Email
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Display your email address on your public resume
+                </p>
+                <div className="bg-surface-2 border border-border rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
+                  {showEmail ? (
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <Eye className="w-4 h-4 text-success" />
+                      <span className="font-medium break-all">{content.contact.email}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <EyeOff className="w-4 h-4" />
+                      <span className="italic">Hidden from public view</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Switch
+                id="show-email"
+                checked={showEmail}
+                onCheckedChange={setShowEmail}
+                className="mt-1"
+              />
+            </div>
+          </Card>
+        )}
 
         {content.contact.phone && (
           <Card className="p-6 border-border shadow-sm">
@@ -125,7 +152,7 @@ export function PrivacyStep({
                   </Label>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Display your full street address instead of just city and state
+                  Show the full location from your resume, including any street address
                 </p>
                 <div className="bg-surface-2 border border-border rounded-lg p-3">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
@@ -140,7 +167,9 @@ export function PrivacyStep({
                       <span className="font-medium">
                         {extractCityState(content.contact.location)}
                       </span>
-                      <span className="text-xs text-muted-foreground">(City/State only)</span>
+                      <span className="text-xs text-muted-foreground">
+                        (City, region or country)
+                      </span>
                     </div>
                   )}
                 </div>

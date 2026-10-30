@@ -69,6 +69,7 @@ export function extractCityState(location: string | undefined): string {
 export type { PrivacySettings };
 
 export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
+  show_email: true,
   show_phone: false,
   show_address: false,
   hide_from_search: false,
@@ -77,6 +78,7 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
 
 export function normalizePrivacySettings(
   settings: {
+    show_email?: boolean;
     show_phone: boolean;
     show_address: boolean;
     hide_from_search?: boolean;
@@ -88,6 +90,7 @@ export function normalizePrivacySettings(
   }
 
   return {
+    show_email: settings.show_email ?? DEFAULT_PRIVACY_SETTINGS.show_email,
     show_phone: settings.show_phone,
     show_address: settings.show_address,
     hide_from_search: settings.hide_from_search ?? DEFAULT_PRIVACY_SETTINGS.hide_from_search,

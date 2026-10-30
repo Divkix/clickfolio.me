@@ -15,6 +15,7 @@ export const user = pgTable(
     handle: text("handle").unique(),
     headline: text("headline"),
     privacySettings: jsonb("privacy_settings").$type<PrivacySettings>().notNull().default({
+      show_email: true,
       show_phone: false,
       show_address: false,
       hide_from_search: false,
@@ -37,6 +38,7 @@ export type NewUser = typeof user.$inferInsert;
 export type UserRoleSource = "ai" | "user";
 
 export interface PrivacySettings {
+  show_email: boolean;
   show_phone: boolean;
   show_address: boolean;
   hide_from_search: boolean;

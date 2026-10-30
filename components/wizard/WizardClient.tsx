@@ -13,6 +13,7 @@ import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
 import type { ResumeContent } from "@/lib/types/database";
 import { clearDesiredHandle, readDesiredHandle } from "@/lib/utils/desired-handle";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
@@ -37,12 +38,7 @@ interface WizardState {
   currentStepId: WizardStepId;
   resumeData: ResumeContent | null;
   handle: string;
-  privacySettings: {
-    show_phone: boolean;
-    show_address: boolean;
-    show_in_directory: boolean;
-    hide_from_search: boolean;
-  };
+  privacySettings: PrivacySettings;
   themeId: ThemeId;
 }
 
@@ -116,6 +112,7 @@ function useWizardInit(
     resumeData: initialStart.kind === "review" ? initialStart.content : null,
     handle: ownerHandle ?? "",
     privacySettings: {
+      show_email: true,
       show_phone: false,
       show_address: false,
       show_in_directory: true,
@@ -252,12 +249,7 @@ export default function WizardClient({
     setState((prev) => ({ ...prev, currentStepId: "privacy" }));
   };
 
-  const handlePrivacyContinue = (settings: {
-    show_phone: boolean;
-    show_address: boolean;
-    show_in_directory: boolean;
-    hide_from_search: boolean;
-  }) => {
+  const handlePrivacyContinue = (settings: PrivacySettings) => {
     setState((prev) => ({
       ...prev,
       privacySettings: settings,

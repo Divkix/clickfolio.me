@@ -29,9 +29,11 @@ export const Route = createFileRoute("/api/profile/privacy")({
                 "Invalid privacy settings data",
               );
 
-              const { show_phone, show_address, hide_from_search, show_in_directory } = settings;
+              const { show_email, show_phone, show_address, hide_from_search, show_in_directory } =
+                settings;
 
               const privacySettings = {
+                show_email,
                 show_phone,
                 show_address,
                 hide_from_search,

@@ -75,7 +75,12 @@ afterEach(() => {
   mocks.indexNow.mockClear();
 });
 
-const PRIVACY = { show_phone: false, show_address: true, show_in_directory: false };
+const PRIVACY = {
+  show_email: false,
+  show_phone: false,
+  show_address: true,
+  show_in_directory: false,
+};
 
 function complete(body: JsonValue, headers: Record<string, string> = {}): Request {
   return completeRaw(JSON.stringify(body), headers);
@@ -137,6 +142,15 @@ describe("POST /api/wizard/complete", () => {
     expect(audit[0]).toMatchObject({ oldHandle: null, newHandle: "alice-site" });
     expect(mocks.revalidate).toHaveBeenCalledWith([null, "alice-site"]);
     expect(mocks.indexNow).toHaveBeenCalledWith([null, "alice-site"], { skipDebounce: true });
+  });
+
+  it("defaults email to shown when an older wizard omits the setting", async () => {
+    const POST = serverHandler((await import("@/app/routes/api/wizard/complete")).Route, "POST");
+    const { show_email: _showEmail, ...legacyPrivacy } = PRIVACY;
+    const response = await POST(complete(validBody({ privacy_settings: legacyPrivacy })));
+
+    expect(response.status).toBe(200);
+    expect((await rowOf("alice")).privacySettings.show_email).toBe(true);
   });
 
   it("renames an existing handle, audits it and refreshes both public pages", async () => {

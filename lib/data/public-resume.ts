@@ -122,6 +122,10 @@ function buildResumeData(row: ProfileRow, siteData: ResumeSiteData): ResumeData 
       contact: { ...content.contact },
     };
 
+    if (!privacySettings.show_email) {
+      delete content.contact.email;
+    }
+
     if (!privacySettings.show_phone && content.contact.phone) {
       delete content.contact.phone;
     }

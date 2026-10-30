@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { LucideIcon } from "lucide-react";
-import { Eye, Globe, Loader2, MapPin, Phone, Search, SearchX, Users } from "lucide-react";
+import { Eye, Globe, Loader2, Mail, MapPin, Phone, Search, SearchX, Users } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -63,6 +63,7 @@ function ToggleCard({
           </div>
         </div>
         <Switch
+          aria-label={label}
           checked={checked}
           onCheckedChange={onCheckedChange}
           disabled={disabled}
@@ -98,6 +99,16 @@ interface PrivacyToggle {
 
 const PRIVACY_TOGGLES: PrivacyToggle[] = [
   {
+    field: "show_email",
+    label: "Email",
+    state: (on) => ({
+      icon: Mail,
+      description: on ? "Visible" : "Hidden",
+      chipText: on ? "Visible" : "Hidden",
+      tone: on ? "success" : "neutral",
+    }),
+  },
+  {
     field: "show_phone",
     label: "Phone",
     state: (on) => ({
@@ -112,8 +123,8 @@ const PRIVACY_TOGGLES: PrivacyToggle[] = [
     label: "Address",
     state: (on) => ({
       icon: MapPin,
-      description: on ? "Full address" : "City only",
-      chipText: on ? "Full" : "City only",
+      description: on ? "Full address" : "City/region/country",
+      chipText: on ? "Full" : "City/region/country",
       tone: on ? "success" : "neutral",
     }),
   },
@@ -156,6 +167,7 @@ export function PrivacySettingsForm({
   const watched = useWatch({ control });
 
   const values: PrivacySettings = {
+    show_email: Boolean(watched.show_email),
     show_phone: Boolean(watched.show_phone),
     show_address: Boolean(watched.show_address),
     hide_from_search: Boolean(watched.hide_from_search),
@@ -229,7 +241,7 @@ export function PrivacySettingsForm({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
         {PRIVACY_TOGGLES.map(({ field, label, variant, state }) => {
           const { icon, description } = state(values[field]);
 
@@ -249,9 +261,6 @@ export function PrivacySettingsForm({
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-secondary-foreground">
-          Email: <span className="font-medium">Always visible</span>
-        </span>
         {PRIVACY_TOGGLES.map(({ field, label, state }) => {
           const { chipText, tone } = state(values[field]);
 

@@ -1,0 +1,1 @@
+ALTER TABLE "user" ALTER COLUMN "privacy_settings" SET DEFAULT '{"show_email":true,"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}'::jsonb;

@@ -282,6 +282,7 @@ describe("PUT /api/profile/handle", () => {
 
 describe("PUT /api/profile/privacy", () => {
   const settings = {
+    show_email: false,
     show_phone: true,
     show_address: false,
     hide_from_search: true,
@@ -303,6 +304,16 @@ describe("PUT /api/profile/privacy", () => {
     expect(row.showInDirectory).toBe(false);
     expect(mocks.revalidate).toHaveBeenCalledWith(["handle-alice"]);
     expect(mocks.indexNow).toHaveBeenCalledWith(["handle-alice"], { skipDebounce: true });
+  });
+
+  it("can show the contact email again", async () => {
+    const PUT = serverHandler((await import("@/app/routes/api/profile/privacy")).Route, "PUT");
+    const visible = { ...settings, show_email: true };
+    const response = await PUT(put("privacy", visible));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ privacy_settings: visible });
+    expect((await rowOf("alice")).privacySettings.show_email).toBe(true);
   });
 
   it("never touches another user's settings", async () => {
@@ -365,6 +376,7 @@ describe("PUT /api/profile/privacy", () => {
   });
 
   it.each([
+    { ...settings, show_email: "yes" },
     { show_phone: "yes", show_address: false, hide_from_search: false, show_in_directory: true },
     { show_phone: true },
     {},
@@ -468,6 +480,7 @@ describe("profile routes when the database fails", () => {
 
     const response = await PUT(
       put("privacy", {
+        show_email: true,
         show_phone: false,
         show_address: false,
         hide_from_search: false,
