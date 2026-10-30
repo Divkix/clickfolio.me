@@ -45,15 +45,19 @@ function PrivacyAtClickfolioPage() {
           items={[
             {
               lead: "Show phone number.",
-              body: " On by default. Toggle off to hide your phone from your public portfolio while keeping it in your account. Recruiters can still reach you via email.",
+              body: " Hidden by default. Turn this on to show your phone number on your public portfolio.",
             },
             {
               lead: "Show full address.",
-              body: " On by default. Toggle off to show only city and state — enough for recruiters to know your general location without exposing your street address.",
+              body: " Hidden by default. Your general location can still appear; turn this on to include your street address.",
             },
             {
               lead: "Show in public directory.",
-              body: " On by default. Toggle off to remove your portfolio from the Explore page and our public directory. Your portfolio still exists — it's just not listed alongside others. People can only find it if you share the link directly.",
+              body: " On by default. Turn this off to remove your portfolio from Explore. The page remains public to anyone with the link, and search indexing is controlled separately.",
+            },
+            {
+              lead: "Hide from search engines.",
+              body: " Off by default, so your page can appear in search results. Turn this on to ask search engines not to index it; this does not make the page private or immediately remove existing results.",
             },
           ]}
         />
@@ -72,7 +76,7 @@ function PrivacyAtClickfolioPage() {
           items={[
             {
               lead: "Authentication data.",
-              body: " When you sign in with Google, we receive your name, email, and profile picture URL. We don't store your Google password — we never see it.",
+              body: " Clerk handles email/password or Google sign-up, email verification and sessions. Our database receives your Clerk account ID, email, verification status and any supplied name and profile picture. We do not store your password.",
             },
             {
               lead: "Resume content.",
@@ -116,28 +120,32 @@ function PrivacyAtClickfolioPage() {
         <p>We use a minimal set of third-party services, chosen for their privacy posture:</p>
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground mb-1">Google OAuth</h3>
+            <h3 className="font-semibold text-foreground mb-1">
+              Clerk and optional Google sign-in
+            </h3>
             <p className="text-muted-foreground text-sm">
-              For authentication only. Google receives only the fact that you're signing into
-              clickfolio.me. We don't access your Google Drive, contacts, or any other Google
-              service.
+              Clerk handles email/password and Google sign-up and sign-in, verification codes and
+              sessions. Cloudflare Turnstile provides bot protection. Google is an optional sign-in
+              method, not a requirement.
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground mb-1">OpenRouter (AI API)</h3>
+            <h3 className="font-semibold text-foreground mb-1">
+              OpenRouter and AI model providers
+            </h3>
             <p className="text-muted-foreground text-sm">
-              Your resume PDF text is sent to an AI model through OpenRouter for parsing. OpenRouter
-              does not store or train on API inputs. The AI reads your resume content to extract
-              structured data and returns it — the content is not retained by the AI provider.
+              Resume content is sent to a configured AI model through OpenRouter and Cloudflare AI
+              Gateway for parsing. The model and serving provider can change with our configuration.
+              Processing is subject to OpenRouter&apos;s and the serving provider&apos;s policies;
+              see our Privacy Policy for details.
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="font-semibold text-foreground mb-1">Cloudflare</h3>
             <p className="text-muted-foreground text-sm">
-              All data — your account, your resume, your portfolio — is stored on Cloudflare's
-              infrastructure (Workers, a managed Postgres database, R2 storage). Cloudflare is SOC 2
-              Type II and ISO 27001 certified. They provide infrastructure-level encryption at rest.
-              They do not access or use your data.
+              Cloudflare provides hosting (Workers), file storage (R2), content delivery, AI Gateway
+              routing and Turnstile bot protection. Account and portfolio data are stored in
+              PlanetScale Postgres through Cloudflare Hyperdrive.
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
@@ -155,35 +163,37 @@ function PrivacyAtClickfolioPage() {
         <h2>Data Retention &amp; Deletion</h2>
         <h3>Unclaimed Uploads</h3>
         <p>
-          If you upload a resume but don't sign in to claim it within 30 days, the file and any
-          associated data are automatically and permanently deleted. This ensures abandoned uploads
-          don't linger on our servers indefinitely.
+          Temporary PDFs, including their original filename and upload time, become eligible for
+          automatic deletion after 24 hours under our R2 storage lifecycle rule; deletion runs
+          asynchronously. The signed upload cookie expires after 30 minutes. There is no resume
+          database record until you sign in and save the upload to your account.
+        </p>
+        <p>
+          Upload rate limits separately store a one-way hash of your IP address, the action type and
+          request timestamps. Those records expire after 24 hours and are removed by the next
+          scheduled daily cleanup, not by account deletion. You can contact us about an abandoned
+          upload without creating an account.
         </p>
         <h3>Account Deletion</h3>
         <p>You can delete your account at any time from the Settings page. When you do:</p>
         <ul>
-          <li>All your personal data is permanently removed from our systems within 30 days</li>
+          <li>Your profile, resume content and uploads are removed within 30 days</li>
           <li>Your uploaded PDF file is deleted from cloud storage</li>
           <li>Your parsed resume content is deleted from the database</li>
           <li>Your public portfolio URL becomes a 404 page immediately</li>
-          <li>Your analytics data is deleted</li>
         </ul>
         <p>
-          Some anonymized, aggregated data may be retained for platform analytics — for example, "X
-          resumes were uploaded in April 2026." This data cannot be used to identify you or
-          reconstruct your profile.
+          Diagnostics are an exception: account deletion does not remove them early. They expire
+          automatically within 90 days after collection. Some anonymized, aggregated data may remain
+          for platform analytics but cannot be used to identify you.
         </p>
         <h3>Session Data</h3>
-        <p>
-          Authentication sessions expire after a set period of inactivity. Expired sessions are
-          automatically cleaned up by our scheduled maintenance process. You can also log out of all
-          sessions from your Settings page.
-        </p>
+        <p>Clerk manages authentication sessions. Sign out to end your session on this device.</p>
       </section>
 
       <section>
         <h2>Where Your Data Lives</h2>
-        <p>All clickfolio.me data is stored on Cloudflare's global infrastructure:</p>
+        <p>We use Cloudflare for hosting and file storage, and PlanetScale for the database:</p>
         <PostList
           items={[
             {
@@ -215,8 +225,9 @@ function PrivacyAtClickfolioPage() {
             <h3 className="font-semibold text-foreground mb-1">clickfolio.me</h3>
             <p className="text-muted-foreground text-sm">
               No data selling. No ad targeting. Granular per-field privacy controls. Self-hosted
-              analytics. 30-day auto-deletion for unclaimed data. Account deletion with full data
-              removal.
+              analytics. Temporary uploads expire under a 24-hour storage rule. Delete your account,
+              resume and uploads from Settings; diagnostics are deleted automatically within 90
+              days.
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
@@ -251,8 +262,8 @@ function PrivacyAtClickfolioPage() {
         <p>
           The best privacy policy is one you don't have to read — because the controls are visible,
           understandable, and in your hands. We've tried to design clickfolio.me that way. Toggle
-          your phone number off with one click. Hide your address just as easily. Delete your
-          account and walk away with nothing left behind.
+          your phone number on or off. Hide your street address just as easily. Delete your account,
+          resume and uploads in Settings; diagnostics are deleted automatically within 90 days.
         </p>
         <p>
           For the full legal details, read our{" "}
@@ -267,7 +278,7 @@ function PrivacyAtClickfolioPage() {
         </p>
         <p>
           <Link to="/" className="text-brand font-semibold">
-            Build your private, controlled portfolio →
+            Build a portfolio with visibility controls →
           </Link>
         </p>
       </section>

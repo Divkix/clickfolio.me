@@ -109,11 +109,12 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
     body: (
       <>
         <p className="text-muted-foreground leading-relaxed">
-          Your uploaded PDF resumes are processed using artificial intelligence (specifically,
-          OpenAI via OpenRouter) to extract structured information such as your name, contact
-          details, work experience, education, and skills. By using the Service, you explicitly
-          consent to this automated processing. The AI may occasionally make errors in extraction;
-          you have the ability to review and edit all extracted information before publishing.
+          After you sign in, resume content is sent to a configured AI model through OpenRouter and
+          Cloudflare AI Gateway to extract your name, contact details, work experience, education
+          and skills. The model and serving provider can change with our configuration; this is not
+          exclusively an OpenAI service. By using the Service, you consent to this processing by the
+          providers described in our Privacy Policy. The AI may make extraction errors; review and
+          edit the result before publishing.
         </p>
       </>
     ),
@@ -154,7 +155,11 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             liability, for any reason
           </li>
           <li>
-            Upon termination, your data will be permanently deleted from our systems within 30 days
+            Account deletion removes your profile, uploaded files, extracted resume content and
+            published page from our systems within 30 days. Diagnostics are an exception: they are
+            not removed early by account deletion and are deleted automatically within 90 days after
+            they are recorded. See our Privacy Policy for retention details, including anonymous
+            uploads.
           </li>
         </ul>
       </>
@@ -212,13 +217,13 @@ function TermsOfServicePage() {
     "Terms of Service",
     "/terms",
     termsDescription,
-    "2025-12-01",
+    "2026-10-30",
   );
 
   return (
     <LegalPage
       title="Terms of Service"
-      lastUpdated="Last updated: December 2025"
+      lastUpdated="Last updated: October 30, 2026"
       breadcrumbLabel="Terms of Service"
       breadcrumbHref="/terms"
       jsonLd={

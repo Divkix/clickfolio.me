@@ -201,8 +201,8 @@ function LinkfolioAlternativesPage() {
         <p>
           <strong>Watermarks.</strong> linkfolio.net and Fastfolio both put a "made with" badge on
           free sites. Most recruiters won't care, but some people find it looks unfinished on a
-          personal brand page. clickfolio.me, linkfolio.cv, and Reactive Resume don't make you pay
-          to remove one.
+          personal brand page. clickfolio.me has no paid tier and keeps a small “Built with
+          clickfolio.me” link on public pages; there is no paid option to remove it.
         </p>
         <p>
           <strong>How much retyping you'll do.</strong> Every tool here claims some kind of import,
@@ -287,8 +287,8 @@ function LinkfolioAlternativesPage() {
               body: " linkfolio.net is the only tool here with built-in AI translation.",
             },
             {
-              lead: "You want it free with no watermark:",
-              body: " clickfolio.me, linkfolio.cv, or Reactive Resume.",
+              lead: "You want a free option:",
+              body: " clickfolio.me, linkfolio.cv, or Reactive Resume. clickfolio.me includes a small “Built with clickfolio.me” link on public pages.",
             },
             {
               lead: "You're starting from LinkedIn:",

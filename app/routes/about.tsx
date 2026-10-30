@@ -43,7 +43,7 @@ const VALUES = [
   {
     icon: Lock,
     title: "Your data, your call",
-    desc: "Granular privacy controls let you decide what's public. Delete everything permanently whenever you want.",
+    desc: "Your page is public by default, with controls for what appears. Delete your account, resume and files in Settings; diagnostics are deleted automatically within 90 days.",
   },
   {
     icon: Heart,
@@ -101,8 +101,8 @@ function AboutPage() {
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
               {siteConfig.fullName} turns the document sitting in your downloads folder into a
-              living web portfolio — fast, private, and free. We built it because a great career
-              shouldn&apos;t be trapped in an attachment.
+              living web portfolio — fast, customizable, and free. We built it because a great
+              career shouldn&apos;t be trapped in an attachment.
             </p>
           </div>
         </section>

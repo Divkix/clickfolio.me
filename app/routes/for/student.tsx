@@ -15,7 +15,7 @@ import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 const title = "Free Resume Website for Students";
 
 const description =
-  "Build your first online portfolio as a student — free, no signup. Upload your PDF resume and get a shareable site with education, projects, and skills.";
+  "Build your first student portfolio free. Upload your PDF resume, then create a free account to publish a site with your education, projects and skills.";
 
 const path = "/for/student";
 

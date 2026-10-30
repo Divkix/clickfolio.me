@@ -20,13 +20,19 @@ const themes = DEMO_PROFILES.map((profile) => ({
 }));
 
 const facts = [
-  { title: "Free", body: "No trial, no paid tier, no watermark." },
+  {
+    title: "Free",
+    body: "All designs, publishing, editing and hosting. Public pages include a small “Built with clickfolio.me” link.",
+  },
   { title: "Open source", body: "Every line that touches your résumé is on GitHub." },
   {
-    title: "Private by default",
-    body: "Phone and street address stay hidden until you show them.",
+    title: "Contact details, your choice",
+    body: "Phone and street address start hidden. Your page is public, listed in Explore and visible to search engines by default; you choose what shows.",
   },
-  { title: "Yours to delete", body: "Remove your account and every file from Settings." },
+  {
+    title: "Yours to delete",
+    body: "Delete your account, résumé and files from Settings. Diagnostics are deleted automatically within 90 days.",
+  },
 ];
 
 export function HomeLanding() {
@@ -55,7 +61,9 @@ export function HomeLanding() {
                   Upload your résumé
                 </UploadCTA>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">Free. No account needed.</p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Free to upload without an account. A free account is required to publish.
+              </p>
             </div>
 
             <HandlePreview themes={themes} />
@@ -90,7 +98,8 @@ export function HomeLanding() {
           <ThemeMarquee />
         </section>
 
-        <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section id="pricing" className="mx-auto mt-20 max-w-7xl scroll-mt-24 px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-8 text-3xl font-semibold">Pricing: free, with no trial or paid tier</h2>
           <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {facts.map((fact) => (
               <li key={fact.title} className="border-t border-foreground pt-4">

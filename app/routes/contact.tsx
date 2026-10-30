@@ -182,9 +182,10 @@ function ContactPage() {
                   >
                     /explore
                   </Link>
-                  . To erase the page and everything behind it, use Delete account — profile,
-                  resumes, uploads, and the published page are permanently removed, which our
-                  privacy policy completes within 30 days.
+                  . To remove the page, use Delete account. Your profile, resumes, uploads and
+                  published page are removed within 30 days. Diagnostics are not removed early by
+                  account deletion; they are deleted automatically within 90 days after collection,
+                  as our Privacy Policy explains.
                 </p>
                 <p>
                   <span className="font-medium text-foreground">A page you don&apos;t own:</span>{" "}

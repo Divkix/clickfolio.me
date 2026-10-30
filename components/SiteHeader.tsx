@@ -1,16 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { LoginButton } from "@/components/auth/LoginButton";
 import { Logo } from "@/components/Logo";
-import { MobileNav } from "@/components/MobileNav";
+import { MobileNav, type NavLink } from "@/components/MobileNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const NAV_LINKS = [
+const NAV_LINKS: NavLink[] = [
   { href: "/explore", label: "Explore" },
   { href: "/templates", label: "Templates" },
+  { href: "/", hash: "pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/about", label: "About" },
-] satisfies { href: "/explore" | "/templates" | "/blog" | "/faq" | "/about"; label: string }[];
+];
 
 export function SiteHeader() {
   return (
@@ -25,6 +26,7 @@ export function SiteHeader() {
             <Link
               key={link.href}
               to={link.href}
+              hash={link.hash}
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
             >
               {link.label}

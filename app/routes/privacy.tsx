@@ -47,11 +47,16 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
 
         <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">Account Information</h3>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-4">
-          <li>Email address (obtained from Google OAuth)</li>
-          <li>Name (obtained from Google OAuth)</li>
-          <li>Profile picture URL (obtained from Google OAuth)</li>
-          <li>Chosen username/handle for your public profile</li>
+          <li>Email address and verification status from Clerk</li>
+          <li>Name and profile picture URL, if supplied to Clerk or through Google sign-in</li>
+          <li>Clerk account identifier and your chosen username/handle</li>
         </ul>
+        <p className="text-muted-foreground leading-relaxed mb-4">
+          Clerk handles sign-up and sign-in with email and password or Google OAuth, email
+          verification codes, and sessions. Clerk processes your credentials; we do not store your
+          password in our application database. Cloudflare Turnstile provides bot protection during
+          authentication.
+        </p>
 
         <h3 className="text-lg font-semibold text-foreground mb-3">Resume Content</h3>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-4">
@@ -68,7 +73,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
 
         <h3 className="text-lg font-semibold text-foreground mb-3">Usage Information</h3>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-          <li>IP address</li>
+          <li>IP address processed for security; upload rate limits store a one-way hash</li>
           <li>Browser type and version</li>
           <li>Pages visited and actions taken within the Service</li>
           <li>Device information (operating system, device type)</li>
@@ -134,9 +139,25 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
 
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">Clerk</h3>
+            <p className="text-muted-foreground text-sm mb-2">
+              Handles email/password and Google sign-up and sign-in, email verification, account
+              credentials and sessions
+            </p>
+            <a
+              href="https://clerk.com/legal/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand hover:text-brand-active text-sm font-medium transition-colors"
+            >
+              View Privacy Policy
+            </a>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="font-semibold text-foreground mb-1">Google OAuth</h3>
             <p className="text-muted-foreground text-sm mb-2">
-              Used for authentication and account creation
+              Used as an optional sign-in method through Clerk
             </p>
             <a
               href="https://policies.google.com/privacy"
@@ -149,9 +170,14 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground mb-1">OpenAI (via OpenRouter)</h3>
+            <h3 className="font-semibold text-foreground mb-1">
+              OpenRouter and AI model providers
+            </h3>
             <p className="text-muted-foreground text-sm mb-2">
-              Used for AI-powered PDF parsing and data extraction
+              Resume content is sent to a configured AI model through OpenRouter and Cloudflare AI
+              Gateway for parsing and data extraction. The model and serving provider can change
+              with our configuration; this is not exclusively an OpenAI service. Processing is
+              subject to OpenRouter&apos;s and the serving provider&apos;s policies.
             </p>
             <a
               href="https://openrouter.ai/privacy"
@@ -161,22 +187,21 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             >
               View OpenRouter Privacy Policy
             </a>
-            <span className="mx-2 text-muted-foreground">|</span>
             <a
-              href="https://openai.com/policies/privacy-policy"
+              href="https://openrouter.ai/docs/guides/privacy/data-collection"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand hover:text-brand-active text-sm font-medium transition-colors"
+              className="ml-2 text-brand hover:text-brand-active text-sm font-medium transition-colors"
             >
-              View OpenAI Privacy Policy
+              Provider Data Policies
             </a>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="font-semibold text-foreground mb-1">Cloudflare</h3>
             <p className="text-muted-foreground text-sm mb-2">
-              Used for hosting, storage (R2), and content delivery. Database hosting is provided by
-              PlanetScale
+              Used for hosting, file storage (R2), content delivery, AI Gateway routing and
+              Turnstile bot protection. Database hosting is provided by PlanetScale.
             </p>
             <a
               href="https://www.cloudflare.com/privacypolicy/"
@@ -200,10 +225,10 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>
-            Your data is stored on Cloudflare&apos;s global network infrastructure (SOC 2 Type II,
-            ISO 27001 certified)
+            Uploaded files are stored in Cloudflare R2; account and portfolio data are stored in
+            PlanetScale Postgres, accessed through Cloudflare Hyperdrive
           </li>
-          <li>Cloudflare provides infrastructure-level encryption at rest for all stored data</li>
+          <li>Our storage providers provide infrastructure-level encryption at rest</li>
           <li>All data in transit is encrypted using TLS 1.3</li>
           <li>Database access is restricted to our application only — no direct external access</li>
           <li>We implement access controls and regularly review our security practices</li>
@@ -220,11 +245,25 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
       <>
         <p className="text-muted-foreground leading-relaxed">
           We retain your personal data for as long as your account is active or as needed to provide
-          you with the Service. Upon account deletion, all your data&mdash;including uploaded files,
-          extracted content, and profile information&mdash;is permanently removed from our systems
-          within 30 days. Diagnostics are not removed early by account deletion; they are deleted
-          automatically 90 days after they are recorded. Some anonymized, aggregated data may be
-          retained for analytical purposes but cannot be used to identify you.
+          you with the Service. Account deletion removes your profile, uploaded files, extracted
+          resume content and published page from our systems within 30 days. Diagnostics are an
+          exception: they are not removed early by account deletion and are deleted automatically
+          within 90 days after they are recorded. Some anonymized, aggregated data may be retained
+          for analytical purposes but cannot be used to identify you.
+        </p>
+        <p className="text-muted-foreground leading-relaxed mt-4">
+          Anonymous uploads are stored in temporary R2 storage with their original filename and
+          upload time; no resume database record is created until you sign in and save the upload to
+          your account. Temporary files become eligible for automatic deletion after 24 hours under
+          our storage lifecycle rule; deletion runs asynchronously. The signed cookie that lets you
+          save an upload to your account expires after 30 minutes, not 24 hours.
+        </p>
+        <p className="text-muted-foreground leading-relaxed mt-4">
+          To limit upload abuse, we separately store a one-way hash of your IP address, the action
+          type and request timestamps. Upload rate-limit records expire after 24 hours and are
+          removed by the next scheduled daily cleanup. Account deletion does not remove these
+          IP-based records early. You can email us about an abandoned upload without creating an
+          account.
         </p>
       </>
     ),
@@ -284,7 +323,8 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             <div>
               <h3 className="font-semibold text-foreground">Right to Deletion</h3>
               <p className="text-muted-foreground text-sm">
-                Delete your account and all associated data through the Settings page
+                Delete your account, resume and uploads through Settings; the retention periods
+                above explain the diagnostics exception
               </p>
             </div>
           </div>
@@ -363,8 +403,8 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             logged-in state
           </li>
           <li>
-            <strong>Temporary upload tracking:</strong> Used to associate anonymous uploads with
-            your account after login
+            <strong>Temporary upload tracking:</strong> A signed cookie links an anonymous upload to
+            your account after sign-in and expires after 30 minutes
           </li>
           <li>
             <strong>Diagnostics cookie:</strong>{" "}
@@ -402,8 +442,8 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
         <p className="text-muted-foreground leading-relaxed">
           The diagnostics described under <strong>Information We Collect</strong> are stored on
           servers we operate ourselves, not by a third-party analytics company, and are deleted
-          automatically after 90 days. Session recordings mask all text and form input, so they show
-          the page layout and your clicks, not what you read or type.
+          automatically within 90 days. Session recordings mask all text and form input, so they
+          show the page layout and your clicks, not what you read or type.
         </p>
       </>
     ),
@@ -462,8 +502,8 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             </a>
           </p>
           <p className="text-muted-foreground text-sm">
-            For data deletion requests, please use the account deletion feature in your Settings
-            page.
+            Use Settings to delete an account, or email us about an anonymous upload or another data
+            deletion request. Do not email the PDF or its contents.
           </p>
         </div>
       </>
@@ -476,13 +516,13 @@ function PrivacyPolicyPage() {
     "Privacy Policy",
     "/privacy",
     privacyDescription,
-    "2026-10-23",
+    "2026-10-30",
   );
 
   return (
     <LegalPage
       title="Privacy Policy"
-      lastUpdated="Last updated: October 2026"
+      lastUpdated="Last updated: October 30, 2026"
       breadcrumbLabel="Privacy Policy"
       breadcrumbHref="/privacy"
       jsonLd={

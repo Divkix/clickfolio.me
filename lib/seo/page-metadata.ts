@@ -37,7 +37,7 @@ const HOME_OG_IMAGE = {
 
 const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
 
-const HOME_DESCRIPTION = `Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — ${TEMPLATE_COUNT} free templates, a custom @handle URL, and privacy controls. No signup to start.`;
+const HOME_DESCRIPTION = `Turn your PDF resume or LinkedIn into a portfolio with ${TEMPLATE_COUNT} free templates and a custom @handle URL. Upload first; create a free account to publish.`;
 
 /** Search results truncate titles past ~60 chars; see `titleTag`. */
 export const MAX_TITLE_LENGTH = 60;

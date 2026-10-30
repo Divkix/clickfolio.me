@@ -7,6 +7,7 @@ const FOOTER_LINKS = [
   ...linkOptions([
     { to: "/explore", label: "Explore" },
     { to: "/templates", label: "Templates" },
+    { to: "/", hash: "pricing", label: "Pricing" },
   ]),
   ...EXAMPLE_GALLERIES.map((gallery) => ({
     ...linkOptions({ to: "/examples/$slug", params: { slug: gallery.slug } }),

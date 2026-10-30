@@ -12,11 +12,11 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "How does the AI resume parsing work?",
-    a: "We use advanced language models to extract your work experience, education, skills, projects, and contact info from your PDF resume. The parsing takes about 30 seconds and produces a complete, editable online portfolio.",
+    a: "After you sign in, we send your resume content (extracted text, or the PDF for scanned documents) to AI models through OpenRouter and Cloudflare AI Gateway to extract work experience, education, skills, projects, and contact info. Parsing takes about 30 seconds. Review and edit the result before publishing.",
   },
   {
     q: "Is clickfolio.me really free?",
-    a: `Yes. All ${TEMPLATE_COUNT} templates are completely free with no time limits and no premium locks. Every user gets the full template collection at no cost.`,
+    a: `Yes. Publishing, editing, hosting and all ${TEMPLATE_COUNT} templates are free, with no trial, paid tier or premium locks. Public pages include a small “Built with clickfolio.me” link.`,
   },
   {
     q: "Can I customize my portfolio after publishing?",
@@ -28,7 +28,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "Is my data private and secure?",
-    a: "Your resume is processed securely and never sold or shared. You decide what appears publicly through granular privacy settings, and you can delete your account and all associated data permanently at any time from Settings.",
+    a: "We never sell your resume. We share it only with the service providers needed to run the service, including AI parsing, storage and sign-in; see our Privacy Policy at /privacy for details. Published pages are public, listed in Explore and visible to search engines by default. You can change visibility in Settings and delete your account, resume and uploads. Diagnostics are deleted automatically within 90 days, even if you delete your account.",
   },
   {
     q: "Can I use my LinkedIn profile instead of a resume?",
@@ -36,7 +36,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "Do I need an account to try it?",
-    a: "You can upload a resume and watch it get parsed before signing up. To claim your @handle, publish your portfolio, and edit it later, you'll create a free account with Google or email.",
+    a: "You can upload a resume without an account. A free account with Google or email is required to parse it, review the result, choose your @handle and publish your portfolio.",
   },
   {
     q: "How do I unlock premium templates?",
