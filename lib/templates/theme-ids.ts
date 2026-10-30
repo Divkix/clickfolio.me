@@ -104,216 +104,199 @@ export function themeIdFromSlug(slug: string): ThemeId | null {
 export const THEME_METADATA = {
   academic_cv: {
     name: "Academic CV",
-    description:
-      "A scholarly CV with education first, dated appointments and numbered research outputs",
+    description: "Education first, with dated work history and a numbered list of research",
     category: "Professional",
     preview: "/previews/academic-cv.webp",
   },
   bento: {
     name: "Bento Grid",
-    description: "Flat colour tiles for your current role, a standout result and your full career",
+    description: "Colourful cards for your current role, key results and work history",
     category: "Modern",
     preview: "/previews/bento.webp",
   },
   blueprint: {
     name: "Blueprint",
-    description: "A cyanotype drawing sheet with grid paper, section callouts and a title block",
+    description: "A blue grid background with clearly labelled sections",
     category: "Creative",
     preview: "/previews/blueprint.webp",
   },
   boardroom: {
     name: "Boardroom",
-    description: "A dark executive ledger with a pinned identity column and brass accents",
+    description: "A dark two-column layout with your details on the left and gold highlights",
     category: "Professional",
     preview: "/previews/boardroom.webp",
   },
   bold_corporate: {
     name: "Bold Corporate",
-    description: "Annual-report layout with a navy sidebar and condensed headings",
+    description: "A dark blue side panel with bold headings and a clear work history",
     category: "Professional",
     preview: "/previews/bold-corporate.webp",
   },
   broadsheet: {
     name: "Broadsheet",
-    description:
-      "A newspaper front page: ruled columns, a masthead name and each role set as a story",
+    description: "Newspaper-style columns with a large name heading and a story for each role",
     category: "Professional",
     preview: "/previews/broadsheet.webp",
   },
   case_file: {
     name: "Case File",
-    description:
-      "A typed dossier in a manila folder, with each section filed as a lettered exhibit",
+    description: "A paper-folder design with typed text and clearly labelled sections",
     category: "Professional",
     preview: "/previews/case-file.webp",
   },
   classic_ats: {
     name: "Classic ATS",
-    description:
-      "A printable one-column resume sheet that applicant tracking systems parse cleanly",
+    description: "A simple one-column resume that is easy to print and read",
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },
   contact_sheet: {
     name: "Contact Sheet",
-    description:
-      "Film-frame tiles on near-black with grease-pencil orange, built for photographers",
+    description: "A dark photo grid with orange highlights for photographers",
     category: "Creative",
     preview: "/previews/contact-sheet.webp",
   },
   design_folio: {
     name: "DesignFolio",
-    description: "Swiss grid on cool grey with a cobalt name block. Project images lead the page.",
+    description: "A grey grid with a bright blue name panel and large project images",
     category: "Creative",
     preview: "/previews/design-folio.webp",
   },
   dev_terminal: {
     name: "DevTerminal",
-    description: "GitHub-style profile with pinned projects and a commit timeline",
+    description: "A developer profile with featured projects and a timeline of your work",
     category: "Developer",
     preview: "/previews/dev-terminal.webp",
   },
   gallery_wall: {
     name: "Gallery Wall",
-    description: "An exhibition wall with hung works on labels and a printed artist CV below",
+    description: "Large images with short labels and your work history below",
     category: "Creative",
     preview: "/previews/gallery-wall.webp",
   },
   glass: {
     name: "Glass Morphic",
-    description: "Frosted glass panes lit by one window of light, with a reeded-glass insert",
+    description: "Soft colours and see-through panels with a frosted-glass look",
     category: "Modern",
     preview: "/previews/glass.webp",
   },
   lesson_plan: {
     name: "Lesson Plan",
-    description: "A ruled planner page with binder holes, coloured subject tabs and a sticky note",
+    description: "A lined planner page with coloured tabs and a sticky note",
     category: "Creative",
     preview: "/previews/lesson-plan.webp",
   },
   liner_notes: {
     name: "Liner Notes",
-    description:
-      "An album sleeve with the record sliding out and your jobs listed as Side A tracks",
+    description: "A record-cover design with your jobs listed like songs on an album",
     category: "Creative",
     preview: "/previews/liner-notes.webp",
   },
   link_stack: {
     name: "Link Stack",
-    description:
-      "A link-in-bio page of full-width colour bars, ultramarine to peach, each one a link to tap or a role to open",
+    description: "Full-width coloured bars that open your links and work history",
     category: "Modern",
     preview: "/previews/link-stack.webp",
   },
   manuscript: {
     name: "Manuscript",
-    description:
-      "A book spread with a title page, a table of contents and bylines as a bibliography",
+    description: "A book-style layout with a title page and a table of contents",
     category: "Professional",
     preview: "/previews/manuscript.webp",
   },
   media_kit: {
     name: "Media Kit",
-    description:
-      "A creator's brand one-sheet: a fuchsia cover, a wordmark wall of who you've worked with and your real results",
+    description: "A bright pink cover with the brands you have worked with and your results",
     category: "Modern",
     preview: "/previews/media-kit.webp",
   },
   midnight: {
     name: "Midnight",
-    description: "Midnight blue night sky, Garamond headings and a gold star timeline",
+    description: "A dark blue background, classic headings and a gold timeline",
     category: "Modern",
     preview: "/previews/midnight.webp",
   },
   minimalist_editorial: {
     name: "Minimalist Editorial",
-    description: "Quiet single serif column with dates set in the margin",
+    description: "A simple single column with classic text and dates along the side",
     category: "Professional",
     preview: "/previews/minimalist.webp",
   },
   neo_brutalist: {
     name: "Neo Brutalist",
-    description: "Loud yellow poster with a giant name, hard shadows and a skills ticker",
+    description: "A bright yellow poster with a large name and scrolling skills",
     category: "Creative",
     preview: "/previews/brutalist.webp",
   },
   open_house: {
     name: "Open House",
-    description:
-      "A real-estate listing sheet: your name on a hanging yard sign, a property-details table and roles filed as listings",
+    description: "A house-listing design with a hanging name sign and a card for each role",
     category: "Creative",
     preview: "/previews/open-house.webp",
   },
   personal_best: {
     name: "Personal Best",
-    description:
-      "A track meet: your name painted across the lanes, real marks on an LED board and roles as a results sheet",
+    description: "A running-track design with your results on a scoreboard",
     category: "Modern",
     preview: "/previews/personal-best.webp",
   },
   pitch_deck: {
     name: "Pitch Deck",
-    description: "Your resume as a 16:9 founder deck: title slide, one-liner, traction and the ask",
+    description: "A slide-style layout with a large introduction and key results",
     category: "Modern",
     preview: "/previews/pitch-deck.webp",
   },
   quota: {
     name: "Quota",
-    description:
-      "A sales resume with a closed-won board of the real figures from your highlights and a dated track record",
+    description: "A sales resume with your key results and a timeline of your work",
     category: "Professional",
     preview: "/previews/quota.webp",
   },
   reel: {
     name: "Reel",
-    description: "A film-editing timeline with clip markers, timecode dates and a red playhead",
+    description: "A video-editing design with your work arranged along a timeline",
     category: "Creative",
     preview: "/previews/reel.webp",
   },
   retro_os: {
     name: "Retro OS",
-    description: "A late-90s desktop where every section opens in its own bevelled window",
+    description: "An old-style computer desktop with a separate window for each section",
     category: "Creative",
     preview: "/previews/retro-os.webp",
   },
   rounds: {
     name: "Rounds",
-    description:
-      "A nurse's ID badge on a lanyard, with licenses first and experience as a shift log",
+    description: "A nurse's ID-card design with licenses first and a clear work history",
     category: "Professional",
     preview: "/previews/rounds.webp",
   },
   scrapbook: {
     name: "Scrapbook",
-    description:
-      "Craft-paper desk with taped index cards, sticky-note skills and a polaroid portrait",
+    description: "A paper scrapbook with taped cards, sticky notes and a photo",
     category: "Creative",
     preview: "/previews/scrapbook.webp",
   },
   spotlight: {
     name: "Spotlight",
-    description:
-      "A dark stage with a hard-edged followspot on your name and a theatre programme of credits",
+    description: "A dark stage with a spotlight on your name and a list of your work",
     category: "Creative",
     preview: "/previews/spotlight.webp",
   },
   the_brief: {
     name: "The Brief",
-    description:
-      "A legal brief: a boxed caption header, roman-numeral sections and double-spaced serif paragraphs",
+    description: "A formal document with numbered sections and easy-to-read paragraphs",
     category: "Professional",
     preview: "/previews/the-brief.webp",
   },
   the_menu: {
     name: "The Menu",
-    description:
-      "A bistro prix-fixe card on a gingham tablecloth, with roles priced in years along dotted leaders",
+    description: "A restaurant-menu design with a checked background and years beside each role",
     category: "Creative",
     preview: "/previews/the-menu.webp",
   },
   workspace: {
     name: "Workspace",
-    description: "A clean document page with a cover, a properties table and collapsible sections",
+    description: "A clean document page with a cover and sections you can open or close",
     category: "Modern",
     preview: "/previews/workspace.webp",
   },

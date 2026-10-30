@@ -35,7 +35,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
           Choose Your Template
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Select a design that best represents your professional style. You can change this anytime.
+          Choose a template for your page. You can change it later.
         </p>
       </div>
 

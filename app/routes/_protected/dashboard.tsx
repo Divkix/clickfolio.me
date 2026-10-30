@@ -190,7 +190,7 @@ function SiteHero({ handle, themeId, updatedAt }: SiteHeroProps) {
           <Button asChild size="sm" variant="outline">
             <Link to="/themes">
               <Palette className="h-4 w-4" aria-hidden="true" />
-              Change theme
+              Change template
             </Link>
           </Button>
         </div>
@@ -204,12 +204,14 @@ function SiteHero({ handle, themeId, updatedAt }: SiteHeroProps) {
           src={theme.preview}
           srcSet={previewSrcSet(theme.preview)}
           sizes="(min-width: 768px) 320px, (min-width: 640px) 256px, 100vw"
-          alt={`${theme.name} theme preview`}
+          alt={`${theme.name} template preview`}
           className="aspect-[16/10] w-full object-cover object-top"
         />
         <span className="flex items-center justify-between px-3 py-2 text-xs border-t border-border">
           <span className="font-medium text-foreground">{theme.name}</span>
-          <span className="text-muted-foreground group-hover:text-foreground">Current theme</span>
+          <span className="text-muted-foreground group-hover:text-foreground">
+            Current template
+          </span>
         </span>
       </Link>
     </section>

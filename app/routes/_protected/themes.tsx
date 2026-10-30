@@ -9,7 +9,7 @@ import { resolveThemeId } from "@/lib/templates/theme-ids";
 const getThemes = createServerFn({ method: "GET" }).handler(() => themesPageData());
 
 export const Route = createFileRoute("/_protected/themes")({
-  head: () => privatePageHead("Themes"),
+  head: () => privatePageHead("Templates"),
   loader: () => getThemes(),
   component: ThemesPage,
   pendingComponent: ThemesLoading,

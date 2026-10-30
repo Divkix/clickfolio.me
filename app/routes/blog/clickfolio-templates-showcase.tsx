@@ -260,7 +260,7 @@ function TemplatesShowcasePage() {
           from your design, so changing templates doesn't affect your data. Here's how:
         </p>
         <ol className="list-decimal pl-6 space-y-2">
-          <li>Go to your dashboard and click "Themes"</li>
+          <li>Go to your dashboard and click "Templates"</li>
           <li>Browse the template gallery — each shows a preview thumbnail</li>
           <li>Click "Apply" on any template</li>
           <li>Your live site updates immediately</li>

@@ -102,11 +102,11 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight mb-2">
-          Choose Your Theme
+          Choose Your Template
         </h1>
         <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-          Preview how your resume looks with different styles. Click a theme to preview, then apply
-          it.
+          Preview how your resume looks with different styles. Click a template to preview, then
+          apply it.
         </p>
       </div>
 
@@ -127,7 +127,7 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
         className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0"
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom keyboard-navigable theme strip; native select would not support thumbnail previews
         role="listbox"
-        aria-label="Theme selection"
+        aria-label="Template selection"
         onKeyDown={handleKeyDown}
         tabIndex={0}
       >
@@ -213,7 +213,7 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
 
         {hasChanges && (
           <Button type="button" onClick={handleApplyTheme} loading={isUpdating}>
-            {isUpdating ? "Applying..." : "Apply Theme"}
+            {isUpdating ? "Applying..." : "Apply Template"}
           </Button>
         )}
       </div>
