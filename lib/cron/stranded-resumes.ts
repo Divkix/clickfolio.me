@@ -3,6 +3,7 @@ import { Cause, Effect, Exit, Layer } from "effect";
 import { resumes } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { runBackground } from "@/lib/effect/edges";
+import { DbFailed } from "@/lib/effect/failures";
 import { StatusChannel } from "@/lib/effect/services/status-channel";
 import { notifyStatusBestEffort } from "@/lib/parse/notify-status";
 import {
@@ -11,13 +12,13 @@ import {
   STRANDED_START_AFTER_MS,
   STRANDED_START_MESSAGE,
 } from "@/lib/resume/lifecycle";
-import { logEvent } from "@/lib/utils/log";
+import { log, logEvent } from "@/lib/utils/log";
 
 // Fails resume rows that stopped moving: a claim or workflow start that died after the row was
 // written, or a parse run that never finished. Without it such a row shows "processing" forever,
 // and a `pending_claim` one also blocks re-uploading the same file.
 
-/** Rows failed per rule per tick; the next tick takes the rest. */
+/** Rows failed per rule per attempt; a lost commit response can consume another batch on retry. */
 export const STRANDED_SWEEP_BATCH = 100;
 
 const NOTIFY_CONCURRENCY = 10;
@@ -100,28 +101,46 @@ function failStranded(rule: SweepRule, batchSize: number) {
   );
 }
 
-export function sweepStrandedResumes(batchSize: number = STRANDED_SWEEP_BATCH) {
-  return Effect.gen(function* () {
-    const neverStarted = yield* failStranded(NEVER_STARTED, batchSize);
-    const timedOut = yield* failStranded(PROCESSING_TIMEOUT, batchSize);
-
-    return { neverStarted, timedOut };
-  });
-}
-
 /**
- * One sweep against `layer`. Rejects with the typed failure (or the defect) so the platform
- * records a failed run; the scheduled handler logs the error itself.
+ * Each rule gets an invocation-local connection, with one fresh connection attempt after a
+ * severed egress. Only the guarded DB update can fail: completed rules and status pushes are
+ * never replayed. Rejects other failures so the platform records a failed run.
  */
 export async function runStrandedSweep(
   layer: Layer.Layer<Db | StatusChannel>,
   batchSize: number = STRANDED_SWEEP_BATCH,
 ) {
-  const exit = await runBackground(sweepStrandedResumes(batchSize), layer);
+  const runRule = async (rule: SweepRule) => {
+    for (let attempt = 0; ; attempt++) {
+      // A separate run builds the layer again, so a broken pg connection is never reused.
+      const exit = await runBackground(failStranded(rule, batchSize), layer);
 
-  if (Exit.isSuccess(exit)) return exit.value;
+      if (Exit.isSuccess(exit)) return exit.value;
 
-  throw Cause.squash(exit.cause);
+      const failure = Cause.squash(exit.cause);
+
+      if (
+        attempt !== 0 ||
+        !(failure instanceof DbFailed) ||
+        failure.kind !== "unavailable" ||
+        failure.message !== "Egress connection severed outside of Hyperdrive"
+      ) {
+        throw failure;
+      }
+
+      // UPDATE repeats the status predicate: an unknown commit cannot transition the same row
+      // twice. Only acknowledged RETURNING rows get best-effort notifications; never retry a
+      // timeout (pg keeps running), a status push, or an arbitrary 58000 error.
+      log("warn", "retrying stranded sweep after connection severed", {
+        operation: rule.operation,
+      });
+    }
+  };
+
+  return {
+    neverStarted: await runRule(NEVER_STARTED),
+    timedOut: await runRule(PROCESSING_TIMEOUT),
+  };
 }
 
 // The every-15-minutes cron tick.
