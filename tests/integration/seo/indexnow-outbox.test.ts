@@ -1,6 +1,15 @@
 import { eq, sql } from "drizzle-orm";
 import { Effect, Exit, Layer } from "effect";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 import { siteConfig } from "@/lib/config/site";
 import { indexNowState, indexNowUrls } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
@@ -21,24 +30,24 @@ function enqueue(urls: string[], force = false) {
 function drain() {
   // Rebuild both layers every invocation, as distinct Worker isolates do.
   return Effect.runPromiseExit(
-    Effect.provide(
-      drainIndexNow(),
-      Layer.merge(Db.layerFrom(testDb.db), IndexNow.layer()),
-    ),
+    Effect.provide(drainIndexNow(), Layer.merge(Db.layerFrom(testDb.db), IndexNow.layer())),
   );
 }
 
 async function pendingUrls() {
   return (await testDb.db.select().from(indexNowUrls).where(eq(indexNowUrls.pending, true)))
-    .map(({ url }) => url).sort();
+    .map(({ url }) => url)
+    .sort();
 }
 
 beforeAll(async () => {
   testDb = await createTestDb();
 });
+
 afterAll(async () => {
   await testDb.close();
 });
+
 beforeEach(async () => {
   await testDb.db.execute(sql`TRUNCATE indexnow_urls, indexnow_state`);
   vi.spyOn(Date, "now").mockReturnValue(NOW);
@@ -46,6 +55,7 @@ beforeEach(async () => {
   fetchMock.mockReset();
   fetchMock.mockImplementation(async () => new Response(null, { status: 200 }));
 });
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -59,13 +69,18 @@ describe("durable IndexNow outbox", () => {
     expect(await pendingUrls()).toEqual([alice, bob]);
     await drain();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).urlList.sort()).toEqual([alice, bob]);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).urlList.sort()).toEqual([
+      alice,
+      bob,
+    ]);
     expect(await pendingUrls()).toEqual([]);
   });
 
   it("keeps 429 work without another profile edit and pauses every URL until Retry-After seconds", async () => {
     await enqueue([alice]);
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 429, headers: { "Retry-After": "1800" } }));
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, { status: 429, headers: { "Retry-After": "1800" } }),
+    );
     expect(Exit.isFailure(await drain())).toBe(true);
     await enqueue([bob], true);
     expect(await pendingUrls()).toEqual([alice, bob]);
@@ -80,7 +95,12 @@ describe("durable IndexNow outbox", () => {
 
   it("honors Retry-After HTTP dates beyond the fallback backoff", async () => {
     await enqueue([alice]);
-    fetchMock.mockResolvedValueOnce(new Response(null, { status: 429, headers: { "Retry-After": "Sun, 01 Nov 2026 12:00:00 GMT" } }));
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 429,
+        headers: { "Retry-After": "Sun, 01 Nov 2026 12:00:00 GMT" },
+      }),
+    );
     await drain();
     vi.mocked(Date.now).mockReturnValue(NOW + 86_399_999);
     await drain();
@@ -92,7 +112,9 @@ describe("durable IndexNow outbox", () => {
 
   it("backs off absent or malformed Retry-After exponentially, retaining the URLs", async () => {
     await enqueue([alice]);
-    fetchMock.mockImplementation(async () => new Response(null, { status: 429, headers: { "Retry-After": "invalid" } }));
+    fetchMock.mockImplementation(
+      async () => new Response(null, { status: 429, headers: { "Retry-After": "invalid" } }),
+    );
     await drain();
     vi.mocked(Date.now).mockReturnValue(NOW + 599_999);
     await drain();
@@ -123,6 +145,7 @@ describe("durable IndexNow outbox", () => {
     await enqueue([alice]);
     fetchMock.mockImplementationOnce(async () => {
       await enqueue([alice], true);
+
       return new Response(null, { status: 202 });
     });
     await drain();
@@ -139,6 +162,7 @@ describe("durable IndexNow outbox", () => {
       await enqueue([bob], true);
       await drain();
       expect(fetchMock).toHaveBeenCalledTimes(1);
+
       return new Response(null, { status: 200 });
     });
     await drain();
@@ -153,8 +177,10 @@ describe("durable IndexNow outbox", () => {
   it("recovers a sender that died after claiming without deleting its pending work", async () => {
     await enqueue([alice]);
     await testDb.db.insert(indexNowState).values({
-      id: "site", nextAttemptAt: new Date(NOW).toISOString(),
-      leaseId: "dead-worker", leaseUntil: new Date(NOW + 60_000).toISOString(),
+      id: "site",
+      nextAttemptAt: new Date(NOW).toISOString(),
+      leaseId: "dead-worker",
+      leaseUntil: new Date(NOW + 60_000).toISOString(),
     });
     await drain();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -202,9 +228,12 @@ describe("IndexNow trailing delivery and retry recovery", () => {
 
   it("keeps a 503 batch through Retry-After and resets the backoff after acceptance", async () => {
     await enqueue([alice]);
-    fetchMock.mockResolvedValueOnce(new Response(null, {
-      status: 503, headers: { "Retry-After": "1200" },
-    }));
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 503,
+        headers: { "Retry-After": "1200" },
+      }),
+    );
     expect(Exit.isFailure(await drain())).toBe(true);
     vi.mocked(Date.now).mockReturnValue(NOW + 1_199_999);
     await drain();

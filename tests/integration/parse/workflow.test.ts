@@ -1,4 +1,5 @@
 import { Effect, Layer } from "effect";
+import { z } from "zod";
 import { DbFailed } from "@/lib/effect/failures";
 import {
   AiProviderFailed,
@@ -84,6 +85,10 @@ const JOB: ResumeParseParams = {
   retryCount: 0,
 };
 
+const workflowRetryConfigSchema = z.object({
+  retries: z.object({ limit: z.number().int().nonnegative() }).optional(),
+});
+
 async function runWorkflow(
   params = JOB,
   emailTimeout = false,
@@ -115,6 +120,9 @@ async function runWorkflow(
 
     if (!(execute instanceof Function)) throw new Error("Missing workflow callback");
 
+    const config = workflowRetryConfigSchema.parse(callback ? configOrCallback : {});
+    const retryLimit = config.retries?.limit ?? 0;
+
     const context = (attempt: number): WorkflowStepContext => ({
       step: { name, count: 1 },
       attempt,
@@ -128,9 +136,6 @@ async function runWorkflow(
         result = await execute(context(attempt));
         break;
       } catch (error) {
-        const retryLimit =
-          typeof configOrCallback === "function" ? 0 : (configOrCallback.retries?.limit ?? 0);
-
         if (error instanceof Error && error.name === "Error") {
           if (name === "classify career" && attempt <= retryLimit) continue;
 
@@ -159,6 +164,7 @@ async function runWorkflow(
     CF_AI_GATEWAY_ID: "test",
     CF_AIG_AUTH_TOKEN: "test",
   };
+
   // SAFETY: mocks supply the layers, so no binding in the env is read.
   const workflow = new ResumeParseWorkflow({} as ExecutionContext, env as CloudflareEnv);
   // SAFETY: run only reads payload and timestamp; do/sleep are the only step methods used.
@@ -418,7 +424,10 @@ describe("Workflow failure metadata and successful replay", () => {
     await expect(workflow.run()).resolves.toBe("completed");
     expect(mocks.parse).toHaveBeenCalledTimes(1);
     expect(mocks.classify).toHaveBeenCalledTimes(1);
-    expect(mocks.complete).toHaveBeenLastCalledWith(expect.any(Object), { ...parsed, career: null });
+    expect(mocks.complete).toHaveBeenLastCalledWith(expect.any(Object), {
+      ...parsed,
+      career: null,
+    });
     expect(workflow.doStep).toHaveBeenCalledWith(
       "parse",
       { retries: { limit: 3, delay: "30 seconds", backoff: "exponential" }, timeout: "10 minutes" },
@@ -441,6 +450,7 @@ describe("best-effort career classification Workflow step", () => {
     certifications: [],
     projects: [],
   };
+
   const answers = {
     answers: {
       is_resume: { noul: 0.99 },
@@ -464,6 +474,7 @@ describe("best-effort career classification Workflow step", () => {
         .fn()
         .mockResolvedValueOnce(new Response(null, { status }))
         .mockResolvedValueOnce(Response.json(answers));
+
       vi.stubGlobal("fetch", request);
       const workflow = await runWorkflow();
 
@@ -471,7 +482,10 @@ describe("best-effort career classification Workflow step", () => {
 
       expect(workflow.doStep).toHaveBeenCalledWith(
         "classify career",
-        { retries: { limit: 2, delay: "5 seconds", backoff: "exponential" }, timeout: "15 seconds" },
+        {
+          retries: { limit: 2, delay: "5 seconds", backoff: "exponential" },
+          timeout: "15 seconds",
+        },
         expect.any(Function),
       );
       expect(request).toHaveBeenCalledTimes(2);

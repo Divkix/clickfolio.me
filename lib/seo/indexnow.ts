@@ -40,9 +40,7 @@ export function indexNowRetryAt(value: string | null, now: number): number | und
   if (!value) return undefined;
 
   const trimmed = value.trim();
-  const timestamp = /^\d+$/.test(trimmed)
-    ? now + Number(trimmed) * 1_000
-    : Date.parse(trimmed);
+  const timestamp = /^\d+$/.test(trimmed) ? now + Number(trimmed) * 1_000 : Date.parse(trimmed);
 
   return Number.isFinite(timestamp) && timestamp >= now && timestamp <= 8.64e15
     ? timestamp

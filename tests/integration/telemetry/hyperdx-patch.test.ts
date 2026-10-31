@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vite-plus/test";
+import { z } from "zod";
 import { patchHyperdxBrowser } from "@/lib/telemetry/hyperdx-patch";
 
 const installed = readFileSync(
@@ -8,11 +9,13 @@ const installed = readFileSync(
   "utf8",
 );
 
-function serialize(code: string, expression: string): unknown {
+function serialize(code: string, expression: string): string {
   const start = code.indexOf("function uL(e,t)");
   const end = code.indexOf("const dL=", start);
 
-  return runInNewContext(`${code.slice(start, end)}; JSON.stringify(uL(${expression}, {}))`);
+  return z
+    .string()
+    .parse(runInNewContext(`${code.slice(start, end)}; JSON.stringify(uL(${expression}, {}))`));
 }
 
 describe("HyperDX browser OTLP compatibility", () => {
@@ -25,6 +28,7 @@ describe("HyperDX browser OTLP compatibility", () => {
       array: [1, null, undefined, Infinity, 2],
       nested: { missing: undefined, valid: true }
     }`;
+
     expect(serialize(installed, attributes)).toContain('"value":{}');
     expect(serialize(installed, attributes)).toContain('"doubleValue":null');
     expect(serialize(patchHyperdxBrowser(installed), attributes)).toBe(

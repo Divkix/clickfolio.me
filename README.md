@@ -561,7 +561,7 @@ Durable resume parsing with per-step retries:
 
 | Cron           | Time (UTC)       | Task                                                                                                                                    |
 | -------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `* * * * *`   | Every minute     | Drains due IndexNow outbox submissions; failures stay pending until their persisted retry time |
+| `* * * * *`    | Every minute     | Drains due IndexNow outbox submissions; failures stay pending until their persisted retry time                                          |
 | `0 3 * * *`    | 3:00 AM          | Database cleanup (expired rate limits, handle history)                                                                                  |
 | `*/15 * * * *` | Every 15 minutes | Fails resumes stuck in `pending_claim`/`queued` (over 15 min) or `processing` (over 90 min); the user can retry them from the dashboard |
 

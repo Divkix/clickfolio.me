@@ -65,25 +65,39 @@ function claimBatch(): Effect.Effect<SubmissionBatch | undefined, DbFailed | DbC
       const nowMs = Date.now();
       const now = new Date(nowMs).toISOString();
 
-      await tx.insert(indexNowState).values({ id: STATE_ID, nextAttemptAt: now })
+      await tx
+        .insert(indexNowState)
+        .values({ id: STATE_ID, nextAttemptAt: now })
         .onConflictDoNothing();
-      const [state] = await tx.select().from(indexNowState)
-        .where(eq(indexNowState.id, STATE_ID)).for("update");
 
-      if (!state || Date.parse(state.nextAttemptAt) > nowMs ||
-        (state.leaseUntil !== null && Date.parse(state.leaseUntil) > nowMs)) return;
+      const [state] = await tx
+        .select()
+        .from(indexNowState)
+        .where(eq(indexNowState.id, STATE_ID))
+        .for("update");
 
-      const urls = await tx.select({ url: indexNowUrls.url, revision: indexNowUrls.revision })
+      if (
+        !state ||
+        Date.parse(state.nextAttemptAt) > nowMs ||
+        (state.leaseUntil !== null && Date.parse(state.leaseUntil) > nowMs)
+      )
+        return;
+
+      const urls = await tx
+        .select({ url: indexNowUrls.url, revision: indexNowUrls.revision })
         .from(indexNowUrls)
         .where(and(eq(indexNowUrls.pending, true), lte(indexNowUrls.dueAt, now)))
-        .orderBy(asc(indexNowUrls.dueAt), asc(indexNowUrls.url)).limit(MAX_BATCH_SIZE);
+        .orderBy(asc(indexNowUrls.dueAt), asc(indexNowUrls.url))
+        .limit(MAX_BATCH_SIZE);
 
       if (urls.length === 0) return;
 
       const leaseId = crypto.randomUUID();
       const next = new Date(nowMs + MIN_INTERVAL_MS).toISOString();
 
-      await tx.update(indexNowState).set({ leaseId, leaseUntil: next, nextAttemptAt: next })
+      await tx
+        .update(indexNowState)
+        .set({ leaseId, leaseUntil: next, nextAttemptAt: next })
         .where(eq(indexNowState.id, STATE_ID));
 
       return { leaseId, failures: state.failures, urls };
@@ -101,19 +115,25 @@ function finishBatch(
 ): Effect.Effect<void, DbFailed | DbConflict, Db> {
   return Db.use((db) =>
     db.transaction("indexnow.finish", async (tx) => {
-      const [state] = await tx.select().from(indexNowState)
-        .where(eq(indexNowState.id, STATE_ID)).for("update");
+      const [state] = await tx
+        .select()
+        .from(indexNowState)
+        .where(eq(indexNowState.id, STATE_ID))
+        .for("update");
 
       if (state?.leaseId !== batch.leaseId) return;
 
       const nowMs = Date.now();
       const now = new Date(nowMs).toISOString();
       const accepted = response !== undefined && isIndexNowAccepted(response.status);
-      const retryable = !response || response.status === 408 || response.status === 429 ||
-        response.status >= 500;
+
+      const retryable =
+        !response || response.status === 408 || response.status === 429 || response.status >= 500;
+
       const fallback = retryable
         ? Math.min(DEBOUNCE_MS * 2 ** Math.min(batch.failures, 8), MAX_BACKOFF_MS)
         : MAX_BACKOFF_MS;
+
       const nextAttemptAt = accepted
         ? nowMs + MIN_INTERVAL_MS
         : Math.max(nowMs + fallback, indexNowRetryAt(response?.retryAfter ?? null, nowMs) ?? 0);
@@ -121,25 +141,44 @@ function finishBatch(
       if (accepted) {
         const urls = batch.urls.map(({ url }) => url);
 
-        await tx.update(indexNowUrls).set({ lastSubmittedAt: now })
+        await tx
+          .update(indexNowUrls)
+          .set({ lastSubmittedAt: now })
           .where(inArray(indexNowUrls.url, urls));
-        await tx.update(indexNowUrls).set({ pending: false, urgent: false })
-          .where(or(...batch.urls.map(({ url, revision }) =>
-            and(eq(indexNowUrls.url, url), eq(indexNowUrls.revision, revision)),
-          )));
+        await tx
+          .update(indexNowUrls)
+          .set({ pending: false, urgent: false })
+          .where(
+            or(
+              ...batch.urls.map(({ url, revision }) =>
+                and(eq(indexNowUrls.url, url), eq(indexNowUrls.revision, revision)),
+              ),
+            ),
+          );
         // An ordinary edit during fetch needs a trailing ping, not another immediate duplicate.
-        await tx.update(indexNowUrls)
-          .set({ dueAt: sql`GREATEST(${indexNowUrls.dueAt}, ${new Date(nowMs + DEBOUNCE_MS).toISOString()}::timestamptz)` })
-          .where(and(inArray(indexNowUrls.url, urls), eq(indexNowUrls.pending, true),
-            eq(indexNowUrls.urgent, false)));
+        await tx
+          .update(indexNowUrls)
+          .set({
+            dueAt: sql`GREATEST(${indexNowUrls.dueAt}, ${new Date(nowMs + DEBOUNCE_MS).toISOString()}::timestamptz)`,
+          })
+          .where(
+            and(
+              inArray(indexNowUrls.url, urls),
+              eq(indexNowUrls.pending, true),
+              eq(indexNowUrls.urgent, false),
+            ),
+          );
       }
 
-      await tx.update(indexNowState).set({
-        leaseId: null,
-        leaseUntil: null,
-        nextAttemptAt: new Date(nextAttemptAt).toISOString(),
-        failures: accepted ? 0 : Math.min(batch.failures + 1, 31),
-      }).where(eq(indexNowState.id, STATE_ID));
+      await tx
+        .update(indexNowState)
+        .set({
+          leaseId: null,
+          leaseUntil: null,
+          nextAttemptAt: new Date(nextAttemptAt).toISOString(),
+          failures: accepted ? 0 : Math.min(batch.failures + 1, 31),
+        })
+        .where(eq(indexNowState.id, STATE_ID));
     }),
   );
 }
@@ -160,11 +199,14 @@ export function drainIndexNow(): Effect.Effect<
     if (!batch) return;
 
     const indexNow = yield* IndexNow;
+
     type Outcome = { response: IndexNowResponse } | { failure: HttpUpstreamFailed };
+
     const outcome = yield* indexNow.submit(batch.urls.map(({ url }) => url)).pipe(
       Effect.map((response): Outcome => ({ response })),
       Effect.catchTag("HttpUpstreamFailed", (failure) => Effect.succeed<Outcome>({ failure })),
     );
+
     const response = "response" in outcome ? outcome.response : undefined;
 
     yield* finishBatch(batch, response);
@@ -172,12 +214,14 @@ export function drainIndexNow(): Effect.Effect<
     if ("failure" in outcome) return yield* Effect.fail(outcome.failure);
 
     if (!isIndexNowAccepted(outcome.response.status)) {
-      return yield* Effect.fail(new HttpUpstreamFailed({
-        operation: "indexnow.submit",
-        kind: classifyUpstreamCause({ status: outcome.response.status }),
-        message: `IndexNow responded ${outcome.response.status}; batch retained for retry`,
-        host: "indexnow",
-      }));
+      return yield* Effect.fail(
+        new HttpUpstreamFailed({
+          operation: "indexnow.submit",
+          kind: classifyUpstreamCause({ status: outcome.response.status }),
+          message: `IndexNow responded ${outcome.response.status}; batch retained for retry`,
+          host: "indexnow",
+        }),
+      );
     }
 
     log("info", "indexnow submitted", { url_count: batch.urls.length });

@@ -1,5 +1,14 @@
 import { eq, sql } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
 import { siteConfig } from "@/lib/config/site";
 import { indexNowUrls } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
@@ -17,9 +26,11 @@ let pending: Promise<void> | undefined;
 beforeAll(async () => {
   testDb = await createTestDb();
 });
+
 afterAll(async () => {
   await testDb.close();
 });
+
 beforeEach(async () => {
   await testDb.db.execute(sql`TRUNCATE indexnow_urls, indexnow_state`);
   vi.spyOn(Db, "layer").mockImplementation(() => Db.layerFrom(testDb.db));
@@ -30,6 +41,7 @@ beforeEach(async () => {
   });
   vi.stubEnv("APP_URL", siteConfig.url);
 });
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -49,14 +61,19 @@ describe("IndexNow runtime durable enqueue", () => {
     const fetchMock = vi.fn<typeof fetch>();
 
     vi.stubGlobal("fetch", fetchMock);
-    vi.stubGlobal("caches", { open: vi.fn(() => { throw new Error("cache unavailable"); }) });
+    vi.stubGlobal("caches", {
+      open: vi.fn(() => {
+        throw new Error("cache unavailable");
+      }),
+    });
     await notify(["alice", "alice"]);
     await notify(["alice", "bob"]);
 
     const rows = await testDb.db.select().from(indexNowUrls);
 
     expect(rows.map(({ url }) => url).sort()).toEqual([
-      `${siteConfig.url}/@alice`, `${siteConfig.url}/@bob`,
+      `${siteConfig.url}/@alice`,
+      `${siteConfig.url}/@bob`,
     ]);
     expect(rows.every(({ pending: queued }) => queued)).toBe(true);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -66,7 +83,9 @@ describe("IndexNow runtime durable enqueue", () => {
     await notify(["erin", "erin"], true);
     await notify(["erin"]);
 
-    const [row] = await testDb.db.select().from(indexNowUrls)
+    const [row] = await testDb.db
+      .select()
+      .from(indexNowUrls)
       .where(eq(indexNowUrls.url, `${siteConfig.url}/@erin`));
 
     expect(row).toMatchObject({ pending: true, urgent: true });

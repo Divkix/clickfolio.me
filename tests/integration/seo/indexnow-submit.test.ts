@@ -11,8 +11,14 @@ describe("IndexNow Retry-After", () => {
   });
 
   it("falls back for absent, invalid, negative, past or unrepresentable dates", () => {
-    for (const value of [null, "", "invalid", "-10", "999999999999999999999999",
-      "Fri, 30 Oct 2026 12:00:00 GMT"]) {
+    for (const value of [
+      null,
+      "",
+      "invalid",
+      "-10",
+      "999999999999999999999999",
+      "Fri, 30 Oct 2026 12:00:00 GMT",
+    ]) {
       expect(indexNowRetryAt(value, NOW)).toBeUndefined();
     }
   });
@@ -20,9 +26,13 @@ describe("IndexNow Retry-After", () => {
 
 describe("IndexNow URL boundary", () => {
   it("rejects foreign or malformed URLs and deduplicates before persisting", () => {
-    expect(filterSiteUrls([
-      "https://clickfolio.me/@alice", "https://clickfolio.me/@alice",
-      "https://elsewhere.example/@alice", "not a URL",
-    ])).toEqual(["https://clickfolio.me/@alice"]);
+    expect(
+      filterSiteUrls([
+        "https://clickfolio.me/@alice",
+        "https://clickfolio.me/@alice",
+        "https://elsewhere.example/@alice",
+        "not a URL",
+      ]),
+    ).toEqual(["https://clickfolio.me/@alice"]);
   });
 });

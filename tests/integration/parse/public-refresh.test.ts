@@ -39,7 +39,6 @@ const queue = Layer.succeed(EdgePurgeQueue, {
         }),
 });
 
-
 const NOW = "2026-01-01T00:00:00.000Z";
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
@@ -51,10 +50,7 @@ function refresh(
   dbLayer: Layer.Layer<Db> = Db.layerFrom(db),
 ) {
   return Effect.runPromise(
-    Effect.provide(
-      refreshPublicProfiles(handles, appUrl),
-      Layer.mergeAll(queue, dbLayer),
-    ),
+    Effect.provide(refreshPublicProfiles(handles, appUrl), Layer.mergeAll(queue, dbLayer)),
   );
 }
 

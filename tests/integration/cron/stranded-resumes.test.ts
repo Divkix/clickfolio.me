@@ -401,6 +401,7 @@ describe("runStrandedSweep: severed connection recovery", () => {
   function failingDb(operation: string, failures: DbFailed[], afterCommit = false) {
     const attempts: string[] = [];
     let connections = 0;
+
     const reconnecting = Layer.effect(
       Db,
       Effect.gen(function* () {
@@ -514,6 +515,7 @@ describe("runStrandedSweep: severed connection recovery", () => {
       message,
       cause: Object.assign(new Error(message), { code: "58000" }),
     });
+
     const fault = failingDb(failure.operation, [failure]);
 
     await expect(runStrandedSweep(fault.layer)).rejects.toBe(failure);

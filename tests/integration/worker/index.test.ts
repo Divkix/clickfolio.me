@@ -591,6 +591,7 @@ describe("Worker scheduled handler", () => {
       kind: "unavailable",
       message: "IndexNow request refused",
     });
+
     mockDrainIndexNow.mockReturnValueOnce(Effect.fail(failure));
 
     await expect(worker.scheduled(makeController("* * * * *"), makeEnv())).rejects.toBe(failure);

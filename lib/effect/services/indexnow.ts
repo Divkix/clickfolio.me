@@ -24,6 +24,7 @@ export class IndexNow extends Context.Service<IndexNow, IndexNowService>()("clic
           timeoutMs: TIMEOUT_MS.upstream,
           run: async (signal) => {
             const response = await fetch(INDEXNOW_ENDPOINT, { ...indexNowRequest(urls), signal });
+
             const result = {
               status: response.status,
               retryAfter: response.headers.get("Retry-After"),

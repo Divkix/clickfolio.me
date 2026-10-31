@@ -15,7 +15,8 @@ export async function enqueueIndexNowUrls(
 
   const now = new Date(Date.now()).toISOString();
 
-  await db.insert(indexNowUrls)
+  await db
+    .insert(indexNowUrls)
     .values(unique.map((url) => ({ url, dueAt: now, urgent: skipDebounce })))
     .onConflictDoUpdate({
       target: indexNowUrls.url,

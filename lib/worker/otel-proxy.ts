@@ -60,7 +60,7 @@ const collectorMessageSchema = z
       return value;
     } catch {
       // Plain-text and truncated error bodies are expected, not a second proxy failure.
-      ctx.issues.push({ code: "custom", message: "not a JSON error envelope" });
+      ctx.issues.push({ code: "custom", message: "not a JSON error envelope", input: text });
 
       return z.NEVER;
     }
@@ -89,6 +89,7 @@ async function collectorDiagnostic(response: Response, ingestKey: string): Promi
 
   const text = new TextDecoder().decode(prefix.subarray(0, length));
   const envelope = collectorMessageSchema.safeParse(text);
+
   const message = (envelope.success ? envelope.data.message : text)
     .replaceAll(ingestKey, "[credential]")
     .replace(/\b(?:Basic|Bearer)\s+\S+/gi, "[credential]")
@@ -201,31 +202,41 @@ const anyValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
     z.object({ boolValue: z.boolean() }),
     z.object({ doubleValue: z.number().finite() }),
     z.object({ intValue: int64String }),
-    z.object({ intValue: z.number().finite() }).transform(({ intValue }) =>
-      Number.isSafeInteger(intValue) ? { intValue } : { doubleValue: intValue },
-    ),
+    z
+      .object({ intValue: z.number().finite() })
+      .transform(({ intValue }) =>
+        Number.isSafeInteger(intValue) ? { intValue } : { doubleValue: intValue },
+      ),
     z.object({
-      bytesValue: z.string().regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
+      bytesValue: z
+        .string()
+        .regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
     }),
     z.object({ arrayValue: z.object({ values: validItems(anyValueSchema) }) }),
     z.object({ kvlistValue: z.object({ values: attributesSchema }) }),
   ]),
 );
 
-const attributesSchema = validItems(
-  z.object({ key: wellFormedString, value: anyValueSchema }),
-);
+const attributesSchema = validItems(z.object({ key: wellFormedString, value: anyValueSchema }));
 
 const attributeContainerSchema = z.looseObject({ attributes: attributesSchema.optional() });
 
 const linkedSpanSchema = attributeContainerSchema.extend({
-  traceId: z.string().regex(/^[a-fA-F0-9]{32}$/).optional(),
-  spanId: z.string().regex(/^[a-fA-F0-9]{16}$/).optional(),
+  traceId: z
+    .string()
+    .regex(/^[a-fA-F0-9]{32}$/)
+    .optional(),
+  spanId: z
+    .string()
+    .regex(/^[a-fA-F0-9]{16}$/)
+    .optional(),
 });
 
 const spanSchema = linkedSpanSchema.extend({
   name: wellFormedString.optional(),
-  events: z.array(attributeContainerSchema.extend({ name: wellFormedString.optional() })).optional(),
+  events: z
+    .array(attributeContainerSchema.extend({ name: wellFormedString.optional() }))
+    .optional(),
   links: validItems(linkedSpanSchema).optional(),
 });
 
@@ -279,6 +290,7 @@ function normalizeJson(body: Uint8Array<ArrayBuffer>, country?: string): Uint8Ar
   const entries = [...(payload.resourceSpans ?? []), ...(payload.resourceLogs ?? [])];
 
   if (entries.length === 0) return body;
+
   if (country) {
     const attribute = { key: COUNTRY_ATTRIBUTE, value: { stringValue: country } };
 
