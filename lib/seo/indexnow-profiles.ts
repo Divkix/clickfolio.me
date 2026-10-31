@@ -105,6 +105,11 @@ function claimBatch(): Effect.Effect<SubmissionBatch | undefined, DbFailed | DbC
   );
 }
 
+/** No answer, 408, 429 and 5xx are temporary; any other refusal needs configuration repair. */
+function isTransientIndexNowOutcome(response: IndexNowResponse | undefined): boolean {
+  return !response || response.status === 408 || response.status === 429 || response.status >= 500;
+}
+
 /**
  * Fence completion by sender lease and each URL revision: edits arriving during fetch survive.
  * A crash or failed completion leaves pending work for the next cron after the lease expires.
@@ -127,8 +132,7 @@ function finishBatch(
       const now = new Date(nowMs).toISOString();
       const accepted = response !== undefined && isIndexNowAccepted(response.status);
 
-      const retryable =
-        !response || response.status === 408 || response.status === 429 || response.status >= 500;
+      const retryable = isTransientIndexNowOutcome(response);
 
       const fallback = retryable
         ? Math.min(DEBOUNCE_MS * 2 ** Math.min(batch.failures, 8), MAX_BACKOFF_MS)
@@ -185,8 +189,9 @@ function finishBatch(
 
 /**
  * One minute-cron turn: at most one batch, globally serialized. 429/5xx/network failures remain
- * pending with exponential backoff; Retry-After may extend, never shorten, that cooldown.
- * Permanent refusals stay visible/pending and retry daily after configuration is repaired.
+ * pending with exponential backoff; Retry-After may extend, never shorten, that cooldown. They are
+ * the expected path, so they log a warning and the cron succeeds. Permanent refusals stay
+ * visible/pending, retry daily after configuration is repaired, and fail the cron.
  */
 export function drainIndexNow(): Effect.Effect<
   void,
@@ -211,19 +216,37 @@ export function drainIndexNow(): Effect.Effect<
 
     yield* finishBatch(batch, response);
 
-    if ("failure" in outcome) return yield* Effect.fail(outcome.failure);
+    if ("failure" in outcome) {
+      log("warn", "indexnow deferred", {
+        url_count: batch.urls.length,
+        ...errorFields(outcome.failure),
+      });
 
-    if (!isIndexNowAccepted(outcome.response.status)) {
-      return yield* Effect.fail(
-        new HttpUpstreamFailed({
-          operation: "indexnow.submit",
-          kind: classifyUpstreamCause({ status: outcome.response.status }),
-          message: `IndexNow responded ${outcome.response.status}; batch retained for retry`,
-          host: "indexnow",
-        }),
-      );
+      return;
     }
 
-    log("info", "indexnow submitted", { url_count: batch.urls.length });
+    if (isIndexNowAccepted(outcome.response.status)) {
+      log("info", "indexnow submitted", { url_count: batch.urls.length });
+
+      return;
+    }
+
+    if (isTransientIndexNowOutcome(outcome.response)) {
+      log("warn", "indexnow deferred", {
+        url_count: batch.urls.length,
+        status: outcome.response.status,
+      });
+
+      return;
+    }
+
+    return yield* Effect.fail(
+      new HttpUpstreamFailed({
+        operation: "indexnow.submit",
+        kind: classifyUpstreamCause({ status: outcome.response.status }),
+        message: `IndexNow responded ${outcome.response.status}; batch retained for retry`,
+        host: "indexnow",
+      }),
+    );
   });
 }
