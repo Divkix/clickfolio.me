@@ -1,6 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { LinkedInExportHelp } from "@/components/LinkedInExportHelp";
 import { Button } from "@/components/ui/button";
@@ -35,9 +36,9 @@ function claimErrorMessage(err: ClaimFailure): string {
 
     if (status === 401) return "Session expired. Please sign in again.";
 
-    if (status === 404) return "Upload not found. Please try uploading again.";
+    if (status === 404) return "We couldn't find this upload. Please choose the PDF again.";
 
-    if (status === 409) return "This resume was already claimed.";
+    if (status === 409) return "This résumé is already in your account.";
   } else if (err instanceof Error) {
     if (err.message.includes("network") || err.message.includes("Network")) {
       return "Network error. Check your connection.";
@@ -48,7 +49,7 @@ function claimErrorMessage(err: ClaimFailure): string {
     }
   }
 
-  return "Failed to claim resume";
+  return "We couldn't save your résumé. Please try again.";
 }
 
 export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
@@ -76,12 +77,21 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
 
   // The claim cycle runs whenever an uploaded key is waiting on a signed-in
   // user; there is no intermediate "claiming" render state to store.
-  const claiming = uploadedKey !== null && user !== null;
+  const claiming = uploadedKey !== null && user !== null && error === null;
   const claimedKeyRef = useRef<string | null>(null);
+  const anonymousUploadRef = useRef(false);
 
   const claimUpload = useCallback(
     async (key: string) => {
       try {
+        // The wizard owns the cookie handoff after authentication, including Clerk's redirect.
+        // Do not race its claim with another POST from the page the visitor is leaving.
+        if (anonymousUploadRef.current) {
+          await navigate({ to: "/wizard", replace: true });
+
+          return;
+        }
+
         const claimResponse = await fetch("/api/resume/claim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -94,7 +104,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
         if (!claimResponse.ok) {
           // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape validated server-side.
           const data = (await claimResponse.json()) as ClaimResponse;
-          throw new Error(data.error || "Failed to claim resume");
+          throw Object.assign(new Error(data.error || "We couldn't save your résumé."), {
+            status: claimResponse.status,
+          });
         }
 
         await claimResponse.json();
@@ -103,13 +115,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
 
         await clearPendingUploadCookie();
 
-        toast.success("Resume claimed successfully! Processing...");
+        toast.success("Résumé saved! Preparing your next step…");
 
         if (onOpenChange) {
           onOpenChange(false);
         }
-
-        await new Promise((resolve) => setTimeout(resolve, 100));
 
         await navigate({ to: "/dashboard", replace: true });
         await router.invalidate();
@@ -122,6 +132,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
 
         await clearPendingUploadCookie();
         setError(errorMessage);
+        onOpenChange(true);
         toast.error(errorMessage);
       }
     },
@@ -131,6 +142,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
   useEffect(() => {
     if (!uploadedKey) {
       claimedKeyRef.current = null;
+      anonymousUploadRef.current = false;
 
       return;
     }
@@ -138,7 +150,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
     if (sessionLoading) return;
     const currentUser = session?.user;
 
-    if (!currentUser) return;
+    if (!currentUser) {
+      anonymousUploadRef.current = true;
+
+      return;
+    }
 
     if (claimedKeyRef.current === uploadedKey) return;
 
@@ -173,20 +189,33 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
         fileName={file?.name}
         hasUser={user !== null}
         onReset={handleReset}
+        onSignUp={() => {
+          anonymousUploadRef.current = true;
+          flushSync(() => onOpenChange(false));
+        }}
       />
     ) : (
       <FileDropzonePrompt upload={upload} uploading={uploading} onRetry={handleRetry} />
     );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Upload New Resume</DialogTitle>
-        </DialogHeader>
-        {content}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        {open && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Upload your résumé</DialogTitle>
+            </DialogHeader>
+            {content}
+          </DialogContent>
+        )}
+      </Dialog>
+      {claiming && !open && (
+        <output className="fixed inset-x-4 bottom-4 z-50 rounded-xl border border-border bg-card p-4 text-center shadow-lg">
+          Saving your résumé. Opening the next step…
+        </output>
+      )}
+    </>
   );
 }
 
@@ -357,12 +386,14 @@ function UploadComplete({
   fileName,
   hasUser,
   onReset,
+  onSignUp,
 }: {
   claiming: boolean;
   error: string | null;
   fileName: string | undefined;
   hasUser: boolean;
   onReset: () => void;
+  onSignUp: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -393,13 +424,10 @@ function UploadComplete({
             </div>
 
             <div className="text-center">
-              <h3 className="font-semibold text-lg text-foreground mb-2">
-                AI Parsing Your Resume...
-              </h3>
+              <h3 className="font-semibold text-lg text-foreground mb-2">Saving your résumé…</h3>
               <p className="text-sm text-muted-foreground mb-1" aria-live="polite">
-                Extracting your experience, skills, and achievements
+                Preparing your résumé for the next step
               </p>
-              <p className="text-xs text-muted-foreground">This typically takes ~30 seconds</p>
             </div>
           </div>
         ) : error ? (
@@ -452,14 +480,15 @@ function UploadComplete({
               </p>
             ) : (
               <>
-                <SignInButton fallbackRedirectUrl="/wizard">
+                <SignInButton mode="sign-up" fallbackRedirectUrl="/wizard" onBeforeOpen={onSignUp}>
                   <Button type="button" disabled={claiming} className="w-full max-w-xs">
-                    Sign in to Publish
+                    Sign up to publish
                   </Button>
                 </SignInButton>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Your upload will be automatically claimed after login
+                  Create a free account to publish. We'll keep this résumé and add it to your
+                  account.
                 </p>
 
                 <button

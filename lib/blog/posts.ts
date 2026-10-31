@@ -581,7 +581,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
       {
         q: "What is the best free Linkfolio alternative?",
-        a: "If you want a resume website with no watermark and no paid tier, clickfolio.me turns your PDF resume or LinkedIn PDF export into a hosted site in about 30 seconds. It doesn't support custom domains yet.",
+        a: "clickfolio.me turns your PDF resume or LinkedIn PDF export into a hosted site with no paid tier. Public pages include a small “Built with clickfolio.me” link. It doesn't support custom domains yet.",
       },
     ],
   },

@@ -3,6 +3,9 @@ import { USER_ROLES } from "@/lib/config/roles";
 import { handleSchema } from "@/lib/schemas/handle";
 
 export const privacySettingsSchema = z.object({
+  show_email: z.boolean({
+    message: "Email visibility setting must be a boolean",
+  }),
   show_phone: z.boolean({
     message: "Phone visibility setting must be a boolean",
   }),
@@ -18,6 +21,10 @@ export const privacySettingsSchema = z.object({
 });
 
 export const privacySettingsInputSchema = z.object({
+  show_email: z
+    .boolean({ message: "Email visibility setting must be a boolean" })
+    .optional()
+    .default(true),
   show_phone: z.boolean({
     message: "Phone visibility setting must be a boolean",
   }),

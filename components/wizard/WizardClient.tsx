@@ -3,7 +3,6 @@ import { errorFields } from "@/lib/utils/error-fields";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardProgress } from "@/components/wizard";
 import { HandleStep } from "@/components/wizard/HandleStep";
@@ -13,6 +12,7 @@ import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
 import type { ResumeContent } from "@/lib/types/database";
 import { clearDesiredHandle, readDesiredHandle } from "@/lib/utils/desired-handle";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
@@ -37,12 +37,7 @@ interface WizardState {
   currentStepId: WizardStepId;
   resumeData: ResumeContent | null;
   handle: string;
-  privacySettings: {
-    show_phone: boolean;
-    show_address: boolean;
-    show_in_directory: boolean;
-    hide_from_search: boolean;
-  };
+  privacySettings: PrivacySettings;
   themeId: ThemeId;
 }
 
@@ -116,6 +111,7 @@ function useWizardInit(
     resumeData: initialStart.kind === "review" ? initialStart.content : null,
     handle: ownerHandle ?? "",
     privacySettings: {
+      show_email: true,
       show_phone: false,
       show_address: false,
       show_in_directory: true,
@@ -195,6 +191,21 @@ function useWizardInit(
   return { navigate, loading, error, setError, needsUpload, state, setState };
 }
 
+export function focusWizardStep(
+  content: {
+    querySelector(selector: "h1"): Pick<HTMLHeadingElement, "tabIndex" | "focus"> | null;
+    scrollIntoView(options: ScrollIntoViewOptions): void;
+  } | null,
+): void {
+  const heading = content?.querySelector("h1");
+
+  if (!content || !heading) return;
+
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
+  content.scrollIntoView({ block: "start", behavior: "instant" });
+}
+
 export default function WizardClient({
   initialStart,
   ownerHandle,
@@ -208,11 +219,16 @@ export default function WizardClient({
   );
 
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const stepContentRef = useRef<HTMLElement>(null);
 
   const stepOrder = getStepOrder(needsUpload);
   const totalSteps = stepOrder.length;
   const currentStepNumber = stepOrder.indexOf(state.currentStepId) + 1;
   const progress = (currentStepNumber / totalSteps) * 100;
+
+  useEffect(() => {
+    focusWizardStep(stepContentRef.current);
+  }, [loading, state.currentStepId]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -252,12 +268,7 @@ export default function WizardClient({
     setState((prev) => ({ ...prev, currentStepId: "privacy" }));
   };
 
-  const handlePrivacyContinue = (settings: {
-    show_phone: boolean;
-    show_address: boolean;
-    show_in_directory: boolean;
-    hide_from_search: boolean;
-  }) => {
+  const handlePrivacyContinue = (settings: PrivacySettings) => {
     setState((prev) => ({
       ...prev,
       privacySettings: settings,
@@ -294,6 +305,8 @@ export default function WizardClient({
       log("error", "Error completing wizard:", { ...errorFields(err) });
       const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
+      // Keep toast code out of the wizard's initial browser bundle.
+      const { toast } = await import("sonner");
       toast.error(errorMessage);
     }
   };
@@ -329,7 +342,7 @@ export default function WizardClient({
         hasUploadStep={needsUpload}
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-12">
+      <main ref={stepContentRef} className="max-w-5xl mx-auto px-4 py-12 scroll-mt-24">
         {error && stepOrder.indexOf(state.currentStepId) > 0 && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
@@ -359,7 +372,11 @@ export default function WizardClient({
         )}
 
         {state.currentStepId === "theme" && (
-          <ThemeStep initialTheme={state.themeId} onContinue={handleThemeContinue} />
+          <ThemeStep
+            handle={state.handle}
+            initialTheme={state.themeId}
+            onContinue={handleThemeContinue}
+          />
         )}
       </main>
     </div>

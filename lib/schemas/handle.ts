@@ -14,3 +14,18 @@ export const handleSchema = z
     z.regex(/^(?!.*--)/, "Handle cannot contain consecutive hyphens"),
     z.refine(noXssPattern, { message: "Invalid content detected" }),
   );
+
+/**
+ * Fold accented letters before applying the handle's ASCII-only format. Runs on every keystroke,
+ * so a trailing hyphen stays for the next character to follow; `handleSchema` still rejects it.
+ */
+export function normalizeHandleInput(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-/, "")
+    .slice(0, 30);
+}

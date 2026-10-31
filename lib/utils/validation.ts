@@ -3,10 +3,15 @@ export const MAX_FILE_SIZE_MB = 5;
 export const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 export const MAX_FILE_SIZE_LABEL = `${MAX_FILE_SIZE_MB}MB`;
+export const EMPTY_PDF_MESSAGE = "This file is empty. Choose a different PDF.";
 
 export type ValidationResult = { valid: boolean; error?: string };
 
 export function validatePDF(file: File): ValidationResult {
+  if (file.size === 0) {
+    return { valid: false, error: EMPTY_PDF_MESSAGE };
+  }
+
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: `File size must be less than ${MAX_FILE_SIZE_LABEL}` };
   }
@@ -48,6 +53,10 @@ export function tempUploadId(key: string): string | undefined {
 }
 
 export function validatePDFBuffer(buffer: ArrayBuffer): ValidationResult {
+  if (buffer.byteLength === 0) {
+    return { valid: false, error: EMPTY_PDF_MESSAGE };
+  }
+
   const bytes = new Uint8Array(buffer);
 
   if (

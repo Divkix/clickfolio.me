@@ -59,7 +59,7 @@ interface JsonLdOptions {
   dateCreated?: string;
   dateModified?: string;
   includeEmail?: boolean;
-  privacySettings: Pick<PrivacySettings, "hide_from_search">;
+  privacySettings: Pick<PrivacySettings, "hide_from_search" | "show_email">;
 }
 
 const URL_PATTERNS = {
@@ -228,7 +228,7 @@ export function generateResumeJsonLd(
     person.knowsAbout = knowsAbout;
   }
 
-  if (includeEmail && content.contact.email) {
+  if (includeEmail && privacySettings.show_email && content.contact.email) {
     person.email = content.contact.email;
   }
 

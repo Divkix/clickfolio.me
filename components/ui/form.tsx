@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Controller,
   type ControllerProps,
+  type FieldError,
   type FieldPath,
   type FieldValues,
   FormProvider,
@@ -124,7 +125,16 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? "") : props.children;
+
+  const body =
+    error?.message ??
+    (Array.isArray(error)
+      ? [
+          ...new Set(
+            error.flatMap((item: FieldError | undefined) => (item?.message ? [item.message] : [])),
+          ),
+        ].join(" ")
+      : props.children);
 
   if (!body) {
     return null;
@@ -134,7 +144,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("text-destructive text-sm", className)}
+      className={cn("text-destructive text-sm min-w-0 wrap-anywhere", className)}
       {...props}
     >
       {body}

@@ -13,10 +13,15 @@ const getStepTitle = (step: number, hasUploadStep: boolean): string => {
     "Choose Handle",
     "Review Content",
     "Privacy Settings",
-    "Select Theme",
+    "Select Template",
   ];
 
-  const normalStepTitles = ["Choose Handle", "Review Content", "Privacy Settings", "Select Theme"];
+  const normalStepTitles = [
+    "Choose Handle",
+    "Review Content",
+    "Privacy Settings",
+    "Select Template",
+  ];
 
   const titles = hasUploadStep ? uploadStepTitles : normalStepTitles;
 

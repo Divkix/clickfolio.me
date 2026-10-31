@@ -64,6 +64,7 @@ async function seedListed(handle: string, thin = false) {
     showInDirectory: true,
     onboardingCompleted: true,
     privacySettings: {
+      show_email: true,
       show_phone: false,
       show_address: false,
       hide_from_search: false,

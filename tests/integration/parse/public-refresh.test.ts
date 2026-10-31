@@ -77,6 +77,7 @@ async function seedProfile(handle: string, content: ResumeContent, hideFromSearc
     showInDirectory: true,
     onboardingCompleted: true,
     privacySettings: {
+      show_email: true,
       show_phone: false,
       show_address: false,
       hide_from_search: hideFromSearch,

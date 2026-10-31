@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { truncateText } from "@/lib/utils/format";
 import { sanitizeEmail, sanitizeUrl } from "@/lib/utils/sanitization";
+import { normalizeResumeDescriptions } from "./normalize-descriptions";
 
 const MAX_EXPERIENCE_ENTRIES = 10;
 
@@ -378,5 +379,5 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
     delete result.contact.website;
   }
 
-  return result;
+  return normalizeResumeDescriptions(result);
 }

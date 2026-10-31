@@ -105,9 +105,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                         <FormLabel>Skills (comma-separated)</FormLabel>
                         <FormControl>
                           <CommaArrayInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
+                            {...field}
                             placeholder="JavaScript, TypeScript, Python"
                           />
                         </FormControl>

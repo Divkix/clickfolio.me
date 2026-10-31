@@ -52,7 +52,7 @@ export function Sidebar({ isOpen = true, onClose, handle, isAdmin }: SidebarProp
       exact: false,
     },
     {
-      name: "Themes",
+      name: "Templates",
       href: "/themes",
       icon: Palette,
       exact: false,

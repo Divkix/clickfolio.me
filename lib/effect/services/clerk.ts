@@ -1,6 +1,7 @@
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Context, Effect, Layer } from "effect";
 import { z } from "zod";
+import { clerkUserSchema, toUserPayload, type ClerkUserPayload } from "@/lib/auth/clerk-user";
 import { getOptionalEnvValue } from "@/lib/utils/env";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
@@ -54,10 +55,11 @@ type Verification =
   | { readonly outcome: "verified"; readonly claims: ClerkClaims }
   | { readonly outcome: "rejected"; readonly cause: unknown };
 
-// What `users.deleteUser` throws on a refusal: a ClerkAPIResponseError carries the HTTP status.
+// ClerkAPIResponseError carries the HTTP status for Backend API refusals.
 const httpStatusSchema = z.object({ status: z.number() });
 
 const DELETE_USER_OPERATION = "clerk.delete-user";
+const GET_USER_OPERATION = "clerk.get-user";
 const VERIFY_TOKEN_OPERATION = "clerk.verify-token";
 
 /** A missing key is a deployment fault: retrying the same call cannot fix it. */
@@ -78,6 +80,8 @@ type ClerkService = {
    * the timeout and never retries.
    */
   readonly verifyToken: (token: string) => Effect.Effect<ClerkClaims | null, ClerkFailed>;
+  /** Reads an identity once for verified-session provisioning; 404/deleted is missing, not a write. */
+  readonly getUser: (clerkId: string) => Effect.Effect<ClerkUserPayload | null, ClerkFailed>;
   /**
    * Deletes the Clerk identity. A user Clerk no longer has (404) counts as deleted, so a repeat
    * of a delete that landed after a timeout still succeeds. A missing secret key fails
@@ -113,12 +117,56 @@ function deleteUserWith(secretKey: string | undefined): ClerkService["deleteUser
   };
 }
 
+function getUserWith(secretKey: string | undefined): ClerkService["getUser"] {
+  return (clerkId) => {
+    if (!secretKey) return Effect.fail(missingSecret(GET_USER_OPERATION));
+
+    return externalCall({
+      operation: GET_USER_OPERATION,
+      timeoutMs: TIMEOUT_MS.clerk,
+      // The SDK takes no AbortSignal; this call adds no retries.
+      run: async () => {
+        try {
+          return await createClerkClient({ secretKey }).users.getUser(clerkId);
+        } catch (cause) {
+          const status = httpStatusSchema.safeParse(cause);
+
+          if (status.success && status.data.status === 404) return null;
+
+          throw cause;
+        }
+      },
+      fail: (details) => new ClerkFailed(details),
+    }).pipe(
+      Effect.flatMap((user) => {
+        if (user === null) return Effect.succeed(null);
+
+        // The SDK retains the Backend API JSON, matching the verified webhook's schema.
+        const parsed = clerkUserSchema.safeParse(user?.raw);
+
+        if (!parsed.success || parsed.data.id !== clerkId) {
+          return Effect.fail(
+            new ClerkFailed({
+              operation: GET_USER_OPERATION,
+              kind: "invalid-response",
+              message: "Clerk returned an invalid user",
+            }),
+          );
+        }
+
+        return Effect.succeed(parsed.data.deleted ? null : toUserPayload(parsed.data));
+      }),
+    );
+  };
+}
+
 function service(secretKey: string | undefined, appUrl: string | undefined): ClerkService {
   const parsedUrl = z.url().safeParse(appUrl);
   const authorizedParty = parsedUrl.success ? new URL(parsedUrl.data).origin : null;
 
   return {
     deleteUser: deleteUserWith(secretKey),
+    getUser: getUserWith(secretKey),
     verifyToken: (token) => {
       if (!token) return Effect.succeed(null);
 
@@ -186,13 +234,14 @@ export class Clerk extends Context.Service<Clerk, ClerkService>()("clickfolio/Cl
   }
 
   /**
-   * For tests: swap the verification (and optionally the deletion) itself, no network and no
-   * secret. Without `deleteUser`, deleting fails as not configured.
+   * For tests: swap verification and optionally deletion/lookup, with no network or secret.
+   * Unconfigured Backend API methods fail rather than inventing an identity.
    */
   static layerFrom(
     verify: ClerkService["verifyToken"],
     deleteUser: ClerkService["deleteUser"] = deleteUserWith(undefined),
+    getUser: ClerkService["getUser"] = getUserWith(undefined),
   ): Layer.Layer<Clerk> {
-    return Layer.succeed(Clerk, { verifyToken: verify, deleteUser });
+    return Layer.succeed(Clerk, { verifyToken: verify, deleteUser, getUser });
   }
 }

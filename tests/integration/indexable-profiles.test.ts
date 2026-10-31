@@ -54,6 +54,7 @@ async function seed() {
       email: `${id}@example.com`,
       handle: i % 13 === 5 ? null : `h-${String((i * 37) % USER_COUNT).padStart(3, "0")}-${i}`,
       privacySettings: {
+        show_email: true,
         show_phone: false,
         show_address: i % 2 === 0,
         hide_from_search: i % 4 === 1,

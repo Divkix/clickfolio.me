@@ -3,7 +3,8 @@
  * owns the rules: only the `__session` cookie counts (never `Authorization: Bearer`), an expired or
  * invalid token is signed out, and an unreachable JWKS or bad secret is `ClerkFailed`.
  *
- * Session handling is Effect-only (`resolveAuth`, `authenticate`).
+ * Verified identities missing their row are provisioned through the same mapping as webhooks.
+ * Existing users stay DB-only after token verification; no auth sleeps or retries.
  */
 
 import { getRequest } from "@tanstack/react-start/server";
@@ -11,6 +12,7 @@ import { Effect } from "effect";
 import { eq } from "drizzle-orm";
 import type { User as SchemaUser } from "@/lib/db/schema";
 import { user as userTable } from "@/lib/db/schema";
+import { upsertUser } from "@/lib/auth/clerk-user";
 import { Db } from "@/lib/effect/db";
 import {
   NotFound,
@@ -128,23 +130,38 @@ export function resolveAuth(
 }
 
 /**
- * The one `clerk_id` → user-row lookup: the API (`authenticate`) and page (`findSession`) readers
- * both read their own fields from this row, so a new auth-relevant column or predicate lands
- * here once.
+ * The one verified `clerk_id` → user-row lookup, shared by API and page-session auth.
+ * Call only after `resolveAuth`: client-supplied ids must never provision accounts.
  */
 export function findUserByClerkId(clerkId: string) {
-  return Db.use((service) =>
-    service.query("auth.user-by-clerk-id", (db) =>
-      db.select(authUserColumns).from(userTable).where(eq(userTable.clerkId, clerkId)).limit(1),
-    ),
-  );
+  return Effect.gen(function* () {
+    const read = Db.use((service) =>
+      service.query("auth.user-by-clerk-id", (db) =>
+        db.select(authUserColumns).from(userTable).where(eq(userTable.clerkId, clerkId)).limit(1),
+      ),
+    );
+
+    const rows = yield* read;
+
+    if (rows.length > 0) return rows;
+
+    const payload = yield* Clerk.use((clerk) => clerk.getUser(clerkId));
+
+    if (!payload) return [];
+
+    yield* Db.use((service) =>
+      service.query("auth.provision-user", (db) => upsertUser(db, payload)),
+    );
+
+    return yield* read;
+  });
 }
 
 export type AuthFailure = Unauthorized | NotFound | ClerkFailed | DbFailed | DbConflict;
 
 /**
  * Signed-in user for an API request. `Unauthorized` when signed out; `NotFound` when the JWT is
- * valid but the user row is missing (webhook lag), which callers treat as an auth failure.
+ * valid but Clerk no longer has the identity, which callers treat as an auth failure.
  */
 export function authenticate(
   options: { readonly request?: Request; readonly unauthorizedMessage?: string } = {},

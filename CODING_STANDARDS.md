@@ -14,7 +14,7 @@ Review-time rules. Apply every rule below to each changed hunk and report each v
 
 - Session auth reads only the `__session` cookie; `Authorization: Bearer` is never a fallback.
 - Only an expired or invalid token is signed-out (401); a token's `azp` must match the `APP_URL` origin (localhost in dev). An unreachable JWKS, a bad `CLERK_SECRET_KEY` or a missing/malformed `APP_URL` is `ClerkFailed` (5xx), never a sign-out.
-- A valid JWT whose user row is missing (webhook lag) is 404; callers treat it as an auth failure.
+- A valid JWT whose user row is missing is provisioned once from Clerk (`findUserByClerkId`), so first access never waits on the webhook; it is 404 only when Clerk no longer has the identity, and callers treat that as an auth failure.
 - Admin checks re-read `isAdmin` from the DB every request. `user.role` is career level, never an authz signal.
 - Each `app/routes/_protected/` page's server fn gates itself (`getServerSession` → `redirect`); the layout never redirects.
 - The Clerk publishable key and Umami website id reach the client at request time through the root `getPublicConfig` server fn, never inlined at build time.

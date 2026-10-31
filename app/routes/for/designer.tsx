@@ -14,7 +14,7 @@ import { TEMPLATE_COUNT } from "@/lib/templates/theme-ids";
 
 const title = "Portfolio Website for Designers";
 
-const description = `Turn your PDF into a stunning design portfolio website. Showcase your work with ${TEMPLATE_COUNT} beautiful templates — free, no signup required. Custom @handle URL included.`;
+const description = `Turn your PDF into a design portfolio website with ${TEMPLATE_COUNT} free templates and a custom @handle URL. Upload first; create a free account to publish.`;
 
 const path = "/for/designer";
 
@@ -64,7 +64,8 @@ function DesignerPage() {
           </h1>
           <p className="text-lg text-muted-foreground mb-8">
             Your work deserves a canvas, not a template. Upload your PDF resume and get a
-            designer-quality portfolio website with a custom @handle URL — free, no signup needed.
+            designer-quality portfolio website with a custom @handle URL. Upload without an account;
+            create a free account to publish.
           </p>
 
           <RoleSection

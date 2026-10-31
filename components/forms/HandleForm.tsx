@@ -27,9 +27,12 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
     register,
     handleSubmit,
     control,
+    reset,
+    setError,
     formState: { errors, isDirty },
   } = useForm<HandleUpdate>({
     resolver: zodResolver(handleUpdateSchema),
+    mode: "onChange",
     defaultValues: {
       handle: currentHandle,
     },
@@ -66,13 +69,18 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
       if (!response.ok) {
         // SAFETY: ApiErrorBody is from our /api/profile/handle endpoint; shape is server-controlled error response.
         const errorData = (await response.json()) as ApiErrorBody;
-        throw new Error(errorData.error || "Failed to update handle");
+        const message = errorData.error || "Failed to update handle";
+        setError("handle", { type: "server", message });
+        toast.error(message);
+
+        return;
       }
 
       await response.json();
+      reset(data);
 
+      await router.invalidate();
       toast.success("Handle updated successfully!");
-      void router.invalidate();
     } catch (err) {
       log("error", "Handle update error", { ...errorFields(err) });
       toast.error(err instanceof Error ? err.message : "Failed to update handle");
@@ -120,21 +128,30 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
               {...register("handle")}
               placeholder="new-handle"
               className="border-0 p-0 h-9 focus-visible:ring-0 font-mono text-sm"
+              aria-invalid={!!errors.handle}
+              aria-describedby="handle-feedback"
               disabled={isSaving}
             />
           </div>
           <Button
             type="submit"
             loading={isSaving}
-            disabled={!isDirty || !!errors.handle}
+            disabled={!isDirty || newHandle === currentHandle || !!errors.handle}
             className="shrink-0"
           >
             Update
           </Button>
         </div>
-        {errors.handle && <p className="text-xs text-destructive mt-1">{errors.handle.message}</p>}
-        {isDirty && newHandle !== currentHandle && !errors.handle && (
-          <p className="text-xs text-brand mt-1">
+        {errors.handle ? (
+          <p id="handle-feedback" className="text-xs text-destructive mt-1 wrap-anywhere">
+            {errors.handle.message}
+          </p>
+        ) : newHandle === currentHandle ? (
+          <p id="handle-feedback" className="text-xs text-muted-foreground mt-1">
+            This is your current handle. Enter a different handle to update it.
+          </p>
+        ) : (
+          <p id="handle-feedback" className="text-xs text-brand mt-1">
             Preview: {siteConfig.domain}/@{newHandle}
           </p>
         )}

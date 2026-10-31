@@ -190,7 +190,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                   <FormField
                     control={form.control}
                     name={`experience.${index}.highlights`}
-                    render={({ field }) => {
+                    render={({ field, fieldState }) => {
                       const highlights = field.value || [];
 
                       return (
@@ -203,35 +203,44 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                             Add bullet points highlighting your key accomplishments
                           </FormDescription>
                           <div className="space-y-2">
-                            {highlights.map((highlight: string, hIndex: number) => (
-                              <div key={hIndex} className="flex gap-2">
-                                <Input
-                                  value={highlight}
-                                  onChange={(e) => {
-                                    const newHighlights = [...highlights];
-                                    newHighlights[hIndex] = e.target.value;
-                                    field.onChange(newHighlights);
-                                  }}
-                                  placeholder="e.g., Increased sales by 25%"
-                                  className="flex-1"
-                                  maxLength={500}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    const newHighlights = highlights.filter(
-                                      (_: string, i: number) => i !== hIndex,
-                                    );
-
-                                    field.onChange(newHighlights);
-                                  }}
-                                  className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
+                            {highlights.map((_: string, hIndex: number) => (
+                              <FormField
+                                key={hIndex}
+                                control={form.control}
+                                name={`experience.${index}.highlights.${hIndex}`}
+                                render={({ field: highlightField }) => (
+                                  <FormItem>
+                                    <div className="flex gap-2">
+                                      <FormControl>
+                                        <Input
+                                          {...highlightField}
+                                          aria-label={`Achievement ${hIndex + 1} for position ${index + 1}`}
+                                          placeholder="e.g., Increased sales by 25%"
+                                          className="flex-1"
+                                          maxLength={500}
+                                        />
+                                      </FormControl>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Remove achievement ${hIndex + 1}`}
+                                        onClick={() => {
+                                          field.onChange(
+                                            highlights.filter(
+                                              (_: string, i: number) => i !== hIndex,
+                                            ),
+                                          );
+                                        }}
+                                        className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
                             ))}
                             <Button
                               type="button"
@@ -247,7 +256,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                               Add Achievement
                             </Button>
                           </div>
-                          <FormMessage />
+                          {fieldState.error?.message && <FormMessage />}
                         </FormItem>
                       );
                     }}

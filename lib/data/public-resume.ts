@@ -1,5 +1,6 @@
 import { notFound, redirect } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
+import { normalizeResumeDescriptions } from "@/lib/ai/normalize-descriptions";
 import { runPage } from "@/lib/effect/edges";
 import { appLayer } from "@/lib/effect/layers";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
@@ -114,13 +115,17 @@ function buildResumeData(row: ProfileRow, siteData: ResumeSiteData): ResumeData 
 
   const themeId = resolveThemeId(siteData.themeId);
 
-  let content = siteData.content;
+  let content = normalizeResumeDescriptions(siteData.content);
 
   if (content.contact) {
     content = {
       ...content,
       contact: { ...content.contact },
     };
+
+    if (!privacySettings.show_email) {
+      delete content.contact.email;
+    }
 
     if (!privacySettings.show_phone && content.contact.phone) {
       delete content.contact.phone;

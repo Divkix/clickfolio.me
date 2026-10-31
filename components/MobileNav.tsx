@@ -5,8 +5,9 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-interface NavLink {
-  href: "/explore" | "/templates" | "/blog" | "/faq" | "/about";
+export interface NavLink {
+  href: "/" | "/explore" | "/templates" | "/blog" | "/faq" | "/about";
+  hash?: string;
   label: string;
 }
 
@@ -31,6 +32,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
             <Link
               key={link.href}
               to={link.href}
+              hash={link.hash}
               onClick={() => setOpen(false)}
               className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-surface-2"
             >

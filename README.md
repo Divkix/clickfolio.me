@@ -466,8 +466,8 @@ Allows anonymous users to upload before authenticating:
 Before rendering public profiles:
 
 - Phone numbers: Hidden by default
-- Addresses: City/State only (full address hidden)
-- Email: Public (for contact)
+- Addresses: City, region or country only (full street address hidden)
+- Email: Shown by default; owners can hide it in the wizard or Settings
 - User controls visibility in settings
 
 ### Real-time Updates (WebSocket)
@@ -593,7 +593,7 @@ pnpm run build       # Fix errors and rebuild
 ### Auth Redirect Issues / Users Missing After Sign-Up
 
 1. Verify `CLERK_SECRET_KEY` / `CLERK_PUBLISHABLE_KEY` match the same Clerk application
-2. Confirm the Clerk webhook points at `/api/webhooks/clerk` and `CLERK_WEBHOOK_SECRET` matches — a signed-in user with no synced row gets 404s until the webhook lands
+2. Confirm the Clerk webhook points at `/api/webhooks/clerk` and `CLERK_WEBHOOK_SECRET` matches — a missing row is provisioned from Clerk on first sign-in, but profile updates and deletions only arrive through the webhook
 3. Clear browser cookies
 
 ### Database Connection Failures

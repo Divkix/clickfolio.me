@@ -8,11 +8,14 @@ import { ClerkFailed } from "@/lib/effect/failures";
 import { Clerk } from "@/lib/effect/services/clerk";
 import { logLines } from "../../helpers/log-lines";
 
-const { deleteUser } = vi.hoisted(() => ({ deleteUser: vi.fn() }));
+const { deleteUser, getUser } = vi.hoisted(() => ({
+  deleteUser: vi.fn(),
+  getUser: vi.fn<(clerkId: string) => Promise<{ raw: unknown }>>(),
+}));
 
 vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
-  createClerkClient: vi.fn(() => ({ users: { deleteUser } })),
+  createClerkClient: vi.fn(() => ({ users: { deleteUser, getUser } })),
 }));
 
 const mockVerifyToken = vi.mocked(verifyToken);
@@ -299,5 +302,128 @@ describe("Clerk.deleteUser", () => {
 
     expect(failure).toMatchObject({ kind: "timeout" });
     expect(describeFailure(failure)).toMatchObject({ status: 504 });
+  });
+});
+
+function lookup(clerkId: string, layerEnv: CloudflareEnv = env) {
+  return Effect.runPromise(
+    Effect.provide(
+      Clerk.use((clerk) => clerk.getUser(clerkId)),
+      Clerk.layer(layerEnv),
+    ),
+  );
+}
+
+function lookupFailure(clerkId: string, layerEnv: CloudflareEnv = env) {
+  return Effect.runPromise(
+    Effect.provide(
+      Effect.flip(Clerk.use((clerk) => clerk.getUser(clerkId))),
+      Clerk.layer(layerEnv),
+    ),
+  );
+}
+
+describe("Clerk.getUser", () => {
+  it("normalizes the Backend API JSON with the webhook's user schema", async () => {
+    getUser.mockResolvedValue({
+      raw: {
+        id: "user_abc",
+        external_id: "legacy_1",
+        first_name: "Ada",
+        last_name: "Lovelace",
+        image_url: "https://img.clerk.test/ada.png",
+        primary_email_address_id: "email_1",
+        email_addresses: [
+          {
+            id: "email_1",
+            email_address: "ada@example.com",
+            verification: { status: "verified" },
+          },
+        ],
+      },
+    });
+
+    await expect(lookup("user_abc")).resolves.toEqual({
+      id: "user_abc",
+      externalId: "legacy_1",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      imageUrl: "https://img.clerk.test/ada.png",
+      primaryEmailAddressId: "email_1",
+      emailAddresses: [
+        {
+          id: "email_1",
+          email_address: "ada@example.com",
+          verification: { status: "verified" },
+        },
+      ],
+    });
+    expect(mockCreateClerkClient).toHaveBeenCalledWith({ secretKey: SECRET });
+    expect(getUser).toHaveBeenCalledExactlyOnceWith("user_abc");
+  });
+
+  it("returns null when Clerk no longer has the identity", async () => {
+    getUser.mockRejectedValue(Object.assign(new Error("not found"), { status: 404 }));
+
+    await expect(lookup("user_abc")).resolves.toBeNull();
+    expect(getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null for an explicitly deleted identity", async () => {
+    getUser.mockResolvedValue({ raw: { id: "user_abc", deleted: true } });
+
+    await expect(lookup("user_abc")).resolves.toBeNull();
+  });
+
+  it.each([null, {}, { id: "another_user" }])(
+    "fails closed for a malformed or mismatched Backend API payload: %j",
+    async (raw) => {
+      getUser.mockResolvedValue({ raw });
+
+      const failure = await lookupFailure("user_abc");
+
+      expect(failure).toBeInstanceOf(ClerkFailed);
+      expect(failure).toMatchObject({
+        kind: "invalid-response",
+        operation: "clerk.get-user",
+      });
+    },
+  );
+
+  it("surfaces Backend API outages, not a missing identity", async () => {
+    getUser.mockRejectedValue(Object.assign(new Error("unavailable"), { status: 503 }));
+
+    const failure = await lookupFailure("user_abc");
+
+    expect(failure).toBeInstanceOf(ClerkFailed);
+    expect(describeFailure(failure)).toMatchObject({ status: 503, retryable: true });
+  });
+
+  it("surfaces a bad secret as a deployment failure, not a missing identity", async () => {
+    getUser.mockRejectedValue(Object.assign(new Error("unauthorized"), { status: 401 }));
+
+    const failure = await lookupFailure("user_abc");
+
+    expect(failure).toBeInstanceOf(ClerkFailed);
+    expect(describeFailure(failure)).toMatchObject({ status: 500, retryable: false });
+  });
+
+  it("requires a configured secret without creating a Backend API client", async () => {
+    const failure = await lookupFailure("user_abc", envWithoutSecret);
+
+    expect(failure).toMatchObject({ operation: "clerk.get-user", kind: "rejected" });
+    expect(mockCreateClerkClient).not.toHaveBeenCalled();
+  });
+
+  it("times out once without retrying the Backend API read", async () => {
+    vi.useFakeTimers();
+    getUser.mockReturnValue(new Promise<never>(() => {}));
+
+    const pending = lookupFailure("user_abc");
+
+    await vi.advanceTimersByTimeAsync(8_001);
+
+    expect(await pending).toMatchObject({ kind: "timeout" });
+    expect(getUser).toHaveBeenCalledTimes(1);
   });
 });

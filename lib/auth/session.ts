@@ -20,10 +20,10 @@ export interface AppSession {
 }
 
 /**
- * The signed-in user's session, or `null` when signed out or the user row does not exist yet.
- * Clerk or Postgres being unavailable fails instead of reading as signed out. Redirecting is the
- * caller's job, after the Effect returns. The token comes from `request`'s __session cookie, or
- * from the Start request being served when it is left out.
+ * The signed-in user's session, provisioning a missing row from a verified Clerk identity.
+ * Signed-out or deleted identities return `null`; Clerk or Postgres outages fail instead.
+ * Redirecting is the caller's job, after the Effect returns. The token comes from `request`'s
+ * __session cookie, or from the Start request being served when it is left out.
  */
 export function findSession(
   request?: Request,

@@ -19,7 +19,12 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
+import {
+  EMPTY_PDF_MESSAGE,
+  generateTempKey,
+  MAX_FILE_SIZE,
+  validatePDFBuffer,
+} from "@/lib/utils/validation";
 
 const MIN_PDF_SIZE = 100;
 
@@ -58,8 +63,12 @@ function inspectHeaders(request: Request): UploadHeaders | Response {
 
   const contentLength = parseInt(contentLengthHeader, 10);
 
-  if (Number.isNaN(contentLength) || contentLength <= 0) {
+  if (Number.isNaN(contentLength) || contentLength < 0) {
     return createErrorResponse("Invalid Content-Length header", ERROR_CODES.BAD_REQUEST, 400);
+  }
+
+  if (contentLength === 0) {
+    return createErrorResponse(EMPTY_PDF_MESSAGE, ERROR_CODES.BAD_REQUEST, 400);
   }
 
   if (contentLength > MAX_FILE_SIZE) {
@@ -135,6 +144,10 @@ function readUploadBody(request: Request, contentLength: number) {
     for (const ch of chunks) {
       combined.set(ch, offset);
       offset += ch.length;
+    }
+
+    if (totalBytes === 0) {
+      return yield* Effect.fail(new InvalidInput({ message: EMPTY_PDF_MESSAGE }));
     }
 
     if (totalBytes !== contentLength) {

@@ -70,6 +70,7 @@ beforeEach(async () => {
       handle: "owner",
       headline: null,
       privacySettings: {
+        show_email: true,
         show_phone: false,
         show_address: false,
         hide_from_search: false,

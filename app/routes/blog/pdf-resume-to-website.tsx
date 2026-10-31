@@ -173,11 +173,11 @@ function PdfResumeToWebsitePage() {
           items={[
             {
               lead: "Upload your PDF.",
-              body: " Drag and drop your resume PDF onto the clickfolio.me homepage. No account needed for upload.",
+              body: " Drag and drop your resume PDF onto the clickfolio.me homepage. You can upload without an account; a free account is required to parse and publish it.",
             },
             {
-              lead: "Sign in with Google.",
-              body: " One-click authentication. We use Google OAuth — no password to remember, no email verification to wait for.",
+              lead: "Create a free account or sign in.",
+              body: " Use Google or email through Clerk. Email sign-up includes email verification.",
             },
             {
               lead: "Claim your upload.",

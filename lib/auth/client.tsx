@@ -1,6 +1,7 @@
 import { Slot } from "@radix-ui/react-slot";
 import { CatchBoundary, useNavigate } from "@tanstack/react-router";
 import {
+  cloneElement,
   createContext,
   lazy,
   Suspense,
@@ -10,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ButtonHTMLAttributes,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -134,30 +136,66 @@ export function useSession(): UseSessionResult {
 }
 
 /**
- * Opens Clerk's sign-in modal; a click before Clerk has loaded waits for it. Clerk won't open
- * sign-in over an existing session, so a signed-in visitor goes straight to the redirect. If
- * Clerk failed to load, the click shows a toast asking for a reload.
+ * Loads Clerk on demand with immediate button feedback. Both account flows return to the
+ * requested page, including when the visitor switches between sign-up and sign-in.
  */
 export function SignInButton({
   fallbackRedirectUrl,
+  mode = "sign-in",
+  onBeforeOpen,
   children,
-}: Readonly<{ fallbackRedirectUrl: string; children: ReactElement }>) {
+}: Readonly<{
+  fallbackRedirectUrl: string;
+  mode?: "sign-in" | "sign-up";
+  onBeforeOpen?: () => void;
+  children: ReactElement<ButtonHTMLAttributes<HTMLButtonElement>>;
+}>) {
   const { getClerk } = useSessionContext();
   const navigate = useNavigate();
+  const [opening, setOpening] = useState(false);
+  const openingRef = useRef(false);
 
   return (
     <Slot
-      onClick={() =>
-        void getClerk().then(
-          (clerk) =>
-            clerk.user
-              ? navigate({ href: fallbackRedirectUrl })
-              : clerk.openSignIn({ fallbackRedirectUrl }),
-          notifyClerkUnavailable,
-        )
-      }
+      onClick={async () => {
+        if (openingRef.current) return;
+
+        openingRef.current = true;
+        setOpening(true);
+
+        try {
+          const clerk = await getClerk();
+
+          if (clerk.user) {
+            await navigate({ href: fallbackRedirectUrl });
+
+            return;
+          }
+
+          onBeforeOpen?.();
+
+          if (mode === "sign-up") {
+            clerk.openSignUp({
+              forceRedirectUrl: fallbackRedirectUrl,
+              signInForceRedirectUrl: fallbackRedirectUrl,
+            });
+          } else {
+            clerk.openSignIn({
+              forceRedirectUrl: fallbackRedirectUrl,
+              signUpForceRedirectUrl: fallbackRedirectUrl,
+            });
+          }
+        } catch {
+          notifyClerkUnavailable();
+        } finally {
+          openingRef.current = false;
+          setOpening(false);
+        }
+      }}
     >
-      {children}
+      {opening
+        ? cloneElement(children, { disabled: true, "aria-busy": true, children: "Loading…" })
+        : children}
     </Slot>
   );
 }

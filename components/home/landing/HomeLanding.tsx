@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Footer } from "@/components/Footer";
+import { AccountDeletedNotice } from "@/components/home/AccountDeletedNotice";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { PROFESSIONS } from "@/lib/config/professions";
+import { normalizeHandleInput } from "@/lib/schemas/handle";
 import { DEMO_PROFILES } from "@/lib/templates/demo-profiles";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 import { HandlePreview } from "./HandlePreview";
@@ -15,17 +17,23 @@ const themes = DEMO_PROFILES.map((profile) => ({
   name: THEME_METADATA[profile.id].name,
   preview: THEME_METADATA[profile.id].preview,
   person: profile.name,
-  handle: profile.name.toLowerCase().replace(/[^a-z]/g, ""),
+  handle: normalizeHandleInput(profile.name),
 }));
 
 const facts = [
-  { title: "Free", body: "No trial, no paid tier, no watermark." },
+  {
+    title: "Free",
+    body: "All designs, publishing, editing and hosting. Public pages include a small “Built with clickfolio.me” link.",
+  },
   { title: "Open source", body: "Every line that touches your résumé is on GitHub." },
   {
-    title: "Private by default",
-    body: "Phone and street address stay hidden until you show them.",
+    title: "Contact details, your choice",
+    body: "Phone and street address start hidden. Your page is public, listed in Explore and visible to search engines by default; you choose what shows.",
   },
-  { title: "Yours to delete", body: "Remove your account and every file from Settings." },
+  {
+    title: "Yours to delete",
+    body: "Delete your account, résumé and files from Settings. Diagnostics are deleted automatically within 90 days.",
+  },
 ];
 
 export function HomeLanding() {
@@ -34,13 +42,14 @@ export function HomeLanding() {
       <SiteHeader />
 
       <main id="main-content" className="flex-1 pb-20 lg:pb-0">
+        <AccountDeletedNotice />
         <section className="relative overflow-hidden">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-40 right-0 h-[560px] w-[760px] rounded-full bg-brand/10 blur-3xl"
           />
-          <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl items-center gap-x-16 gap-y-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-8">
-            <div>
+          <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl grid-cols-1 items-center gap-x-16 gap-y-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-8">
+            <div className="min-w-0">
               <h1 className="text-5xl leading-[0.98] font-semibold sm:text-6xl xl:text-7xl">
                 Your résumé, live on the web in 30 seconds.
               </h1>
@@ -53,7 +62,9 @@ export function HomeLanding() {
                   Upload your résumé
                 </UploadCTA>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">Free. No account needed.</p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Free to upload without an account. A free account is required to publish.
+              </p>
             </div>
 
             <HandlePreview themes={themes} />
@@ -88,7 +99,8 @@ export function HomeLanding() {
           <ThemeMarquee />
         </section>
 
-        <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section id="pricing" className="mx-auto mt-20 max-w-7xl scroll-mt-24 px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-8 text-3xl font-semibold">Pricing: free, with no trial or paid tier</h2>
           <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {facts.map((fact) => (
               <li key={fact.title} className="border-t border-foreground pt-4">

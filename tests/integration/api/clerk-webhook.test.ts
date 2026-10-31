@@ -224,6 +224,36 @@ describe("POST /api/webhooks/clerk", () => {
     });
   });
 
+  it("accepts the row JIT provisioning inserted after the webhook's mapping read", async () => {
+    const findFirst = db.query.user.findFirst.bind(db.query.user);
+    const insert = vi.spyOn(db, "insert");
+
+    vi.spyOn(db.query.user, "findFirst").mockImplementationOnce((config) => {
+      const query = findFirst(config);
+      const execute = query.execute.bind(query);
+
+      vi.spyOn(query, "execute").mockImplementationOnce(async () => {
+        const row = await execute();
+
+        await seedUser(db, "jit-user", { clerkId: "user_clerk_1" });
+
+        return row;
+      });
+
+      return query;
+    });
+
+    // Load the route after hoisted binding mocks, matching the server-route test seam.
+    const POST = serverHandler((await import("@/app/routes/api/webhooks/clerk")).Route, "POST");
+    const response = await POST(delivery("user.created", clerkUser()));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ action: "upserted", detail: "jit-user" });
+    expect(await usersWhere("user_clerk_1")).toMatchObject([{ id: "jit-user" }]);
+    // The competing insert succeeds; the webhook insert hits PostgreSQL 23505 and only reads.
+    expect(insert).toHaveBeenCalledTimes(2);
+  });
+
   it.each(["user.created", "user.updated"])(
     "creates an unmapped user with a placeholder on %s when another account owns the email",
     async (eventType) => {
