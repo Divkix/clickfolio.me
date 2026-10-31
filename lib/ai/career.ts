@@ -1,5 +1,7 @@
 import { Effect } from "effect";
+import { APICallError } from "ai";
 import { AiOutputInvalid, AiTimedOut } from "@/lib/parse/failures";
+import type { AiProviderFailed, AiProviderRejected } from "@/lib/parse/failures";
 import { aiProviderFailure } from "./ai-parser";
 import { z } from "zod";
 import { ROLES, USER_ROLES, type UserRole } from "@/lib/config/roles";
@@ -25,13 +27,16 @@ const jevResponseSchema = z.object({
 
 /**
  * Classifies career level and freelance status from parsed resume content.
- * Best-effort: returns null when the document isn't a resume or Jev is unavailable,
- * so callers leave the user's current values untouched.
+ * Returns null for missing configuration or a non-resume. Failures remain typed:
+ * the Workflow owns retries and the best-effort fallback after they are exhausted.
  */
 export function classifyCareerEffect(
   content: ResumeContent,
   env: Partial<AiEnvVars>,
-): Effect.Effect<CareerProfile | null> {
+): Effect.Effect<
+  CareerProfile | null,
+  AiProviderFailed | AiProviderRejected | AiTimedOut | AiOutputInvalid
+> {
   const { CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN } = env;
 
   if (!CF_AI_GATEWAY_ACCOUNT_ID || !CF_AI_GATEWAY_ID || !CF_AIG_AUTH_TOKEN)
@@ -94,7 +99,13 @@ export function classifyCareerEffect(
           },
         );
 
-        if (!response.ok) throw new Error(`Jev HTTP ${response.status}`);
+        if (!response.ok)
+          throw new APICallError({
+            message: `Jev HTTP ${response.status}`,
+            url: response.url,
+            statusCode: response.status,
+            requestBodyValues: undefined,
+          });
 
         return response.json();
       },
@@ -118,12 +129,5 @@ export function classifyCareerEffect(
     Effect.tapError((error) =>
       Effect.sync(() => log("warn", "career classification failed", errorFields(error))),
     ),
-    // Already logged above: a classifier that is down or unintelligible leaves the user's level alone.
-    Effect.catchTags({
-      AiProviderFailed: () => Effect.succeed(null),
-      AiProviderRejected: () => Effect.succeed(null),
-      AiTimedOut: () => Effect.succeed(null),
-      AiOutputInvalid: () => Effect.succeed(null),
-    }),
   );
 }

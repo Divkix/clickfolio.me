@@ -203,7 +203,34 @@ DATABASE_URL="postgres://…" pnpm run deploy
 
 Deploy builds, migrates, backfills NULL `content_indexable` flags, applies R2 lifecycle
 rules, and deploys the Worker. It then backfills rows updated since deploy start
-minus one hour and sends a best-effort IndexNow ping.
+minus one hour and queues static URLs from the live sitemap for durable IndexNow delivery.
+
+Production deploys automatically on pushes to `main` through the Cloudflare **Workers Builds**
+trigger **Deploy default branch** (`pnpm run build`, then `pnpm run deploy`), not a GitHub
+Actions deployment workflow. `.github/workflows/ci.yml` independently checks PRs and `main`
+with quality, coverage and build jobs. Non-main branches upload preview versions only.
+
+**IndexNow delivery:** Runtime publish/edit/privacy/rename/delete hooks and the post-deploy
+script share the Postgres `indexnow_urls` outbox (migration `0015_indexnow-outbox.sql`).
+The minute cron coalesces duplicate URLs across colos/deploys, claims a global sender lease,
+and sends at most 1,000 URLs per batch with at least one minute between requests. Ordinary
+changes inside the ten-minute per-URL window stay queued for a trailing submission; removals
+and renames bypass that URL delay, never the site-wide throttle or upstream cooldown.
+Requests only enqueue: no request or Workflow waits for a retry timer.
+
+Only HTTP 200/202 acknowledges the submitted revision. Changes arriving during a send,
+overflow batches, crashes, network errors and HTTP refusals remain pending. 429/408/5xx and
+transport errors back off from ten minutes exponentially up to 24 hours; a valid
+`Retry-After` (seconds or HTTP date) can extend the shared cooldown. Other refusals retain
+the batch and retry daily so a repaired key/configuration can recover without another edit.
+Failed sends still fail the cron invocation rather than appearing successful. A failed DB
+enqueue is logged and cannot be made durable; the originating profile write/deploy is not
+rolled back. No per-isolate cache is used as the source of truth.
+
+IndexNow [documents 429](https://www.indexnow.org/documentation) as rate limiting and
+[recommends pausing for Retry-After, reducing duplicate submissions and spacing same-URL
+retries by ten minutes](https://www.indexnow.org/faq). Exact provider quotas are not public;
+the batch and timing limits above are our conservative policy, not a claimed API quota.
 
 **Step 9: Add your domain**
 Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domains & Routes.
@@ -480,14 +507,47 @@ Live status updates during AI parsing:
 - **Authentication**: Clerk session JWT verified against JWKS before upgrade
 - **Use case**: Waiting room shows live parsing progress instead of polling
 
+### Browser telemetry
+
+`/otel/v1/{traces,logs}` forwards bounded browser exports with the server-side ingest key.
+The pinned SDK compatibility transform omits undefined session-resource values, null array
+members and nonfinite numbers before OTLP serialization; finite integers beyond JavaScript's
+safe integer range use `doubleValue`, and split UTF-16 strings are repaired. The proxy applies
+the same compatibility rules to plain JSON from cached, older SDK clients at resource, scope,
+span, event and link attribute boundaries without changing span timestamps.
+An SDK upgrade fails the build until the pinned transform is reviewed.
+
+This matters because [OpenObserve v1.1.2's JSON decoder](https://github.com/openobserve/openobserve/blob/v1.1.2/src/core/src/traces/mod.rs#L614-L632)
+rejects a whole export containing `value: {}` or `doubleValue: null`. The bundled SDK can emit
+these from its [optional `rum.sessionId` resource getter](https://github.com/hyperdxio/hyperdx-js/blob/566fc3bd2749f281670084a473cdc3d1bbba9aeb/packages/otel-web/src/index.ts#L632-L638)
+and [OTLP attribute serializer](https://github.com/open-telemetry/opentelemetry-js/blob/experimental/v0.219.0/experimental/packages/otlp-transformer/src/common/internal.ts#L71-L101).
+Both patterns were reproduced as HTTP 400 against the exact v1.1.2 Docker image; the patched
+SDK and proxy exports returned 200. Old production logs discarded rejection bodies, so the
+specific attribute in each historical batch cannot be recovered.
+
+Collector rejections retain a scrubbed 512-character response prefix (at most 1 KiB buffered)
+alongside the signal and HTTP status; credentials, quoted values, URLs and emails are removed.
+The browser still receives a prompt 202 and never sees upstream credentials or diagnostics.
+
+OpenObserve v1.1.2 returns [206 for partially rejected spans](https://github.com/openobserve/openobserve/blob/v1.1.2/src/core/src/traces/mod.rs#L1680-L1715),
+including spans outside its ingest window, whereas [400 identifies JSON decoding or schema failures](https://github.com/openobserve/openobserve/blob/v1.1.2/src/core/src/traces/mod.rs#L614-L632).
+Do not infer clock skew from a 400 or clamp valid timestamps: use the captured upstream reason.
+
+Cloudflare's `canceled` and `responseStreamDisconnected` outcomes on the status WebSocket
+mean [the client disconnected](https://developers.cloudflare.com/workers/observability/errors/#identify-errors-workers-metrics),
+not an application HTTP failure. The socket closes on component cleanup and reconnects or
+falls back to polling when the connection is unexpectedly lost.
+
 ### Parse Pipeline (Cloudflare Workflows)
 
 Durable resume parsing with per-step retries:
 
-- **Workflow**: `ResumeParseWorkflow` (`lib/workflows/resume-parse-workflow.ts`) runs `claim → parse → complete`
+- **Workflow**: `ResumeParseWorkflow` (`lib/workflows/resume-parse-workflow.ts`) runs `claim → parse → classify career → complete`
 - **Trigger**: `/api/resume/claim` and `/api/resume/retry` start an instance keyed by the resume id, so a repeated start is a no-op
 - **Retries**: the parse step retries transient failures 3 times with exponential backoff; permanent errors throw `NonRetryableError`
-- **Failure**: once retries are spent the workflow marks the row `failed`, notifies the Durable Object, and sends an alert
+- **Career classification**: Jev's typed [System One endpoint](https://openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request) runs in its own journaled step, so an overloaded classifier never regenerates the parsed resume. HTTP 429 and retryable server failures (including 529) get two Workflow-owned retries with exponential backoff starting at 5 seconds: at most three requests, each with the existing 10-second abort budget and a 15-second step timeout. Other rejected requests and invalid answers stop immediately.
+- **Classification fallback**: missing configuration, non-resumes, or an unavailable classifier after retries do not fail the portfolio. Completion preserves the owner's current professional level, its source, and freelance setting; an unset level stays unset. Owners can set these manually under **Settings → Professional Level**. [Workflow retries and caught step failures](https://developers.cloudflare.com/workflows/build/sleeping-and-retrying/) own this policy; no nested fetch retry or [AI SDK retry](https://ai-sdk.dev/docs/ai-sdk-core/settings#maxretries) is added.
+- **Failure**: once parse or completion retries are spent the workflow marks the row `failed`, notifies the Durable Object, and sends an alert; classification remains best effort
 - **Duplicate uploads**: an `await-cache` instance sleeps 10 minutes, then expires a `waiting_for_cache` row that never resolved
 - **Alerting**: Cloudflare Logpush by default, optional Slack/Discord webhook on permanent failures
 - **User email**: a separate best-effort `EMAIL` step sends a dashboard link after terminal failure or cache expiry, only to verified Clerk account owners; no automatic email retries
@@ -501,10 +561,25 @@ Durable resume parsing with per-step retries:
 
 | Cron           | Time (UTC)       | Task                                                                                                                                    |
 | -------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `* * * * *`    | Every minute     | Drains due IndexNow outbox submissions; failures stay pending until their persisted retry time                                          |
 | `0 3 * * *`    | 3:00 AM          | Database cleanup (expired rate limits, handle history)                                                                                  |
 | `*/15 * * * *` | Every 15 minutes | Fails resumes stuck in `pending_claim`/`queued` (over 15 min) or `processing` (over 90 min); the user can retry them from the dashboard |
 
 Runs via `worker/index.ts` without self-fetch (avoids double billing).
+
+The stranded sweep retries only `DbFailed` / `unavailable` with the exact Hyperdrive
+`Egress connection severed outside of Hyperdrive` message, once per rule on a fresh
+invocation-local connection. Completed rules and their status pushes are not replayed.
+Status-guarded updates cannot fail the same row twice, including when a write committed but its
+response was lost; only acknowledged `RETURNING` rows receive best-effort status pushes, and
+unknown commits can consume a second batch. Timeouts and unrelated database errors are not
+retried. Exhausted recovery still fails the scheduled run.
+
+Clients already originate inside each invocation, as required by Cloudflare's
+[Hyperdrive connection lifecycle](https://developers.cloudflare.com/hyperdrive/concepts/connection-lifecycle/).
+Cloudflare's [troubleshooting guide](https://developers.cloudflare.com/hyperdrive/observability/troubleshooting/#connection-errors)
+documents generic Hyperdrive SQLSTATE `58000`, not this exact message; it does not establish
+whether a severed write committed.
 
 ---
 

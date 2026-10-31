@@ -1,4 +1,5 @@
 import { Effect, Layer } from "effect";
+import { z } from "zod";
 import { DbFailed } from "@/lib/effect/failures";
 import {
   AiProviderFailed,
@@ -7,9 +8,12 @@ import {
   UnknownParseFailure,
   toParseErrorJson,
 } from "@/lib/parse/failures";
-import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_AI_MODEL } from "@/lib/ai/prompt-config";
 import type { JsonValue } from "@/lib/types/json";
+import type { ResumeContent } from "@/lib/types/database";
+import type { AiEnvVars } from "@/lib/ai/ai-parser";
+import type * as Career from "@/lib/ai/career";
 import type { ResumeParseParams } from "@/lib/workflows/resume-parse-params";
 import type {
   WorkflowEvent,
@@ -22,6 +26,7 @@ import type {
 const mocks = vi.hoisted(() => ({
   claim: vi.fn(),
   parse: vi.fn(),
+  classify: vi.fn(),
   readFailure: vi.fn(),
   complete: vi.fn(),
   fail: vi.fn(),
@@ -61,6 +66,8 @@ vi.mock("@/lib/parse/pipeline", () => ({
   expireWaitingForCache: mocks.expire,
 }));
 
+vi.mock("@/lib/ai/career", () => ({ classifyCareerEffect: mocks.classify }));
+
 vi.mock("@/lib/parse/public-refresh", () => ({ refreshPublicProfiles: mocks.refresh }));
 
 vi.mock("@/lib/parse/email", () => ({ resumeFailureEmailBestEffort: mocks.email }));
@@ -77,6 +84,10 @@ const JOB: ResumeParseParams = {
   fileHash: "hash",
   retryCount: 0,
 };
+
+const workflowRetryConfigSchema = z.object({
+  retries: z.object({ limit: z.number().int().nonnegative() }).optional(),
+});
 
 async function runWorkflow(
   params = JOB,
@@ -109,19 +120,33 @@ async function runWorkflow(
 
     if (!(execute instanceof Function)) throw new Error("Missing workflow callback");
 
+    const config = workflowRetryConfigSchema.parse(callback ? configOrCallback : {});
+    const retryLimit = config.retries?.limit ?? 0;
+
     const context = (attempt: number): WorkflowStepContext => ({
       step: { name, count: 1 },
       attempt,
       config: {},
     });
 
-    const result = await Promise.resolve(execute(context(1))).catch((error: Error) => {
-      if (name === "parse" && retryParseOnce && error.name === "Error") return execute(context(2));
+    let result: T;
 
-      if (name === "mark failed" && retryMarkFailedOnce) return execute(context(2));
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        result = await execute(context(attempt));
+        break;
+      } catch (error) {
+        if (error instanceof Error && error.name === "Error") {
+          if (name === "classify career" && attempt <= retryLimit) continue;
 
-      throw error;
-    });
+          if (name === "parse" && retryParseOnce && attempt === 1) continue;
+        }
+
+        if (name === "mark failed" && retryMarkFailedOnce && attempt === 1) continue;
+
+        throw error;
+      }
+    }
 
     // SAFETY: mocked steps in this suite return only JSON values or void.
     results.set(name, result as JsonValue | void);
@@ -131,7 +156,15 @@ async function runWorkflow(
 
   // SAFETY: mocks supply all workflow steps and bindings exercised by this test.
   // The email binding only has to exist: the email Effect is mocked.
-  const env = { EMAIL: {}, APP_URL: "https://clickfolio.me", EMAIL_FROM: "a@clickfolio.me" };
+  const env = {
+    EMAIL: {},
+    APP_URL: "https://clickfolio.me",
+    EMAIL_FROM: "a@clickfolio.me",
+    CF_AI_GATEWAY_ACCOUNT_ID: "test",
+    CF_AI_GATEWAY_ID: "test",
+    CF_AIG_AUTH_TOKEN: "test",
+  };
+
   // SAFETY: mocks supply the layers, so no binding in the env is read.
   const workflow = new ResumeParseWorkflow({} as ExecutionContext, env as CloudflareEnv);
   // SAFETY: run only reads payload and timestamp; do/sleep are the only step methods used.
@@ -154,6 +187,7 @@ beforeEach(() => {
     Effect.fail(new UnknownParseFailure({ message: "Original parse failure" })),
   );
   mocks.readFailure.mockReturnValue(Effect.succeed(null));
+  mocks.classify.mockReturnValue(Effect.succeed(null));
   mocks.expire.mockReturnValue(Effect.succeed(true));
   mocks.complete.mockReturnValue(Effect.succeed([]));
   mocks.fail.mockReturnValue(
@@ -166,6 +200,10 @@ beforeEach(() => {
   mocks.announce.mockReturnValue(Effect.void);
   mocks.email.mockReturnValue(Effect.void);
   mocks.refresh.mockReturnValue(Effect.void);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("resume failure email workflow step", () => {
@@ -385,12 +423,133 @@ describe("Workflow failure metadata and successful replay", () => {
     });
     await expect(workflow.run()).resolves.toBe("completed");
     expect(mocks.parse).toHaveBeenCalledTimes(1);
-    expect(mocks.complete).toHaveBeenLastCalledWith(expect.any(Object), parsed);
+    expect(mocks.classify).toHaveBeenCalledTimes(1);
+    expect(mocks.complete).toHaveBeenLastCalledWith(expect.any(Object), {
+      ...parsed,
+      career: null,
+    });
     expect(workflow.doStep).toHaveBeenCalledWith(
       "parse",
       { retries: { limit: 3, delay: "30 seconds", backoff: "exponential" }, timeout: "10 minutes" },
       expect.any(Function),
     );
+  });
+});
+
+describe("best-effort career classification Workflow step", () => {
+  const content: ResumeContent = {
+    full_name: "Test User",
+    headline: "Engineer",
+    summary: "Builds useful systems.",
+    contact: { email: "test@example.com" },
+    experience: [
+      { title: "Engineer", company: "Example", start_date: "2020", description: "Build systems" },
+    ],
+    education: [],
+    skills: [],
+    certifications: [],
+    projects: [],
+  };
+
+  const answers = {
+    answers: {
+      is_resume: { noul: 0.99 },
+      level: { choice: "mid_level" },
+      freelance: { noul: 0.1 },
+    },
+  };
+
+  beforeEach(async () => {
+    const career = await vi.importActual<typeof Career>("@/lib/ai/career");
+    mocks.classify.mockImplementation((resume: ResumeContent, env: Partial<AiEnvVars>) =>
+      career.classifyCareerEffect(resume, env),
+    );
+    mocks.parse.mockReturnValue(Effect.succeed({ parsedContent: content }));
+  });
+
+  it.each([429, 503, 529])(
+    "recovers from HTTP %s in its own bounded-backoff step without reparsing",
+    async (status) => {
+      const request = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status }))
+        .mockResolvedValueOnce(Response.json(answers));
+
+      vi.stubGlobal("fetch", request);
+      const workflow = await runWorkflow();
+
+      await expect(workflow.run()).resolves.toBe("completed");
+
+      expect(workflow.doStep).toHaveBeenCalledWith(
+        "classify career",
+        {
+          retries: { limit: 2, delay: "5 seconds", backoff: "exponential" },
+          timeout: "15 seconds",
+        },
+        expect.any(Function),
+      );
+      expect(request).toHaveBeenCalledTimes(2);
+      expect(mocks.parse).toHaveBeenCalledTimes(1);
+      expect(mocks.complete).toHaveBeenCalledWith(expect.any(Object), {
+        parsedContent: content,
+        career: { role: "mid_level", isFreelance: false },
+      });
+      expect(mocks.fail).not.toHaveBeenCalled();
+    },
+  );
+
+  it("stops after three overloaded attempts and completes without changing career settings", async () => {
+    const request = vi.fn().mockImplementation(async () => new Response(null, { status: 529 }));
+    vi.stubGlobal("fetch", request);
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(mocks.parse).toHaveBeenCalledTimes(1);
+    expect(mocks.complete).toHaveBeenCalledWith(expect.any(Object), {
+      parsedContent: content,
+      career: null,
+    });
+    expect(mocks.fail).not.toHaveBeenCalled();
+    expect(mocks.log).toHaveBeenCalledWith(
+      "warn",
+      "career classification unavailable; preserving current career",
+      expect.objectContaining({ "error.message": "Jev HTTP 529" }),
+    );
+  });
+
+  it.each([400, 401, 402, 403, 413, 422])(
+    "does not retry HTTP %s and still completes the portfolio",
+    async (status) => {
+      const request = vi.fn().mockResolvedValue(new Response(null, { status }));
+      vi.stubGlobal("fetch", request);
+      const workflow = await runWorkflow();
+
+      await expect(workflow.run()).resolves.toBe("completed");
+
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(mocks.complete).toHaveBeenCalledWith(expect.any(Object), {
+        parsedContent: content,
+        career: null,
+      });
+      expect(mocks.fail).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not retry invalid typed answers and still completes the portfolio", async () => {
+    const request = vi.fn().mockResolvedValue(Response.json({ answers: {} }));
+    vi.stubGlobal("fetch", request);
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(mocks.complete).toHaveBeenCalledWith(expect.any(Object), {
+      parsedContent: content,
+      career: null,
+    });
+    expect(mocks.fail).not.toHaveBeenCalled();
   });
 });
 

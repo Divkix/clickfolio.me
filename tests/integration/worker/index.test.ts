@@ -4,6 +4,8 @@ import handler from "@tanstack/react-start/server-entry";
 import worker from "@/worker/index";
 import { verifyToken } from "@clerk/backend";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { Effect } from "effect";
+import { HttpUpstreamFailed } from "@/lib/effect/failures";
 import type { JsonValue } from "@/lib/types/json";
 import { fakeBatch, fakeMessage } from "@/tests/helpers/queue";
 
@@ -49,6 +51,7 @@ const {
   mockVerifyToken,
   mockPerformCleanup,
   mockPerformStrandedSweep,
+  mockDrainIndexNow,
   mockUserFindFirst,
   mockResumeFindFirst,
 } = vi.hoisted(() => {
@@ -68,6 +71,7 @@ const {
     }),
     mockPerformCleanup: vi.fn(),
     mockPerformStrandedSweep: vi.fn(),
+    mockDrainIndexNow: vi.fn(),
     mockUserFindFirst: vi.fn(),
     mockResumeFindFirst: vi.fn(),
   };
@@ -81,6 +85,10 @@ vi.mock("@/lib/cron/cleanup", () => ({
 
 vi.mock("@/lib/cron/stranded-resumes", () => ({
   performStrandedSweep: mockPerformStrandedSweep,
+}));
+
+vi.mock("@/lib/seo/indexnow-profiles", () => ({
+  drainIndexNow: mockDrainIndexNow,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -179,6 +187,7 @@ function resetAll() {
     timestamp: new Date().toISOString(),
   });
   mockPerformStrandedSweep.mockResolvedValue({ neverStarted: 0, timedOut: 0 });
+  mockDrainIndexNow.mockReturnValue(Effect.void);
 }
 
 describe("Worker fetch handler", () => {
@@ -567,6 +576,28 @@ describe("Worker scheduled handler", () => {
     expect(mockPerformCleanup).not.toHaveBeenCalled();
   });
 
+  it("drains due IndexNow submissions every minute without running other jobs", async () => {
+    await worker.scheduled(makeController("* * * * *"), makeEnv());
+
+    expect(mockDrainIndexNow).toHaveBeenCalledOnce();
+    expect(mockPerformCleanup).not.toHaveBeenCalled();
+    expect(mockPerformStrandedSweep).not.toHaveBeenCalled();
+  });
+
+  it("propagates an IndexNow refusal so the minute run is recorded as failed", async () => {
+    const failure = new HttpUpstreamFailed({
+      operation: "indexnow.submit",
+      host: "indexnow",
+      kind: "unavailable",
+      message: "IndexNow request refused",
+    });
+
+    mockDrainIndexNow.mockReturnValueOnce(Effect.fail(failure));
+
+    await expect(worker.scheduled(makeController("* * * * *"), makeEnv())).rejects.toBe(failure);
+    expect(mockDrainIndexNow).toHaveBeenCalledOnce();
+  });
+
   it("ignores the retired '0 2' cron (now R2 lifecycle + workflows)", async () => {
     const env = makeEnv();
 
@@ -619,7 +650,9 @@ describe("Worker scheduled handler", () => {
       await worker.scheduled(makeController(cron), makeEnv());
 
       expect(
-        mockPerformCleanup.mock.calls.length + mockPerformStrandedSweep.mock.calls.length,
+        mockPerformCleanup.mock.calls.length +
+          mockPerformStrandedSweep.mock.calls.length +
+          mockDrainIndexNow.mock.calls.length,
       ).toBe(1);
     }
   });

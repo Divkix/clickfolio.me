@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { Layer } from "effect";
 import { and, eq, sql } from "drizzle-orm";
+import type { PgQueryable } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
 import { runStrandedSweep } from "@/lib/cron/stranded-resumes";
 import { Db } from "@/lib/effect/db";
+import { DbFailed } from "@/lib/effect/failures";
 import { StatusChannel } from "@/lib/effect/services/status-channel";
 import { R2Store } from "@/lib/effect/services/r2-store";
 import { claimResumeForParse, parseResumePdf } from "@/lib/parse/pipeline";
@@ -392,5 +394,132 @@ describe("runStrandedSweep: reporting", () => {
 
     await expect(runStrandedSweep(down)).rejects.toThrow();
     expect(logEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("runStrandedSweep: severed connection recovery", () => {
+  function failingDb(operation: string, failures: DbFailed[], afterCommit = false) {
+    const attempts: string[] = [];
+    let connections = 0;
+
+    const reconnecting = Layer.effect(
+      Db,
+      Effect.gen(function* () {
+        const real = yield* Db;
+        connections++;
+
+        return {
+          ...real,
+          query: <A>(label: string, work: (handle: PgQueryable) => PromiseLike<A>) =>
+            Effect.suspend(() => {
+              attempts.push(label);
+              const failure = label === operation ? failures.shift() : undefined;
+
+              if (!failure) return real.query(label, work);
+
+              return afterCommit
+                ? real.query(label, work).pipe(Effect.andThen(Effect.fail(failure)))
+                : Effect.fail(failure);
+            }),
+        };
+      }),
+    ).pipe(Layer.provide(Db.layerFrom(db)));
+
+    return {
+      layer: Layer.mergeAll(reconnecting, StatusChannel.layerFrom(statusNamespace)),
+      attempts,
+      connections: () => connections,
+    };
+  }
+
+  const severed = (operation = "cron.stranded.never_started") =>
+    new DbFailed({
+      operation,
+      kind: "unavailable",
+      message: "Egress connection severed outside of Hyperdrive",
+      cause: Object.assign(new Error("Egress connection severed outside of Hyperdrive"), {
+        code: "58000",
+      }),
+    });
+
+  it("rebuilds the connection and retries a severed statement once", async () => {
+    await seed("stuck", { queuedAt: minutesAgo(20) });
+    const fault = failingDb("cron.stranded.never_started", [severed()]);
+
+    await expect(runStrandedSweep(fault.layer)).resolves.toEqual({
+      neverStarted: 1,
+      timedOut: 0,
+    });
+
+    expect(fault.attempts).toEqual([
+      "cron.stranded.never_started",
+      "cron.stranded.never_started",
+      "cron.stranded.processing_timeout",
+    ]);
+    expect(fault.connections()).toBe(3);
+    expect((await row("stuck")).status).toBe("failed");
+    expect(pushes).toHaveLength(1);
+    expect(logEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not replay a completed rule or duplicate its status push", async () => {
+    await seed("stuck", { queuedAt: minutesAgo(20) });
+    await seed("slow", { status: "processing", queuedAt: minutesAgo(100) });
+    const operation = "cron.stranded.processing_timeout";
+    const fault = failingDb(operation, [severed(operation)]);
+
+    await expect(runStrandedSweep(fault.layer)).resolves.toEqual({
+      neverStarted: 1,
+      timedOut: 1,
+    });
+
+    expect(fault.attempts).toEqual(["cron.stranded.never_started", operation, operation]);
+    expect(pushes.map((push) => push.resumeId)).toEqual(["stuck", "slow"]);
+    expect(logEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not re-transition a row when the first write committed but its response was lost", async () => {
+    await seed("stuck", { queuedAt: minutesAgo(20) });
+    const fault = failingDb("cron.stranded.never_started", [severed()], true);
+
+    await expect(runStrandedSweep(fault.layer)).resolves.toEqual({
+      neverStarted: 0,
+      timedOut: 0,
+    });
+
+    expect((await row("stuck")).status).toBe("failed");
+    // Only acknowledged RETURNING rows get a best-effort push; the status read remains correct.
+    expect(pushes).toEqual([]);
+    expect(logEvent).not.toHaveBeenCalled();
+  });
+
+  it("propagates a second severed connection failure rather than retrying forever", async () => {
+    const first = severed();
+    const second = severed();
+    const fault = failingDb("cron.stranded.never_started", [first, second]);
+
+    await expect(runStrandedSweep(fault.layer)).rejects.toBe(second);
+    expect(fault.connections()).toBe(2);
+    expect(fault.attempts).toHaveLength(2);
+    expect(pushes).toEqual([]);
+  });
+
+  it.each([
+    { kind: "timeout", message: "Egress connection severed outside of Hyperdrive" },
+    { kind: "unavailable", message: "Internal error." },
+    { kind: "rejected", message: "invalid statement" },
+  ] as const)("never retries $kind / $message", async ({ kind, message }) => {
+    const failure = new DbFailed({
+      operation: "cron.stranded.never_started",
+      kind,
+      message,
+      cause: Object.assign(new Error(message), { code: "58000" }),
+    });
+
+    const fault = failingDb(failure.operation, [failure]);
+
+    await expect(runStrandedSweep(fault.layer)).rejects.toBe(failure);
+    expect(fault.connections()).toBe(1);
+    expect(fault.attempts).toHaveLength(1);
   });
 });

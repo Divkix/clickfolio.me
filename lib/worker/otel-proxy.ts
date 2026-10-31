@@ -7,6 +7,7 @@
  */
 import { Cause, Data, Effect, Exit, Layer } from "effect";
 import { z } from "zod";
+import type { JsonValue } from "../types/json";
 
 import { runBackground } from "../effect/edges";
 import { externalCall } from "../effect/external";
@@ -47,21 +48,75 @@ function status(code: number, extra?: Record<string, string>): Response {
 /** The collector answered, but not with a 2xx. Its `status` is what classifies the failure. */
 class CollectorRejected extends Data.TaggedError("CollectorRejected")<{
   readonly status: number;
+  readonly response: string;
 }> {}
+
+const collectorMessageSchema = z
+  .string()
+  .transform((text, ctx) => {
+    try {
+      const value: unknown = JSON.parse(text);
+
+      return value;
+    } catch {
+      // Plain-text and truncated error bodies are expected, not a second proxy failure.
+      ctx.issues.push({ code: "custom", message: "not a JSON error envelope", input: text });
+
+      return z.NEVER;
+    }
+  })
+  .pipe(z.object({ message: z.string() }));
+
+/** Read only a prefix: upstream errors can echo payloads or serve an unbounded HTML page. */
+async function collectorDiagnostic(response: Response, ingestKey: string): Promise<string> {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const prefix = new Uint8Array(1024);
+  let length = 0;
+
+  try {
+    while (length < prefix.length) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+      const chunk = value.subarray(0, prefix.length - length);
+      prefix.set(chunk, length);
+      length += chunk.length;
+    }
+  } finally {
+    await reader.cancel();
+  }
+
+  const text = new TextDecoder().decode(prefix.subarray(0, length));
+  const envelope = collectorMessageSchema.safeParse(text);
+
+  const message = (envelope.success ? envelope.data.message : text)
+    .replaceAll(ingestKey, "[credential]")
+    .replace(/\b(?:Basic|Bearer)\s+\S+/gi, "[credential]")
+    .replace(/https?:\/\/[^\s"'<>]+/gi, "[url]")
+    .replace(/"(?:\\.|[^"\\])*"|'[^']*'|`[^`]*`/g, "[quoted]");
+
+  return errorFields(new Error(message))["error.message"].slice(0, 512);
+}
 
 // One POST to the collector with an explicit timeout. Nothing is retried: the browser SDK
 // already resends on its own schedule, and a timed-out POST may still have landed.
-function forward(url: string, init: RequestInit) {
+function forward(url: string, init: RequestInit, ingestKey: string) {
   return externalCall({
     operation: "otel.forward",
     timeoutMs: UPSTREAM_TIMEOUT_MS,
     run: async (signal) => {
       const response = await fetch(url, { ...init, signal });
 
+      if (!response.ok) {
+        throw new CollectorRejected({
+          status: response.status,
+          response: await collectorDiagnostic(response, ingestKey),
+        });
+      }
+
       // Unread bodies hold the subrequest open until GC.
       await response.body?.cancel();
-
-      if (!response.ok) throw new CollectorRejected({ status: response.status });
     },
     fail: (details) => new HttpUpstreamFailed({ ...details, host: "otel-collector" }),
     // Tracing the telemetry pipe would only add noise to the traces it carries.
@@ -76,6 +131,7 @@ function logForwardFailure(failure: HttpUpstreamFailed, otelSignal: string): voi
     log("error", "otel proxy upstream rejected", {
       status: failure.cause.status,
       "otel.signal": otelSignal,
+      "upstream.response": failure.cause.response,
     });
 
     return;
@@ -88,8 +144,13 @@ function logForwardFailure(failure: HttpUpstreamFailed, otelSignal: string): voi
   });
 }
 
-async function forwardInBackground(url: string, otelSignal: string, init: RequestInit) {
-  const program = forward(url, init).pipe(
+async function forwardInBackground(
+  url: string,
+  otelSignal: string,
+  init: RequestInit,
+  ingestKey: string,
+) {
+  const program = forward(url, init, ingestKey).pipe(
     Effect.catchTag("HttpUpstreamFailed", (failure) =>
       Effect.sync(() => logForwardFailure(failure, otelSignal)),
     ),
@@ -113,12 +174,85 @@ const countrySchema = z
   .regex(/^[A-Z]{2}$/)
   .refine((code) => code !== "XX");
 
-// Only the fields the tagger touches; looseObject keeps everything else as sent.
-// Function defaults: the object is mutated below, so it must be fresh per parse.
+/** Drop only invalid attribute values; one empty AnyValue otherwise rejects every span in v1.1.2. */
+function validItems<T>(schema: z.ZodType<T>) {
+  return z.array(z.unknown()).transform((items) => {
+    const valid: T[] = [];
+
+    for (const item of items) {
+      const parsed = schema.safeParse(item);
+
+      if (parsed.success) valid.push(parsed.data);
+    }
+
+    return valid;
+  });
+}
+
+const wellFormedString = z.string().transform((value) => value.toWellFormed());
+
+const int64String = z
+  .string()
+  .regex(/^-?\d{1,19}$/)
+  .refine((value) => BigInt(value) >= -(2n ** 63n) && BigInt(value) < 2n ** 63n);
+
+const anyValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.object({ stringValue: wellFormedString }),
+    z.object({ boolValue: z.boolean() }),
+    z.object({ doubleValue: z.number().finite() }),
+    z.object({ intValue: int64String }),
+    z
+      .object({ intValue: z.number().finite() })
+      .transform(({ intValue }) =>
+        Number.isSafeInteger(intValue) ? { intValue } : { doubleValue: intValue },
+      ),
+    z.object({
+      bytesValue: z
+        .string()
+        .regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
+    }),
+    z.object({ arrayValue: z.object({ values: validItems(anyValueSchema) }) }),
+    z.object({ kvlistValue: z.object({ values: attributesSchema }) }),
+  ]),
+);
+
+const attributesSchema = validItems(z.object({ key: wellFormedString, value: anyValueSchema }));
+
+const attributeContainerSchema = z.looseObject({ attributes: attributesSchema.optional() });
+
+const linkedSpanSchema = attributeContainerSchema.extend({
+  traceId: z
+    .string()
+    .regex(/^[a-fA-F0-9]{32}$/)
+    .optional(),
+  spanId: z
+    .string()
+    .regex(/^[a-fA-F0-9]{16}$/)
+    .optional(),
+});
+
+const spanSchema = linkedSpanSchema.extend({
+  name: wellFormedString.optional(),
+  events: z
+    .array(attributeContainerSchema.extend({ name: wellFormedString.optional() }))
+    .optional(),
+  links: validItems(linkedSpanSchema).optional(),
+});
+
+// Loose objects preserve SDK fields that this compatibility boundary does not change.
 const resourceEntrySchema = z.looseObject({
   resource: z
-    .looseObject({ attributes: z.array(z.looseObject({ key: z.string() })).default(() => []) })
+    .looseObject({ attributes: attributesSchema.default(() => []) })
     .default(() => ({ attributes: [] })),
+  scopeSpans: z
+    .array(
+      z.looseObject({
+        scope: attributeContainerSchema.optional(),
+        spans: validItems(spanSchema).optional(),
+      }),
+    )
+    .optional(),
 });
 
 const otlpExportSchema = z.looseObject({
@@ -127,12 +261,11 @@ const otlpExportSchema = z.looseObject({
 });
 
 /**
- * Adds the visitor's country as a resource attribute on every resource of an
- * OTLP/JSON export, replacing any client-sent value. Bodies that aren't valid
- * UTF-8 OTLP JSON, or carry no resources, are returned unchanged; so is the
- * whole export when any one resource or attribute is malformed.
+ * Repairs SDK AnyValues before the collector decodes them, then optionally adds
+ * the edge country. Invalid exports and unreadable encodings still pass through
+ * so the upstream diagnostic identifies failures outside this compatibility fix.
  */
-function tagCountry(body: Uint8Array<ArrayBuffer>, country: string): Uint8Array<ArrayBuffer> {
+function normalizeJson(body: Uint8Array<ArrayBuffer>, country?: string): Uint8Array<ArrayBuffer> {
   let json: unknown;
 
   try {
@@ -157,13 +290,16 @@ function tagCountry(body: Uint8Array<ArrayBuffer>, country: string): Uint8Array<
   const entries = [...(payload.resourceSpans ?? []), ...(payload.resourceLogs ?? [])];
 
   if (entries.length === 0) return body;
-  const attribute = { key: COUNTRY_ATTRIBUTE, value: { stringValue: country } };
 
-  for (const { resource } of entries) {
-    resource.attributes = [
-      ...resource.attributes.filter((item) => item.key !== COUNTRY_ATTRIBUTE),
-      attribute,
-    ];
+  if (country) {
+    const attribute = { key: COUNTRY_ATTRIBUTE, value: { stringValue: country } };
+
+    for (const { resource } of entries) {
+      resource.attributes = [
+        ...resource.attributes.filter((item) => item.key !== COUNTRY_ATTRIBUTE),
+        attribute,
+      ];
+    }
   }
 
   return encoder.encode(JSON.stringify(payload));
@@ -206,7 +342,7 @@ export async function handleOtelProxy(
   if (contentType === "application/json" && !encoding) {
     const country = countrySchema.safeParse(request.cf?.country);
 
-    if (country.success) body = tagCountry(body, country.data);
+    body = normalizeJson(body, country.success ? country.data : undefined);
   }
 
   // Built from scratch: no client header (authorization, cookies) is forwarded;
@@ -219,11 +355,12 @@ export async function handleOtelProxy(
   if (encoding) headers.set("content-encoding", encoding);
 
   ctx.waitUntil(
-    forwardInBackground(`${env.OTEL_COLLECTOR_URL.replace(/\/+$/, "")}/v1/${signal}`, signal, {
-      method: "POST",
-      headers,
-      body,
-    }),
+    forwardInBackground(
+      `${env.OTEL_COLLECTOR_URL.replace(/\/+$/, "")}/v1/${signal}`,
+      signal,
+      { method: "POST", headers, body },
+      env.OTEL_BROWSER_INGEST_KEY,
+    ),
   );
 
   return status(202);

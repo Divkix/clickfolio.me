@@ -3,11 +3,10 @@ import { Effect, Layer } from "effect";
 import { publicProfileTags } from "@/lib/cache/edge-cache";
 import { siteConfig } from "@/lib/config/site";
 import { siteDataContentColumns } from "@/lib/data/site-data-content";
-import { siteData, user } from "@/lib/db/schema";
+import { indexNowUrls, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { QueueFailed } from "@/lib/effect/failures";
 import { EdgePurgeQueue } from "@/lib/effect/services/edge-purge-queue";
-import { IndexNow } from "@/lib/effect/services/indexnow";
 import { refreshPublicProfiles } from "@/lib/parse/public-refresh";
 import { profileUrls } from "@/lib/seo/indexnow";
 import type { ResumeContent } from "@/lib/types/database";
@@ -23,7 +22,6 @@ const { logMock } = vi.hoisted(() => ({ logMock: vi.fn() }));
 vi.mock("@/lib/utils/log", () => ({ log: logMock, logEvent: vi.fn() }));
 
 const sent: string[][] = [];
-const submitted: string[][] = [];
 let sendFails = false;
 
 const queue = Layer.succeed(EdgePurgeQueue, {
@@ -41,15 +39,6 @@ const queue = Layer.succeed(EdgePurgeQueue, {
         }),
 });
 
-const indexNow = Layer.succeed(IndexNow, {
-  submit: (urls) =>
-    Effect.sync(() => {
-      submitted.push(urls);
-    }),
-  undebounced: (urls) => Effect.succeed(urls),
-  markDebounced: () => Effect.void,
-});
-
 const NOW = "2026-01-01T00:00:00.000Z";
 
 let testDb: Awaited<ReturnType<typeof createTestDb>>;
@@ -61,11 +50,12 @@ function refresh(
   dbLayer: Layer.Layer<Db> = Db.layerFrom(db),
 ) {
   return Effect.runPromise(
-    Effect.provide(
-      refreshPublicProfiles(handles, appUrl),
-      Layer.mergeAll(queue, indexNow, dbLayer),
-    ),
+    Effect.provide(refreshPublicProfiles(handles, appUrl), Layer.mergeAll(queue, dbLayer)),
   );
+}
+
+async function queuedUrls() {
+  return (await db.select({ url: indexNowUrls.url }).from(indexNowUrls)).map(({ url }) => url);
 }
 
 async function seedProfile(handle: string, content: ResumeContent, hideFromSearch = false) {
@@ -107,20 +97,20 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await testDb.reset();
+  await db.delete(indexNowUrls);
   sent.length = 0;
-  submitted.length = 0;
   sendFails = false;
   logMock.mockClear();
 });
 
 describe("refreshPublicProfiles", () => {
-  it("enqueues the profile, directory, example and sitemap tags and pings IndexNow in production", async () => {
+  it("enqueues the profile, directory, example and sitemap tags and durable IndexNow work in production", async () => {
     await seedProfile("ada", INDEXABLE_CONTENT);
 
     await refresh(["ada"], siteConfig.url);
 
     expect(sent.flat().sort()).toEqual(publicProfileTags(["ada"]).sort());
-    expect(submitted).toEqual([profileUrls(["ada"])]);
+    expect(await queuedUrls()).toEqual(profileUrls(["ada"]));
   });
 
   it("purges every rewritten profile but pings only the indexable ones", async () => {
@@ -131,21 +121,21 @@ describe("refreshPublicProfiles", () => {
     await refresh(["ada", "thin", "hidden"], siteConfig.url);
 
     expect(sent.flat().sort()).toEqual(publicProfileTags(["ada", "thin", "hidden"]).sort());
-    expect(submitted).toEqual([profileUrls(["ada"])]);
+    expect(await queuedUrls()).toEqual(profileUrls(["ada"]));
   });
 
   it("purges but does not ping search engines outside the production site", async () => {
     await refresh(["ada"], "https://preview.example.dev");
 
     expect(sent.flat().sort()).toEqual(publicProfileTags(["ada"]).sort());
-    expect(submitted).toEqual([]);
+    expect(await queuedUrls()).toEqual([]);
   });
 
   it("does nothing for no handles", async () => {
     await refresh([], siteConfig.url);
 
     expect(sent).toEqual([]);
-    expect(submitted).toEqual([]);
+    expect(await queuedUrls()).toEqual([]);
   });
 
   it("logs a failed enqueue, still pings, and does not throw", async () => {
@@ -159,7 +149,7 @@ describe("refreshPublicProfiles", () => {
       "public page purge enqueue failed",
       expect.objectContaining({ operation: "queue.edge_purge.send", kind: "unavailable" }),
     );
-    expect(submitted).toEqual([profileUrls(["ada"])]);
+    expect(await queuedUrls()).toEqual(profileUrls(["ada"]));
   });
 
   it("logs a failed indexability lookup, skips the ping, and does not throw", async () => {
@@ -172,7 +162,7 @@ describe("refreshPublicProfiles", () => {
     ).resolves.toBeUndefined();
 
     expect(sent.flat().sort()).toEqual(publicProfileTags(["ada"]).sort());
-    expect(submitted).toEqual([]);
+    expect(await queuedUrls()).toEqual([]);
     expect(logMock).toHaveBeenCalledWith(
       "error",
       "public page indexnow lookup failed",

@@ -2,11 +2,16 @@
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
 import handler from "@tanstack/react-start/server-entry";
+import { Cause, Exit, Layer } from "effect";
 import { stripEdgeHeaders } from "../lib/cache/edge-cache";
 import { processEdgePurgeBatch } from "../lib/cache/edge-purge";
 import { performCleanup } from "../lib/cron/cleanup";
 import { performStrandedSweep } from "../lib/cron/stranded-resumes";
+import { Db } from "../lib/effect/db";
+import { runBackground } from "../lib/effect/edges";
 import { CachePurge } from "../lib/effect/services/cache-purge";
+import { IndexNow } from "../lib/effect/services/indexnow";
+import { drainIndexNow } from "../lib/seo/indexnow-profiles";
 import { log } from "../lib/utils/log";
 import { errorFields } from "../lib/utils/error-fields";
 // See issue #172.
@@ -175,6 +180,16 @@ export default {
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
     try {
       switch (controller.cron) {
+        case "* * * * *": {
+          const exit = await runBackground(
+            drainIndexNow(),
+            Layer.mergeAll(Db.layer(env.HYPERDRIVE), IndexNow.layer()),
+          );
+
+          if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+          break;
+        }
+
         case "0 3 * * *": {
           // Logs its own cleanup_completed / cleanup_failed event; builds its own layers.
           await performCleanup(env);
@@ -193,8 +208,7 @@ export default {
       }
     } catch (error) {
       log("error", "cron error", { cron: controller.cron, ...errorFields(error) });
-      // Rethrow so the run is recorded as failed, not `ok`. Cleanup only deletes
-      // expired rows, so a platform retry (if any) is harmless.
+      // Propagate exhausted recovery and persisted IndexNow refusals to the platform.
       throw error;
     }
   },

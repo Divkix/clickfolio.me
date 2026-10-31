@@ -1,14 +1,19 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "@/lib/db/schema";
 import { siteConfig } from "@/lib/config/site";
 import {
   extractSitemapLocs,
   INDEXNOW_KEY,
   isStaticSiteUrl,
-  submitToIndexNow,
+  filterSiteUrls,
 } from "@/lib/seo/indexnow";
+import { enqueueIndexNowUrls } from "@/lib/seo/indexnow-outbox";
+import { errorFields } from "@/lib/utils/error-fields";
 
-// Post-deploy IndexNow ping for static pages, /for/* and /blog/*. Portfolios are pinged by the
-// Worker on publish (lib/seo/indexnow-runtime.ts). Reads the LIVE sitemap so it submits exactly
-// what production serves. INDEXNOW_DRY_RUN=1 lists the URLs without submitting. Always exits 0: IndexNow is a hint and must never fail a deploy.
+// Post-deploy durable enqueue for static pages, /for/* and /blog/*. Portfolio changes use the
+// same outbox at runtime. Reads the LIVE sitemap; the minute cron handles throttled delivery.
+// INDEXNOW_DRY_RUN=1 lists URLs without storing them. Enqueue failure never fails a deploy.
 
 const ATTEMPTS = 8;
 
@@ -61,7 +66,7 @@ async function collectStaticUrls(indexXml: string): Promise<string[]> {
 
 async function main(): Promise<void> {
   try {
-    const urls = await collectStaticUrls(await waitForLiveSitemap());
+    const urls = filterSiteUrls(await collectStaticUrls(await waitForLiveSitemap()));
 
     if (urls.length === 0) {
       console.log("[indexnow] no static URLs found; skipping");
@@ -75,15 +80,20 @@ async function main(): Promise<void> {
       return;
     }
 
-    const result = await submitToIndexNow(urls);
+    const connectionString = process.env.DATABASE_URL;
 
-    console.log(
-      `[indexnow] submitted ${result.submitted}/${urls.length} URLs (statuses: ${result.statuses.join(", ")})`,
-    );
+    if (!connectionString) throw new Error("DATABASE_URL is required to enqueue IndexNow URLs");
 
-    for (const error of result.errors) console.log(`[indexnow] batch failed: ${error}`);
+    const pool = new Pool({ connectionString, max: 1 });
+
+    try {
+      await enqueueIndexNowUrls(drizzle({ client: pool, schema }), urls);
+      console.log(`[indexnow] queued ${urls.length} URLs for durable submission`);
+    } finally {
+      await pool.end();
+    }
   } catch (error) {
-    console.log(`[indexnow] skipped: ${String(error)}`);
+    console.log("[indexnow] enqueue failed:", errorFields(error));
   }
 }
 

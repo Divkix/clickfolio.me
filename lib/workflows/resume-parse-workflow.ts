@@ -1,5 +1,7 @@
 import { Cause, Effect } from "effect";
 import type { ParseErrorJson } from "../parse/errors";
+import { classifyCareerEffect } from "../ai/career";
+import type { CareerProfile } from "../ai/career";
 import {
   WorkflowEntrypoint,
   type WorkflowEvent,
@@ -58,6 +60,13 @@ const PARSE_STEP = {
   timeout: "10 minutes",
 } as const;
 
+// Independent of parsing: an overloaded classifier must not regenerate the resume.
+// The fetch/body keeps its 10-second abort budget on each of the three attempts.
+const CAREER_STEP = {
+  retries: { limit: 2, delay: "5 seconds", backoff: "exponential" },
+  timeout: "15 seconds",
+} as const;
+
 type TracedStep = <T extends Rpc.Serializable<T>>(
   name: string,
   config: WorkflowStepConfig,
@@ -83,7 +92,7 @@ function tracedSteps(step: WorkflowStep, instanceId: string, resumeId: string): 
 }
 
 /**
- * Resume parse pipeline: claim → parse → complete, with `mark failed` once
+ * Resume parse pipeline: claim → parse → classify career → complete, with `mark failed` once
  * retries are spent. Replaces the parse queue, its DLQ, and the orphan-recovery cron.
  */
 export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, ResumeParseParams> {
@@ -101,8 +110,8 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
     if (handles.length === 0) return;
 
     try {
-      // Its own journaled step, after the row is final: the purge enqueue and the IndexNow ping
-      // are not idempotent for the rate budget, so an ambiguous step is not retried.
+      // Journal public-refresh enqueues separately after the row is final. Keep this step
+      // no-retry so an ambiguous purge enqueue cannot consume the rate budget twice.
       await tracedStep(
         "refresh public pages",
         { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
@@ -254,8 +263,23 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
 
       if (!parsed) return "skipped";
 
+      let career: CareerProfile | null = null;
+
+      try {
+        career = await tracedStep("classify career", CAREER_STEP, () =>
+          this.exec(classifyCareerEffect(parsed.parsedContent, this.env)),
+        );
+      } catch (error) {
+        // Best effort only after the retry owner is done; a portfolio still completes.
+        log(
+          "warn",
+          "career classification unavailable; preserving current career",
+          errorFields(error),
+        );
+      }
+
       const rewritten = await tracedStep("complete", DB_STEP, async () => {
-        const handles = await this.exec(completeParsedResume(job, parsed));
+        const handles = await this.exec(completeParsedResume(job, { ...parsed, career }));
 
         logEvent("resume_parse_completed", outcome());
 
