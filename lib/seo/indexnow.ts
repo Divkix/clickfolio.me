@@ -1,34 +1,12 @@
 import { siteConfig } from "@/lib/config/site";
-import { TIMEOUT_MS } from "@/lib/effect/timeouts";
-import { errorFields } from "@/lib/utils/error-fields";
 
 /**
- * IndexNow client shared by the Worker (portfolio events) and `scripts/submit-indexnow.ts`
- * (post-deploy static pages). The key is public by design: search engines verify it by fetching
- * `public/<key>.txt` from the site.
+ * IndexNow request helpers shared by the durable Worker sender and the deploy script.
+ * The key is public by design: search engines verify it by fetching `public/<key>.txt`.
  */
 export const INDEXNOW_KEY = "0a934a6df632d13f7be3cd7440f18551";
 
 export const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
-
-/** Protocol cap per POST. */
-const MAX_URLS_PER_REQUEST = 10_000;
-
-export interface IndexNowResult {
-  /** URLs accepted by the endpoint (200/202). */
-  submitted: number;
-  /** HTTP status per batch; 0 when the request threw. */
-  statuses: number[];
-  /** `name: message` of each batch whose request threw (scrubbed), for the script to print. */
-  errors: string[];
-}
-
-type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
-
-interface SubmitOptions {
-  siteUrl?: string;
-  fetchImpl?: FetchLike;
-}
 
 /** Deduplicated URLs on the site's own host — the endpoint rejects foreign hosts with 422. */
 export function filterSiteUrls(
@@ -54,6 +32,23 @@ export function isIndexNowAccepted(status: number): boolean {
   return status === 200 || status === 202;
 }
 
+/**
+ * Retry-After supports delay-seconds and HTTP dates (RFC 9110 §10.2.3). A missing or invalid
+ * value leaves the durable sender's exponential fallback in charge.
+ */
+export function indexNowRetryAt(value: string | null, now: number): number | undefined {
+  if (!value) return undefined;
+
+  const trimmed = value.trim();
+  const timestamp = /^\d+$/.test(trimmed)
+    ? now + Number(trimmed) * 1_000
+    : Date.parse(trimmed);
+
+  return Number.isFinite(timestamp) && timestamp >= now && timestamp <= 8.64e15
+    ? timestamp
+    : undefined;
+}
+
 /** The POST for one batch of site URLs, ready for `fetch` (add the caller's `signal`). */
 export function indexNowRequest(
   batch: readonly string[],
@@ -69,41 +64,6 @@ export function indexNowRequest(
       urlList: batch,
     }),
   };
-}
-
-/**
- * POSTs `urls` to IndexNow in protocol-sized batches, each limited to the upstream timeout.
- * Never throws: IndexNow is a hint, and a failure must not fail a deploy. This is the Node
- * script's path (`scripts/submit-indexnow.ts`); the Worker goes through the `IndexNow` service.
- */
-export async function submitToIndexNow(
-  urls: readonly string[],
-  { siteUrl = siteConfig.url, fetchImpl = fetch }: SubmitOptions = {},
-): Promise<IndexNowResult> {
-  const urlList = filterSiteUrls(urls, siteUrl);
-  const result: IndexNowResult = { submitted: 0, statuses: [], errors: [] };
-
-  for (let start = 0; start < urlList.length; start += MAX_URLS_PER_REQUEST) {
-    const batch = urlList.slice(start, start + MAX_URLS_PER_REQUEST);
-
-    try {
-      const response = await fetchImpl(INDEXNOW_ENDPOINT, {
-        ...indexNowRequest(batch, siteUrl),
-        signal: AbortSignal.timeout(TIMEOUT_MS.upstream),
-      });
-
-      result.statuses.push(response.status);
-
-      if (isIndexNowAccepted(response.status)) result.submitted += batch.length;
-    } catch (error) {
-      const { "error.name": name, "error.message": message } = errorFields(error);
-
-      result.statuses.push(0);
-      result.errors.push(`${name}: ${message}`);
-    }
-  }
-
-  return result;
 }
 
 /** Canonical portfolio URLs for the given handles (nulls skipped). */

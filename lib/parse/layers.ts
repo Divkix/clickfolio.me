@@ -2,7 +2,6 @@ import { Layer } from "effect";
 import { Db } from "../effect/db";
 import { AlertWebhook } from "../effect/services/alert-webhook";
 import { EdgePurgeQueue } from "../effect/services/edge-purge-queue";
-import { IndexNow } from "../effect/services/indexnow";
 import { Mailer } from "../effect/services/mailer";
 import { R2Store } from "../effect/services/r2-store";
 import { StatusChannel } from "../effect/services/status-channel";
@@ -14,8 +13,7 @@ export type ParseWorkflowServices =
   | R2Store
   | AlertWebhook
   | Mailer
-  | EdgePurgeQueue
-  | IndexNow;
+  | EdgePurgeQueue;
 
 /** The alert settings are secrets/vars that `cf-typegen` does not know about. */
 export type ParseWorkflowEnv = CloudflareEnv &
@@ -33,6 +31,5 @@ export function parseWorkflowLayer(env: ParseWorkflowEnv): Layer.Layer<ParseWork
     AlertWebhook.layer(env),
     Mailer.layer(env),
     EdgePurgeQueue.layer(env.EDGE_PURGE_QUEUE),
-    IndexNow.layer(),
   );
 }

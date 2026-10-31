@@ -8,7 +8,6 @@ import type { PgQueryable } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import type { EdgePurgeQueue } from "@/lib/effect/services/edge-purge-queue";
-import type { IndexNow } from "@/lib/effect/services/indexnow";
 import { profileUrls } from "@/lib/seo/indexnow";
 import { submitProfiles } from "@/lib/seo/indexnow-profiles";
 import { errorFields } from "@/lib/utils/error-fields";
@@ -61,14 +60,14 @@ function indexableHandles(handles: readonly string[]): Effect.Effect<string[], n
  * After a parse rewrote public site-data: purge the edge-cached pages and tell search engines.
  * A Workflow has no request (no `waitUntil`), so this step enqueues the encoded tags itself
  * instead of calling `revalidatePublicProfilePages`. Best effort: a failure is logged and never
- * fails the run. A timed-out enqueue is not resent (it may have landed). The IndexNow ping only
- * runs on the production site (`appUrl`), as it does for request-time changes, and only for
- * profiles that are still indexable.
+ * fails the run. A timed-out enqueue is not resent (it may have landed). The durable IndexNow
+ * enqueue only runs on the production site (`appUrl`), as it does for request-time changes, and
+ * only for profiles that are still indexable; the minute cron owns delivery and retries.
  */
 export function refreshPublicProfiles(
   handles: readonly string[],
   appUrl: string | undefined,
-): Effect.Effect<void, never, EdgePurgeQueue | IndexNow | Db> {
+): Effect.Effect<void, never, EdgePurgeQueue | Db> {
   if (handles.length === 0) return Effect.void;
 
   const purge = purgeEdgeTags(publicProfileTags(handles)).pipe(

@@ -1,8 +1,8 @@
-import { waitUntil } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { Cause, Exit } from "effect";
 import { siteConfig } from "@/lib/config/site";
 import { runBackground } from "@/lib/effect/edges";
-import { IndexNow } from "@/lib/effect/services/indexnow";
+import { Db } from "@/lib/effect/db";
 import { profileUrls } from "@/lib/seo/indexnow";
 import { submitProfiles } from "@/lib/seo/indexnow-profiles";
 import { errorFields } from "@/lib/utils/error-fields";
@@ -15,7 +15,7 @@ function isProductionSite(): boolean {
 
 /** Background edge: every typed failure is logged inside the program, defects here. */
 async function runSubmission(urls: string[], skipDebounce: boolean): Promise<void> {
-  const exit = await runBackground(submitProfiles(urls, skipDebounce), IndexNow.layer());
+  const exit = await runBackground(submitProfiles(urls, skipDebounce), Db.layer(env.HYPERDRIVE));
 
   if (Exit.isFailure(exit)) {
     log("warn", "indexnow submission failed", { ...errorFields(Cause.squash(exit.cause)) });
@@ -23,9 +23,9 @@ async function runSubmission(urls: string[], skipDebounce: boolean): Promise<voi
 }
 
 /**
- * Pings IndexNow for portfolios whose public state changed (published, handle changed, privacy
- * changed, deleted). Runs after the response via waitUntil; never throws. Pass `skipDebounce` when
- * the change removes or hides a page, so a recent publish ping cannot suppress it.
+ * Queues portfolios whose public state changed (published, handle changed, privacy changed,
+ * deleted). Only the DB enqueue runs via waitUntil; the minute cron submits/retries durable work.
+ * Pass `skipDebounce` for removals so a recent publish cannot defer their per-URL due time.
  */
 export function notifyIndexNowForProfiles(
   handles: ReadonlyArray<string | null | undefined>,

@@ -1,196 +1,93 @@
+import { eq, sql } from "drizzle-orm";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { siteConfig } from "@/lib/config/site";
-import { TIMEOUT_MS } from "@/lib/effect/timeouts";
-import { INDEXNOW_ENDPOINT } from "@/lib/seo/indexnow";
+import { indexNowUrls } from "@/lib/db/schema";
+import { Db } from "@/lib/effect/db";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { createTestDb, type TestDb } from "@/tests/helpers/pglite-db";
 import { logLines } from "@/tests/helpers/log-lines";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const { waitUntilMock } = vi.hoisted(() => ({ waitUntilMock: vi.fn() }));
 
-vi.mock("cloudflare:workers", () => ({ waitUntil: waitUntilMock }));
+vi.mock("cloudflare:workers", () => ({ env: { HYPERDRIVE: {} }, waitUntil: waitUntilMock }));
 
-const fetchMock = vi.fn<typeof fetch>();
-
-const cacheEntries = new Map<string, Response>();
-
-const cache = {
-  match: vi.fn(async (key: string) => cacheEntries.get(key)),
-  put: vi.fn(async (key: string, response: Response) => {
-    cacheEntries.set(key, response);
-  }),
-};
-
+let testDb: { db: TestDb; close(): Promise<void> };
 let pending: Promise<void> | undefined;
 
-beforeEach(() => {
-  cacheEntries.clear();
-  cache.match.mockClear();
-  cache.put.mockClear();
-  fetchMock.mockReset();
+beforeAll(async () => {
+  testDb = await createTestDb();
+});
+afterAll(async () => {
+  await testDb.close();
+});
+beforeEach(async () => {
+  await testDb.db.execute(sql`TRUNCATE indexnow_urls, indexnow_state`);
+  vi.spyOn(Db, "layer").mockImplementation(() => Db.layerFrom(testDb.db));
   waitUntilMock.mockReset();
+  pending = undefined;
   waitUntilMock.mockImplementation((promise: Promise<void>) => {
     pending = promise;
   });
-  vi.stubGlobal("caches", { open: vi.fn(async () => cache) });
-  vi.stubGlobal("fetch", fetchMock);
   vi.stubEnv("APP_URL", siteConfig.url);
 });
-
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
-async function notify(
-  handles: string[],
-  options?: Parameters<typeof notifyIndexNowForProfiles>[1],
-): Promise<void> {
-  pending = undefined;
-  notifyIndexNowForProfiles(handles, options);
+async function notify(handles: string[], force = false) {
+  notifyIndexNowForProfiles(handles, { skipDebounce: force });
 
-  const submission = pending;
+  if (!pending) throw new Error("waitUntil was not called");
 
-  if (!submission) throw new Error("waitUntil was not called");
-
-  return submission;
+  await pending;
 }
 
-function submittedUrls(call: number): string[] {
-  const init = fetchMock.mock.calls[call]?.[1];
+describe("IndexNow runtime durable enqueue", () => {
+  it("stores deduplicated work without fetching or depending on the colo cache", async () => {
+    const fetchMock = vi.fn<typeof fetch>();
 
-  return JSON.parse(String(init?.body)).urlList;
-}
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("caches", { open: vi.fn(() => { throw new Error("cache unavailable"); }) });
+    await notify(["alice", "alice"]);
+    await notify(["alice", "bob"]);
 
-describe("IndexNow runtime debounce", () => {
-  it("skips a URL after an accepted submission", async () => {
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+    const rows = await testDb.db.select().from(indexNowUrls);
 
-    await notify(["alice"]);
-
-    expect(fetchMock).toHaveBeenCalledWith(INDEXNOW_ENDPOINT, expect.anything());
-    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@alice`]);
-    expect(cache.put).toHaveBeenCalledTimes(1);
-
-    await notify(["alice"]);
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("submits a change that must not be dropped even when the URL was just pinged", async () => {
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
-
-    await notify(["erin"]);
-    await notify(["erin"], { skipDebounce: true });
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(submittedUrls(1)).toEqual([`${siteConfig.url}/@erin`]);
-  });
-
-  it("dedupes a forced ping so a handle that did not change is sent once", async () => {
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
-
-    await notify(["erin", "erin"], { skipDebounce: true });
-
-    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@erin`]);
-    expect(cache.put).toHaveBeenCalledTimes(1);
-  });
-
-  it("still marks a forced ping so an ordinary publish right after it is coalesced", async () => {
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
-
-    await notify(["frank"], { skipDebounce: true });
-    await notify(["frank"]);
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(cache.put).toHaveBeenCalledTimes(1);
-  });
-
-  it("retries a URL whose submission was rejected", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    fetchMock.mockResolvedValue(new Response(null, { status: 429 }));
-
-    await notify(["bob"]);
-
-    expect(cache.put).not.toHaveBeenCalled();
-
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
-
-    await notify(["bob"]);
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(cache.put).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("IndexNow runtime failures", () => {
-  it("logs a refusal with its kind and no handle", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    fetchMock.mockResolvedValue(new Response(null, { status: 422 }));
-
-    await notify(["carol"]);
-
-    expect(logLines(warn)).toEqual([
-      expect.objectContaining({
-        msg: "indexnow submission failed",
-        kind: "rejected",
-        host: "indexnow",
-      }),
+    expect(rows.map(({ url }) => url).sort()).toEqual([
+      `${siteConfig.url}/@alice`, `${siteConfig.url}/@bob`,
     ]);
-    expect(JSON.stringify(logLines(warn))).not.toContain("carol");
+    expect(rows.every(({ pending: queued }) => queued)).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("gives up on a hung endpoint at the upstream timeout without resending", async () => {
-    vi.useFakeTimers();
-
-    try {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-      fetchMock.mockImplementation(() => new Promise<never>(() => {}));
-
-      const done = notify(["dave"]);
-      await vi.advanceTimersByTimeAsync(TIMEOUT_MS.upstream + 1);
-      await done;
-
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(cache.put).not.toHaveBeenCalled();
-      expect(logLines(warn)[0]).toMatchObject({
-        msg: "indexnow submission failed",
-        kind: "timeout",
-      });
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("still pings, and says so, when the debounce cache is down", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    cache.match.mockRejectedValueOnce(new Error("cache unavailable"));
-    fetchMock.mockResolvedValue(new Response(null, { status: 202 }));
-
+  it("preserves forced deletion/rename priority when another ordinary change arrives", async () => {
+    await notify(["erin", "erin"], true);
     await notify(["erin"]);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(logLines(warn)[0]).toMatchObject({ msg: "indexnow debounce unavailable" });
+    const [row] = await testDb.db.select().from(indexNowUrls)
+      .where(eq(indexNowUrls.url, `${siteConfig.url}/@erin`));
+
+    expect(row).toMatchObject({ pending: true, urgent: true });
   });
 
-  it("still pings, and says so, when the debounce write is down", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    cache.put.mockRejectedValueOnce(new Error("cache unavailable"));
-    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+  it("logs a failed durable enqueue without exposing the handle or throwing", async () => {
+    const closed = await createTestDb();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await notify(["grace"]);
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(submittedUrls(0)).toEqual([`${siteConfig.url}/@grace`]);
-    expect(logLines(warn)[0]).toMatchObject({ msg: "indexnow debounce write failed" });
+    await closed.close();
+    vi.mocked(Db.layer).mockImplementation(() => Db.layerFrom(closed.db));
+    await expect(notify(["carol"])).resolves.toBeUndefined();
+    expect(logLines(error)[0]).toMatchObject({ msg: "indexnow enqueue failed" });
+    expect(JSON.stringify(logLines(error))).not.toContain("carol");
   });
 
-  it("does nothing outside production", async () => {
+  it("does nothing outside production or without handles", () => {
     vi.stubEnv("APP_URL", "http://localhost:3000");
-
     notifyIndexNowForProfiles(["frank"]);
-
+    vi.stubEnv("APP_URL", siteConfig.url);
+    notifyIndexNowForProfiles([null, undefined, ""]);
     expect(waitUntilMock).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
