@@ -223,6 +223,7 @@ describe("handleOtelProxy", () => {
     expect(mocks.log).toHaveBeenCalledWith("error", "otel proxy upstream rejected", {
       status: 401,
       "otel.signal": "traces",
+      "upstream.response": "bad key",
     });
     expect(JSON.stringify(mocks.log.mock.calls)).not.toContain(ENV.OTEL_BROWSER_INGEST_KEY);
   });
@@ -267,8 +268,128 @@ describe("handleOtelProxy", () => {
     expect(mocks.log).toHaveBeenCalledWith("error", "otel proxy upstream rejected", {
       status: 503,
       "otel.signal": "logs",
+      "upstream.response": "down",
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a bounded collector diagnostic without credentials or personal data", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: 400,
+          message:
+            'invalid span "Jane Developer" ingest-key Basic c2VjcmV0 user@example.com https://clickfolio.me/@private?token=secret',
+        }),
+        { status: 400 },
+      ),
+    );
+    const { ctx, settle } = makeCtx();
+    await handleOtelProxy(post("/otel/v1/traces"), ENV, ctx);
+    await settle();
+
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "otel proxy upstream rejected",
+      expect.objectContaining({
+        "upstream.response": expect.stringContaining("invalid span"),
+      }),
+    );
+    const logged = JSON.stringify(mocks.log.mock.calls);
+    expect(logged).not.toContain("Jane Developer");
+    expect(logged).not.toContain("ingest-key");
+    expect(logged).not.toContain("c2VjcmV0");
+    expect(logged).not.toContain("user@example.com");
+    expect(logged).not.toContain("@private");
+  });
+
+  it("cancels oversized rejection bodies after reading a diagnostic prefix", async () => {
+    const cancel = vi.fn();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(`invalid span ${"x".repeat(4096)}`));
+          },
+          cancel,
+        }),
+        { status: 400 },
+      ),
+    );
+    const { ctx, settle } = makeCtx();
+    await handleOtelProxy(post("/otel/v1/traces"), ENV, ctx);
+    await settle();
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "otel proxy upstream rejected",
+      expect.objectContaining({
+        "upstream.response": `invalid span ${"x".repeat(499)}`,
+      }),
+    );
+  });
+
+  it("sanitizes rejected SDK AnyValues without dropping the rest of the batch or requiring a country", async () => {
+    const invalid = [
+      { key: "rum.sessionId", value: {} },
+      { key: "metric", value: { doubleValue: null } },
+      { key: "overflow", value: { intValue: "9223372036854775808" } },
+      { key: "invalid", value: { boolValue: null } },
+      { key: "bytes", value: { bytesValue: "%%%" } },
+      { value: { stringValue: "no key" } },
+    ];
+    const valid = { key: "valid", value: { stringValue: "kept" } };
+    const nested = {
+      key: "array",
+      value: { arrayValue: { values: [{}, { doubleValue: null }, { intValue: 2 }] } },
+    };
+    const raw = {
+      resourceSpans: [{
+        resource: { attributes: [...invalid, valid] },
+        scopeSpans: [{
+          scope: { attributes: invalid },
+          spans: [{
+            name: "split\uD83D",
+            startTimeUnixNano: "1793421596000000001",
+            endTimeUnixNano: "1793421596000000002",
+            attributes: [...invalid, nested, valid],
+            events: [{ name: "event", attributes: [...invalid, valid] }],
+            links: [{ attributes: [...invalid, valid] }],
+          }],
+        }],
+      }],
+    };
+    const body = JSON.parse(await forwardedText(post("/otel/v1/traces", { body: JSON.stringify(raw) })));
+    expect(body.resourceSpans[0].resource.attributes).toEqual([valid]);
+    expect(body.resourceSpans[0].scopeSpans[0].scope.attributes).toEqual([]);
+    const span = body.resourceSpans[0].scopeSpans[0].spans[0];
+    expect(span.name).toBe("split\uFFFD");
+    expect(span.startTimeUnixNano).toBe("1793421596000000001");
+    expect(span.endTimeUnixNano).toBe("1793421596000000002");
+    expect(span.attributes).toEqual([
+      { key: "array", value: { arrayValue: { values: [{ intValue: 2 }] } } },
+      valid,
+    ]);
+    expect(span.events[0].attributes).toEqual([valid]);
+    expect(span.links[0].attributes).toEqual([valid]);
+  });
+
+  it("removes malformed span and link IDs without rejecting valid sibling spans", async () => {
+    const valid = {
+      name: "valid",
+      traceId: "11111111111111111111111111111111",
+      spanId: "2222222222222222",
+      links: [{ traceId: "not-hex", spanId: "2222222222222222" }],
+    };
+    const body = JSON.parse(await forwardedText(post("/otel/v1/traces", {
+      body: JSON.stringify({
+        resourceSpans: [{ scopeSpans: [{
+          spans: [valid, { ...valid, traceId: "not-hex" }, { ...valid, spanId: "short" }],
+        }] }],
+      }),
+    })));
+    expect(body.resourceSpans[0].scopeSpans[0].spans).toEqual([{ ...valid, links: [] }]);
   });
 
   describe("visitor country", () => {
@@ -364,9 +485,9 @@ describe("handleOtelProxy", () => {
       ["JSON without resources", { "content-type": "application/json" }, '{"resourceSpans":[]}'],
       ["a JSON array", { "content-type": "application/json" }, "[]"],
       [
-        "an export with a malformed attribute",
+        "an export with malformed resources",
         { "content-type": "application/json" },
-        JSON.stringify(otlpTraces([{ value: { stringValue: "no key" } }])),
+        JSON.stringify({ resourceSpans: [{ resource: { attributes: "not-an-array" } }] }),
       ],
     ])("passes %s through byte for byte", async (_label, headers, raw) => {
       const sent = new TextEncoder().encode(raw);
@@ -389,7 +510,7 @@ describe("handleOtelProxy", () => {
     });
 
     it("logs a JSON body that is not an OTLP export before passing it through", async () => {
-      const malformed = JSON.stringify(otlpTraces([{ value: { stringValue: "no key" } }]));
+      const malformed = JSON.stringify({ resourceSpans: [{ resource: { attributes: "not-an-array" } }] });
 
       await forwardedBody(withCountry(post("/otel/v1/traces", { body: malformed }), "DE"));
 
