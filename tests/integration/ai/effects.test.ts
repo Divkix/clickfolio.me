@@ -317,15 +317,43 @@ describe("Effect AI boundaries", () => {
     expect(failure).toMatchObject({ reason: "scanned-empty" });
   });
 
-  it("leaves career unchanged when classification fails", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-    expect(await Effect.runPromise(classifyCareerEffect(CONTENT, ENV))).toBeNull();
+  it("keeps a career provider failure retryable for its Workflow step", async () => {
+    const request = vi.fn().mockRejectedValue(new Error("offline"));
+    vi.stubGlobal("fetch", request);
+    const failure = await Effect.runPromise(Effect.flip(classifyCareerEffect(CONTENT, ENV)));
+    expect(failure).toBeInstanceOf(AiProviderFailed);
+    expect(failure.retryable).toBe(true);
+    expect(request).toHaveBeenCalledTimes(1);
     expect(mocks.log).toHaveBeenCalledWith(
       "warn",
       "career classification failed",
       expect.objectContaining({ "error.message": "offline", "error.name": "AiProviderFailed" }),
     );
   });
+
+  it.each([429, 500, 502, 503, 529])(
+    "surfaces career HTTP %s for the Workflow to retry, without an inner retry",
+    async (status) => {
+      const request = vi.fn().mockResolvedValue(new Response(null, { status }));
+      vi.stubGlobal("fetch", request);
+      const failure = await Effect.runPromise(Effect.flip(classifyCareerEffect(CONTENT, ENV)));
+      expect(failure).toBeInstanceOf(AiProviderFailed);
+      expect(failure.retryable).toBe(true);
+      expect(request).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([400, 401, 402, 403, 404, 413, 422])(
+    "keeps career HTTP %s nonretryable",
+    async (status) => {
+      const request = vi.fn().mockResolvedValue(new Response(null, { status }));
+      vi.stubGlobal("fetch", request);
+      const failure = await Effect.runPromise(Effect.flip(classifyCareerEffect(CONTENT, ENV)));
+      expect(failure).toBeInstanceOf(AiProviderRejected);
+      expect(failure.retryable).toBe(false);
+      expect(request).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe("Effect input and cancellation regressions", () => {
@@ -392,9 +420,9 @@ describe("Effect input and cancellation regressions", () => {
         return response;
       }),
     );
-    const result = Effect.runPromise(classifyCareerEffect(CONTENT, ENV));
+    const result = Effect.runPromise(Effect.flip(classifyCareerEffect(CONTENT, ENV)));
     await vi.advanceTimersByTimeAsync(10_001);
-    expect(await result).toBeNull();
+    expect(await result).toBeInstanceOf(AiTimedOut);
     expect(signal?.aborted).toBe(true);
     expect(mocks.log).toHaveBeenCalledTimes(1);
   });

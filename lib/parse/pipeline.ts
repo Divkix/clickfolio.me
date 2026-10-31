@@ -262,10 +262,8 @@ export function parseResumePdf(job: ResumeParseJob, env: CloudflareEnv) {
       const pdfBuffer = pdfBytes.buffer;
       const { parseResumeWithAi } = yield* Effect.promise(() => import("../ai"));
       const parsedContent = yield* parseResumeWithAi(pdfBuffer, env);
-      const { classifyCareerEffect } = yield* Effect.promise(() => import("../ai/career"));
-      const career = yield* classifyCareerEffect(parsedContent, env);
 
-      return { parsedContent, career };
+      return { parsedContent };
     }).pipe(
       Effect.tapError(recordFailure),
       Effect.tapDefect((cause) => recordFailure(classifyParseError(cause))),

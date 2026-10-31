@@ -35,14 +35,11 @@ import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "@/tests/helpers/pg
 
 const mocks = vi.hoisted(() => ({
   parseResumeWithAi: vi.fn(),
-  classifyCareerEffect: vi.fn(),
 }));
 
 vi.mock("@/lib/utils/log", () => ({ log: vi.fn(), logEvent: vi.fn() }));
 
 vi.mock("@/lib/ai", () => ({ parseResumeWithAi: mocks.parseResumeWithAi }));
-
-vi.mock("@/lib/ai/career", () => ({ classifyCareerEffect: mocks.classifyCareerEffect }));
 
 const T0 = "2026-01-01T00:00:00.000Z";
 
@@ -184,9 +181,6 @@ beforeEach(async () => {
   webhookBodies = [];
   webhookFails = false;
   mocks.parseResumeWithAi.mockReturnValue(Effect.succeed(CONTENT));
-  mocks.classifyCareerEffect.mockReturnValue(
-    Effect.succeed({ role: "mid_level", isFreelance: false }),
-  );
 });
 
 describe("claimResumeForParse", () => {
@@ -291,9 +285,7 @@ describe("parseResumePdf", () => {
 
     const parsed = await run(parseResumePdf(JOB, ENV));
 
-    expect(parsed?.parsedContent.full_name).toBe(CONTENT.full_name);
-    expect(parsed?.career).toEqual({ role: "mid_level", isFreelance: false });
-    expect(mocks.classifyCareerEffect).toHaveBeenCalledWith(parsed?.parsedContent, ENV);
+    expect(parsed).toEqual({ parsedContent: CONTENT });
     expect(mocks.parseResumeWithAi.mock.calls[0][0]).toBe(objects.get(JOB.r2Key));
     expect((await row(JOB.resumeId)).totalAttempts).toBe(1);
 
@@ -584,8 +576,12 @@ describe("completeParsedResume", () => {
     });
   });
 
-  it("completes only the row itself when nothing is waiting, without a career", async () => {
+  it("completes without classification and preserves the owner's career settings", async () => {
     await seed(JOB.resumeId);
+    await db
+      .update(user)
+      .set({ role: "senior", roleSource: "user", isFreelance: true })
+      .where(eq(user.id, JOB.userId));
 
     await run(completeParsedResume(JOB, { ...parsed, career: null }));
 
@@ -593,7 +589,7 @@ describe("completeParsedResume", () => {
     expect(pushes).toEqual([{ resumeId: JOB.resumeId, status: "completed" }]);
 
     const [owner] = await db.select().from(user).where(eq(user.id, JOB.userId));
-    expect(owner.roleSource).not.toBe("ai");
+    expect(owner).toMatchObject({ role: "senior", roleSource: "user", isFreelance: true });
   });
 });
 
