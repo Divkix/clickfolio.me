@@ -15,7 +15,10 @@ export const handleSchema = z
     z.refine(noXssPattern, { message: "Invalid content detected" }),
   );
 
-/** Fold accented letters before applying the handle's ASCII-only format. */
+/**
+ * Fold accented letters before applying the handle's ASCII-only format. Runs on every keystroke,
+ * so a trailing hyphen stays for the next character to follow; `handleSchema` still rejects it.
+ */
 export function normalizeHandleInput(value: string): string {
   return value
     .normalize("NFD")
@@ -23,7 +26,6 @@ export function normalizeHandleInput(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 30)
-    .replace(/-$/g, "");
+    .replace(/^-/, "")
+    .slice(0, 30);
 }

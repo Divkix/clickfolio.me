@@ -22,11 +22,21 @@ describe("normalizeHandleInput", () => {
     expect(handleSchema.safeParse(normalizeHandleInput("李雷")).success).toBe(false);
   });
 
-  it("keeps normalized handles within the schema's length and hyphen rules", () => {
-    const handle = normalizeHandleInput(`--${"é".repeat(29)}---more--`);
+  it("keeps a hyphen typed one key at a time", () => {
+    const typed = [..."lucía-fernández"].reduce(
+      (value, key) => normalizeHandleInput(value + key),
+      "",
+    );
 
-    expect(handle).toBe("e".repeat(29));
-    expect(handleSchema.safeParse(handle).success).toBe(true);
-    expect(normalizeHandleInput("--alice---dev--")).toBe("alice-dev");
+    expect(typed).toBe("lucia-fernandez");
+    expect(handleSchema.safeParse(typed).success).toBe(true);
+  });
+
+  it("collapses hyphens and caps length, leaving a trailing hyphen for the schema to reject", () => {
+    const handle = normalizeHandleInput("--alice---dev--");
+
+    expect(handle).toBe("alice-dev-");
+    expect(handleSchema.safeParse(handle).success).toBe(false);
+    expect(normalizeHandleInput("é".repeat(40))).toBe("e".repeat(30));
   });
 });
