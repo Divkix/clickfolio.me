@@ -81,7 +81,13 @@ describe("durable IndexNow outbox", () => {
     fetchMock.mockResolvedValueOnce(
       new Response(null, { status: 429, headers: { "Retry-After": "1800" } }),
     );
-    expect(Exit.isFailure(await drain())).toBe(true);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    // A rate limit is the expected path: the batch waits, the cron run succeeds.
+    expect(Exit.isSuccess(await drain())).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"msg":"indexnow deferred"'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"status":429'));
+    expect(error).not.toHaveBeenCalled();
     await enqueue([bob], true);
     expect(await pendingUrls()).toEqual([alice, bob]);
     vi.mocked(Date.now).mockReturnValue(NOW + 1_799_999);
@@ -189,10 +195,11 @@ describe("durable IndexNow outbox", () => {
     expect(await pendingUrls()).toEqual([]);
   });
 
-  it("retains transport failures and permanent refusals rather than acknowledging lost work", async () => {
+  it("defers transport failures and fails only permanent refusals, never acknowledging lost work", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     await enqueue([alice]);
     fetchMock.mockRejectedValueOnce(new TypeError("network disconnected"));
-    expect(Exit.isFailure(await drain())).toBe(true);
+    expect(Exit.isSuccess(await drain())).toBe(true);
     expect(await pendingUrls()).toEqual([alice]);
     vi.mocked(Date.now).mockReturnValue(NOW + 600_000);
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 403 }));
@@ -234,7 +241,8 @@ describe("IndexNow trailing delivery and retry recovery", () => {
         headers: { "Retry-After": "1200" },
       }),
     );
-    expect(Exit.isFailure(await drain())).toBe(true);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(Exit.isSuccess(await drain())).toBe(true);
     vi.mocked(Date.now).mockReturnValue(NOW + 1_199_999);
     await drain();
     expect(fetchMock).toHaveBeenCalledTimes(1);
