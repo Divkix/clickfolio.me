@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal<typeof TanStackRouter>();
 
-  return { ...actual, useNavigate: () => vi.fn() };
+  return { ...actual, useNavigate: () => vi.fn(), useLocation: () => "/" };
 });
 
 import { LoginButton } from "@/components/auth/LoginButton";

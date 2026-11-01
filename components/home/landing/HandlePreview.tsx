@@ -122,9 +122,11 @@ export function HandlePreview({ themes }: { themes: PreviewTheme[] }) {
         <img
           src={selected.preview}
           srcSet={previewSrcSet(selected.preview)}
-          sizes="(min-width: 1280px) 692px, (min-width: 1024px) 54vw, 100vw"
+          sizes="(min-width: 1280px) 691px, (min-width: 1024px) calc(60vw - 76.8px), (min-width: 640px) calc(100vw - 48px), calc(100vw - 32px)"
           alt={`${selected.person}'s site in the ${selected.name} design`}
+          loading="eager"
           fetchPriority="high"
+          decoding="async"
           className="aspect-16/10 w-full object-cover object-top"
         />
       </figure>
