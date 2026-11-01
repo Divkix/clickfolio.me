@@ -1,5 +1,5 @@
 import { Slot } from "@radix-ui/react-slot";
-import { CatchBoundary, useNavigate } from "@tanstack/react-router";
+import { CatchBoundary, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   cloneElement,
   createContext,
@@ -43,7 +43,7 @@ interface SessionContextValue extends UseSessionResult {
   getClerk: () => Promise<BrowserClerk>;
 }
 
-// `@clerk/react` is ~35 KB gzip; loading it once the page is idle keeps it off the first paint.
+// Public anonymous visits keep Clerk out of the network until an auth action needs it.
 const ClerkBridge = lazy(() => import("./clerk-bridge"));
 
 // sonner stays out of the entry chunk; it only loads when a click finds Clerk unavailable.
@@ -61,14 +61,39 @@ export function SessionProvider({
   publishableKey,
   children,
 }: Readonly<{ publishableKey: string; children: ReactNode }>) {
+  const pathname = useLocation({ select: (location) => location.pathname });
   const [loadClerk, setLoadClerk] = useState(false);
   const [snapshot, setSnapshot] = useState<ClerkSnapshot | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
   const waiting = useRef<PromiseWithResolvers<BrowserClerk>[]>([]);
 
   useEffect(() => {
-    void whenIdle().then(() => setLoadClerk(true));
-  }, []);
+    const hasSession = document.cookie.split(";").some((cookie) => {
+      const [name, value] = cookie.trim().split("=");
+
+      return (
+        (name === "__session" && Boolean(value)) ||
+        (name === "__client_uat" && Boolean(value) && value !== "0")
+      );
+    });
+
+    // /themes is also protected; claiming an uploaded resume happens in /waiting.
+    const needsAuth = /^\/(dashboard|edit|settings|wizard|waiting|themes|admin|preview)(\/|$)/.test(
+      pathname,
+    );
+
+    if (!hasSession && !needsAuth) return;
+
+    let active = true;
+
+    void whenIdle().then(() => {
+      if (active) setLoadClerk(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!snapshot || snapshot.isPending) return;
