@@ -27,6 +27,8 @@ export const user = pgTable(
     roleSource: text("role_source", { enum: ["ai", "user"] }),
     isAdmin: boolean("is_admin").notNull().default(false),
     showInDirectory: boolean("show_in_directory").notNull().default(true),
+    // Claimed once by the first "your portfolio is live" email (lib/parse/email.ts); never cleared.
+    liveEmailSentAt: timestamp("live_email_sent_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [index("user_show_in_directory_idx").on(table.showInDirectory)],
 );

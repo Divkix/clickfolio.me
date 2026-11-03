@@ -35,7 +35,9 @@ export async function createTestDb(client: PGlite = new PGlite()) {
   };
 }
 
-export type TestDb = Awaited<ReturnType<typeof createTestDb>>["db"];
+export type TestDbHandle = Awaited<ReturnType<typeof createTestDb>>;
+
+export type TestDb = TestDbHandle["db"];
 
 /** Passes isIndexableContent: real labels, experience + education, well over 100 words. */
 export const INDEXABLE_CONTENT: ResumeContent = {
