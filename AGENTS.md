@@ -5,6 +5,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 ## Done
 
 - `pnpm run verify` (Vite+ core lockstep, lint, format, types, knip, doc references; the pre-commit hook runs it) and `pnpm run test`, or the covering file: `pnpm run test <path>`. CI runs `pnpm run test:coverage`, whose thresholds in `vite.config.ts` sit at the current baseline, so new code ships with tests.
+- CI runs quality (including migration drift), coverage tests and the build in parallel; `CI Success` remains the required aggregate gate. Shared setup caches `node_modules` exactly by OS, architecture, Node version and dependency inputs, skipping install on a hit (the `prepare` script only configures local hooks/agent integration).
 - `pnpm run build` as well when touching config, `worker/`, routes, dependencies or anything client code imports: only the build runs Start's import protection.
 - Schema change: commit the `pnpm run db:generate` output; CI rejects drift. `db:push` bypasses migrations (prototyping only).
 - Commit messages: Conventional Commits, `type(scope): summary`.
