@@ -191,7 +191,8 @@ function finishBatch(
  * One minute-cron turn: at most one batch, globally serialized. 429/5xx/network failures remain
  * pending with exponential backoff; Retry-After may extend, never shorten, that cooldown. They are
  * the expected path, so they log a warning and the cron succeeds. Permanent refusals stay
- * visible/pending, retry daily after configuration is repaired, and fail the cron.
+ * visible/pending, retry daily after configuration is repaired, and fail the cron. Claim timeouts
+ * also warn and succeed, leaving pending work for the next cron.
  */
 export function drainIndexNow(): Effect.Effect<
   void,
@@ -199,7 +200,19 @@ export function drainIndexNow(): Effect.Effect<
   Db | IndexNow
 > {
   return Effect.gen(function* () {
-    const batch = yield* claimBatch();
+    const batch = yield* claimBatch().pipe(
+      Effect.catchTag("DbFailed", (failure) => {
+        if (failure.kind !== "timeout") return Effect.fail(failure);
+
+        return Effect.sync(() => {
+          log("warn", "indexnow deferred", {
+            operation: failure.operation,
+            kind: failure.kind,
+            ...errorFields(failure),
+          });
+        });
+      }),
+    );
 
     if (!batch) return;
 

@@ -13,6 +13,7 @@ import {
 import { siteConfig } from "@/lib/config/site";
 import { indexNowState, indexNowUrls } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
+import { DbFailed } from "@/lib/effect/failures";
 import { IndexNow } from "@/lib/effect/services/indexnow";
 import { drainIndexNow, enqueueIndexNow } from "@/lib/seo/indexnow-profiles";
 import { createTestDb, type TestDb } from "@/tests/helpers/pglite-db";
@@ -27,10 +28,23 @@ function enqueue(urls: string[], force = false) {
   return Effect.runPromise(Effect.provide(enqueueIndexNow(urls, force), Db.layerFrom(testDb.db)));
 }
 
-function drain() {
+function claimFailureLayer(failure: DbFailed) {
+  return Layer.effect(
+    Db,
+    Effect.map(Db, (db) =>
+      Db.of({
+        ...db,
+        transaction: (operation, run) =>
+          operation === "indexnow.claim" ? Effect.fail(failure) : db.transaction(operation, run),
+      }),
+    ),
+  ).pipe(Layer.provide(Db.layerFrom(testDb.db)));
+}
+
+function drain(dbLayer = Db.layerFrom(testDb.db)) {
   // Rebuild both layers every invocation, as distinct Worker isolates do.
   return Effect.runPromiseExit(
-    Effect.provide(drainIndexNow(), Layer.merge(Db.layerFrom(testDb.db), IndexNow.layer())),
+    Effect.provide(drainIndexNow(), Layer.merge(dbLayer, IndexNow.layer())),
   );
 }
 
@@ -74,6 +88,45 @@ describe("durable IndexNow outbox", () => {
       bob,
     ]);
     expect(await pendingUrls()).toEqual([]);
+  });
+
+  it("defers a claim timeout and submits the pending URL on the next normal drain", async () => {
+    await enqueue([alice]);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const failure = new DbFailed({
+      operation: "indexnow.claim",
+      kind: "timeout",
+      message: "indexnow.claim timed out after 20000ms",
+    });
+
+    expect(Exit.isSuccess(await drain(claimFailureLayer(failure)))).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"msg":"indexnow deferred"'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"operation":"indexnow.claim"'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"kind":"timeout"'));
+    expect(error).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await pendingUrls()).toEqual([alice]);
+
+    expect(Exit.isSuccess(await drain())).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).urlList).toEqual([alice]);
+    expect(await pendingUrls()).toEqual([]);
+  });
+
+  it("fails a non-timeout claim error and retains the pending URL", async () => {
+    await enqueue([alice]);
+
+    const failure = new DbFailed({
+      operation: "indexnow.claim",
+      kind: "unavailable",
+      message: "database unavailable",
+    });
+
+    expect(await drain(claimFailureLayer(failure))).toEqual(Exit.fail(failure));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await pendingUrls()).toEqual([alice]);
   });
 
   it("keeps 429 work without another profile edit and pauses every URL until Retry-After seconds", async () => {
