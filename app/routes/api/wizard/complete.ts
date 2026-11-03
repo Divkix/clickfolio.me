@@ -16,6 +16,7 @@ import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { emailPortfolioLiveInBackground } from "@/lib/parse/live-email-runtime";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -230,6 +231,7 @@ export const Route = createFileRoute("/api/wizard/complete")({
               yield* Effect.sync(() => {
                 revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
                 notifyIndexNowForProfiles([outcome.oldHandle, body.handle], { skipDebounce: true });
+                emailPortfolioLiveInBackground(authUser.id);
 
                 logEvent("onboarding_completed", {
                   userId: authUser.id,

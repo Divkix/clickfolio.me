@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   announce: vi.fn(),
   expire: vi.fn(),
   email: vi.fn(),
+  liveEmail: vi.fn(),
   refresh: vi.fn(),
   log: vi.fn(),
   logEvent: vi.fn(),
@@ -70,7 +71,10 @@ vi.mock("@/lib/ai/career", () => ({ classifyCareerEffect: mocks.classify }));
 
 vi.mock("@/lib/parse/public-refresh", () => ({ refreshPublicProfiles: mocks.refresh }));
 
-vi.mock("@/lib/parse/email", () => ({ resumeFailureEmailBestEffort: mocks.email }));
+vi.mock("@/lib/parse/email", () => ({
+  resumeFailureEmailBestEffort: mocks.email,
+  portfolioLiveEmailBestEffort: mocks.liveEmail,
+}));
 
 vi.mock("@/lib/parse/layers", () => ({ parseWorkflowLayer: () => Layer.empty }));
 
@@ -199,6 +203,7 @@ beforeEach(() => {
   );
   mocks.announce.mockReturnValue(Effect.void);
   mocks.email.mockReturnValue(Effect.void);
+  mocks.liveEmail.mockReturnValue(Effect.void);
   mocks.refresh.mockReturnValue(Effect.void);
 });
 
@@ -650,6 +655,15 @@ describe("public page refresh step", () => {
       expect.any(Function),
     );
     expect(mocks.refresh).toHaveBeenCalledWith(["ada"], "https://clickfolio.me");
+    expect(workflow.doStep).toHaveBeenCalledWith(
+      "email portfolio live",
+      expect.objectContaining({ retries: { limit: 0, delay: "1 second" } }),
+      expect.any(Function),
+    );
+    expect(mocks.liveEmail).toHaveBeenCalledWith(JOB.userId, {
+      appUrl: "https://clickfolio.me",
+      from: "a@clickfolio.me",
+    });
   });
 
   it("does not run again on a replay", async () => {
@@ -661,6 +675,7 @@ describe("public page refresh step", () => {
     await workflow.run();
 
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    expect(mocks.liveEmail).toHaveBeenCalledTimes(1);
   });
 
   it("is skipped when the completion rewrote no profile", async () => {
@@ -671,6 +686,7 @@ describe("public page refresh step", () => {
     await expect(workflow.run()).resolves.toBe("completed");
 
     expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(mocks.liveEmail).not.toHaveBeenCalled();
     expect(workflow.doStep).not.toHaveBeenCalledWith(
       "refresh public pages",
       expect.anything(),
@@ -683,6 +699,7 @@ describe("public page refresh step", () => {
     await expect((await runWorkflow()).run()).resolves.toBe("cached");
 
     expect(mocks.refresh).toHaveBeenCalledWith(["ada"], "https://clickfolio.me");
+    expect(mocks.liveEmail).toHaveBeenCalledWith(JOB.userId, expect.any(Object));
     expect(mocks.parse).not.toHaveBeenCalled();
   });
 
@@ -700,5 +717,20 @@ describe("public page refresh step", () => {
       expect.objectContaining({ "error.message": expect.stringContaining("queue exploded") }),
     );
     expect(mocks.fail).not.toHaveBeenCalled();
+  });
+
+  it("logs a failed live email and still completes the run", async () => {
+    mocks.parse.mockReturnValue(Effect.succeed(parsed));
+    mocks.complete.mockReturnValue(Effect.succeed(["ada"]));
+    mocks.liveEmail.mockReturnValue(Effect.die(new Error("mail exploded")));
+    const workflow = await runWorkflow();
+
+    await expect(workflow.run()).resolves.toBe("completed");
+
+    expect(mocks.log).toHaveBeenCalledWith(
+      "error",
+      "portfolio live email step failed",
+      expect.objectContaining({ "error.message": expect.stringContaining("mail exploded") }),
+    );
   });
 });

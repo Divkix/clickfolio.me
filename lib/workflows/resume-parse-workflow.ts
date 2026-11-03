@@ -15,7 +15,7 @@ import { classifyParseError, decodeParseError } from "../parse/errors";
 import { toParseErrorJson, type ParseFailure } from "../parse/failures";
 import type { ServerFailure } from "../effect/failures";
 import { runWorkflowStep } from "./run-workflow-step";
-import { resumeFailureEmailBestEffort } from "../parse/email";
+import { portfolioLiveEmailBestEffort, resumeFailureEmailBestEffort } from "../parse/email";
 import {
   parseWorkflowLayer,
   type ParseWorkflowEnv,
@@ -147,6 +147,32 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
     }
   }
 
+  /** After a completion rewrote this user's public page: the once-per-user "live" email. */
+  private async emailLive(userId: string, handles: string[], tracedStep: TracedStep) {
+    if (handles.length === 0) return;
+
+    try {
+      // Same rules as the failure email: own journaled step, never retried.
+      await tracedStep(
+        "email portfolio live",
+        { retries: { limit: 0, delay: "1 second" }, timeout: "30 seconds" },
+        () =>
+          this.exec(
+            // Without the binding (local runs) skip before the once-only claim is spent.
+            this.env.EMAIL
+              ? portfolioLiveEmailBestEffort(userId, {
+                  appUrl: this.env.APP_URL,
+                  from: this.env.EMAIL_FROM,
+                })
+              : Effect.void,
+          ),
+      );
+    } catch (error) {
+      // Not rethrown: the portfolio is already live.
+      log("error", "portfolio live email step failed", { userId, ...errorFields(error) });
+    }
+  }
+
   private async announceFailure(
     job: ResumeParseJob,
     notice: ParseFailureNotice,
@@ -212,6 +238,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
 
     if (claim !== "parse" && claim !== "skipped") {
       await this.refreshPublicPages(claim.handles, tracedStep);
+      await this.emailLive(job.userId, claim.handles, tracedStep);
 
       return "cached";
     }
@@ -287,6 +314,7 @@ export class ResumeParseWorkflow extends WorkflowEntrypoint<ParseWorkflowEnv, Re
       });
 
       await this.refreshPublicPages(rewritten, tracedStep);
+      await this.emailLive(job.userId, rewritten, tracedStep);
 
       return "completed";
     } catch (error) {
