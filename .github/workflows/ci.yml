@@ -53,8 +53,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Run tests with coverage
-        # Vitest 5 defaults to cores minus one; these public Linux runners have four.
-        run: pnpm run test:coverage --maxWorkers=4
+        run: pnpm run test:coverage
 
   build:
     name: Build
