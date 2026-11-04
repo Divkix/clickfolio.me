@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import handler from "@tanstack/react-start/server-entry";
 import worker from "@/worker/index";
 import { verifyToken } from "@clerk/backend";
@@ -8,6 +6,7 @@ import { Effect } from "effect";
 import { HttpUpstreamFailed } from "@/lib/effect/failures";
 import type { JsonValue } from "@/lib/types/json";
 import { fakeBatch, fakeMessage } from "@/tests/helpers/queue";
+import { CRONS } from "@/lib/worker-triggers";
 
 vi.mock("cloudflare:workers", () => ({
   env: {},
@@ -635,16 +634,8 @@ describe("Worker scheduled handler", () => {
     await expect(worker.scheduled(makeController("0 12 * * MON"), env)).resolves.not.toThrow();
   });
 
-  it("routes every cron trigger configured in wrangler.jsonc", async () => {
-    const config = readFileSync(resolve(import.meta.dirname, "../../../wrangler.jsonc"), "utf8");
-
-    const crons = [
-      ...(/"crons"\s*:\s*\[([^\]]*)\]/.exec(config)?.[1] ?? "").matchAll(/"([^"]+)"/g),
-    ].map(([, cron]) => cron);
-
-    expect(crons.length).toBeGreaterThan(0);
-
-    for (const cron of crons) {
+  it("routes every cron trigger alchemy.run.ts deploys", async () => {
+    for (const cron of CRONS) {
       vi.clearAllMocks();
 
       await worker.scheduled(makeController(cron), makeEnv());

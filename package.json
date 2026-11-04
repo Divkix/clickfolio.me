@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev --port 3000",
+    "dev": "alchemy dev",
     "build": "vp build",
     "start": "vp preview",
     "lint": "vp lint",
@@ -25,7 +25,6 @@
     "test:watch": "vp test",
     "test:ui": "vp test --ui",
     "ci": "pnpm install --frozen-lockfile && pnpm run verify && pnpm run test && pnpm run build",
-    "preview": "vp build && pnpm exec wrangler dev",
     "deploy": "tsx scripts/deploy.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -33,7 +32,6 @@
     "db:backfill-indexable": "tsx scripts/backfill-content-indexable.ts",
     "db:studio": "drizzle-kit studio --port 4984",
     "analyze": "ANALYZE=true vp build",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv lib/cloudflare-env.d.ts",
     "generate:favicons": "tsx scripts/generate-favicons.ts",
     "seo:lastmod": "tsx scripts/bump-lastmod.ts",
     "prepare": "vp config"
@@ -76,7 +74,8 @@
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "2.0.0-beta.85",
-    "@cloudflare/vite-plugin": "^1.65.0",
+    "@alchemy.run/cloudflare-runtime": "2.0.0-beta.85",
+    "@cloudflare/workers-types": "^5.20261103.1",
     "@effect/platform-node": "^4.1.2",
     "@electric-sql/pglite": "^0.5.12",
     "@tailwindcss/typography": "^0.5.20",
@@ -100,8 +99,7 @@
     "typescript": "^7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "catalog:",
-    "wrangler": "^4.153.0"
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@12.14.0",
   "intent": {

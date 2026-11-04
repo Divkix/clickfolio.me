@@ -8,7 +8,7 @@ import { submitProfiles } from "@/lib/seo/indexnow-profiles";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
 
-/** Only the production Worker pings; local dev and `wrangler dev` override APP_URL. */
+/** Only the production Worker pings; local dev (`alchemy dev`) overrides APP_URL. */
 function isProductionSite(): boolean {
   return process.env.APP_URL === siteConfig.url;
 }

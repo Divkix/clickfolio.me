@@ -1,114 +1,112 @@
-// Production deploy: scripts/deploy.ts runs `alchemy deploy --stage prod` after the Vite build.
-// wrangler.jsonc stays the single source of config (Vite dev, `wrangler dev` and this stack all
-// read it); only what Alchemy needs to adopt the live resources lives here.
+// The whole Cloudflare setup. scripts/deploy.ts runs `alchemy deploy --stage prod` (it builds the
+// Vite app too); `pnpm dev` runs `alchemy dev`, which serves the same Worker locally from Vite.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
-import { unstable_readConfig } from "wrangler";
-import { z } from "zod";
+import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
+import { CRONS, EDGE_PURGE_CONSUMER } from "./lib/worker-triggers";
+import { PARSE_WORKFLOW_NAME } from "./lib/workflows/resume-parse-params";
 
+// Every name below is the live production name, so prod is the only deployable stage.
 const STAGE = "prod";
 
-// unstable_readConfig types most collections loosely; validate exactly what this stack consumes.
-const one = <T extends z.ZodType>(item: T) => z.tuple([item]).transform(([value]) => value);
+const VARS = {
+  NODE_ENV: "production",
+  APP_URL: "https://clickfolio.me",
+  EMAIL_FROM: "notifications@clickfolio.me",
+  CLERK_PUBLISHABLE_KEY: "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
+  // Public: the tracker script prints it in every page.
+  UMAMI_WEBSITE_ID: "1a0515d6-8471-4a14-8581-3fdc3929ff0c",
+  AI_MODEL: "openai/gpt-6-luna:nitro",
+  AI_REASONING_EFFORT: "medium",
+  // Browser telemetry ingest (/otel proxy). The key is the secret OTEL_BROWSER_INGEST_KEY.
+  OTEL_COLLECTOR_URL: "https://observe.divkix.me/api/default",
+};
 
-const wrangler = z
-  .object({
-    name: z.string(),
-    compatibility_date: z.string(),
-    compatibility_flags: z.array(z.string()),
-    workers_dev: z.boolean(),
-    preview_urls: z.boolean(),
-    logpush: z.boolean(),
-    observability: z.object({
-      enabled: z.boolean(),
-      logs: z.object({
-        enabled: z.boolean(),
-        persist: z.boolean(),
-        invocation_logs: z.boolean(),
-        destinations: z.array(z.string()),
-      }),
-      traces: z.object({
-        enabled: z.boolean(),
-        persist: z.boolean(),
-        destinations: z.array(z.string()),
-      }),
-    }),
-    triggers: z.object({ crons: z.array(z.string()) }),
-    vars: z.record(z.string(), z.string()),
-    version_metadata: z.object({ binding: z.string() }),
-    hyperdrive: one(z.object({ binding: z.string(), id: z.string() })),
-    r2_buckets: one(z.object({ binding: z.string(), bucket_name: z.string() })),
-    send_email: one(z.object({ name: z.string(), allowed_sender_addresses: z.array(z.string()) })),
-    workflows: z.array(z.object({ name: z.string(), binding: z.string(), class_name: z.string() })),
-    durable_objects: z.object({
-      bindings: one(z.object({ name: z.string(), class_name: z.string() })),
-    }),
-    exports: z.record(
-      z.string(),
-      z.discriminatedUnion("type", [
-        z.object({ type: z.literal("worker"), cache: z.object({ enabled: z.boolean() }) }),
-        z.object({
-          type: z.literal("durable-object"),
-          storage: z.enum(["sqlite", "legacy-kv"]),
-        }),
-      ]),
+// Production values live on the Worker (dashboard or Cloudflare API): Alchemy never deletes a
+// secret it did not upload. Under `alchemy dev` they come from `.env`, each one optional.
+const SECRETS = [
+  // Required: HMAC key for signed pending-upload claim cookies.
+  "PENDING_UPLOAD_SECRET",
+  // Required: sk_… for session verification, and the Svix secret for /api/webhooks/clerk.
+  "CLERK_SECRET_KEY",
+  "CLERK_WEBHOOK_SECRET",
+  "CRON_SECRET",
+  "OTEL_BROWSER_INGEST_KEY",
+  // Cloudflare AI Gateway (proxies to OpenRouter) for resume parsing.
+  "CF_AI_GATEWAY_ACCOUNT_ID",
+  "CF_AI_GATEWAY_ID",
+  "CF_AIG_AUTH_TOKEN",
+  "UMAMI_API_URL",
+  "UMAMI_USERNAME",
+  "UMAMI_PASSWORD",
+  // Optional parse-failure alerting: logpush (default) or webhook.
+  "ALERT_CHANNEL",
+  "ALERT_WEBHOOK_URL",
+  // Development only; production ignores it (lib/rate-limit/bypass.ts).
+  "DISABLE_RATE_LIMITS",
+] as const;
+
+// `.env` overrides any var (e.g. a Clerk test key, a localhost APP_URL) and supplies secrets.
+const devEnv = Effect.gen(function* () {
+  const env: Record<string, string | Redacted.Redacted<string>> = {};
+
+  for (const [key, value] of Object.entries(VARS)) {
+    env[key] = yield* Config.String(key).pipe(Config.withDefault(value));
+  }
+
+  for (const key of SECRETS) {
+    const value = yield* Config.option(Config.Redacted(key));
+
+    if (Option.isSome(value)) env[key] = value.value;
+  }
+
+  return env;
+});
+
+// Local Postgres behind the emulated Hyperdrive binding.
+const devDatabase = Effect.gen(function* () {
+  const url = new URL(
+    yield* Config.String("LOCAL_DATABASE_URL").pipe(
+      Config.withDefault("postgresql://postgres:postgres@localhost:5432/clickfolio"),
     ),
-    queues: z.object({
-      producers: one(z.object({ binding: z.string(), queue: z.string() })),
-      consumers: one(
-        z.object({
-          queue: z.string(),
-          max_batch_size: z.number(),
-          max_batch_timeout: z.number(),
-          max_concurrency: z.number(),
-          max_retries: z.number(),
-          retry_delay: z.number(),
-          dead_letter_queue: z.string(),
-        }),
-      ),
-    }),
-  })
-  .parse(unstable_readConfig({ config: "wrangler.jsonc" }));
+  );
 
-const producer = wrangler.queues.producers;
-const consumer = wrangler.queues.consumers;
-
-if (consumer.queue !== producer.queue) {
-  throw new Error("wrangler.jsonc: consumer and producer queues differ");
-}
-
-const durableObject = wrangler.durable_objects.bindings;
-const durableObjectExport = wrangler.exports[durableObject.class_name];
-
-if (durableObjectExport?.type !== "durable-object") {
-  throw new Error(`wrangler.jsonc: exports must declare ${durableObject.class_name}`);
-}
-
-const entrypoints = Object.fromEntries(
-  Object.entries(wrangler.exports).flatMap(([name, entry]) =>
-    entry.type === "worker" ? [[name, { cache: entry.cache }]] : [],
-  ),
-);
+  return {
+    scheme: "postgres" as const,
+    host: url.hostname,
+    port: Number(url.port || 5432),
+    database: url.pathname.slice(1),
+    user: decodeURIComponent(url.username),
+    password: Redacted.make(decodeURIComponent(url.password)),
+    sslmode: "disable" as const,
+  };
+});
 
 export default Alchemy.Stack(
   "clickfolio",
-  // State lives in this account's Alchemy state store (`alchemy state bootstrap`), shared by
-  // laptop and CI deploys. Losing it is recoverable with `alchemy deploy --stage prod --adopt`,
-  // since every resource below has a fixed name.
-  { providers: Cloudflare.providers(), state: Cloudflare.state() },
+  // Deploys keep state in this account's Alchemy state store (`alchemy state bootstrap`), shared by
+  // laptop and CI. Losing it is recoverable with `alchemy deploy --stage prod --adopt`, since every
+  // resource below has a fixed name. `alchemy dev` keeps its own state in .alchemy/.
+  {
+    providers: Cloudflare.providers(),
+    state: process.env.ALCHEMY_DEV === "true" ? Alchemy.localState() : Cloudflare.state(),
+  },
   Effect.gen(function* () {
-    // Every name below is the live production name. Any other stage would fight prod for them.
-    if ((yield* Alchemy.Stage) !== STAGE) {
+    const dev = yield* Alchemy.ALCHEMY_DEV;
+
+    if (!dev && (yield* Alchemy.Stage) !== STAGE) {
       return yield* Effect.die(new Error(`Only --stage ${STAGE} is supported.`));
     }
 
-    // Prod is the only stage: `alchemy destroy` and refactors forget resources instead of deleting them.
+    // `alchemy destroy` and refactors forget resources instead of deleting them.
     const keep = Alchemy.RemovalPolicy.retain(true);
 
     // Alchemy owns every lifecycle rule on the bucket: a rule missing here is deleted on deploy.
     const bucket = yield* Cloudflare.R2.Bucket("Bucket", {
-      name: wrangler.r2_buckets.bucket_name,
+      name: "clickfolio-bucket",
       lifecycleRules: [
         {
           id: "Default Multipart Abort Rule",
@@ -123,70 +121,73 @@ export default Alchemy.Stack(
       ],
     }).pipe(keep);
 
-    const queue = yield* Cloudflare.Queues.Queue("Queue", { name: producer.queue }).pipe(keep);
+    const queue = yield* Cloudflare.Queues.Queue("Queue", { name: "clickfolio-cache-purge" }).pipe(
+      keep,
+    );
 
     const deadLetterQueue = yield* Cloudflare.Queues.Queue("DeadLetterQueue", {
-      name: consumer.dead_letter_queue,
+      name: "clickfolio-cache-purge-dlq",
     }).pipe(keep);
 
-    const worker = yield* Cloudflare.Worker("Worker", {
-      name: wrangler.name,
-      // Prebuilt by `vp build` (@cloudflare/vite-plugin). worker/index.ts re-exports the Workflow,
-      // Durable Object and CachedPages classes, which `bundle: false` requires.
-      main: "./dist/server/index.js",
-      bundle: false,
-      assets: { directory: "./dist/client" },
+    const worker = yield* Cloudflare.Website.Vite("Worker", {
+      name: "clickfolio-me",
+      // worker/index.ts wraps the TanStack Start handler and exports the Workflow, Durable Object
+      // and CachedPages classes.
+      main: "./worker/index.ts",
       compatibility: {
-        date: wrangler.compatibility_date,
-        flags: wrangler.compatibility_flags,
+        date: "2026-01-22",
+        flags: ["nodejs_compat", "global_fetch_strictly_public"],
       },
-      workersDev: { enabled: wrangler.workers_dev, previewsEnabled: wrangler.preview_urls },
+      // Alchemy defaults version preview URLs on; production never used them.
+      workersDev: { enabled: true, previewsEnabled: false },
       placement: { mode: "smart" },
-      logpush: wrangler.logpush,
+      dev: { port: 3000, strictPort: true },
+      logpush: false,
       observability: {
-        enabled: wrangler.observability.enabled,
+        enabled: true,
+        // Sent only to OpenObserve: `persist: false` keeps no Cloudflare copy, so it is not billed.
         logs: {
-          enabled: wrangler.observability.logs.enabled,
-          persist: wrangler.observability.logs.persist,
-          invocationLogs: wrangler.observability.logs.invocation_logs,
-          destinations: wrangler.observability.logs.destinations,
+          enabled: true,
+          persist: false,
+          invocationLogs: true,
+          destinations: ["openobserve-logs"],
         },
-        traces: {
-          enabled: wrangler.observability.traces.enabled,
-          persist: wrangler.observability.traces.persist,
-          destinations: wrangler.observability.traces.destinations,
-        },
+        traces: { enabled: true, persist: false, destinations: ["openobserve-traces"] },
       },
-      crons: wrangler.triggers.crons,
-      entrypoints,
-      // Custom domains (wrangler.jsonc `routes`) stay dashboard-managed: omitting `domain` leaves
-      // them alone.
+      crons: CRONS,
+      // Workers Cache runs only in front of `CachedPages` (worker/cached-pages.ts); the default
+      // entrypoint is the gateway and inherits caching off. Pages opt in with `edgeCacheHeaders()`.
+      // https://developers.cloudflare.com/workers/cache/configuration/#per-entrypoint-caching
+      entrypoints: { CachedPages: { cache: { enabled: true } } },
+      // Custom domains (clickfolio.me, www) stay dashboard-managed: omitting `domain` leaves them alone.
       env: {
-        ...wrangler.vars,
-        // Secrets stay `wrangler secret put` / dashboard managed: Alchemy never deletes secrets it
-        // did not upload.
-        [wrangler.hyperdrive.binding]: Cloudflare.Hyperdrive.lookup("Hyperdrive", {
-          hyperdriveId: wrangler.hyperdrive.id,
+        ...(dev ? yield* devEnv : VARS),
+        HYPERDRIVE: Cloudflare.Hyperdrive.lookup("Hyperdrive", {
+          hyperdriveId: "8132893bf32b4e0b8b1b7edc8dad16c1",
+          dev: dev ? yield* devDatabase : undefined,
         }),
-        [wrangler.r2_buckets.binding]: bucket,
-        [wrangler.send_email.name]: Cloudflare.Email.SendEmail(wrangler.send_email.name, {
-          allowedSenderAddresses: wrangler.send_email.allowed_sender_addresses,
+        CLICKFOLIO_R2_BUCKET: bucket,
+        EMAIL: Cloudflare.Email.SendEmail("EMAIL", {
+          allowedSenderAddresses: ["notifications@clickfolio.me"],
         }),
-        [wrangler.version_metadata.binding]: Cloudflare.Workers.VersionMetadata(),
-        [producer.binding]: queue,
-        [durableObject.name]: Cloudflare.DurableObject(durableObject.class_name, {
-          className: durableObject.class_name,
-          storage: durableObjectExport.storage,
+        // Version id/tag of the running deployment on every log line (lib/utils/log.ts).
+        CF_VERSION_METADATA: Cloudflare.Workers.VersionMetadata(),
+        EDGE_PURGE_QUEUE: queue,
+        // Created as ResumeStatusDO before SQLite-backed objects existed (renamed in v3), so it
+        // keeps key-value storage. Deployed through `exports`, never `migrations`; the switch is
+        // one-way.
+        CLICKFOLIO_STATUS_DO: Cloudflare.DurableObject("ClickfolioStatusDO", {
+          className: "ClickfolioStatusDO",
+          storage: "legacy-kv",
         }),
-        ...Object.fromEntries(
-          wrangler.workflows.map((workflow) => [
-            workflow.binding,
-            Cloudflare.Workflow(workflow.name, {
-              workflowName: workflow.name,
-              className: workflow.class_name,
-            }),
-          ]),
-        ),
+        CLICKFOLIO_PARSE_WORKFLOW: Cloudflare.Workflow(PARSE_WORKFLOW_NAME, {
+          workflowName: PARSE_WORKFLOW_NAME,
+          className: "ResumeParseWorkflow",
+        }),
+        CLICKFOLIO_R2_DELETE_WORKFLOW: Cloudflare.Workflow("clickfolio-r2-delete", {
+          workflowName: "clickfolio-r2-delete",
+          className: "R2DeleteWorkflow",
+        }),
       },
     }).pipe(keep);
 
@@ -194,13 +195,7 @@ export default Alchemy.Stack(
       queueId: queue.queueId,
       scriptName: worker.workerName,
       deadLetterQueue: deadLetterQueue.queueName,
-      settings: {
-        batchSize: consumer.max_batch_size,
-        maxWaitTimeMs: consumer.max_batch_timeout * 1000,
-        maxConcurrency: consumer.max_concurrency,
-        maxRetries: consumer.max_retries,
-        retryDelay: consumer.retry_delay,
-      },
+      settings: EDGE_PURGE_CONSUMER,
     }).pipe(keep);
 
     return { url: worker.url };

@@ -2,7 +2,7 @@
  * Workers Cache for public pages (https://developers.cloudflare.com/workers/cache/).
  *
  * The worker sends every GET/HEAD page read through the `CachedPages` entrypoint, the only one
- * with `cache.enabled` (wrangler.jsonc `exports`). A route opts in by returning
+ * with `cache.enabled` (alchemy.run.ts `entrypoints`). A route opts in by returning
  * `edgeCacheHeaders()` from its `headers()`; `edgeResponse` stamps everything else `no-store`, so
  * nothing reaches the shared cache by accident. Purges are entrypoint-scoped and go through
  * `CachedPages.purge`.

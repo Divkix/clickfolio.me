@@ -53,12 +53,12 @@ Review-time rules. Apply every rule below to each changed hunk and report each v
 - Status transitions, retry eligibility and status presentation come from `lib/resume/lifecycle.ts`, never re-derived.
 - Workflow steps are replay-safe: status-guarded `UPDATE … RETURNING`, SQL-side increments, and row ownership by `retryCount` (`ownsRow` in `lib/parse/pipeline.ts`, the required `retryCount` in `lib/resume/completion.ts`). Every parse run carries the row's `retryCount` in its params.
 - Side effects that must not repeat (failure push, ops alert, email, public-page refresh) run in their own journaled no-retry step after the DB step.
-- A new cron has its expression in `wrangler.jsonc` `triggers.crons` and a `case` in `scheduled()` (`worker/index.ts`).
+- A new cron has its expression in `CRONS` (`lib/worker-triggers.ts`) and a `case` in `scheduled()` (`worker/index.ts`).
 
 ## Email and rate limits
 
 - Mail goes to the verified Clerk account email, never the resume's contact email. A send failure never blocks a status update.
-- `EMAIL_FROM` matches the binding's `allowed_sender_addresses` and an onboarded domain.
+- `EMAIL_FROM` matches the binding's `allowedSenderAddresses` (alchemy.run.ts) and an onboarded domain.
 - Rate limits fail closed: a store outage is `RateLimitUnavailable` (503 + `Retry-After`). Per-user quotas count with `readQuotaIn(tx, …)` under the user-row lock the caller's transaction holds, then `requireQuota(quota)` after it.
 
 ## Public pages, cache and SEO
