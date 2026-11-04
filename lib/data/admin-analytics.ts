@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { z } from "zod";
-import { Umami } from "@/lib/effect/services/umami";
+import { Analytics } from "@/lib/effect/services/analytics";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
 
 export const analyticsPeriodSchema = z.enum(["7d", "30d", "90d"]);
@@ -23,12 +23,12 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
     const [stats, pageviews, urlMetrics, referrerMetrics, countryMetrics, deviceMetrics] =
       yield* Effect.all(
         [
-          Umami.use((umami) => umami.getStats({ startAt, endAt: now })),
-          Umami.use((umami) =>
-            umami.getPageviews({ startAt, endAt: now, unit: "day", timezone: "UTC" }),
+          Analytics.use((analytics) => analytics.getStats({ startAt, endAt: now })),
+          Analytics.use((analytics) =>
+            analytics.getPageviews({ startAt, endAt: now, unit: "day", timezone: "UTC" }),
           ),
-          Umami.use((umami) =>
-            umami.getMetrics({
+          Analytics.use((analytics) =>
+            analytics.getMetrics({
               type: "path",
               startAt,
               endAt: now,
@@ -37,8 +37,8 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
               limit: 50,
             }),
           ),
-          Umami.use((umami) =>
-            umami.getMetrics({
+          Analytics.use((analytics) =>
+            analytics.getMetrics({
               type: "referrer",
               startAt,
               endAt: now,
@@ -47,8 +47,8 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
               limit: 10,
             }),
           ),
-          Umami.use((umami) =>
-            umami.getMetrics({
+          Analytics.use((analytics) =>
+            analytics.getMetrics({
               type: "country",
               startAt,
               endAt: now,
@@ -57,14 +57,20 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
               limit: 10,
             }),
           ),
-          Umami.use((umami) =>
-            umami.getMetrics({ type: "device", startAt, endAt: now, unit: "day", timezone: "UTC" }),
+          Analytics.use((analytics) =>
+            analytics.getMetrics({
+              type: "device",
+              startAt,
+              endAt: now,
+              unit: "day",
+              timezone: "UTC",
+            }),
           ),
         ],
         { concurrency: "unbounded" },
       );
 
-    // Totals (Umami v2.12+ returns flat numbers)
+    // Current and previous period totals.
     const totalViews = stats.pageviews ?? 0;
     const totalUnique = stats.visitors ?? 0;
     const prevViews = stats.comparison?.pageviews ?? 0;
@@ -81,9 +87,8 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
     const avgChange =
       prevAvgPerDay > 0 ? Math.round(((avgPerDay - prevAvgPerDay) / prevAvgPerDay) * 100) : 0;
 
-    // Daily breakdown — map Umami {x, y} to {date, views, unique}
-    // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
-    // so normalize to YYYY-MM-DD for consistent date matching across the date axis.
+    // Daily breakdown — map {x, y} to {date, views, unique}.
+    // Normalize timestamps to YYYY-MM-DD for consistent date matching across the date axis.
     const sessionMap = new Map(pageviews.sessions.map((s) => [s.x.slice(0, 10), s.y]));
 
     const dailyData = pageviews.pageviews.map((p) => ({

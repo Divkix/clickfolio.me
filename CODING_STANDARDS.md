@@ -33,12 +33,12 @@ Review-time rules. Apply every rule below to each changed hunk and report each v
 ## Effect (server I/O)
 
 - Every server call to something external (Postgres, Clerk, R2, email, queues, Durable Objects, Workflow bindings, third-party `fetch`) is an Effect failing with a tagged error from `lib/effect/failures.ts`; `describeFailure` (`lib/effect/failure-map.ts`) maps each tag to an HTTP status + `ERROR_CODES` entry, `retryable` and a log level.
-- Each dependency is a `Context.Service` with an owning `Layer` in `lib/effect/services/`; code yields the service, edges build layers per invocation. No `ManagedRuntime` and no module-scope client, pool or token (sole exception: the login-token cache in `lib/umami/client.ts`).
+- Each dependency is a `Context.Service` with an owning `Layer` in `lib/effect/services/`; code yields the service, edges build layers per invocation. No `ManagedRuntime` and no module-scope client, pool or token (exceptions: the bounded per-isolate token caches in `lib/umami/client.ts` and `lib/ga4/client.ts`).
 - Effects run only at edges: `runRoute` / `runPage` / `runBackground` (`lib/effect/edges.ts`) and `runWorkflowStep` (`lib/workflows/`). No `Effect.run*` mid-logic, no Promise wrapper around an Effect. TanStack `redirect()` / `notFound()` are thrown after the Effect returns.
 - Every external call has an explicit `Effect.timeout` from `lib/effect/timeouts.ts` and passes the abort signal where accepted (`fetch`).
 - Retry belongs to its owner: Workflows retry steps (map `retryable` to `NonRetryableError`, no `Schedule` inside a step), the queue consumer chooses `message.retry()` or ack, routes answer 503, email never retries.
 - Best-effort work (email, alerts, DO push) recovers from a named tagged error and logs it; every `catch` logs.
-- Data crossing a boundary (webhook bodies, Clerk and Umami responses, queue messages, Workflow params, DO requests, cookies, jsonb read back) is parsed with Zod into `InvalidInput` / `*Invalid`; Effect Schema is not used.
+- Data crossing a boundary (webhook bodies, Clerk, Umami and GA4 responses, queue messages, Workflow params, DO requests, cookies, jsonb read back) is parsed with Zod into `InvalidInput` / `*Invalid`; Effect Schema is not used.
 - Logs and spans go through `log` / `withSpan`, never `Effect.log*` / `Effect.withSpan` (those skip redaction and Workers traces).
 - Parse failures live in `lib/parse/failures.ts` and serialize with `toParseErrorJson()`; stored and wire formats stay backward compatible.
 

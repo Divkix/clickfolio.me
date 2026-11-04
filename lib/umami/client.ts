@@ -1,10 +1,16 @@
 import { z } from "zod";
+import type {
+  AnalyticsMetric,
+  AnalyticsPageviews,
+  AnalyticsStats,
+  MetricsOptions,
+  PageviewsOptions,
+  StatsOptions,
+} from "@/lib/analytics/types";
 
-// Plain promise client for the Umami HTTP API. The Effect layer lives in
-// lib/effect/services/umami.ts, which adds the outer timeout and the tagged failure.
-// Rules for this file: no Effect imports (the admin dashboard page still calls it directly),
-// and a thrown error never carries the API host, a path, the website id or a token, because
-// `externalCall` copies the message into logs.
+// Plain promise client for the Umami HTTP API. The Analytics Effect layer adds the outer
+// timeout and tagged failure. Errors never carry the API host, path, website id or token:
+// `externalCall` copies their messages into logs.
 
 /** One HTTP hop (a login or a GET). The caller's outer timeout bounds the whole chain. */
 const HOP_TIMEOUT_MS = 5_000;
@@ -70,36 +76,6 @@ const metricSchema = z.looseObject({
 const metricsSchema = z.array(metricSchema);
 
 const loginSchema = z.looseObject({ token: z.string().min(1) });
-
-export type UmamiStats = z.infer<typeof statsSchema>;
-
-export type UmamiPageviews = z.infer<typeof pageviewsSchema>;
-
-export type UmamiMetric = z.infer<typeof metricSchema>;
-
-export interface StatsOptions {
-  startAt: number;
-  endAt: number;
-  path?: string;
-}
-
-export interface PageviewsOptions {
-  startAt: number;
-  endAt: number;
-  unit: string;
-  timezone: string;
-  path?: string;
-}
-
-export interface MetricsOptions {
-  startAt: number;
-  endAt: number;
-  type: string;
-  unit: string;
-  timezone: string;
-  path?: string;
-  limit?: number;
-}
 
 /** `status` lets the shared upstream classifier tell a 5xx (retry later) from a 4xx (give up). */
 class UmamiHttpError extends Error {
@@ -245,7 +221,7 @@ export async function getStats(
   env: CloudflareEnv,
   opts: StatsOptions,
   signal?: AbortSignal,
-): Promise<UmamiStats> {
+): Promise<AnalyticsStats> {
   const params = new URLSearchParams({
     startAt: opts.startAt.toString(),
     endAt: opts.endAt.toString(),
@@ -260,7 +236,7 @@ export async function getPageviews(
   env: CloudflareEnv,
   opts: PageviewsOptions,
   signal?: AbortSignal,
-): Promise<UmamiPageviews> {
+): Promise<AnalyticsPageviews> {
   const params = new URLSearchParams({
     startAt: opts.startAt.toString(),
     endAt: opts.endAt.toString(),
@@ -277,7 +253,7 @@ export async function getMetrics(
   env: CloudflareEnv,
   opts: MetricsOptions,
   signal?: AbortSignal,
-): Promise<UmamiMetric[]> {
+): Promise<AnalyticsMetric[]> {
   const params = new URLSearchParams({
     startAt: opts.startAt.toString(),
     endAt: opts.endAt.toString(),

@@ -4,7 +4,7 @@ import { env } from "cloudflare:workers";
 import { withAdminEffect } from "@/lib/auth/with-auth";
 import { analyticsPeriodSchema, loadAdminAnalytics } from "@/lib/data/admin-analytics";
 import { InvalidInput } from "@/lib/effect/failures";
-import { Umami } from "@/lib/effect/services/umami";
+import { Analytics } from "@/lib/effect/services/analytics";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export const Route = createFileRoute("/api/admin/analytics")({
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/api/admin/analytics")({
             response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
 
             return response;
-          }).pipe(Effect.provide(Umami.layer(env))),
+          }).pipe(Effect.provide(Analytics.layer(env))),
         );
       },
     },

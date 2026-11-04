@@ -4,6 +4,7 @@ import type { JsonValue } from "@/lib/types/json";
 import { runRoute } from "@/lib/effect/edges";
 import { logLines } from "../../helpers/log-lines";
 
+// Leave the reporting flag unset to exercise Analytics' default Umami backend.
 // SAFETY: the Umami client reads only these four env fields.
 const env = {
   UMAMI_API_URL: "https://umami.invalid-host.test",
@@ -33,33 +34,33 @@ function stubFetch(handler: FetchHandler) {
 }
 
 // The token cache lives at module scope on purpose, so each test gets a fresh module.
-async function freshUmami() {
+async function freshAnalytics() {
   vi.resetModules();
 
-  const { Umami } = await import("@/lib/effect/services/umami");
+  const { Analytics } = await import("@/lib/effect/services/analytics");
 
-  return Umami;
+  return Analytics;
 }
 
 async function stats() {
-  const Umami = await freshUmami();
+  const Analytics = await freshAnalytics();
 
   return Effect.runPromise(
     Effect.provide(
-      Umami.use((umami) => umami.getStats(WINDOW)),
-      Umami.layer(env),
+      Analytics.use((analytics) => analytics.getStats(WINDOW)),
+      Analytics.layer(env),
     ),
   );
 }
 
 async function statsFailure() {
-  const Umami = await freshUmami();
+  const Analytics = await freshAnalytics();
 
   return Effect.runPromise(
     Effect.flip(
       Effect.provide(
-        Umami.use((umami) => umami.getStats(WINDOW)),
-        Umami.layer(env),
+        Analytics.use((analytics) => analytics.getStats(WINDOW)),
+        Analytics.layer(env),
       ),
     ),
   );
@@ -75,7 +76,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("Umami service", () => {
+describe("Analytics service with the default Umami backend", () => {
   it("logs in once, then sends the bearer token and validates the stats", async () => {
     const fetchMock = stubFetch((url) =>
       isLogin(url) ? json({ token: "tok-1" }) : json({ ...STATS, comparison: { pageviews: 8 } }),
@@ -99,14 +100,14 @@ describe("Umami service", () => {
           ]),
     );
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     const rows = await Effect.runPromise(
       Effect.provide(
-        Umami.use((umami) =>
-          umami.getMetrics({ ...WINDOW, type: "referrer", unit: "day", timezone: "UTC" }),
+        Analytics.use((analytics) =>
+          analytics.getMetrics({ ...WINDOW, type: "referrer", unit: "day", timezone: "UTC" }),
         ),
-        Umami.layer(env),
+        Analytics.layer(env),
       ),
     );
 
@@ -176,12 +177,14 @@ describe("Umami service", () => {
         : new Response("<html>umami.invalid-host.test secret-body</html>", { status: 200 }),
     );
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     await runRoute(
       new Request("https://clickfolio.me/api/admin/analytics"),
-      Umami.use((umami) => umami.getStats(WINDOW)).pipe(Effect.map(() => Response.json({}))),
-      Umami.layer(env),
+      Analytics.use((analytics) => analytics.getStats(WINDOW)).pipe(
+        Effect.map(() => Response.json({})),
+      ),
+      Analytics.layer(env),
     );
 
     const logged = JSON.stringify(logLines(error));
@@ -206,11 +209,11 @@ describe("Umami service", () => {
       return json(STATS);
     });
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     const program = Effect.provide(
-      Umami.use((umami) => umami.getStats(WINDOW)),
-      Umami.layer(env),
+      Analytics.use((analytics) => analytics.getStats(WINDOW)),
+      Analytics.layer(env),
     );
 
     expect(await Effect.runPromise(Effect.flip(program))).toMatchObject({
@@ -255,11 +258,11 @@ describe("Umami service", () => {
       return json(STATS);
     });
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     const program = Effect.provide(
-      Umami.use((umami) => umami.getStats(WINDOW)),
-      Umami.layer(env),
+      Analytics.use((analytics) => analytics.getStats(WINDOW)),
+      Analytics.layer(env),
     );
 
     const first = Effect.runPromise(Effect.flip(program));
@@ -274,15 +277,15 @@ describe("Umami service", () => {
   it("shares one login between concurrent calls", async () => {
     const fetchMock = stubFetch((url) => (isLogin(url) ? json({ token: "tok" }) : json(STATS)));
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     await Effect.runPromise(
       Effect.provide(
         Effect.all(
-          [1, 2, 3].map(() => Umami.use((umami) => umami.getStats(WINDOW))),
+          [1, 2, 3].map(() => Analytics.use((analytics) => analytics.getStats(WINDOW))),
           { concurrency: "unbounded" },
         ),
-        Umami.layer(env),
+        Analytics.layer(env),
       ),
     );
 
@@ -298,12 +301,14 @@ describe("Umami failures at the route edge", () => {
       isLogin(url) ? json({ token: "secret-token-value" }) : json({ pageviews: "many" }),
     );
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     const response = await runRoute(
       new Request("https://clickfolio.me/api/admin/analytics"),
-      Umami.use((umami) => umami.getStats(WINDOW)).pipe(Effect.map(() => Response.json({}))),
-      Umami.layer(env),
+      Analytics.use((analytics) => analytics.getStats(WINDOW)).pipe(
+        Effect.map(() => Response.json({})),
+      ),
+      Analytics.layer(env),
     );
 
     const body = await response.text();
@@ -336,12 +341,14 @@ describe("Umami failures at the route edge", () => {
       );
     });
 
-    const Umami = await freshUmami();
+    const Analytics = await freshAnalytics();
 
     const response = await runRoute(
       new Request("https://clickfolio.me/api/admin/analytics"),
-      Umami.use((umami) => umami.getStats(WINDOW)).pipe(Effect.map(() => Response.json({}))),
-      Umami.layer(env),
+      Analytics.use((analytics) => analytics.getStats(WINDOW)).pipe(
+        Effect.map(() => Response.json({})),
+      ),
+      Analytics.layer(env),
     );
 
     expect(response.status).toBe(503);

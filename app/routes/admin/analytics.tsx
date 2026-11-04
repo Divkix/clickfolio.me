@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { requireAdminAuth } from "@/lib/auth/admin";
 import { loadAdminAnalytics } from "@/lib/data/admin-analytics";
 import { runPage } from "@/lib/effect/edges";
-import { Umami } from "@/lib/effect/services/umami";
+import { Analytics } from "@/lib/effect/services/analytics";
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import * as z from "zod/mini";
@@ -16,7 +16,7 @@ const getAnalytics = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     await requireAdminAuth();
 
-    return runPage(loadAdminAnalytics(data.period), Umami.layer(env));
+    return runPage(loadAdminAnalytics(data.period), Analytics.layer(env));
   });
 
 export const Route = createFileRoute("/admin/analytics")({

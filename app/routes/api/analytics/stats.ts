@@ -6,7 +6,7 @@ import { withUserEffect } from "@/lib/auth/with-auth";
 import { handleChanges, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
-import { Umami } from "@/lib/effect/services/umami";
+import { Analytics } from "@/lib/effect/services/analytics";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
@@ -63,7 +63,7 @@ function loadHandleSet(userId: string, currentHandle: string) {
 function loadStats(
   request: Request,
   dbUser: { id: string; handle: string | null },
-): Effect.Effect<Response, ServerFailure, Db | Umami> {
+): Effect.Effect<Response, ServerFailure, Db | Analytics> {
   return Effect.gen(function* () {
     const period = new URL(request.url).searchParams.get("period") || "7d";
 
@@ -90,8 +90,8 @@ function loadStats(
       Effect.forEach(
         handlePaths,
         (path) =>
-          Umami.use((umami) =>
-            umami.getMetrics({ startAt, endAt, type, unit: "day", timezone: "UTC", path }),
+          Analytics.use((analytics) =>
+            analytics.getMetrics({ startAt, endAt, type, unit: "day", timezone: "UTC", path }),
           ),
         { concurrency: "unbounded" },
       );
@@ -101,14 +101,14 @@ function loadStats(
         [
           Effect.forEach(
             handlePaths,
-            (path) => Umami.use((umami) => umami.getStats({ startAt, endAt, path })),
+            (path) => Analytics.use((analytics) => analytics.getStats({ startAt, endAt, path })),
             { concurrency: "unbounded" },
           ),
           Effect.forEach(
             handlePaths,
             (path) =>
-              Umami.use((umami) =>
-                umami.getPageviews({ startAt, endAt, unit: "day", timezone: "UTC", path }),
+              Analytics.use((analytics) =>
+                analytics.getPageviews({ startAt, endAt, unit: "day", timezone: "UTC", path }),
               ),
             { concurrency: "unbounded" },
           ),
@@ -119,10 +119,8 @@ function loadStats(
         { concurrency: "unbounded" },
       );
 
-    // Aggregate stats across all handles
-    // Note: uniqueVisitors is summed per-handle, so a visitor who saw both
-    // old and new handles after a handle change may be counted twice.
-    // This is an acceptable trade-off since Umami doesn't support OR URL filters.
+    // Aggregate separate path requests across all handles. Unique visitors are summed,
+    // so a visitor who saw both old and new handles after a handle change may count twice.
     let totalViews = 0;
     let uniqueVisitors = 0;
 
@@ -220,7 +218,7 @@ export const Route = createFileRoute("/api/analytics/stats")({
       GET: async ({ request }) => {
         return withUserEffect(
           request,
-          ({ dbUser }) => loadStats(request, dbUser).pipe(Effect.provide(Umami.layer(env))),
+          ({ dbUser }) => loadStats(request, dbUser).pipe(Effect.provide(Analytics.layer(env))),
           "Must be logged in to view analytics",
         );
       },
