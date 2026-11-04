@@ -21,6 +21,7 @@ const VARS = {
   UMAMI_WEBSITE_ID: "1a0515d6-8471-4a14-8581-3fdc3929ff0c",
   ANALYTICS_SOURCE: "umami",
   GA4_PROPERTY_ID: "562314112",
+  GA4_TIME_ZONE: "America/Chicago",
   AI_MODEL: "openai/gpt-6-luna:nitro",
   AI_REASONING_EFFORT: "medium",
   // Browser telemetry ingest (/otel proxy). The key is the secret OTEL_BROWSER_INGEST_KEY.

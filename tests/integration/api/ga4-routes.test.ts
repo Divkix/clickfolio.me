@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     HYPERDRIVE: {},
     ANALYTICS_SOURCE: "ga4",
     GA4_PROPERTY_ID: "123456789",
+    GA4_TIME_ZONE: "America/Chicago",
     GA4_SERVICE_ACCOUNT_JSON: "",
   },
 }));
@@ -189,6 +190,7 @@ function report(
       metricValues: row.metrics.map((value) => ({ value: String(value) })),
     })),
     rowCount: rows.length,
+    metadata: { timeZone: "America/Chicago" },
   };
 }
 
@@ -317,14 +319,14 @@ function localGa4Body(body: ReportRequest): JsonValue {
     reportPath(body) === "/@alice-old"
       ? []
       : [
-          { hour: "2025122607", views: 100, sessions: 20, visitors: ["before-window"] },
-          { hour: "2025122608", views: 4, sessions: 2, visitors: ["prior-1", "prior-2"] },
-          { hour: "2026010207", views: 3, sessions: 1, visitors: ["prior-1"] },
-          { hour: "2026010208", views: 4, sessions: 2, visitors: ["a", "b"] },
-          { hour: "2026010807", views: 6, sessions: 2, visitors: ["b", "c"] },
-          { hour: "2026010808", views: 2, sessions: 1, visitors: ["a", "d"] },
-          { hour: "2026010812", views: 2, sessions: 1, visitors: ["d", "e"] },
-          { hour: "2026010813", views: 100, sessions: 20, visitors: ["after-window"] },
+          { hour: "2025122601", views: 100, sessions: 20, visitors: ["before-window"] },
+          { hour: "2025122602", views: 4, sessions: 2, visitors: ["prior-1", "prior-2"] },
+          { hour: "2026010201", views: 3, sessions: 1, visitors: ["prior-1"] },
+          { hour: "2026010202", views: 4, sessions: 2, visitors: ["a", "b"] },
+          { hour: "2026010801", views: 6, sessions: 2, visitors: ["b", "c"] },
+          { hour: "2026010802", views: 2, sessions: 1, visitors: ["a", "d"] },
+          { hour: "2026010806", views: 2, sessions: 1, visitors: ["d", "e"] },
+          { hour: "2026010807", views: 100, sessions: 20, visitors: ["after-window"] },
         ].filter(({ hour }) => hours.includes(hour));
 
   if (!body.dimensions.length) {
@@ -391,10 +393,10 @@ const DAILY = [
 ];
 
 describe("GA4 analytics routes", () => {
-  it("builds user totals, daily sessions and breakdowns across exact current/old paths", async () => {
+  it("builds matching-property user totals, daily sessions and breakdowns across exact current/old paths", async () => {
     const { reports, fetchMock } = stubGa4((body) => json(ga4Body(body)));
     const GET = await getRoute("user");
-    const response = await GET(request("user"));
+    const response = await GET(request("user", "America/Chicago"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, max-age=60");
@@ -454,10 +456,10 @@ describe("GA4 analytics routes", () => {
     }
   });
 
-  it("builds the admin dashboard with comparison, profile paths and domain aggregation", async () => {
+  it("builds the matching-property admin dashboard with comparison, profile paths and domain aggregation", async () => {
     const { reports } = stubGa4((body) => json(ga4Body(body)));
     const GET = await getRoute("admin");
-    const response = await GET(request("admin"));
+    const response = await GET(request("admin", "America/Chicago"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe(
@@ -507,43 +509,53 @@ describe("GA4 analytics routes", () => {
     });
   });
 
-  it.each(["user", "admin"] as const)(
-    "groups UTC hours at Los Angeles midnight and filters both local windows for %s",
-    async (route) => {
+  it.each([
+    ["user", "America/Los_Angeles"],
+    ["admin", "America/Los_Angeles"],
+    ["user", "UTC"],
+    ["admin", "UTC"],
+  ] as const)(
+    "groups Chicago hours into viewer dates and filters both windows for %s in %s",
+    async (route, timezone) => {
       const { reports } = stubGa4((body) => json(localGa4Body(body)));
       const GET = await getRoute(route);
-      const response = await GET(request(route, "America/Los_Angeles"));
+      const response = await GET(request(route, timezone));
+      const utc = timezone === "UTC";
+      const views = utc ? 17 : 14;
+      const visitors = utc ? 6 : 5;
 
       const daily = [
-        { date: "2026-01-02", views: 4, unique: 2 },
+        { date: "2026-01-02", views: utc ? 7 : 4, unique: utc ? 3 : 2 },
         { date: "2026-01-03", views: 0, unique: 0 },
         { date: "2026-01-04", views: 0, unique: 0 },
         { date: "2026-01-05", views: 0, unique: 0 },
         { date: "2026-01-06", views: 0, unique: 0 },
-        { date: "2026-01-07", views: 6, unique: 2 },
-        { date: "2026-01-08", views: 4, unique: 2 },
+        { date: "2026-01-07", views: utc ? 0 : 6, unique: utc ? 0 : 2 },
+        { date: "2026-01-08", views: utc ? 10 : 4, unique: utc ? 4 : 2 },
       ];
 
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual(
         route === "user"
           ? {
-              totalViews: 14,
-              uniqueVisitors: 5,
+              totalViews: views,
+              uniqueVisitors: visitors,
               viewsByDay: daily.map(({ date, views, unique }) => ({
                 date,
                 views,
                 uniques: unique,
               })),
               topReferrers: [],
-              directVisits: 14,
+              directVisits: views,
               deviceBreakdown: [],
               countryBreakdown: [],
               period: "7d",
             }
           : {
-              totals: { views: 14, unique: 5, avgPerDay: 2, profilesViewed: 0 },
-              changes: { views: 100, unique: 150, avgPerDay: 100 },
+              totals: { views, unique: visitors, avgPerDay: 2, profilesViewed: 0 },
+              changes: utc
+                ? { views: -84, unique: 100, avgPerDay: -87 }
+                : { views: 100, unique: 150, avgPerDay: 100 },
               daily,
               topProfiles: [],
               referrers: [],
@@ -552,13 +564,29 @@ describe("GA4 analytics routes", () => {
             },
       );
 
-      const hourKeys = (startAt: number, count: number) =>
+      // Synthetic UTC values enumerate Chicago wall-clock labels, not UTC report hours.
+      const hourKeys = (propertyStartAt: number, count: number) =>
         Array.from({ length: count }, (_, index) =>
-          new Date(startAt + index * 60 * 60 * 1000).toISOString().replace(/\D/g, "").slice(0, 10),
+          new Date(propertyStartAt + index * 60 * 60 * 1000)
+            .toISOString()
+            .replace(/\D/g, "")
+            .slice(0, 10),
         );
 
-      const currentHours = hourKeys(Date.UTC(2026, 0, 2, 8), 149);
-      const previousHours = hourKeys(Date.UTC(2025, 11, 26, 8), 168);
+      const currentHours = utc
+        ? hourKeys(Date.UTC(2026, 0, 1, 18), 157)
+        : hourKeys(Date.UTC(2026, 0, 2, 2), 149);
+
+      const previousHours = utc
+        ? hourKeys(Date.UTC(2025, 11, 25, 18), 168)
+        : hourKeys(Date.UTC(2025, 11, 26, 2), 168);
+
+      const currentRange = utc ? { startDate: "2026-01-01", endDate: "2026-01-08" } : CURRENT_RANGE;
+
+      const previousRange = utc
+        ? { startDate: "2025-12-25", endDate: "2026-01-01" }
+        : { startDate: "2025-12-26", endDate: "2026-01-02" };
+
       const pathCount = route === "user" ? 2 : 1;
       const aggregateReports = reports.filter((body) => !body.dimensions.length);
 
@@ -575,7 +603,7 @@ describe("GA4 analytics routes", () => {
       );
 
       for (const body of reports) {
-        const previous = body.dateRanges[0]?.startDate === "2025-12-26";
+        const previous = body.dateRanges[0]?.startDate === previousRange.startDate;
 
         const hourFilter = {
           filter: {
@@ -584,9 +612,7 @@ describe("GA4 analytics routes", () => {
           },
         };
 
-        expect(body.dateRanges).toEqual([
-          previous ? { startDate: "2025-12-26", endDate: "2026-01-02" } : CURRENT_RANGE,
-        ]);
+        expect(body.dateRanges).toEqual([previous ? previousRange : currentRange]);
 
         if (previous) expect(body.dimensions).toEqual([]);
 
@@ -617,7 +643,7 @@ describe("GA4 analytics routes", () => {
   it.each(["user", "admin"] as const)(
     "returns identical UTC traffic and report windows for omitted or invalid tz for %s",
     async (route) => {
-      const { reports } = stubGa4((body) => json(ga4Body(body)));
+      const { reports } = stubGa4((body) => json(localGa4Body(body)));
       const GET = await getRoute(route);
       const utcResponse = await GET(request(route, "UTC"));
 
@@ -641,9 +667,10 @@ describe("GA4 analytics routes", () => {
     async (route) => {
       stubGa4((body) =>
         json({
-          dimensionHeaders: body.dimensions.length ? body.dimensions : [{ name: "dateRange" }],
+          dimensionHeaders: body.dimensions,
           metricHeaders: body.metrics,
           rowCount: 0,
+          metadata: { timeZone: "America/Chicago" },
         }),
       );
       const GET = await getRoute(route);
@@ -678,7 +705,9 @@ describe("GA4 analytics routes", () => {
     "maps malformed GA4 reports to the standard 502 for %s",
     async (route) => {
       vi.spyOn(console, "error").mockImplementation(() => {});
-      stubGa4(() => json({ metricHeaders: [], rows: [] }));
+      stubGa4(() =>
+        json({ metricHeaders: [], rows: [], metadata: { timeZone: "America/Chicago" } }),
+      );
       const GET = await getRoute(route);
       const response = await GET(request(route));
 
@@ -687,6 +716,35 @@ describe("GA4 analytics routes", () => {
         error: "The service returned an unexpected response. Please try again.",
         code: "EXTERNAL_SERVICE_ERROR",
       });
+    },
+  );
+
+  it.each(["user", "admin"] as const)(
+    "rejects missing or mismatched property metadata without leaking report details for %s",
+    async (route) => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const GET = await getRoute(route);
+
+      for (const timeZone of [undefined, "UTC"]) {
+        stubGa4((body) => {
+          const reportBody = {
+            dimensionHeaders: body.dimensions,
+            metricHeaders: body.metrics,
+            rowCount: 0,
+          };
+
+          if (timeZone === undefined) return json(reportBody);
+
+          return json({ ...reportBody, metadata: { timeZone } });
+        });
+        const response = await GET(request(route));
+
+        expect(response.status).toBe(502);
+        expect(await response.json()).toEqual({
+          error: "The service returned an unexpected response. Please try again.",
+          code: "EXTERNAL_SERVICE_ERROR",
+        });
+      }
     },
   );
 

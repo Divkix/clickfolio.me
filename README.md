@@ -184,6 +184,7 @@ Set these in `alchemy.run.ts` → `VARS` (they are public, not secrets):
 - `UMAMI_WEBSITE_ID` = your Umami website id (public; the tracker script prints it)
 - `ANALYTICS_SOURCE` = `"umami"` (default) or `"ga4"` for in-app stats; unknown values fail
 - `GA4_PROPERTY_ID` = `"562314112"` for the Clickfolio GA4 property
+- `GA4_TIME_ZONE` = `"America/Chicago"`; must match the property's IANA time zone
 - `APP_URL` = `https://your-domain.com`
 
 **Step 8: Deploy**
@@ -364,23 +365,31 @@ In-app analytics use Umami until `ANALYTICS_SOURCE` in `alchemy.run.ts` → `VAR
 Before flipping production, enable the Google Analytics Data API in the service account's
 Google Cloud project, grant its `client_email` **Viewer** access to GA4 property `562314112`,
 and add `GA4_SERVICE_ACCOUNT_JSON` as a Worker secret (the whole downloaded key file,
-minified to one-line JSON). Keep the property time zone set to **UTC**. User dashboard and
-admin analytics charts use the viewer's browser time zone: the last N local calendar days,
-from local midnight N−1 days ago through now. Missing or invalid `tz` falls back to UTC.
-The server-rendered admin overview stays on UTC days. GA4's recent data can lag collection.
-For non-UTC viewers, GA4 groups UTC `dateHour` buckets into local dates and filters totals,
-distinct users and breakdowns to the same hours; comparisons use the preceding N local dates.
-Fractional-hour offsets can put day edges up to 45 minutes off because each UTC hour belongs
-to the local date of its start. Daily session counts sum those hourly buckets, so a session
-spanning hours may be counted more than once; total unique visitors are deduplicated by GA4.
+minified to one-line JSON). Keep the property time zone set to **America/Chicago** and
+set `GA4_TIME_ZONE` to the same IANA zone in `alchemy.run.ts` → `VARS`. Every GA4 report's
+metadata must match that configuration; missing or mismatched time zones fail reporting
+instead of silently shifting dates. User dashboard and admin analytics charts use the
+viewer's browser time zone: the last N local calendar days, from local midnight N−1 days
+ago through now. Missing or invalid `tz` falls back to UTC. The server-rendered admin
+overview stays on UTC days. GA4's recent data can lag collection.
+When the viewer's zone matches the property, GA4 uses daily `date` reports. Other viewers,
+including UTC, regroup property-wall-clock `dateHour` buckets into viewer dates and filter
+totals, distinct users and breakdowns to the same hours; comparisons use the preceding N
+local dates. Fractional-hour offsets can put day edges up to 45 minutes off because each
+property hour belongs to the viewer date of its start. Daily session counts sum those
+hourly buckets, so a session spanning hours may be counted more than once; total unique
+visitors are deduplicated by GA4. A repeated property hour during the fall-back daylight
+saving transition is ambiguous: `dateHour` has no offset to distinguish its two occurrences.
 
 ```bash
 pnpm dlx wrangler secret put GA4_SERVICE_ACCOUNT_JSON --name clickfolio-me
 ```
 
-For local GA4 reporting, set `ANALYTICS_SOURCE=ga4`, `GA4_PROPERTY_ID=562314112` and the
-same secret in `.env`. Umami reporting continues to use `UMAMI_API_URL`, `UMAMI_USERNAME`,
-`UMAMI_PASSWORD` and `UMAMI_WEBSITE_ID`; leave those configured during the parallel run.
+For local GA4 reporting, set `ANALYTICS_SOURCE=ga4`, `GA4_PROPERTY_ID=562314112`,
+`GA4_TIME_ZONE=America/Chicago` and the same secret in `.env`; the configured zone must
+match the property locally too. Umami reporting continues to use `UMAMI_API_URL`,
+`UMAMI_USERNAME`, `UMAMI_PASSWORD` and `UMAMI_WEBSITE_ID`; leave those configured during
+the parallel run.
 
 ### Step 5: Deploy to Cloudflare
 
