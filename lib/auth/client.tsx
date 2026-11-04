@@ -36,6 +36,7 @@ interface UseSessionResult {
   data: SessionData | null;
   error: null;
   isPending: boolean;
+  hasSessionHint: boolean;
 }
 
 interface SessionContextValue extends UseSessionResult {
@@ -65,6 +66,7 @@ export function SessionProvider({
   const [loadClerk, setLoadClerk] = useState(false);
   const [snapshot, setSnapshot] = useState<ClerkSnapshot | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
+  const [hasSessionHint, setHasSessionHint] = useState(false);
   const waiting = useRef<PromiseWithResolvers<BrowserClerk>[]>([]);
 
   useEffect(() => {
@@ -76,6 +78,8 @@ export function SessionProvider({
         (name === "__client_uat" && Boolean(value) && value !== "0")
       );
     });
+
+    setHasSessionHint(hasSession);
 
     // /themes is also protected; claiming an uploaded resume happens in /waiting.
     const needsAuth = /^\/(dashboard|edit|settings|wizard|waiting|themes|admin|preview)(\/|$)/.test(
@@ -120,9 +124,10 @@ export function SessionProvider({
       data: snapshot?.data ?? null,
       error: null,
       isPending: snapshot?.isPending ?? true,
+      hasSessionHint,
       getClerk,
     }),
-    [snapshot, getClerk],
+    [snapshot, getClerk, hasSessionHint],
   );
 
   return (

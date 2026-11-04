@@ -18,7 +18,7 @@ Review-time rules. Apply every rule below to each changed hunk and report each v
 - Admin checks re-read `isAdmin` from the DB every request. `user.role` is career level, never an authz signal.
 - Each `app/routes/_protected/` page's server fn gates itself (`getServerSession` → `redirect`); the layout never redirects.
 - The Clerk publishable key and Umami website id reach the client at request time through the root `getPublicConfig` server fn, never inlined at build time.
-- Client auth goes through `lib/auth/client.tsx` (`useSession`, `SignInButton`, `useSignOut`); `lib/auth/clerk-bridge.tsx` is the only `@clerk/react` importer. A `SignInButton` child stays enabled while `isPending`: that click loads Clerk.
+- Client auth goes through `lib/auth/client.tsx` (`useSession`, `SignInButton`, `useSignOut`); `lib/auth/clerk-bridge.tsx` is the only `@clerk/react` importer. A `SignInButton` child stays enabled while `isPending`: that click loads Clerk. `LoginButton` reserves its Dashboard footprint while a cookie-hinted session is pending; the hint is not authentication.
 
 ## Database
 
