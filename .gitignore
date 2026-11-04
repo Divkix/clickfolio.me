@@ -48,6 +48,8 @@ yarn-error.log*
 .dev.vars
 worker-configuration.d.ts
 d1-backup-*.sql
+# Alchemy local state (recover with `alchemy deploy --stage prod --adopt`)
+.alchemy/
 
 # playwright
 .playwright-mcp/

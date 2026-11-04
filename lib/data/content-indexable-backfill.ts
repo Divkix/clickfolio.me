@@ -29,7 +29,7 @@ function tryIsIndexableContent(content: ResumeContent): boolean | null {
  * by code that does not set it) and, with `updatedSince`, also recomputes every row whose content
  * changed since then: code that predates the flag rewrites content without touching it, so a flag
  * set earlier can go stale (e.g. the old Worker serving writes between the pre-deploy backfill
- * and `wrangler deploy`, or after a rollback). Idempotent.
+ * and `alchemy deploy`, or after a rollback). Idempotent.
  *
  * Each update is guarded by the `updated_at` it read, so a concurrent content write is never
  * stamped with a flag computed from the old content; such rows are re-read on another pass.

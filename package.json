@@ -60,7 +60,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
-    "effect": "4.0.6",
+    "effect": "4.1.2",
     "lucide-react": "^1.61.0",
     "next-themes": "^0.4.6",
     "pg": "^8.23.1",
@@ -75,7 +75,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@alchemy.run/cloudflare": "2.0.0-beta.85",
     "@cloudflare/vite-plugin": "^1.65.0",
+    "@effect/platform-node": "^4.1.2",
     "@electric-sql/pglite": "^0.5.12",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
@@ -86,6 +88,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/coverage-v8": "catalog:",
+    "alchemy": "2.0.0-beta.85",
     "drizzle-kit": "^0.31.11",
     "knip": "^6.43.0",
     "png-to-ico": "^3.0.2",
