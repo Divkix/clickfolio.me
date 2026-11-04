@@ -108,6 +108,14 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
           data-performance="true"
           data-before-send="umamiBeforeSend"
         />
+        {/* Google Analytics 4 for site-wide reporting; Umami above still feeds the stats dashboards. */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-X349X3FFH0" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-X349X3FFH0');",
+          }}
+        />
         <Scripts />
       </body>
     </html>

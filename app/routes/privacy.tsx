@@ -414,10 +414,10 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           </li>
         </ul>
 
-        <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">First-Party Analytics</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">Portfolio Analytics</h3>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          We use self-hosted, privacy-focused analytics to understand how our service is used and to
-          provide portfolio traffic insights to users:
+          We use self-hosted, privacy-focused analytics (Umami) to provide portfolio traffic
+          insights to users:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>Page views and referral sources (where visitors came from)</li>
@@ -431,12 +431,19 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
             <li>No raw IP addresses are stored</li>
             <li>Visitor identifiers rotate daily (no long-term tracking)</li>
             <li>No cross-site tracking or advertising cookies</li>
-            <li>
-              All analytics are self-hosted on our infrastructure — no data shared with third
-              parties
-            </li>
+            <li>Self-hosted on our infrastructure — no data shared with third parties</li>
           </ul>
         </div>
+
+        <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">Google Analytics</h3>
+        <p className="text-muted-foreground leading-relaxed">
+          We also use Google Analytics to understand how the site is used overall. It sets two
+          first-party cookies, <span className="font-mono text-sm">_ga</span> and{" "}
+          <span className="font-mono text-sm">_ga_&lt;ID&gt;</span>, which tell repeat visits apart
+          and expire after up to 2 years. Your browser sends page addresses, referrers, device and
+          browser details, and your IP address to Google, which processes them under its own privacy
+          policy. These cookies are not required to use the Service.
+        </p>
 
         <h3 className="text-lg font-semibold text-foreground mb-3 mt-6">Diagnostics</h3>
         <p className="text-muted-foreground leading-relaxed">
@@ -522,7 +529,7 @@ function PrivacyPolicyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      lastUpdated="Last updated: October 30, 2026"
+      lastUpdated="Last updated: November 4, 2026"
       breadcrumbLabel="Privacy Policy"
       breadcrumbHref="/privacy"
       jsonLd={
