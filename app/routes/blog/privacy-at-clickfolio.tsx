@@ -149,11 +149,11 @@ function PrivacyAtClickfolioPage() {
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground mb-1">Self-Hosted Analytics</h3>
+            <h3 className="font-semibold text-foreground mb-1">Analytics</h3>
             <p className="text-muted-foreground text-sm">
-              We run our own analytics instance (Umami, self-hosted). Unlike Google Analytics, Umami
-              doesn't use cookies for tracking, doesn't collect personal data, and doesn't share
-              data with third parties. All analytics data stays on our infrastructure.
+              Portfolio view counts come from our own self-hosted Umami instance, which doesn&apos;t
+              use cookies and keeps that data on our infrastructure. For overall site traffic we
+              also use Google Analytics, which sets cookies and sends visit data to Google.
             </p>
           </div>
         </div>
