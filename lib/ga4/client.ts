@@ -10,7 +10,7 @@ import type {
 import { dayKey, lastNDays, startOfDay } from "@/lib/utils/date-axis";
 
 // Plain promises; the Analytics Effect service owns the outer timeout and tagged failures.
-// The GA4 property must report in UTC. Only access tokens are cached, never reports or keys.
+// GA4_TIME_ZONE must match the property. Only access tokens are cached, never reports or keys.
 // Errors must not retain upstream bodies, URLs, property ids, credentials or Zod inputs.
 // https://developers.google.com/identity/protocols/oauth2/service-account
 // https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport
@@ -53,6 +53,7 @@ const reportSchema = z.object({
   metricHeaders: z.array(headerSchema).default([]),
   rows: z.array(rowSchema).default([]),
   rowCount: z.number().int().nonnegative().optional(),
+  metadata: z.object({ timeZone: z.string() }),
 });
 
 type PathFilter = {
@@ -99,8 +100,8 @@ class Ga4HttpError extends Error {
   }
 }
 
-function invalidResponse(): z.ZodError {
-  return new z.ZodError([{ code: "custom", path: [], message: "GA4 response is invalid" }]);
+function invalidResponse(message = "GA4 response is invalid"): z.ZodError {
+  return new z.ZodError([{ code: "custom", path: [], message }]);
 }
 
 function parseJson<T>(text: string, schema: z.ZodType<T>): T {
@@ -254,37 +255,70 @@ function pathFilter(path: string): PathFilter {
   };
 }
 
-function dateRange(opts: StatsOptions) {
-  if (opts.startAt > opts.endAt) throw new Error("GA4 date range is invalid");
+function propertyTimeZone(env: CloudflareEnv): string {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: env.GA4_TIME_ZONE });
 
-  return {
-    startDate: new Date(opts.startAt).toISOString().slice(0, 10),
-    endDate: new Date(opts.endAt).toISOString().slice(0, 10),
-  };
+    if (!env.GA4_TIME_ZONE) throw new Error("Missing time zone");
+
+    return env.GA4_TIME_ZONE;
+  } catch {
+    throw new Error("GA4 time zone configuration is invalid");
+  }
 }
 
-function dimensionFilter(opts: StatsOptions): DimensionFilter | null | undefined {
-  const path = opts.path === undefined ? undefined : pathFilter(opts.path);
+function dateRange(opts: StatsOptions, timezone: string) {
+  if (opts.startAt > opts.endAt) throw new Error("GA4 date range is invalid");
 
-  if ((opts.timezone ?? "UTC") === "UTC") return path;
+  return { startDate: dayKey(opts.startAt, timezone), endDate: dayKey(opts.endAt, timezone) };
+}
 
-  const values: string[] = [];
+function dateHours(opts: StatsOptions, timezone: string): Map<string, number> | undefined {
+  if ((opts.timezone ?? "UTC") === timezone) return undefined;
 
-  // ponytail: UTC-hour starts shift fractional-offset day edges by <=45 minutes;
-  // use dateHourMinute if minute-accurate local boundaries become necessary.
+  const hours = new Map<string, number>();
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    hourCycle: "h23",
+  });
+
+  const midnight = startOfDay(dayKey(opts.startAt, timezone), timezone);
+
+  // ponytail: property-hour starts shift fractional-offset viewer day edges by <=45
+  // minutes; use dateHourMinute if minute-accurate local boundaries become necessary.
   for (
-    let hour = Math.ceil(opts.startAt / HOUR_MS) * HOUR_MS;
+    let hour = midnight + Math.ceil((opts.startAt - midnight) / HOUR_MS) * HOUR_MS;
     hour <= opts.endAt;
     hour += HOUR_MS
   ) {
-    values.push(new Date(hour).toISOString().slice(0, 13).replaceAll("-", "").replace("T", ""));
+    const key = dayKey(hour, timezone).replaceAll("-", "") + formatter.format(hour);
+
+    // ponytail: GA4 merges the repeated fall-back hour into one row, assigned to one
+    // instant here. A viewer midnight inside it can shift that row to an adjacent day
+    // once a year; finer event-level data is needed to split the repeated hour.
+    if (!hours.has(key)) hours.set(key, hour);
   }
 
-  if (values.length === 0) return null;
+  return hours;
+}
 
-  const hours: HourFilter = { filter: { fieldName: "dateHour", inListFilter: { values } } };
+function dimensionFilter(
+  opts: StatsOptions,
+  hours: Map<string, number> | undefined,
+): DimensionFilter | null | undefined {
+  const path = opts.path === undefined ? undefined : pathFilter(opts.path);
 
-  return path ? { andGroup: { expressions: [path, hours] } } : hours;
+  if (hours === undefined) return path;
+
+  if (hours.size === 0) return null;
+
+  const filter: HourFilter = {
+    filter: { fieldName: "dateHour", inListFilter: { values: [...hours.keys()] } },
+  };
+
+  return path ? { andGroup: { expressions: [path, filter] } } : filter;
 }
 
 async function runReport(
@@ -319,6 +353,10 @@ async function runReport(
     }
 
     throw cause;
+  }
+
+  if (report.metadata.timeZone !== env.GA4_TIME_ZONE) {
+    throw invalidResponse("GA4 report time zone does not match configuration");
   }
 
   // GA4 omits empty repeated fields; only its fixed resource kind identifies this envelope.
@@ -362,10 +400,11 @@ async function runReport(
 async function windowStats(
   env: CloudflareEnv,
   opts: StatsOptions,
+  propertyTimezone: string,
   signal?: AbortSignal,
 ): Promise<{ pageviews: number; visitors: number }> {
-  const dates = dateRange(opts);
-  const filter = dimensionFilter(opts);
+  const dates = dateRange(opts, propertyTimezone);
+  const filter = dimensionFilter(opts, dateHours(opts, propertyTimezone));
 
   if (filter === null) return { pageviews: 0, visitors: 0 };
 
@@ -398,32 +437,37 @@ export async function getStats(
   opts: StatsOptions,
   signal?: AbortSignal,
 ): Promise<AnalyticsStats> {
-  const current = dateRange(opts);
+  const propertyTimezone = propertyTimeZone(env);
   const timezone = opts.timezone ?? "UTC";
+  const current = dateRange(opts, propertyTimezone);
+  const firstDay = dayKey(opts.startAt, timezone);
+  const days = (Date.parse(dayKey(opts.endAt, timezone)) - Date.parse(firstDay)) / DAY_MS + 1;
+  const previousEnd = startOfDay(firstDay, timezone) - 1;
+  const previousStart = startOfDay(lastNDays(days, timezone, previousEnd)[0], timezone);
 
-  if (timezone !== "UTC") {
-    const firstDay = dayKey(opts.startAt, timezone);
-    const days = (Date.parse(dayKey(opts.endAt, timezone)) - Date.parse(firstDay)) / DAY_MS + 1;
-    const previousEnd = startOfDay(firstDay, timezone) - 1;
-    const previousStart = startOfDay(lastNDays(days, timezone, previousEnd)[0], timezone);
-
+  if (timezone !== propertyTimezone) {
     const [stats, comparison] = await Promise.all([
-      windowStats(env, opts, signal),
-      windowStats(env, { ...opts, startAt: previousStart, endAt: previousEnd }, signal),
+      windowStats(env, opts, propertyTimezone, signal),
+      windowStats(
+        env,
+        { ...opts, startAt: previousStart, endAt: previousEnd },
+        propertyTimezone,
+        signal,
+      ),
     ]);
 
     return { ...stats, comparison };
   }
-
-  const start = Date.parse(current.startDate);
-  const days = Date.parse(current.endDate) - start + DAY_MS;
 
   const report = await runReport(
     env,
     {
       dimensions: [],
       metrics: [{ name: "screenPageViews" }, { name: "totalUsers" }],
-      dateRanges: [current, dateRange({ startAt: start - days, endAt: start - DAY_MS })],
+      dateRanges: [
+        current,
+        dateRange({ startAt: previousStart, endAt: previousEnd }, propertyTimezone),
+      ],
       dimensionFilter: opts.path === undefined ? undefined : pathFilter(opts.path),
     },
     signal,
@@ -459,10 +503,12 @@ export async function getPageviews(
 ): Promise<AnalyticsPageviews> {
   if (opts.unit !== "day") throw new Error("GA4 reports require daily intervals");
 
+  const propertyTimezone = propertyTimeZone(env);
   const timezone = opts.timezone ?? "UTC";
-  const dimension = timezone === "UTC" ? "date" : "dateHour";
-  const dates = dateRange(opts);
-  const filter = dimensionFilter(opts);
+  const hours = dateHours(opts, propertyTimezone);
+  const dimension = hours === undefined ? "date" : "dateHour";
+  const dates = dateRange(opts, propertyTimezone);
+  const filter = dimensionFilter(opts, hours);
 
   if (filter === null) return { pageviews: [], sessions: [] };
 
@@ -488,8 +534,7 @@ export async function getPageviews(
     const raw = row.dimensionValues[dateIndex].value;
     const day = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
     const hour = dimension === "dateHour" ? raw.slice(8, 10) : "00";
-    const x = `${day}T${hour}:00:00Z`;
-    const parsed = new Date(x);
+    const parsed = new Date(`${day}T${hour}:00:00Z`);
 
     if (
       !(dimension === "date" ? /^\d{8}$/ : /^\d{10}$/).test(raw) ||
@@ -499,11 +544,13 @@ export async function getPageviews(
       throw invalidResponse();
     }
 
-    const instant = parsed.getTime();
+    const instant = hours === undefined ? startOfDay(day, propertyTimezone) : hours.get(raw);
 
-    if (dimension === "dateHour" && (instant < opts.startAt || instant > opts.endAt)) continue;
+    if (instant === undefined) continue;
 
-    const key = dimension === "date" ? day : dayKey(instant, timezone);
+    if (dayKey(instant, propertyTimezone) !== day) throw invalidResponse();
+
+    const key = dayKey(instant, timezone);
     const total = totals.get(key) ?? { pageviews: 0, sessions: 0 };
     total.pageviews += row.metricValues[viewsIndex].value;
     // ponytail: summing hourly sessions can recount sessions spanning hours (at most
@@ -564,8 +611,9 @@ export async function getMetrics(
 
   const referrers = opts.type === "referrer";
   const totals = new Map<string, number>();
-  const dates = dateRange(opts);
-  const filter = dimensionFilter(opts);
+  const propertyTimezone = propertyTimeZone(env);
+  const dates = dateRange(opts, propertyTimezone);
+  const filter = dimensionFilter(opts, dateHours(opts, propertyTimezone));
 
   if (filter === null) return [];
 

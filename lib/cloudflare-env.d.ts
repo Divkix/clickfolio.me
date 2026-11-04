@@ -26,6 +26,7 @@ interface CloudflareEnv {
   UMAMI_WEBSITE_ID: string;
   ANALYTICS_SOURCE?: "umami" | "ga4";
   GA4_PROPERTY_ID: string;
+  GA4_TIME_ZONE: string;
   AI_MODEL: string;
   AI_REASONING_EFFORT: string;
   OTEL_COLLECTOR_URL: string;
@@ -62,6 +63,7 @@ declare namespace NodeJS {
     UMAMI_WEBSITE_ID: string;
     ANALYTICS_SOURCE?: "umami" | "ga4";
     GA4_PROPERTY_ID: string;
+    GA4_TIME_ZONE: string;
     AI_MODEL: string;
     AI_REASONING_EFFORT: string;
     OTEL_COLLECTOR_URL: string;

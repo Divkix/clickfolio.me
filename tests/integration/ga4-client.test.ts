@@ -4,14 +4,22 @@ import { z } from "zod";
 import type { JsonValue } from "@/lib/types/json";
 
 const NOW = Date.UTC(2026, 0, 8, 12);
-const WINDOW = { startAt: Date.UTC(2026, 0, 2), endAt: Date.UTC(2026, 0, 8, 23, 59) };
+
+const WINDOW = {
+  startAt: Date.UTC(2026, 0, 2, 6),
+  endAt: Date.UTC(2026, 0, 9, 5, 59),
+  timezone: "America/Chicago",
+};
+
 const PROPERTY = "123456789";
+const PROPERTY_TIMEZONE = "America/Chicago";
 const EMAIL = "analytics-test@project.iam.gserviceaccount.com";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const REPORT_URL = `https://analyticsdata.googleapis.com/v1beta/properties/${PROPERTY}:runReport`;
 const ACCESS_TOKEN = "test-access-token-not-a-real-credential";
 
 const STATS: JsonValue = {
+  metadata: { timeZone: PROPERTY_TIMEZONE },
   dimensionHeaders: [{ name: "dateRange" }],
   metricHeaders: [{ name: "totalUsers" }, { name: "screenPageViews" }],
   rows: [
@@ -84,10 +92,11 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.resetModules();
   vi.spyOn(Date, "now").mockReturnValue(NOW);
-  // SAFETY: the GA4 client reads only its source, property and service-account fields.
+  // SAFETY: the GA4 client reads only its source, property, time zone and service account.
   env = {
     ANALYTICS_SOURCE: "ga4",
     GA4_PROPERTY_ID: PROPERTY,
+    GA4_TIME_ZONE: PROPERTY_TIMEZONE,
     GA4_SERVICE_ACCOUNT_JSON: JSON.stringify({
       type: "service_account",
       client_email: EMAIL,
@@ -281,31 +290,7 @@ describe("GA4 Data API client", () => {
     expect(exchanges).toBe(3);
   });
 
-  it("reads daily sessions by header name rather than mistaking them for total users", async () => {
-    stubFetch((url) =>
-      url === TOKEN_URL
-        ? token()
-        : json({
-            dimensionHeaders: [{ name: "date" }],
-            metricHeaders: [{ name: "sessions" }, { name: "screenPageViews" }],
-            rows: [
-              {
-                dimensionValues: [{ value: "20260108" }],
-                metricValues: [{ value: "3" }, { value: "9" }],
-              },
-            ],
-            rowCount: 1,
-          }),
-    );
-    const ga4 = await client();
-
-    expect(await ga4.getPageviews(env, { ...WINDOW, unit: "day", timezone: "UTC" })).toEqual({
-      pageviews: [{ x: "2026-01-08T00:00:00Z", y: 9 }],
-      sessions: [{ x: "2026-01-08T00:00:00Z", y: 3 }],
-    });
-  });
-
-  it("groups UTC hours around local midnight into the prior local date and excludes outside hours", async () => {
+  it("uses Chicago dates and the daily path when the viewer matches the property", async () => {
     const bodies: z.infer<typeof reportRequestSchema>[] = [];
     stubFetch((url, init) => {
       if (url === TOKEN_URL) return token();
@@ -313,273 +298,240 @@ describe("GA4 Data API client", () => {
       bodies.push(reportRequestSchema.parse(JSON.parse(String(init.body))));
 
       return json({
-        dimensionHeaders: [{ name: "dateHour" }],
+        metadata: { timeZone: PROPERTY_TIMEZONE },
+        dimensionHeaders: [{ name: "date" }],
         metricHeaders: [{ name: "sessions" }, { name: "screenPageViews" }],
         rows: [
           {
-            dimensionValues: [{ value: "2026010207" }],
-            metricValues: [{ value: "90" }, { value: "90" }],
-          },
-          {
-            dimensionValues: [{ value: "2026010208" }],
-            metricValues: [{ value: "1" }, { value: "2" }],
-          },
-          {
-            dimensionValues: [{ value: "2026010307" }],
-            metricValues: [{ value: "2" }, { value: "3" }],
-          },
-          {
-            dimensionValues: [{ value: "2026010308" }],
-            metricValues: [{ value: "90" }, { value: "90" }],
+            dimensionValues: [{ value: "20260108" }],
+            metricValues: [{ value: "3" }, { value: "9" }],
           },
         ],
+        rowCount: 1,
+      });
+    });
+    const ga4 = await client();
+
+    expect(await ga4.getPageviews(env, { ...WINDOW, unit: "day" })).toEqual({
+      pageviews: [{ x: "2026-01-08T00:00:00Z", y: 9 }],
+      sessions: [{ x: "2026-01-08T00:00:00Z", y: 3 }],
+    });
+    expect(bodies[0]).toMatchObject({
+      dimensions: [{ name: "date" }],
+      dateRanges: [{ startDate: "2026-01-02", endDate: "2026-01-08" }],
+    });
+    expect(bodies[0].dimensionFilter).toBeUndefined();
+  });
+
+  it("regroups Chicago wall-clock hours at UTC midnight and excludes outside hours", async () => {
+    const bodies: z.infer<typeof reportRequestSchema>[] = [];
+    stubFetch((url, init) => {
+      if (url === TOKEN_URL) return token();
+
+      bodies.push(reportRequestSchema.parse(JSON.parse(String(init.body))));
+
+      return json({
+        metadata: { timeZone: PROPERTY_TIMEZONE },
+        dimensionHeaders: [{ name: "dateHour" }],
+        metricHeaders: [{ name: "sessions" }, { name: "screenPageViews" }],
+        rows: [16, 17, 18, 19, 20].map((hour, i) => ({
+          dimensionValues: [{ value: `20260102${hour}` }],
+          metricValues: [{ value: String(i + 1) }, { value: String((i + 1) * 2) }],
+        })),
       });
     });
     const ga4 = await client();
 
     expect(
       await ga4.getPageviews(env, {
-        startAt: Date.UTC(2026, 0, 2, 8),
-        endAt: Date.UTC(2026, 0, 3, 7, 30),
+        startAt: Date.UTC(2026, 0, 2, 23),
+        endAt: Date.UTC(2026, 0, 3, 1, 30),
         unit: "day",
-        timezone: "America/Los_Angeles",
+        timezone: "UTC",
+        path: "/@ada",
       }),
     ).toEqual({
-      pageviews: [{ x: "2026-01-02T00:00:00Z", y: 5 }],
-      sessions: [{ x: "2026-01-02T00:00:00Z", y: 3 }],
+      pageviews: [
+        { x: "2026-01-02T00:00:00Z", y: 4 },
+        { x: "2026-01-03T00:00:00Z", y: 14 },
+      ],
+      sessions: [
+        { x: "2026-01-02T00:00:00Z", y: 2 },
+        { x: "2026-01-03T00:00:00Z", y: 7 },
+      ],
     });
     expect(bodies[0]).toMatchObject({
       dimensions: [{ name: "dateHour" }],
-      dateRanges: [{ startDate: "2026-01-02", endDate: "2026-01-03" }],
+      dateRanges: [{ startDate: "2026-01-02", endDate: "2026-01-02" }],
       dimensionFilter: {
-        filter: {
-          fieldName: "dateHour",
-          inListFilter: {
-            values: [
-              "2026010208",
-              "2026010209",
-              "2026010210",
-              "2026010211",
-              "2026010212",
-              "2026010213",
-              "2026010214",
-              "2026010215",
-              "2026010216",
-              "2026010217",
-              "2026010218",
-              "2026010219",
-              "2026010220",
-              "2026010221",
-              "2026010222",
-              "2026010223",
-              "2026010300",
-              "2026010301",
-              "2026010302",
-              "2026010303",
-              "2026010304",
-              "2026010305",
-              "2026010306",
-              "2026010307",
-            ],
-          },
+        andGroup: {
+          expressions: [
+            {
+              filter: {
+                fieldName: "pagePath",
+                stringFilter: { matchType: "EXACT", value: "/@ada", caseSensitive: true },
+              },
+            },
+            {
+              filter: {
+                fieldName: "dateHour",
+                inListFilter: { values: ["2026010217", "2026010218", "2026010219"] },
+              },
+            },
+          ],
         },
       },
     });
   });
 
-  it("keeps Chicago's 25-hour fall-back day, unique totals and all breakdowns on the same hour window", async () => {
-    const base = {
-      pagePath: "/@ada",
-      pageReferrer: "https://news.example/article",
-      deviceCategory: "desktop",
-      countryId: "US",
-      user: "repeat",
-      session: "one",
-    };
-
-    const events = [
-      { ...base, dateHour: "2026103004", user: "outside" },
-      { ...base, dateHour: "2026103005", user: "previous" },
-      { ...base, dateHour: "2026110104", user: "previous" },
-      { ...base, dateHour: "2026110105" },
-      { ...base, dateHour: "2026110106" },
-      { ...base, dateHour: "2026110107" },
-      { ...base, dateHour: "2026110205", session: "two" },
-      { ...base, dateHour: "2026110206", session: "three" },
-      { ...base, dateHour: "2026110207", user: "outside" },
-      { ...base, dateHour: "2026110108", user: "another", pagePath: "/@other" },
-    ];
-
+  it.each([
+    {
+      date: "2026-11-01",
+      start: "2026-11-01T05:00:00Z",
+      end: "2026-11-02T05:59:59Z",
+      hours: Array.from({ length: 24 }, (_, hour) => hour),
+      rowHours: [0, 1, 2, 17, 18, 23],
+      nextDate: "2026-11-02",
+    },
+    {
+      date: "2026-03-08",
+      start: "2026-03-08T06:00:00Z",
+      end: "2026-03-09T04:59:59Z",
+      hours: Array.from({ length: 24 }, (_, hour) => hour).filter((hour) => hour !== 2),
+      rowHours: [0, 1, 3, 18, 19, 23],
+      nextDate: "2026-03-09",
+    },
+  ])("filters and parses Chicago DST hours on $date for UTC viewers", async (fixture) => {
     const bodies: z.infer<typeof reportRequestSchema>[] = [];
+    const rawDate = fixture.date.replaceAll("-", "");
+    const values = fixture.hours.map((hour) => `${rawDate}${String(hour).padStart(2, "0")}`);
     stubFetch((url, init) => {
       if (url === TOKEN_URL) return token();
 
       const body = reportRequestSchema.parse(JSON.parse(String(init.body)));
       bodies.push(body);
-      const filter = body.dimensionFilter;
-
-      const expressions = filter
-        ? "andGroup" in filter
-          ? filter.andGroup.expressions
-          : [filter]
-        : [];
-
-      const hours = expressions.flatMap(({ filter: primitive }) =>
-        primitive.fieldName === "dateHour" ? primitive.inListFilter.values : [],
-      );
-
-      const paths = expressions.flatMap(({ filter: primitive }) =>
-        primitive.fieldName === "pagePath" ? [primitive.stringFilter.value] : [],
-      );
-
-      const dimension = z
-        .enum(["dateHour", "pagePath", "pageReferrer", "deviceCategory", "countryId"])
-        .optional()
-        .parse(body.dimensions[0]?.name);
-
-      const groups = new Map<string, typeof events>();
-
-      for (const event of events) {
-        if (
-          !hours.includes(event.dateHour) ||
-          (paths.length > 0 && !paths.includes(event.pagePath))
-        ) {
-          continue;
-        }
-
-        const key = dimension ? event[dimension] : "";
-        const group = groups.get(key) ?? [];
-        group.push(event);
-        groups.set(key, group);
-      }
+      const dimension = body.dimensions[0]?.name;
+      const current = body.dateRanges[0].startDate === fixture.date;
 
       return json({
+        metadata: { timeZone: PROPERTY_TIMEZONE },
         dimensionHeaders: body.dimensions,
         metricHeaders: body.metrics,
-        rows: [...groups].map(([key, group]) => ({
-          dimensionValues: dimension ? [{ value: key }] : [],
-          metricValues: body.metrics.map(({ name }) => {
-            switch (name) {
-              case "totalUsers":
-                return { value: String(new Set(group.map((event) => event.user)).size) };
-              case "sessions":
-                return { value: String(new Set(group.map((event) => event.session)).size) };
-              default:
-                return { value: String(group.length) };
-            }
-          }),
-        })),
-        rowCount: groups.size,
+        rows:
+          dimension === "dateHour"
+            ? fixture.rowHours.map((hour, i) => ({
+                dimensionValues: [{ value: `${rawDate}${String(hour).padStart(2, "0")}` }],
+                metricValues: [{ value: String(i + 1) }, { value: "1" }],
+              }))
+            : [
+                {
+                  dimensionValues: dimension
+                    ? [{ value: dimension === "pagePath" ? "/@ada" : "US" }]
+                    : [],
+                  metricValues: body.metrics.map(({ name }) => ({
+                    value: String(current ? (name === "screenPageViews" ? 21 : 8) : 2),
+                  })),
+                },
+              ],
       });
     });
     const ga4 = await client();
 
     const opts = {
-      startAt: Date.UTC(2026, 10, 1, 5),
-      endAt: Date.UTC(2026, 10, 2, 6, 30),
-      timezone: "America/Chicago",
+      startAt: Date.parse(fixture.start),
+      endAt: Date.parse(fixture.end),
+      timezone: "UTC",
       path: "/@ada",
       unit: "day",
     };
 
-    expect(await ga4.getStats(env, opts)).toEqual({
-      pageviews: 5,
-      visitors: 1,
-      comparison: { pageviews: 2, visitors: 1 },
-    });
     expect(await ga4.getPageviews(env, opts)).toEqual({
       pageviews: [
-        { x: "2026-11-01T00:00:00Z", y: 4 },
-        { x: "2026-11-02T00:00:00Z", y: 1 },
+        { x: `${fixture.date}T00:00:00Z`, y: 10 },
+        { x: `${fixture.nextDate}T00:00:00Z`, y: 11 },
       ],
       sessions: [
-        { x: "2026-11-01T00:00:00Z", y: 4 },
-        { x: "2026-11-02T00:00:00Z", y: 1 },
+        { x: `${fixture.date}T00:00:00Z`, y: 4 },
+        { x: `${fixture.nextDate}T00:00:00Z`, y: 2 },
       ],
     });
+    expect(await ga4.getStats(env, opts)).toEqual({
+      pageviews: 21,
+      visitors: 8,
+      comparison: { pageviews: 2, visitors: 2 },
+    });
 
-    for (const [type, x, y] of [
-      ["referrer", "news.example", 1],
-      ["device", "desktop", 1],
-      ["country", "US", 1],
-      ["path", "/@ada", 5],
-    ] as const) {
-      expect(await ga4.getMetrics(env, { ...opts, type })).toEqual([{ x, y }]);
+    for (const type of ["path", "country", "device", "referrer"] as const) {
+      await ga4.getMetrics(env, { ...opts, type });
     }
 
-    const currentHours = [
-      "2026110105",
-      "2026110106",
-      "2026110107",
-      "2026110108",
-      "2026110109",
-      "2026110110",
-      "2026110111",
-      "2026110112",
-      "2026110113",
-      "2026110114",
-      "2026110115",
-      "2026110116",
-      "2026110117",
-      "2026110118",
-      "2026110119",
-      "2026110120",
-      "2026110121",
-      "2026110122",
-      "2026110123",
-      "2026110200",
-      "2026110201",
-      "2026110202",
-      "2026110203",
-      "2026110204",
-      "2026110205",
-      "2026110206",
-    ];
+    const current = bodies.filter((body) => body.dateRanges[0].startDate === fixture.date);
+    expect(current).toHaveLength(6);
 
-    const currentFilter = {
-      andGroup: {
-        expressions: [
-          {
-            filter: {
-              fieldName: "pagePath",
-              stringFilter: {
-                matchType: "EXACT",
-                value: "/@ada",
-                caseSensitive: true,
-              },
-            },
-          },
-          { filter: { fieldName: "dateHour", inListFilter: { values: currentHours } } },
-        ],
-      },
-    };
-
-    const currentBodies = bodies.filter((body) => body.dateRanges[0].startDate === "2026-11-01");
-    expect(currentBodies).toHaveLength(6);
-
-    for (const body of currentBodies) {
-      expect(body.dateRanges).toEqual([{ startDate: "2026-11-01", endDate: "2026-11-02" }]);
-      expect(body.dimensionFilter).toEqual(currentFilter);
+    for (const body of current) {
+      expect(body.dateRanges).toEqual([{ startDate: fixture.date, endDate: fixture.date }]);
+      expect(body.dimensionFilter).toMatchObject({
+        andGroup: {
+          expressions: [
+            { filter: { fieldName: "pagePath" } },
+            { filter: { fieldName: "dateHour", inListFilter: { values } } },
+          ],
+        },
+      });
     }
-
-    const previous = bodies.find((body) => body.dateRanges[0].startDate === "2026-10-30");
-    expect(previous?.dimensions).toEqual([]);
-    expect(previous?.dateRanges).toEqual([{ startDate: "2026-10-30", endDate: "2026-11-01" }]);
-    const previousFilter = previous?.dimensionFilter;
-
-    const previousHours =
-      previousFilter && "andGroup" in previousFilter
-        ? previousFilter.andGroup.expressions.flatMap(({ filter }) =>
-            filter.fieldName === "dateHour" ? filter.inListFilter.values : [],
-          )
-        : [];
-
-    expect(previousHours).toHaveLength(48);
-    expect(previousHours[0]).toBe("2026103005");
-    expect(previousHours.at(-1)).toBe("2026110104");
   });
 
-  it("uses the first included UTC-hour start for fractional offsets without sending an empty in-list", async () => {
+  it.each([
+    ["2026-11-01", "2026-11-01T05:00:00Z", "2026-11-02T05:59:59Z", "2026-10-31"],
+    ["2026-03-08", "2026-03-08T06:00:00Z", "2026-03-09T04:59:59Z", "2026-03-07"],
+  ])("compares Chicago calendar days across DST on %s", async (date, start, end, previous) => {
+    const bodies: z.infer<typeof reportRequestSchema>[] = [];
+    stubFetch((url, init) => {
+      if (url === TOKEN_URL) return token();
+
+      bodies.push(reportRequestSchema.parse(JSON.parse(String(init.body))));
+
+      return json(STATS);
+    });
+    const ga4 = await client();
+    await ga4.getStats(env, {
+      startAt: Date.parse(start),
+      endAt: Date.parse(end),
+      timezone: PROPERTY_TIMEZONE,
+    });
+    expect(bodies[0].dateRanges).toEqual([
+      { startDate: date, endDate: date },
+      { startDate: previous, endDate: previous },
+    ]);
+    expect(bodies[0].dimensionFilter).toBeUndefined();
+  });
+
+  it("rejects a changed property time zone without retaining upstream data", async () => {
+    const sensitive = "sensitive-upstream-time-zone";
+    stubFetch((url) => (url === TOKEN_URL ? token() : json({ metadata: { timeZone: sensitive } })));
+    const ga4 = await client();
+    const failure = await ga4.getStats(env, WINDOW).catch((cause: unknown) => cause);
+
+    expect(failure).toMatchObject({ name: "ZodError" });
+    expect(String(failure)).toContain("GA4 report time zone does not match configuration");
+    expect(inspect(failure, { depth: null })).not.toContain(sensitive);
+  });
+
+  it.each(["", "not/a-timezone"])(
+    "rejects invalid property time zone %s before I/O",
+    async (timezone) => {
+      env.GA4_TIME_ZONE = timezone;
+      const fetchMock = stubFetch(() => token());
+      const ga4 = await client();
+
+      await expect(ga4.getStats(env, WINDOW)).rejects.toThrow(
+        "GA4 time zone configuration is invalid",
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("uses the first included property-hour start for fractional viewer offsets without sending an empty in-list", async () => {
     const bodies: z.infer<typeof reportRequestSchema>[] = [];
     stubFetch((url, init) => {
       if (url === TOKEN_URL) return token();
@@ -587,6 +539,7 @@ describe("GA4 Data API client", () => {
       bodies.push(reportRequestSchema.parse(JSON.parse(String(init.body))));
 
       return json({
+        metadata: { timeZone: PROPERTY_TIMEZONE },
         dimensionHeaders: [],
         metricHeaders: [{ name: "totalUsers" }, { name: "screenPageViews" }],
         rows: [{ dimensionValues: [], metricValues: [{ value: "1" }, { value: "2" }] }],
@@ -617,16 +570,19 @@ describe("GA4 Data API client", () => {
         : [];
 
     expect(hours).toHaveLength(24);
-    expect(hours[0]).toBe("2025123119");
-    expect(hours.at(-1)).toBe("2026010118");
+    expect(hours[0]).toBe("2025123113");
+    expect(hours.at(-1)).toBe("2026010112");
   });
 
   it.each([false, true])(
     "accepts a genuine headerless empty report (explicit zero count: %s)",
     async (explicitCount) => {
-      const empty: JsonValue = explicitCount
-        ? { kind: "analyticsData#runReport", rowCount: 0 }
-        : { kind: "analyticsData#runReport" };
+      const empty: JsonValue = {
+        kind: "analyticsData#runReport",
+        metadata: { timeZone: PROPERTY_TIMEZONE },
+      };
+
+      if (explicitCount) empty.rowCount = 0;
 
       stubFetch((url, init) => {
         if (url === TOKEN_URL) return token();
@@ -636,6 +592,7 @@ describe("GA4 Data API client", () => {
         if (body.dimensions.length === 0 && body.dateRanges[0].startDate === "2026-01-02") {
           return json({
             kind: "analyticsData#runReport",
+            metadata: { timeZone: PROPERTY_TIMEZONE },
             metricHeaders: [{ name: "screenPageViews" }, { name: "totalUsers" }],
             rows: [{ metricValues: [{ value: "22" }, { value: "13" }] }],
             rowCount: 1,
@@ -666,7 +623,11 @@ describe("GA4 Data API client", () => {
   it.each([{}, { kind: "analyticsData#runReport", rowCount: 1 }, { kind: "unrelated#response" }])(
     "rejects a headerless envelope that is not a genuine empty report: %j",
     async (response) => {
-      stubFetch((url) => (url === TOKEN_URL ? token() : json(response)));
+      stubFetch((url) =>
+        url === TOKEN_URL
+          ? token()
+          : json({ ...response, metadata: { timeZone: PROPERTY_TIMEZONE } }),
+      );
       const ga4 = await client();
 
       await expect(ga4.getStats(env, WINDOW)).rejects.toMatchObject({ name: "ZodError" });
@@ -701,6 +662,7 @@ describe("GA4 Data API client", () => {
             ];
 
       return json({
+        metadata: { timeZone: PROPERTY_TIMEZONE },
         dimensionHeaders: [{ name: "pageReferrer" }],
         metricHeaders: [{ name: "totalUsers" }],
         rows,
@@ -732,6 +694,7 @@ describe("GA4 Data API client", () => {
       url === TOKEN_URL
         ? token()
         : json({
+            metadata: { timeZone: PROPERTY_TIMEZONE },
             dimensionHeaders: [{ name: "pageReferrer" }],
             metricHeaders: [{ name: "totalUsers" }],
             rows: [],
@@ -784,6 +747,7 @@ describe("GA4 Data API client", () => {
         if (stage === "json") return new Response(`<html>${sensitive}</html>`);
 
         return json({
+          metadata: { timeZone: PROPERTY_TIMEZONE },
           dimensionHeaders: [{ name: "dateRange" }],
           metricHeaders: [{ name: "screenPageViews" }, { name: "totalUsers" }],
           rows: [
