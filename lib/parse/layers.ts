@@ -15,7 +15,7 @@ export type ParseWorkflowServices =
   | Mailer
   | EdgePurgeQueue;
 
-/** The alert settings are secrets/vars that `cf-typegen` does not know about. */
+/** The alert settings are optional secrets that lib/cloudflare-env.d.ts does not declare. */
 export type ParseWorkflowEnv = CloudflareEnv &
   Pick<AlertEnv, "ALERT_WEBHOOK_URL" | "ALERT_CHANNEL">;
 

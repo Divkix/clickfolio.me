@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 /**
- * configure it with `wrangler secret put CLERK_WEBHOOK_SECRET` and point a
+ * set CLERK_WEBHOOK_SECRET as a Worker secret and point a
  * Clerk Dashboard webhook at https://clickfolio.me/api/webhooks/clerk.
  */
 

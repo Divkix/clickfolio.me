@@ -3,7 +3,7 @@ import { defineConfig } from "drizzle-kit";
 /**
  * Drizzle Kit configuration for PlanetScale Postgres (logical DB `clickfolio`
  * on the `side-projects` cluster), reached through Cloudflare Hyperdrive
- * (binding HYPERDRIVE in wrangler.jsonc).
+ * (binding HYPERDRIVE in alchemy.run.ts).
  *
  * Connection topology — read this before "fixing" the url:
  *   - The Hyperdrive binding is only resolvable inside a Worker at runtime.

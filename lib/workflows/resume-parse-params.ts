@@ -3,7 +3,7 @@ import { z } from "zod";
 // Payload of ResumeParseWorkflow, shared by the services that start it and the class that runs it.
 // Kept apart from both so neither drags in the other (the class needs `cloudflare:workers`).
 
-// `workflows[].name` in wrangler.jsonc.
+// The Workflow's name in alchemy.run.ts.
 export const PARSE_WORKFLOW_NAME = "clickfolio-resume-parse";
 
 export const resumeParseParamsSchema = z.discriminatedUnion("kind", [

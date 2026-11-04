@@ -32,8 +32,8 @@ overrides:
   # needed — the alias target below is the single source of truth.
   vite@*: "catalog:"
   vitest@*: "catalog:"
-  # @cloudflare/vite-plugin pins miniflare@5.20261019.2-beta, which pins undici
-  # exactly at 7.29.1 (4 high advisories); lift that copy to the patched 7.x.
+  # undici below 7.30.1 has 4 high advisories; keep every 7.x copy (today via the AI SDK's
+  # provider-utils) on the patched release.
   "undici@>=7.0.0 <7.30.1": ^7.30.1
 
 allowBuilds:

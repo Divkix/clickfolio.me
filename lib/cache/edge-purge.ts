@@ -8,6 +8,7 @@ import { CachePurge, type PurgeResult } from "@/lib/effect/services/cache-purge"
 import { EdgePurgeQueue } from "@/lib/effect/services/edge-purge-queue";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
+import { EDGE_PURGE_CONSUMER } from "@/lib/worker-triggers";
 
 /**
  * Queued Workers Cache purges.
@@ -24,8 +25,7 @@ import { log } from "@/lib/utils/log";
 
 export const MAX_TAGS_PER_PURGE = 100;
 
-/** Must match `max_retries` on the consumer in wrangler.jsonc. */
-export const EDGE_PURGE_MAX_RETRIES = 8;
+export const EDGE_PURGE_MAX_RETRIES = EDGE_PURGE_CONSUMER.maxRetries;
 
 /**
  * With `max_concurrency: 1`, holding each invocation open this long after its
