@@ -120,6 +120,13 @@
       "when": 1793738250392,
       "tag": "0016_portfolio_live_email",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793768058114,
+      "tag": "0017_table-owners",
+      "breakpoints": true
     }
   ]
 }
