@@ -48,6 +48,8 @@ yarn-error.log*
 .dev.vars
 worker-configuration.d.ts
 d1-backup-*.sql
+# Alchemy working files (state lives in the account's state store)
+.alchemy/
 
 # playwright
 .playwright-mcp/

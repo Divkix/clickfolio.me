@@ -85,7 +85,7 @@ function findExistingClaim(userId: string, tempKey: string) {
 }
 
 // A failed temp/ delete needs no follow-up: the bucket's temp/ lifecycle rule
-// (r2-lifecycle.json) expires it.
+// (alchemy.run.ts) expires it.
 function deleteTempObject(tempKey: string) {
   return R2Store.use((store) => store.delete(tempKey)).pipe(
     Effect.catchTag("R2Failed", (failure) =>

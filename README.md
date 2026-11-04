@@ -201,14 +201,16 @@ Set the public values in `wrangler.jsonc` → `vars`, not as secrets:
 DATABASE_URL="postgres://…" pnpm run deploy
 ```
 
-Deploy builds, migrates, backfills NULL `content_indexable` flags, applies R2 lifecycle
-rules, and deploys the Worker. It then backfills rows updated since deploy start
+Deploy builds, migrates, backfills NULL `content_indexable` flags, and deploys the Worker and its
+R2 lifecycle rules with [Alchemy](https://alchemy.run) (`alchemy.run.ts`). It then backfills rows updated since deploy start
 minus one hour and queues static URLs from the live sitemap for durable IndexNow delivery.
 
-Production deploys automatically on pushes to `main` through the Cloudflare **Workers Builds**
-trigger **Deploy default branch** (`pnpm run build`, then `pnpm run deploy`), not a GitHub
-Actions deployment workflow. `.github/workflows/ci.yml` independently checks PRs and `main`
-with quality, coverage and build jobs. Non-main branches upload preview versions only.
+Production deploys run from `.github/workflows/deploy.yml` on every push to `main` (and on
+manual dispatch): `pnpm run deploy` with the repository secrets `CLOUDFLARE_API_TOKEN` and
+`DATABASE_URL` and the variable `CLOUDFLARE_ACCOUNT_ID`. Alchemy keeps its state in the account's
+state store (`pnpm exec alchemy state bootstrap` creates it once per account). The Workers Builds
+trigger **Deploy default branch** is paused; non-main branches still upload preview versions only.
+`.github/workflows/ci.yml` independently checks PRs and `main` with quality, coverage and build jobs.
 
 **IndexNow delivery:** Runtime publish/edit/privacy/rename/delete hooks and the post-deploy
 script share the Postgres `indexnow_urls` outbox (migration `0015_indexnow-outbox.sql`).
@@ -378,7 +380,7 @@ pnpm run type-check       # TypeScript check
 # Build & Deploy
 pnpm run build            # Vite production build (TanStack Start + Cloudflare plugin)
 pnpm run preview          # Local Cloudflare preview
-pnpm run deploy           # build → migrate → NULL backfill → R2 lifecycle → deploy → since backfill → IndexNow (needs DATABASE_URL)
+pnpm run deploy           # build → migrate → NULL backfill → alchemy deploy → since backfill → IndexNow (needs DATABASE_URL)
 
 # Database (PlanetScale Postgres via drizzle-kit; needs DATABASE_URL except generate)
 pnpm run db:generate      # Generate migration files into migrations_pg/
@@ -554,7 +556,7 @@ Durable resume parsing with per-step retries:
 
 ### R2 Cleanup
 
-- **Anonymous uploads**: an R2 lifecycle rule (`r2-lifecycle.json`, applied by `pnpm run deploy`) deletes `temp/` objects after 1 day
+- **Anonymous uploads**: an R2 lifecycle rule (`alchemy.run.ts`, applied by `pnpm run deploy`) deletes `temp/` objects after 1 day
 - **Deletions**: `R2DeleteWorkflow` retries failed deletes (account deletion, admin dismiss) with backoff
 
 ### Scheduled Tasks (Cron)

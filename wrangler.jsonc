@@ -62,26 +62,6 @@
       },
     ],
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["DOShardedTagCache"],
-    },
-    {
-      "tag": "v2",
-      "deleted_classes": ["DOShardedTagCache"],
-      "new_classes": ["ResumeStatusDO"],
-    },
-    {
-      "tag": "v3",
-      "renamed_classes": [
-        {
-          "from": "ResumeStatusDO",
-          "to": "ClickfolioStatusDO",
-        },
-      ],
-    },
-  ],
   // Workers Cache purges for edge-cached pages (lib/cache/edge-purge.ts). Purges
   // run at Free-tier limits (5/min per account, 100 tags each), so one consumer
   // (max_concurrency 1, held open 12s per batch) sends one deduplicated purge per
@@ -110,8 +90,13 @@
   // Workers Cache runs only in front of `CachedPages` (worker/cached-pages.ts); the default
   // entrypoint is the gateway and inherits caching off. Pages opt in with `edgeCacheHeaders()`.
   // https://developers.cloudflare.com/workers/cache/configuration/#per-entrypoint-caching
+  // ClickfolioStatusDO is declared here, not in the legacy `migrations` list (the two are mutually
+  // exclusive). It predates SQLite-backed objects (created as ResumeStatusDO, renamed in v3), so
+  // it keeps key-value storage.
+  // https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/
   "exports": {
     "CachedPages": { "type": "worker", "cache": { "enabled": true } },
+    "ClickfolioStatusDO": { "type": "durable-object", "storage": "legacy-kv" },
   },
   "logpush": false,
   // Version id/tag of the running deployment on every log line (lib/utils/log.ts):

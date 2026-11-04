@@ -25,12 +25,17 @@ const IGNORE_PATTERNS = [
   "tools/oxlint/anti-slop/**",
 ];
 
-// Workers Builds sets these at build time:
+// Production builds run in the GitHub Actions deploy workflow (main); Workers Builds still
+// uploads branch preview versions. Both set a branch and commit:
 // https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
-function deployEnv(): "production" | "preview" | "development" {
-  if (!process.env.WORKERS_CI) return "development";
+// https://docs.github.com/en/actions/reference/workflows-and-actions/variables
+const CI_BRANCH = process.env.WORKERS_CI_BRANCH ?? process.env.GITHUB_REF_NAME;
+const CI_COMMIT = process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA;
 
-  return process.env.WORKERS_CI_BRANCH === "main" ? "production" : "preview";
+function deployEnv(): "production" | "preview" | "development" {
+  if (!CI_BRANCH) return "development";
+
+  return CI_BRANCH === "main" ? "production" : "preview";
 }
 
 /** SDK compatibility fixes stay pinned to its bundled emitter and fail on upgrades. */
@@ -51,7 +56,7 @@ export default defineConfig(() => {
 
   return {
     define: {
-      __APP_VERSION__: JSON.stringify(process.env.WORKERS_CI_COMMIT_SHA?.slice(0, 12) ?? "dev"),
+      __APP_VERSION__: JSON.stringify(CI_COMMIT?.slice(0, 12) ?? "dev"),
       __DEPLOY_ENV__: JSON.stringify(deployEnv()),
     },
     fmt: {
