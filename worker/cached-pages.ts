@@ -4,7 +4,7 @@ import { extractClerkTokenFromRequest } from "../lib/auth/clerk";
 import { edgeResponse } from "../lib/cache/edge-cache";
 
 /**
- * The only entrypoint with Workers Cache on (wrangler.jsonc `exports`). The default entrypoint
+ * The only entrypoint with Workers Cache on (alchemy.run.ts `entrypoints`). The default entrypoint
  * renders pages through it, so a page that opted in with `edgeCacheHeaders()` is answered from
  * the cache without running the app. Purges are entrypoint-scoped, so they run here too. The cache
  * key includes the Worker version, so every deploy starts cold.

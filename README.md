@@ -88,12 +88,13 @@ cd clickfolio.me
 pnpm install
 
 # Copy environment template and fill in your values
-cp .env.example .dev.vars
+cp .env.example .env
 
 # Apply database migrations (needs DATABASE_URL from PlanetScale)
 DATABASE_URL="postgres://…" pnpm run db:migrate
 
-# Start development server
+# Start development server (`alchemy dev`; needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+# even though the Worker runs locally)
 pnpm run dev
 ```
 
@@ -138,20 +139,19 @@ If you are not technical, follow this exact checklist. You only need a terminal 
 
 **Step 2: Create the Cloudflare Hyperdrive binding**
 
-1. In Terminal:
+1. In Terminal (one-off; the repo has no Wrangler dependency):
    ```bash
-   pnpm exec wrangler hyperdrive create clickfolio-pg --connection-string="postgres://user:password@host/db"
+   pnpm dlx wrangler hyperdrive create clickfolio-pg --connection-string="postgres://user:password@host/db"
    ```
 2. Copy the printed Hyperdrive `id`.
-3. Open `wrangler.jsonc` and put that id under `hyperdrive[0].id`.
+3. Open `alchemy.run.ts` and put that id in the `HYPERDRIVE` binding's `hyperdriveId`.
 
-**Step 3: Create Cloudflare R2 bucket**
+**Step 3: Cloudflare R2 bucket**
 
-1. Go to Cloudflare Dashboard → R2 → Create bucket.
-2. Name it **`clickfolio-bucket`**.
-3. The bucket is accessed via binding in wrangler.jsonc - no API tokens needed.
+`pnpm run deploy` (Step 8) creates the **`clickfolio-bucket`** bucket and its lifecycle rules
+from `alchemy.run.ts`; the Worker reaches it through a binding, so no API tokens are needed.
 
-**Step 4: Configure R2 CORS**
+**Step 4: Configure R2 CORS** (after the first deploy)
 In Cloudflare R2 bucket settings → CORS, paste:
 
 ```json
@@ -176,20 +176,9 @@ In Cloudflare R2 bucket settings → CORS, paste:
 1. Create OpenRouter account → API Keys.
 2. Copy your API key.
 
-**Step 7: Add secrets to Cloudflare (production)**
-Run each command and paste the value when prompted:
+**Step 7: Set the public values**
 
-```bash
-pnpm exec wrangler secret put CLERK_SECRET_KEY                 # sk_… from Clerk
-pnpm exec wrangler secret put CLERK_WEBHOOK_SECRET             # whsec_… from Clerk webhook
-openssl rand -base64 32                                        # then:
-pnpm exec wrangler secret put PENDING_UPLOAD_SECRET            # random value from openssl above
-pnpm exec wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
-pnpm exec wrangler secret put CF_AI_GATEWAY_ID
-pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
-```
-
-Set the public values in `wrangler.jsonc` → `vars`, not as secrets:
+Set these in `alchemy.run.ts` → `VARS` (they are public, not secrets):
 
 - `CLERK_PUBLISHABLE_KEY` = your Clerk publishable key (`pk_…`)
 - `UMAMI_WEBSITE_ID` = your Umami website id (public; the tracker script prints it)
@@ -205,11 +194,24 @@ Deploy builds, migrates, backfills NULL `content_indexable` flags, and deploys t
 R2 lifecycle rules with [Alchemy](https://alchemy.run) (`alchemy.run.ts`). It then backfills rows updated since deploy start
 minus one hour and queues static URLs from the live sitemap for durable IndexNow delivery.
 
+Then add the secrets to the Worker (dashboard → Workers & Pages → your worker → Settings →
+Variables and Secrets, or one-off commands). Alchemy never deletes a secret it did not upload, so
+later deploys keep them:
+
+```bash
+pnpm dlx wrangler secret put CLERK_SECRET_KEY --name clickfolio-me          # sk_… from Clerk
+pnpm dlx wrangler secret put CLERK_WEBHOOK_SECRET --name clickfolio-me      # whsec_… from Clerk webhook
+openssl rand -base64 32                                                     # then:
+pnpm dlx wrangler secret put PENDING_UPLOAD_SECRET --name clickfolio-me     # random value from openssl above
+pnpm dlx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID --name clickfolio-me
+pnpm dlx wrangler secret put CF_AI_GATEWAY_ID --name clickfolio-me
+pnpm dlx wrangler secret put CF_AIG_AUTH_TOKEN --name clickfolio-me
+```
+
 Production deploys run from `.github/workflows/deploy.yml` on every push to `main` (and on
 manual dispatch): `pnpm run deploy` with the repository secrets `CLOUDFLARE_API_TOKEN` and
 `DATABASE_URL` and the variable `CLOUDFLARE_ACCOUNT_ID`. Alchemy keeps its state in the account's
-state store (`pnpm exec alchemy state bootstrap` creates it once per account). The Workers Builds
-trigger **Deploy default branch** is paused; non-main branches still upload preview versions only.
+state store (`pnpm exec alchemy state bootstrap` creates it once per account).
 `.github/workflows/ci.yml` independently checks PRs and `main` with quality, coverage and build jobs.
 
 **IndexNow delivery:** Runtime publish/edit/privacy/rename/delete hooks and the post-deploy
@@ -237,7 +239,7 @@ the batch and timing limits above are our conservative policy, not a claimed API
 **Step 9: Add your domain**
 Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domains & Routes.
 
-**Important:** After the domain is connected, update `wrangler.jsonc` → `vars` and redeploy:
+**Important:** After the domain is connected, update `alchemy.run.ts` → `VARS` and redeploy:
 
 - `APP_URL` = `https://your-domain.com`
 - Point the Clerk webhook endpoint URL at `https://your-domain.com/api/webhooks/clerk`
@@ -247,12 +249,11 @@ send a dashboard link to the owner's verified Clerk account email. Email deliver
 best effort and never blocks the resume status update. Successful parses do not email.
 Use a Workers Paid plan and onboard your sending domain under Cloudflare Dashboard →
 Compute → Email Service → Email Sending → Onboard Domain. Set `EMAIL_FROM` and the
-`EMAIL` binding's `allowed_sender_addresses` in `wrangler.jsonc` to your sender
+`EMAIL` binding's `allowedSenderAddresses` in `alchemy.run.ts` to your sender
 (default: `notifications@clickfolio.me`). No email API key is needed.
 See [Cloudflare's sending setup](https://developers.cloudflare.com/email-service/get-started/send-emails/).
 
-Local email sends are simulated. Adding `remote: true` to the `EMAIL` binding sends
-real mail during development; only enable it for deliberate delivery testing.
+Local email sends are simulated under `pnpm run dev`.
 Cloudflare Email Sending is currently beta. Email runs in its own journaled workflow
 step with automatic retries disabled: normal replay reuses the completed step,
 but a crash after provider acceptance and before persistence can still duplicate a
@@ -273,15 +274,13 @@ If you followed the steps above, the site should be live at your domain.
 2. **Create the Hyperdrive binding** over your PlanetScale Postgres:
 
    ```bash
-   pnpm exec wrangler hyperdrive create clickfolio-pg --connection-string="postgres://…"
+   pnpm dlx wrangler hyperdrive create clickfolio-pg --connection-string="postgres://…"
    ```
 
-   Copy the `id` to `wrangler.jsonc`
+   Copy the `id` to `hyperdriveId` in `alchemy.run.ts`
 
-3. **Create R2 Bucket**
-   - Go to Cloudflare Dashboard > R2
-   - Create bucket named `clickfolio-bucket`
-   - The bucket is accessed via binding in `wrangler.jsonc` - no API tokens needed
+3. **R2 Bucket**: the first `pnpm run deploy` creates `clickfolio-bucket` (declared in
+   `alchemy.run.ts`) - no API tokens needed
 
 4. **Configure R2 CORS**
    Add CORS policy in R2 bucket settings:
@@ -320,7 +319,7 @@ This project uses Cloudflare AI Gateway for AI calls.
 
 ### Step 4: Environment Variables
 
-Create `.dev.vars` for development:
+Create `.env` for development (`cp .env.example .env`):
 
 ```bash
 # Generate a secure secret with: openssl rand -base64 32
@@ -333,8 +332,10 @@ CLERK_SECRET_KEY=sk_test_…
 CLERK_WEBHOOK_SECRET=whsec_…
 
 # Direct PlanetScale URL — used ONLY by drizzle-kit locally (db:migrate/push/studio).
-# The dev Worker itself connects through the local Hyperdrive simulation.
 DATABASE_URL=postgres://user:password@host/clickfolio
+
+# The dev Worker connects through the emulated Hyperdrive binding to this local Postgres.
+LOCAL_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/clickfolio
 
 # Cloudflare AI Gateway (BYOK - OpenRouter key stored in CF Secrets Store)
 CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
@@ -352,13 +353,13 @@ See `.env.example` for complete template with all options.
    DATABASE_URL="postgres://…" pnpm run db:migrate
    ```
 
-2. **Set production secrets** (see Step 7 of the beginner guide above)
-
-3. **Deploy**
+2. **Deploy**
 
    ```bash
    DATABASE_URL="postgres://…" pnpm run deploy
    ```
+
+3. **Set production secrets** on the deployed Worker (see Step 8 of the beginner guide above)
 
 4. **Configure custom domain** (optional)
    - In Cloudflare Dashboard > Workers & Pages > Your Worker
@@ -372,14 +373,13 @@ See `.env.example` for complete template with all options.
 
 ```bash
 # Development
-pnpm run dev              # Start dev server at localhost:3000
+pnpm run dev              # alchemy dev: the Worker in workerd at localhost:3000, bindings emulated
 pnpm run lint             # Oxlint linting (via vp lint)
 pnpm run fix              # Oxlint + Oxfmt auto-fix (via vp check --fix)
 pnpm run type-check       # TypeScript check
 
 # Build & Deploy
 pnpm run build            # Vite production build (TanStack Start + Cloudflare plugin)
-pnpm run preview          # Local Cloudflare preview
 pnpm run deploy           # build → migrate → NULL backfill → alchemy deploy → since backfill → IndexNow (needs DATABASE_URL)
 
 # Database (PlanetScale Postgres via drizzle-kit; needs DATABASE_URL except generate)
@@ -675,14 +675,14 @@ pnpm run build       # Fix errors and rebuild
 
 ### Database Connection Failures
 
-1. Verify the Hyperdrive binding id in `wrangler.jsonc` matches `wrangler hyperdrive create` output
+1. Verify `hyperdriveId` in `alchemy.run.ts` matches `wrangler hyperdrive create` output
 2. For `db:*` scripts, confirm `DATABASE_URL` is set to the DIRECT PlanetScale connection string
 3. Check PlanetScale console → your database is awake and credentials are valid
 
 ### R2 Upload Fails
 
 1. Check R2 CORS includes your domain
-2. Verify R2 bucket binding is configured in `wrangler.jsonc`
+2. Verify the R2 bucket binding in `alchemy.run.ts`
 3. Confirm bucket name in binding matches actual bucket
 
 ### Parsing Stuck in "Processing"

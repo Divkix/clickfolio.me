@@ -1,7 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  // scripts/ are tsx CLIs and alchemy.run.ts is the Alchemy CLI entry, which no plugin knows about.
-  "entry": ["scripts/**/*.ts", "alchemy.run.ts"],
+  // scripts/ are tsx CLIs, alchemy.run.ts is the Alchemy CLI entry, and worker/index.ts is the Worker
+  // entry it deploys (its class exports are bindings); no plugin knows about any of them.
+  "entry": ["scripts/**/*.ts", "alchemy.run.ts", "worker/index.ts"],
   "project": [
     "app/**/*.{ts,tsx}",
     "app/**/*.css",

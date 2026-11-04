@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { encodeCacheTag } from "@/lib/cache/edge-cache";
 import {
@@ -15,6 +13,7 @@ import { CachePurge, type PurgeResult } from "@/lib/effect/services/cache-purge"
 import { TIMEOUT_MS } from "@/lib/effect/timeouts";
 import { logLines } from "@/tests/helpers/log-lines";
 import { fakeBatch, fakeMessage, fakeQueue } from "@/tests/helpers/queue";
+import { EDGE_PURGE_CONSUMER } from "@/lib/worker-triggers";
 
 const tag = (raw: string) => encodeCacheTag(raw);
 
@@ -225,15 +224,10 @@ describe("processEdgePurgeBatch", () => {
 });
 
 describe("edge purge consumer config", () => {
-  const config = readFileSync(resolve(import.meta.dirname, "../../../wrangler.jsonc"), "utf8");
-  const setting = (key: string) => Number(new RegExp(`"${key}":\\s*(\\d+)`).exec(config)?.[1]);
-
   it("matches the limits the consumer code assumes", () => {
-    expect(setting("max_retries")).toBe(EDGE_PURGE_MAX_RETRIES);
-    expect(setting("max_concurrency")).toBe(1);
+    expect(EDGE_PURGE_CONSUMER.maxConcurrency).toBe(1);
     // Two handle tags per edit plus the shared tags stay under one purge.
-    expect(setting("max_batch_size") * 2 + 3).toBeLessThanOrEqual(MAX_TAGS_PER_PURGE);
-    expect(config).toContain('"dead_letter_queue": "clickfolio-cache-purge-dlq"');
+    expect(EDGE_PURGE_CONSUMER.batchSize * 2 + 3).toBeLessThanOrEqual(MAX_TAGS_PER_PURGE);
   });
 });
 

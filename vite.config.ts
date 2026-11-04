@@ -1,5 +1,5 @@
+import cloudflare from "@alchemy.run/cloudflare-runtime/vite";
 import { resolve } from "node:path";
-import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
@@ -9,7 +9,6 @@ import { patchHyperdxBrowser } from "./lib/telemetry/hyperdx-patch";
 
 const IGNORE_PATTERNS = [
   "dist/**",
-  "lib/cloudflare-env.d.ts",
   "app/routeTree.gen.ts",
   ".agent/**",
   ".agents/**",
@@ -25,12 +24,10 @@ const IGNORE_PATTERNS = [
   "tools/oxlint/anti-slop/**",
 ];
 
-// Production builds run in the GitHub Actions deploy workflow (main); Workers Builds still
-// uploads branch preview versions. Both set a branch and commit:
-// https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
-// https://docs.github.com/en/actions/reference/workflows-and-actions/variables
-const CI_BRANCH = process.env.WORKERS_CI_BRANCH ?? process.env.GITHUB_REF_NAME;
-const CI_COMMIT = process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA;
+// Production builds run in the GitHub Actions deploy workflow (main), which sets the branch and
+// commit: https://docs.github.com/en/actions/reference/workflows-and-actions/variables
+const CI_BRANCH = process.env.GITHUB_REF_NAME;
+const CI_COMMIT = process.env.GITHUB_SHA;
 
 function deployEnv(): "production" | "preview" | "development" {
   if (!CI_BRANCH) return "development";
@@ -192,7 +189,16 @@ export default defineConfig(() => {
     plugins: isTest
       ? []
       : [
-          cloudflare({ viteEnvironment: { name: "ssr" } }),
+          // `alchemy dev` / `alchemy deploy` inject this plugin with the stack's bindings; the copy
+          // here only serves a standalone `vp build` (CI). Keep the compatibility settings in step
+          // with alchemy.run.ts.
+          process.env.ALCHEMY_CLOUDFLARE_VITE_INJECTED === "1"
+            ? null
+            : cloudflare({
+                main: "./worker/index.ts",
+                compatibilityDate: "2026-01-22",
+                compatibilityFlags: ["nodejs_compat", "global_fetch_strictly_public"],
+              }),
           tanstackStart({
             srcDirectory: "app",
             importProtection: {
