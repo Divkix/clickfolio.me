@@ -6,7 +6,7 @@ import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 /**
  * Committed lastmod dates (YYYY-MM-DD) for static sitemap routes. `scripts/bump-lastmod.ts`
  * rewrites lastmod.json from the pre-commit hook, so builds never read git history
- * (Workers Builds clones shallowly).
+ * (CI clones shallowly).
  */
 const STATIC_LASTMOD: Readonly<Record<string, string>> = lastmod;
 

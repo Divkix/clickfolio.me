@@ -205,10 +205,12 @@ Deploy builds, migrates, backfills NULL `content_indexable` flags, and deploys t
 R2 lifecycle rules with [Alchemy](https://alchemy.run) (`alchemy.run.ts`). It then backfills rows updated since deploy start
 minus one hour and queues static URLs from the live sitemap for durable IndexNow delivery.
 
-Production deploys automatically on pushes to `main` through the Cloudflare **Workers Builds**
-trigger **Deploy default branch** (`pnpm run build`, then `pnpm run deploy`), not a GitHub
-Actions deployment workflow. `.github/workflows/ci.yml` independently checks PRs and `main`
-with quality, coverage and build jobs. Non-main branches upload preview versions only.
+Production deploys run from `.github/workflows/deploy.yml` on every push to `main` (and on
+manual dispatch): `pnpm run deploy` with the repository secrets `CLOUDFLARE_API_TOKEN` and
+`DATABASE_URL` and the variable `CLOUDFLARE_ACCOUNT_ID`. Alchemy keeps its state in the account's
+state store (`pnpm exec alchemy state bootstrap` creates it once per account). The Workers Builds
+trigger **Deploy default branch** is paused; non-main branches still upload preview versions only.
+`.github/workflows/ci.yml` independently checks PRs and `main` with quality, coverage and build jobs.
 
 **IndexNow delivery:** Runtime publish/edit/privacy/rename/delete hooks and the post-deploy
 script share the Postgres `indexnow_urls` outbox (migration `0015_indexnow-outbox.sql`).

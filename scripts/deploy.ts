@@ -41,9 +41,12 @@ export async function main(): Promise<void> {
   }
 
   // alchemy.run.ts also owns the R2 lifecycle rules (anonymous temp/ uploads expire after a day).
-  const deploy = spawnSync("pnpm", ["exec", "alchemy", "deploy", "--stage", "prod", ...args], {
-    stdio: "inherit",
-  });
+  // --yes: CI has no terminal to confirm the plan in, and `wrangler deploy` never asked either.
+  const deploy = spawnSync(
+    "pnpm",
+    ["exec", "alchemy", "deploy", "--stage", "prod", "--yes", ...args],
+    { stdio: "inherit" },
+  );
 
   if (deploy.status !== 0) {
     process.exit(deploy.status ?? 1);
