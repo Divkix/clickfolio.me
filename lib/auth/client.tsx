@@ -29,7 +29,7 @@ export interface ClientSessionUser {
 
 export interface SessionData {
   user: ClientSessionUser;
-  session: { id: string | null; userId: string };
+  session: { id: string | null };
 }
 
 interface UseSessionResult {

@@ -32,7 +32,6 @@ function SessionSync({ onChange }: Pick<ClerkBridgeProps, "onChange">) {
       },
       session: {
         id: sessionId ?? null,
-        userId: user.id,
       },
     };
   }, [isSignedIn, sessionId, user]);
