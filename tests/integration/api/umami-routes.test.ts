@@ -56,7 +56,11 @@ function json(body: JsonValue, status = 200): Response {
   return new Response(JSON.stringify(body), { status });
 }
 
-type Upstream = (endpoint: string, path: string | null) => Response | Promise<Response>;
+type Upstream = (
+  endpoint: string,
+  path: string | null,
+  params: URLSearchParams,
+) => Response | Promise<Response>;
 
 /** Answers the login, then hands every website GET (endpoint + path filter) to `upstream`. */
 function stubUmami(upstream: Upstream) {
@@ -65,7 +69,11 @@ function stubUmami(upstream: Upstream) {
 
     if (url.pathname === "/api/auth/login") return json({ token: "tok" });
 
-    return upstream(url.pathname.split("/").pop() ?? "", url.searchParams.get("path"));
+    return upstream(
+      url.pathname.split("/").pop() ?? "",
+      url.searchParams.get("path"),
+      url.searchParams,
+    );
   });
 
   vi.stubGlobal("fetch", fetchMock);
@@ -119,6 +127,47 @@ describe("GET /api/admin/analytics", () => {
       referrers: [
         { domain: "Direct", count: 2 },
         { domain: "news.example", count: 1 },
+      ],
+    });
+  });
+
+  it("uses the viewer's local days and preserves Umami's local bucket labels across DST", async () => {
+    const now = Date.parse("2026-11-02T02:00:00Z");
+    vi.spyOn(Date, "now").mockReturnValue(now);
+
+    stubUmami((endpoint, path, params) => {
+      expect(params.get("startAt")).toBe(String(Date.parse("2026-10-26T05:00:00Z")));
+      expect(params.get("endAt")).toBe(String(now));
+
+      if (endpoint !== "stats") expect(params.get("timezone")).toBe("America/Chicago");
+
+      if (endpoint === "pageviews") {
+        return json({
+          pageviews: [{ x: "2026-11-01 00:00:00", y: 5 }],
+          sessions: [{ x: "2026-11-01 00:00:00", y: 1 }],
+        });
+      }
+
+      return json(umamiBody(endpoint, path));
+    });
+
+    const GET = serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
+
+    const response = await GET(
+      new Request("https://clickfolio.me/api/admin/analytics?period=7d&tz=America%2FChicago"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      totals: { views: 5, unique: 1 },
+      daily: [
+        { date: "2026-10-26", views: 0, unique: 0 },
+        { date: "2026-10-27", views: 0, unique: 0 },
+        { date: "2026-10-28", views: 0, unique: 0 },
+        { date: "2026-10-29", views: 0, unique: 0 },
+        { date: "2026-10-30", views: 0, unique: 0 },
+        { date: "2026-10-31", views: 0, unique: 0 },
+        { date: "2026-11-01", views: 5, unique: 1 },
       ],
     });
   });
@@ -218,6 +267,88 @@ describe("GET /api/analytics/stats", () => {
       .filter((path) => path !== null);
 
     expect(new Set(paths)).toEqual(new Set(["/@alice", "/@alice-old"]));
+  });
+
+  it("maps Umami's viewer-local days across both handles", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-02T02:00:00Z"));
+    stubUmami((endpoint, path, params) => {
+      expect(params.get("startAt")).toBe(String(Date.parse("2026-10-26T05:00:00Z")));
+
+      if (endpoint !== "stats") expect(params.get("timezone")).toBe("America/Chicago");
+
+      if (endpoint === "pageviews") {
+        return json({
+          pageviews: [{ x: "2026-11-01 00:00:00", y: path === "/@alice" ? 10 : 5 }],
+          sessions: [{ x: "2026-11-01 00:00:00", y: 1 }],
+        });
+      }
+
+      return json(umamiBody(endpoint, path));
+    });
+
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
+
+    const response = await GET(
+      new Request("https://clickfolio.me/api/analytics/stats?period=7d&tz=America%2FChicago"),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      totalViews: 15,
+      uniqueVisitors: 3,
+      viewsByDay: [
+        { date: "2026-10-26", views: 0, uniques: 0 },
+        { date: "2026-10-27", views: 0, uniques: 0 },
+        { date: "2026-10-28", views: 0, uniques: 0 },
+        { date: "2026-10-29", views: 0, uniques: 0 },
+        { date: "2026-10-30", views: 0, uniques: 0 },
+        { date: "2026-10-31", views: 0, uniques: 0 },
+        { date: "2026-11-01", views: 15, uniques: 2 },
+      ],
+    });
+  });
+
+  it("falls back to the same UTC days for invalid and missing time zones", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-02T02:00:00Z"));
+    stubUmami((endpoint, path, params) => {
+      expect(params.get("startAt")).toBe(String(Date.parse("2026-10-27T00:00:00Z")));
+
+      if (endpoint !== "stats") expect(params.get("timezone")).toBe("UTC");
+
+      if (endpoint === "pageviews") {
+        return json({
+          pageviews: [{ x: "2026-11-02T00:00:00Z", y: path === "/@alice" ? 10 : 5 }],
+          sessions: [{ x: "2026-11-02T00:00:00Z", y: 1 }],
+        });
+      }
+
+      return json(umamiBody(endpoint, path));
+    });
+
+    const GET = serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET");
+    const missing = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=7d"));
+
+    const invalid = await GET(
+      new Request("https://clickfolio.me/api/analytics/stats?period=7d&tz=Not%2FAZone"),
+    );
+
+    const body = await invalid.json();
+
+    expect(invalid.status).toBe(200);
+    expect(body).toEqual(await missing.json());
+    expect(body).toMatchObject({
+      viewsByDay: [
+        { date: "2026-10-27", views: 0, uniques: 0 },
+        { date: "2026-10-28", views: 0, uniques: 0 },
+        { date: "2026-10-29", views: 0, uniques: 0 },
+        { date: "2026-10-30", views: 0, uniques: 0 },
+        { date: "2026-10-31", views: 0, uniques: 0 },
+        { date: "2026-11-01", views: 0, uniques: 0 },
+        { date: "2026-11-02", views: 15, uniques: 2 },
+      ],
+    });
   });
 
   it("excludes a previous handle now owned by someone else from every metric", async () => {

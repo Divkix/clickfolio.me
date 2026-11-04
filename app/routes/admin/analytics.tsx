@@ -7,16 +7,20 @@ import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import * as z from "zod/mini";
 import AnalyticsClient from "@/components/admin/AnalyticsClient";
+import { analyticsTimezoneSchema } from "@/lib/schemas/analytics-timezone";
 import { privatePageHead } from "@/lib/seo/page-metadata";
 
-const searchSchema = z.object({ period: z.catch(z.enum(["7d", "30d", "90d"]), "7d") });
+const searchSchema = z.object({
+  period: z.catch(z.enum(["7d", "30d", "90d"]), "7d"),
+  tz: analyticsTimezoneSchema,
+});
 
 const getAnalytics = createServerFn({ method: "GET" })
   .validator(searchSchema)
   .handler(async ({ data }) => {
     await requireAdminAuth();
 
-    return runPage(loadAdminAnalytics(data.period), Analytics.layer(env));
+    return runPage(loadAdminAnalytics(data.period, data.tz), Analytics.layer(env));
   });
 
 export const Route = createFileRoute("/admin/analytics")({
@@ -30,7 +34,7 @@ export const Route = createFileRoute("/admin/analytics")({
 
 function AdminAnalyticsPage() {
   const data = Route.useLoaderData();
-  const { period } = Route.useSearch();
+  const { period, tz } = Route.useSearch();
 
-  return <AnalyticsClient data={data} period={period} />;
+  return <AnalyticsClient data={data} period={period} timezone={tz} />;
 }

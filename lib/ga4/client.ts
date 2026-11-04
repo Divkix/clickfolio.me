@@ -7,6 +7,7 @@ import type {
   PageviewsOptions,
   StatsOptions,
 } from "@/lib/analytics/types";
+import { dayKey, lastNDays, startOfDay } from "@/lib/utils/date-axis";
 
 // Plain promises; the Analytics Effect service owns the outer timeout and tagged failures.
 // The GA4 property must report in UTC. Only access tokens are cached, never reports or keys.
@@ -20,6 +21,7 @@ const LOGIN_JOIN_WINDOW_MS = HOP_TIMEOUT_MS + 1_000;
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 const TOKEN_BUFFER_MS = 60_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
 const REPORT_PAGE_SIZE = 250_000;
 const encoder = new TextEncoder();
 
@@ -46,8 +48,9 @@ const rowSchema = z.object({
 });
 
 const reportSchema = z.object({
+  kind: z.literal("analyticsData#runReport").optional(),
   dimensionHeaders: z.array(headerSchema).default([]),
-  metricHeaders: z.array(headerSchema),
+  metricHeaders: z.array(headerSchema).default([]),
   rows: z.array(rowSchema).default([]),
   rowCount: z.number().int().nonnegative().optional(),
 });
@@ -59,11 +62,23 @@ type PathFilter = {
   };
 };
 
+type HourFilter = {
+  filter: {
+    fieldName: "dateHour";
+    inListFilter: { values: string[] };
+  };
+};
+
+type DimensionFilter =
+  | PathFilter
+  | HourFilter
+  | { andGroup: { expressions: (PathFilter | HourFilter)[] } };
+
 type ReportRequest = {
   dimensions: { name: string }[];
   metrics: { name: string }[];
   dateRanges: { startDate: string; endDate: string }[];
-  dimensionFilter?: PathFilter;
+  dimensionFilter?: DimensionFilter;
   orderBys?: (
     | { metric: { metricName: string }; desc: boolean }
     | {
@@ -248,6 +263,30 @@ function dateRange(opts: StatsOptions) {
   };
 }
 
+function dimensionFilter(opts: StatsOptions): DimensionFilter | null | undefined {
+  const path = opts.path === undefined ? undefined : pathFilter(opts.path);
+
+  if ((opts.timezone ?? "UTC") === "UTC") return path;
+
+  const values: string[] = [];
+
+  // ponytail: UTC-hour starts shift fractional-offset day edges by <=45 minutes;
+  // use dateHourMinute if minute-accurate local boundaries become necessary.
+  for (
+    let hour = Math.ceil(opts.startAt / HOUR_MS) * HOUR_MS;
+    hour <= opts.endAt;
+    hour += HOUR_MS
+  ) {
+    values.push(new Date(hour).toISOString().slice(0, 13).replaceAll("-", "").replace("T", ""));
+  }
+
+  if (values.length === 0) return null;
+
+  const hours: HourFilter = { filter: { fieldName: "dateHour", inListFilter: { values } } };
+
+  return path ? { andGroup: { expressions: [path, hours] } } : hours;
+}
+
 async function runReport(
   env: CloudflareEnv,
   body: ReportRequest,
@@ -282,6 +321,17 @@ async function runReport(
     throw cause;
   }
 
+  // GA4 omits empty repeated fields; only its fixed resource kind identifies this envelope.
+  if (
+    report.kind === "analyticsData#runReport" &&
+    report.dimensionHeaders.length === 0 &&
+    report.metricHeaders.length === 0 &&
+    report.rows.length === 0 &&
+    (report.rowCount === undefined || report.rowCount === 0)
+  ) {
+    return report;
+  }
+
   const dimensions = body.dimensions.map(({ name }) => name);
 
   if (body.dateRanges.length > 1) dimensions.push("dateRange");
@@ -309,12 +359,62 @@ async function runReport(
   return report;
 }
 
+async function windowStats(
+  env: CloudflareEnv,
+  opts: StatsOptions,
+  signal?: AbortSignal,
+): Promise<{ pageviews: number; visitors: number }> {
+  const dates = dateRange(opts);
+  const filter = dimensionFilter(opts);
+
+  if (filter === null) return { pageviews: 0, visitors: 0 };
+
+  // No dateHour dimension: GA4 deduplicates totalUsers across the selected hours.
+  const report = await runReport(
+    env,
+    {
+      dimensions: [],
+      metrics: [{ name: "screenPageViews" }, { name: "totalUsers" }],
+      dateRanges: [dates],
+      dimensionFilter: filter,
+    },
+    signal,
+  );
+
+  if (report.rows.length > 1) throw invalidResponse();
+
+  const row = report.rows[0];
+  const viewsIndex = report.metricHeaders.findIndex(({ name }) => name === "screenPageViews");
+  const usersIndex = report.metricHeaders.findIndex(({ name }) => name === "totalUsers");
+
+  return {
+    pageviews: row?.metricValues[viewsIndex].value ?? 0,
+    visitors: row?.metricValues[usersIndex].value ?? 0,
+  };
+}
+
 export async function getStats(
   env: CloudflareEnv,
   opts: StatsOptions,
   signal?: AbortSignal,
 ): Promise<AnalyticsStats> {
   const current = dateRange(opts);
+  const timezone = opts.timezone ?? "UTC";
+
+  if (timezone !== "UTC") {
+    const firstDay = dayKey(opts.startAt, timezone);
+    const days = (Date.parse(dayKey(opts.endAt, timezone)) - Date.parse(firstDay)) / DAY_MS + 1;
+    const previousEnd = startOfDay(firstDay, timezone) - 1;
+    const previousStart = startOfDay(lastNDays(days, timezone, previousEnd)[0], timezone);
+
+    const [stats, comparison] = await Promise.all([
+      windowStats(env, opts, signal),
+      windowStats(env, { ...opts, startAt: previousStart, endAt: previousEnd }, signal),
+    ]);
+
+    return { ...stats, comparison };
+  }
+
   const start = Date.parse(current.startDate);
   const days = Date.parse(current.endDate) - start + DAY_MS;
 
@@ -357,47 +457,67 @@ export async function getPageviews(
   opts: PageviewsOptions,
   signal?: AbortSignal,
 ): Promise<AnalyticsPageviews> {
-  if (opts.unit !== "day" || opts.timezone !== "UTC") {
-    throw new Error("GA4 reports require UTC daily intervals");
-  }
+  if (opts.unit !== "day") throw new Error("GA4 reports require daily intervals");
+
+  const timezone = opts.timezone ?? "UTC";
+  const dimension = timezone === "UTC" ? "date" : "dateHour";
+  const dates = dateRange(opts);
+  const filter = dimensionFilter(opts);
+
+  if (filter === null) return { pageviews: [], sessions: [] };
 
   const report = await runReport(
     env,
     {
-      dimensions: [{ name: "date" }],
+      dimensions: [{ name: dimension }],
       metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
-      dateRanges: [dateRange(opts)],
-      orderBys: [{ dimension: { dimensionName: "date" } }],
+      dateRanges: [dates],
+      orderBys: [{ dimension: { dimensionName: dimension } }],
       limit: REPORT_PAGE_SIZE.toString(),
-      dimensionFilter: opts.path === undefined ? undefined : pathFilter(opts.path),
+      dimensionFilter: filter,
     },
     signal,
   );
 
-  const dateIndex = report.dimensionHeaders.findIndex(({ name }) => name === "date");
+  const dateIndex = report.dimensionHeaders.findIndex(({ name }) => name === dimension);
   const viewsIndex = report.metricHeaders.findIndex(({ name }) => name === "screenPageViews");
   const sessionsIndex = report.metricHeaders.findIndex(({ name }) => name === "sessions");
-  const result: AnalyticsPageviews = { pageviews: [], sessions: [] };
+  const totals = new Map<string, { pageviews: number; sessions: number }>();
 
   for (const row of report.rows) {
     const raw = row.dimensionValues[dateIndex].value;
     const day = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
-    const x = `${day}T00:00:00Z`;
+    const hour = dimension === "dateHour" ? raw.slice(8, 10) : "00";
+    const x = `${day}T${hour}:00:00Z`;
     const parsed = new Date(x);
 
     if (
-      !/^\d{8}$/.test(raw) ||
+      !(dimension === "date" ? /^\d{8}$/ : /^\d{10}$/).test(raw) ||
       Number.isNaN(parsed.getTime()) ||
-      parsed.toISOString().slice(0, 10) !== day
+      parsed.toISOString().slice(0, 13) !== `${day}T${hour}`
     ) {
       throw invalidResponse();
     }
 
-    result.pageviews.push({ x, y: row.metricValues[viewsIndex].value });
-    result.sessions.push({ x, y: row.metricValues[sessionsIndex].value });
+    const instant = parsed.getTime();
+
+    if (dimension === "dateHour" && (instant < opts.startAt || instant > opts.endAt)) continue;
+
+    const key = dimension === "date" ? day : dayKey(instant, timezone);
+    const total = totals.get(key) ?? { pageviews: 0, sessions: 0 };
+    total.pageviews += row.metricValues[viewsIndex].value;
+    // ponytail: summing hourly sessions can recount sessions spanning hours (at most
+    // once per active hour); use per-local-day aggregate reports if exact sessions matter.
+    total.sessions += row.metricValues[sessionsIndex].value;
+    totals.set(key, total);
   }
 
-  return result;
+  const entries = [...totals].sort(([a], [b]) => a.localeCompare(b));
+
+  return {
+    pageviews: entries.map(([day, total]) => ({ x: `${day}T00:00:00Z`, y: total.pageviews })),
+    sessions: entries.map(([day, total]) => ({ x: `${day}T00:00:00Z`, y: total.sessions })),
+  };
 }
 
 function referrerHost(value: string): string {
@@ -445,6 +565,10 @@ export async function getMetrics(
   const referrers = opts.type === "referrer";
   const totals = new Map<string, number>();
   const dates = dateRange(opts);
+  const filter = dimensionFilter(opts);
+
+  if (filter === null) return [];
+
   let offset = 0;
 
   while (true) {
@@ -465,7 +589,7 @@ export async function getMetrics(
         ],
         limit: limit.toString(),
         offset: offset ? offset.toString() : undefined,
-        dimensionFilter: opts.path === undefined ? undefined : pathFilter(opts.path),
+        dimensionFilter: filter,
       },
       signal,
     );

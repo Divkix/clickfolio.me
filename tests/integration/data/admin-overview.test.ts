@@ -14,7 +14,7 @@ import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { DbFailed, HttpUpstreamFailed } from "@/lib/effect/failures";
 import { Analytics } from "@/lib/effect/services/analytics";
-import { lastNUtcDays } from "@/lib/utils/date-axis";
+import { lastNDays } from "@/lib/utils/date-axis";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
 
@@ -24,7 +24,7 @@ let testDb: Awaited<ReturnType<typeof createTestDb>>;
 let db: TestDb;
 let errorSpy: ReturnType<typeof vi.spyOn>;
 
-const today = lastNUtcDays(1)[0];
+const today = lastNDays(1, "UTC")[0];
 
 const analyticsUp = Analytics.layerFrom({
   getStats: () => Effect.succeed({ pageviews: 7, visitors: 3 }),

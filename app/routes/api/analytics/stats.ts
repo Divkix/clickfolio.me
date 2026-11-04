@@ -7,7 +7,8 @@ import { handleChanges, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { InvalidInput, type ServerFailure } from "@/lib/effect/failures";
 import { Analytics } from "@/lib/effect/services/analytics";
-import { lastNUtcDays } from "@/lib/utils/date-axis";
+import { analyticsTimezoneSchema } from "@/lib/schemas/analytics-timezone";
+import { analyticsWindow, lastNDays } from "@/lib/utils/date-axis";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
@@ -65,7 +66,8 @@ function loadStats(
   dbUser: { id: string; handle: string | null },
 ): Effect.Effect<Response, ServerFailure, Db | Analytics> {
   return Effect.gen(function* () {
-    const period = new URL(request.url).searchParams.get("period") || "7d";
+    const searchParams = new URL(request.url).searchParams;
+    const period = searchParams.get("period") || "7d";
 
     if (!VALID_PERIODS.has(period)) {
       return yield* Effect.fail(
@@ -73,6 +75,7 @@ function loadStats(
       );
     }
 
+    const timezone = analyticsTimezoneSchema.parse(searchParams.get("tz"));
     const currentHandle = dbUser.handle;
 
     if (!currentHandle) {
@@ -80,8 +83,8 @@ function loadStats(
     }
 
     const days = Number.parseInt(period, 10);
-    const endAt = Date.now();
-    const startAt = endAt - days * 24 * 60 * 60 * 1000;
+    const { startAt, endAt } = analyticsWindow(days, timezone);
+    const dates = lastNDays(days, timezone, endAt);
 
     const handleSet = yield* loadHandleSet(dbUser.id, currentHandle);
     const handlePaths = [...handleSet].map((h) => `/@${h}`);
@@ -91,7 +94,7 @@ function loadStats(
         handlePaths,
         (path) =>
           Analytics.use((analytics) =>
-            analytics.getMetrics({ startAt, endAt, type, unit: "day", timezone: "UTC", path }),
+            analytics.getMetrics({ startAt, endAt, type, unit: "day", timezone, path }),
           ),
         { concurrency: "unbounded" },
       );
@@ -101,14 +104,15 @@ function loadStats(
         [
           Effect.forEach(
             handlePaths,
-            (path) => Analytics.use((analytics) => analytics.getStats({ startAt, endAt, path })),
+            (path) =>
+              Analytics.use((analytics) => analytics.getStats({ startAt, endAt, timezone, path })),
             { concurrency: "unbounded" },
           ),
           Effect.forEach(
             handlePaths,
             (path) =>
               Analytics.use((analytics) =>
-                analytics.getPageviews({ startAt, endAt, unit: "day", timezone: "UTC", path }),
+                analytics.getPageviews({ startAt, endAt, unit: "day", timezone, path }),
               ),
             { concurrency: "unbounded" },
           ),
@@ -129,6 +133,7 @@ function loadStats(
       uniqueVisitors += s.visitors ?? 0;
     }
 
+    // Umami's x values are local calendar labels in the requested zone, not UTC instants.
     const dailyMap = new Map<string, number>();
     const dailyUniquesMap = new Map<string, number>();
 
@@ -189,7 +194,7 @@ function loadStats(
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    const viewsByDay = lastNUtcDays(days).map((date) => ({
+    const viewsByDay = dates.map((date) => ({
       date,
       views: dailyMap.get(date) ?? 0,
       uniques: dailyUniquesMap.get(date) ?? 0,

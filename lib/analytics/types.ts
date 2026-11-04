@@ -26,6 +26,7 @@ export interface AnalyticsMetric {
 export interface StatsOptions {
   startAt: number;
   endAt: number;
+  timezone?: string;
   path?: string;
 }
 

@@ -364,8 +364,15 @@ In-app analytics use Umami until `ANALYTICS_SOURCE` in `alchemy.run.ts` → `VAR
 Before flipping production, enable the Google Analytics Data API in the service account's
 Google Cloud project, grant its `client_email` **Viewer** access to GA4 property `562314112`,
 and add `GA4_SERVICE_ACCOUNT_JSON` as a Worker secret (the whole downloaded key file,
-minified to one-line JSON). Keep the property time zone set to **UTC**: report ranges use UTC
-calendar days. GA4's recent data can lag collection.
+minified to one-line JSON). Keep the property time zone set to **UTC**. User dashboard and
+admin analytics charts use the viewer's browser time zone: the last N local calendar days,
+from local midnight N−1 days ago through now. Missing or invalid `tz` falls back to UTC.
+The server-rendered admin overview stays on UTC days. GA4's recent data can lag collection.
+For non-UTC viewers, GA4 groups UTC `dateHour` buckets into local dates and filters totals,
+distinct users and breakdowns to the same hours; comparisons use the preceding N local dates.
+Fractional-hour offsets can put day edges up to 45 minutes off because each UTC hour belongs
+to the local date of its start. Daily session counts sum those hourly buckets, so a session
+spanning hours may be counted more than once; total unique visitors are deduplicated by GA4.
 
 ```bash
 pnpm dlx wrangler secret put GA4_SERVICE_ACCOUNT_JSON --name clickfolio-me

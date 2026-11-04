@@ -5,6 +5,7 @@ import { withAdminEffect } from "@/lib/auth/with-auth";
 import { analyticsPeriodSchema, loadAdminAnalytics } from "@/lib/data/admin-analytics";
 import { InvalidInput } from "@/lib/effect/failures";
 import { Analytics } from "@/lib/effect/services/analytics";
+import { analyticsTimezoneSchema } from "@/lib/schemas/analytics-timezone";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export const Route = createFileRoute("/api/admin/analytics")({
@@ -13,15 +14,15 @@ export const Route = createFileRoute("/api/admin/analytics")({
       GET: async ({ request }) => {
         return withAdminEffect(request, () =>
           Effect.gen(function* () {
-            const period = analyticsPeriodSchema.safeParse(
-              new URL(request.url).searchParams.get("period") || "7d",
-            );
+            const searchParams = new URL(request.url).searchParams;
+            const period = analyticsPeriodSchema.safeParse(searchParams.get("period") || "7d");
 
             if (!period.success) {
               return yield* Effect.fail(new InvalidInput({ message: "Invalid period" }));
             }
 
-            const data = yield* loadAdminAnalytics(period.data);
+            const timezone = analyticsTimezoneSchema.parse(searchParams.get("tz"));
+            const data = yield* loadAdminAnalytics(period.data, timezone);
             const response = createSuccessResponse(data);
             response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
 
