@@ -10,13 +10,18 @@ const mocks = vi.hoisted(() => {
     pathname: "/",
     effects,
     setState: vi.fn(),
+    setSessionHint: vi.fn(),
+    stateIndex: 0,
     whenIdle: vi.fn<() => Promise<void>>(),
   };
 });
 
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof ReactModule>()),
-  useState: <T,>(initial: T) => [initial, mocks.setState],
+  useState: <T,>(initial: T) => [
+    initial,
+    mocks.stateIndex++ === 3 ? mocks.setSessionHint : mocks.setState,
+  ],
   useRef: () => ({ current: [] }),
   useMemo: <T,>(factory: () => T) => factory(),
   useCallback: <T,>(callback: T) => callback,
@@ -40,6 +45,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.pathname = "/";
   mocks.effects = [];
+  mocks.stateIndex = 0;
   mocks.whenIdle.mockResolvedValue();
   vi.stubGlobal("document", { cookie: "" });
 });
