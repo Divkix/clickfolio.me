@@ -19,6 +19,8 @@ const VARS = {
   CLERK_PUBLISHABLE_KEY: "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
   // Public: the tracker script prints it in every page.
   UMAMI_WEBSITE_ID: "1a0515d6-8471-4a14-8581-3fdc3929ff0c",
+  ANALYTICS_SOURCE: "umami",
+  GA4_PROPERTY_ID: "562314112",
   AI_MODEL: "openai/gpt-6-luna:nitro",
   AI_REASONING_EFFORT: "medium",
   // Browser telemetry ingest (/otel proxy). The key is the secret OTEL_BROWSER_INGEST_KEY.
@@ -42,6 +44,8 @@ const SECRETS = [
   "UMAMI_API_URL",
   "UMAMI_USERNAME",
   "UMAMI_PASSWORD",
+  // Required only when ANALYTICS_SOURCE is ga4: whole service-account key file as one-line JSON.
+  "GA4_SERVICE_ACCOUNT_JSON",
   // Optional parse-failure alerting: logpush (default) or webhook.
   "ALERT_CHANNEL",
   "ALERT_WEBHOOK_URL",

@@ -16,6 +16,8 @@ export const TIMEOUT_MS = {
   upstream: 5_000,
   /** A whole Umami call: a cold login plus the GET, one hop of up to 5s each. */
   umami: 10_000,
+  /** A whole GA4 call: service-account token exchange plus the report request. */
+  ga4: 10_000,
   workflow: 8_000,
   /** One AI Gateway text generation. */
   ai: 60_000,

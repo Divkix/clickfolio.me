@@ -182,6 +182,8 @@ Set these in `alchemy.run.ts` → `VARS` (they are public, not secrets):
 
 - `CLERK_PUBLISHABLE_KEY` = your Clerk publishable key (`pk_…`)
 - `UMAMI_WEBSITE_ID` = your Umami website id (public; the tracker script prints it)
+- `ANALYTICS_SOURCE` = `"umami"` (default) or `"ga4"` for in-app stats; unknown values fail
+- `GA4_PROPERTY_ID` = `"562314112"` for the Clickfolio GA4 property
 - `APP_URL` = `https://your-domain.com`
 
 **Step 8: Deploy**
@@ -356,6 +358,22 @@ CF_AIG_AUTH_TOKEN=your-gateway-auth-token
 ```
 
 See `.env.example` for complete template with all options.
+
+In-app analytics use Umami until `ANALYTICS_SOURCE` in `alchemy.run.ts` → `VARS` changes to
+`"ga4"`; an unset flag also selects Umami. Both browser trackers stay enabled independently.
+Before flipping production, enable the Google Analytics Data API in the service account's
+Google Cloud project, grant its `client_email` **Viewer** access to GA4 property `562314112`,
+and add `GA4_SERVICE_ACCOUNT_JSON` as a Worker secret (the whole downloaded key file,
+minified to one-line JSON). Keep the property time zone set to **UTC**: report ranges use UTC
+calendar days. GA4's recent data can lag collection.
+
+```bash
+pnpm dlx wrangler secret put GA4_SERVICE_ACCOUNT_JSON --name clickfolio-me
+```
+
+For local GA4 reporting, set `ANALYTICS_SOURCE=ga4`, `GA4_PROPERTY_ID=562314112` and the
+same secret in `.env`. Umami reporting continues to use `UMAMI_API_URL`, `UMAMI_USERNAME`,
+`UMAMI_PASSWORD` and `UMAMI_WEBSITE_ID`; leave those configured during the parallel run.
 
 ### Step 5: Deploy to Cloudflare
 

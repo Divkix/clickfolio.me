@@ -13,7 +13,7 @@ import { loadAdminStats } from "@/lib/data/admin-overview";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { DbFailed, HttpUpstreamFailed } from "@/lib/effect/failures";
-import { Umami } from "@/lib/effect/services/umami";
+import { Analytics } from "@/lib/effect/services/analytics";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
 import { logLines } from "../../helpers/log-lines";
 import { createTestDb, INDEXABLE_CONTENT, type TestDb } from "../../helpers/pglite-db";
@@ -26,14 +26,14 @@ let errorSpy: ReturnType<typeof vi.spyOn>;
 
 const today = lastNUtcDays(1)[0];
 
-const umamiUp = Umami.layerFrom({
+const analyticsUp = Analytics.layerFrom({
   getStats: () => Effect.succeed({ pageviews: 7, visitors: 3 }),
   getPageviews: () =>
     Effect.succeed({ pageviews: [{ x: `${today} 00:00:00`, y: 5 }], sessions: [] }),
   getMetrics: () => Effect.succeed([]),
 });
 
-const umamiDown = Umami.layerFrom({
+const analyticsDown = Analytics.layerFrom({
   getStats: () =>
     Effect.fail(
       new HttpUpstreamFailed({
@@ -47,8 +47,11 @@ const umamiDown = Umami.layerFrom({
   getMetrics: () => Effect.succeed([]),
 });
 
-function run<A, E>(program: Effect.Effect<A, E, Db | Umami>, umami: Layer.Layer<Umami>) {
-  return Effect.runPromise(Effect.provide(program, Layer.mergeAll(Db.layerFrom(db), umami)));
+function run<A, E>(
+  program: Effect.Effect<A, E, Db | Analytics>,
+  analytics: Layer.Layer<Analytics>,
+) {
+  return Effect.runPromise(Effect.provide(program, Layer.mergeAll(Db.layerFrom(db), analytics)));
 }
 
 beforeAll(async () => {
@@ -94,10 +97,10 @@ async function seed() {
 }
 
 describe("loadAdminStats", () => {
-  it("counts users, sites and resume states and fills the week with Umami views", async () => {
+  it("counts users, sites and resume states and fills the week with analytics views", async () => {
     await seed();
 
-    const stats = await run(loadAdminStats(), umamiUp);
+    const stats = await run(loadAdminStats(), analyticsUp);
 
     expect(stats).toMatchObject({
       totalUsers: 2,
@@ -111,17 +114,17 @@ describe("loadAdminStats", () => {
     expect(stats.recentSignups).toHaveLength(2);
   });
 
-  it("logs and shows zero views when Umami is down, without failing the page", async () => {
+  it("logs and shows zero views when analytics is down, without failing the page", async () => {
     await seed();
 
-    const stats = await run(loadAdminStats(), umamiDown);
+    const stats = await run(loadAdminStats(), analyticsDown);
 
     expect(stats.viewsToday).toBe(0);
     expect(stats.dailyViews.every((day) => day.views === 0)).toBe(true);
     expect(stats.totalUsers).toBe(2);
 
     const lines = logLines(errorSpy);
-    const entry = lines.find((line) => line.msg === "[admin] Umami API unavailable");
+    const entry = lines.find((line) => line.msg === "[admin] Analytics API unavailable");
 
     expect(entry).toMatchObject({ level: "error", operation: "umami.stats", kind: "unavailable" });
   });
@@ -133,7 +136,7 @@ describe("loadAdminStats", () => {
 
     const failure = await Effect.runPromise(
       Effect.flip(
-        Effect.provide(loadAdminStats(), Layer.mergeAll(Db.layerFrom(closed.db), umamiUp)),
+        Effect.provide(loadAdminStats(), Layer.mergeAll(Db.layerFrom(closed.db), analyticsUp)),
       ),
     );
 

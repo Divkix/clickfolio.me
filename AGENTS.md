@@ -21,6 +21,7 @@ Uploaded PDF resume → hosted portfolio at `/@handle`: anonymous upload → Cle
 | API route shape                                  | `app/routes/api/profile/role.ts`, `lib/auth/with-auth.ts` |
 | Page session                                     | `lib/auth/session.ts`                                     |
 | Effect services, layers, edges, tagged failures  | `lib/effect/`                                             |
+| In-app analytics: Umami/GA4 backend selection    | `lib/effect/services/analytics.ts`, `lib/ga4/client.ts`   |
 | Resume status and retry rules                    | `lib/resume/lifecycle.ts`                                 |
 | Parse Workflow steps                             | `lib/parse/pipeline.ts`, `lib/workflows/`                 |
 | Edge cache and purges                            | `lib/cache/`, `worker/cached-pages.ts`                    |

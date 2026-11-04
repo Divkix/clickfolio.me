@@ -1,0 +1,495 @@
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vite-plus/test";
+import { z } from "zod";
+import type * as Clerk from "@/lib/auth/clerk";
+import { handleChanges, user } from "@/lib/db/schema";
+import type { JsonValue } from "@/lib/types/json";
+import type { StubbedAdminSession, StubbedSession } from "@/tests/helpers/authenticate-stub";
+import { createTestDb } from "@/tests/helpers/pglite-db";
+import type { TestDb, TestDbHandle } from "@/tests/helpers/pglite-db";
+import { serverHandler } from "@/tests/helpers/server-route";
+
+const mocks = vi.hoisted(() => ({
+  user: vi.fn<() => Promise<StubbedSession>>(),
+  admin: vi.fn<() => Promise<StubbedAdminSession>>(),
+  db: vi.fn<() => TestDb>(),
+  env: {
+    HYPERDRIVE: {},
+    ANALYTICS_SOURCE: "ga4",
+    GA4_PROPERTY_ID: "123456789",
+    GA4_SERVICE_ACCOUNT_JSON: "",
+  },
+}));
+
+// Auth mocks load their helpers after Vitest installs the hoisted replacements.
+vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<typeof Clerk>()),
+  authenticate: (await import("@/tests/helpers/authenticate-stub")).authenticateStub(() =>
+    mocks.user(),
+  ),
+}));
+
+vi.mock("@/lib/auth/admin", async () => ({
+  authenticateAdmin: (await import("@/tests/helpers/authenticate-stub")).authenticateAdminStub(() =>
+    mocks.admin(),
+  ),
+}));
+
+vi.mock("@/lib/db", () => ({ getDb: () => mocks.db() }));
+
+vi.mock("cloudflare:workers", () => ({ env: mocks.env }));
+
+const NOW = Date.UTC(2026, 0, 8, 12);
+const CURRENT_RANGE = { startDate: "2026-01-01", endDate: "2026-01-08" };
+const PREVIOUS_RANGE = { startDate: "2025-12-24", endDate: "2025-12-31" };
+
+const reportRequestSchema = z.object({
+  dimensions: z.array(z.object({ name: z.string() })),
+  metrics: z.array(z.object({ name: z.string() })),
+  dateRanges: z.array(z.object({ startDate: z.string(), endDate: z.string() })),
+  dimensionFilter: z
+    .object({
+      filter: z.object({
+        fieldName: z.string(),
+        stringFilter: z.object({
+          matchType: z.string(),
+          value: z.string(),
+          caseSensitive: z.boolean(),
+        }),
+      }),
+    })
+    .optional(),
+  limit: z.string().optional(),
+  orderBys: z
+    .array(
+      z.union([
+        z.object({ metric: z.object({ metricName: z.string() }), desc: z.boolean() }),
+        z.object({ dimension: z.object({ dimensionName: z.string() }) }),
+      ]),
+    )
+    .optional(),
+});
+
+type ReportRequest = z.infer<typeof reportRequestSchema>;
+
+let testDb: TestDbHandle;
+let db: TestDb;
+let privateKeyPem: string;
+let credentialId = 0;
+
+beforeAll(async () => {
+  const keys = await crypto.subtle.generateKey(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"],
+  );
+
+  const pkcs8 = await crypto.subtle.exportKey("pkcs8", keys.privateKey);
+  privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${Buffer.from(pkcs8).toString("base64")}\n-----END PRIVATE KEY-----`;
+  testDb = await createTestDb();
+  db = testDb.db;
+  mocks.db.mockReturnValue(db);
+});
+
+afterAll(async () => {
+  await testDb.close();
+});
+
+beforeEach(async () => {
+  vi.spyOn(Date, "now").mockReturnValue(NOW);
+  mocks.env.ANALYTICS_SOURCE = "ga4";
+  mocks.env.GA4_SERVICE_ACCOUNT_JSON = JSON.stringify({
+    type: "service_account",
+    client_email: `route-${++credentialId}@project.iam.gserviceaccount.com`,
+    private_key: privateKeyPem,
+  });
+  await testDb.reset();
+  const now = new Date(NOW).toISOString();
+
+  const [alice] = await db
+    .insert(user)
+    .values({
+      id: "user-1",
+      name: "Alice",
+      email: "alice@example.com",
+      handle: "alice",
+      clerkId: "clerk-1",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  if (!alice) throw new Error("Missing analytics test user");
+
+  await db.insert(handleChanges).values({
+    id: "change-1",
+    userId: alice.id,
+    oldHandle: "alice-old",
+    newHandle: "alice",
+    createdAt: now,
+  });
+  mocks.user.mockResolvedValue({
+    user: alice,
+    dbUser: { id: alice.id, handle: alice.handle, clerkId: "clerk-1" },
+    error: null,
+  });
+  mocks.admin.mockResolvedValue({
+    user: { id: "admin-1", email: "admin@example.com", name: "Admin", isAdmin: true },
+    error: null,
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+function json(body: JsonValue, status = 200): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
+function report(
+  dimensions: string[],
+  metrics: string[],
+  rows: { dimensions: string[]; metrics: number[] }[],
+): JsonValue {
+  return {
+    dimensionHeaders: dimensions.map((name) => ({ name })),
+    metricHeaders: metrics.map((name) => ({ name })),
+    rows: rows.map((row) => ({
+      dimensionValues: row.dimensions.map((value) => ({ value })),
+      metricValues: row.metrics.map((value) => ({ value: String(value) })),
+    })),
+    rowCount: rows.length,
+  };
+}
+
+function stubGa4(upstream: (body: ReportRequest) => Response) {
+  const reports: ReportRequest[] = [];
+
+  const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+
+    if (url === "https://oauth2.googleapis.com/token") {
+      return json({ access_token: "route-access-token", token_type: "Bearer", expires_in: 3600 });
+    }
+
+    expect(url).toBe("https://analyticsdata.googleapis.com/v1beta/properties/123456789:runReport");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer route-access-token");
+    const body = reportRequestSchema.parse(JSON.parse(String(init?.body)));
+    reports.push(body);
+
+    return upstream(body);
+  });
+
+  vi.stubGlobal("fetch", fetchMock);
+
+  return { reports, fetchMock };
+}
+
+function ga4Body(body: ReportRequest): JsonValue {
+  const path = body.dimensionFilter?.filter.stringFilter.value;
+  const current = path === "/@alice";
+  const views = path ? (current ? 14 : 7) : 21;
+  const visitors = path ? (current ? 5 : 3) : 8;
+  const dimension = body.dimensions[0]?.name;
+
+  switch (dimension) {
+    case undefined:
+      // Reversed rows and metric headers make period/name mapping observable.
+      return report(
+        ["dateRange"],
+        ["totalUsers", "screenPageViews"],
+        [
+          { dimensions: ["date_range_1"], metrics: [4, 14] },
+          { dimensions: ["date_range_0"], metrics: [visitors, views] },
+        ],
+      );
+    case "date":
+      return report(
+        ["date"],
+        ["screenPageViews", "sessions"],
+        [
+          { dimensions: ["20260107"], metrics: path ? (current ? [4, 2] : [2, 1]) : [6, 3] },
+          { dimensions: ["20260108"], metrics: path ? (current ? [10, 4] : [5, 2]) : [15, 6] },
+        ],
+      );
+    case "pagePath":
+      return report(
+        [dimension],
+        ["screenPageViews"],
+        [
+          { dimensions: ["/@alice"], metrics: [14] },
+          { dimensions: ["/"], metrics: [10] },
+          { dimensions: ["/@alice/projects"], metrics: [8] },
+          { dimensions: ["/@bob"], metrics: [7] },
+        ],
+      );
+    case "pageReferrer":
+      return report(
+        [dimension],
+        ["totalUsers"],
+        [
+          { dimensions: ["https://news.example/one"], metrics: [path ? (current ? 2 : 1) : 3] },
+          { dimensions: ["https://news.example/two"], metrics: [path ? 1 : 2] },
+          { dimensions: ["https://careers.example/jobs"], metrics: [1] },
+          { dimensions: ["https://clickfolio.me/explore"], metrics: [7] },
+          { dimensions: [""], metrics: [9] },
+        ],
+      );
+    case "deviceCategory":
+    case "countryId":
+      return report(
+        [dimension],
+        ["totalUsers"],
+        [
+          {
+            dimensions: [dimension === "countryId" ? "US" : "desktop"],
+            metrics: [path ? (current ? 4 : 2) : 6],
+          },
+          { dimensions: [dimension === "countryId" ? "GB" : "mobile"], metrics: [path ? 1 : 2] },
+        ],
+      );
+    default:
+      throw new Error("Unexpected GA4 report dimension");
+  }
+}
+
+// Route imports wait until auth, database and upstream mocks are installed.
+async function getRoute(route: "user" | "admin") {
+  return route === "user"
+    ? serverHandler((await import("@/app/routes/api/analytics/stats")).Route, "GET")
+    : serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
+}
+
+function request(route: "user" | "admin"): Request {
+  return new Request(
+    `https://clickfolio.me/api/${route === "user" ? "analytics/stats" : "admin/analytics"}?period=7d`,
+  );
+}
+
+const DAILY = [
+  { date: "2026-01-02", views: 0, unique: 0 },
+  { date: "2026-01-03", views: 0, unique: 0 },
+  { date: "2026-01-04", views: 0, unique: 0 },
+  { date: "2026-01-05", views: 0, unique: 0 },
+  { date: "2026-01-06", views: 0, unique: 0 },
+  { date: "2026-01-07", views: 6, unique: 3 },
+  { date: "2026-01-08", views: 15, unique: 6 },
+];
+
+describe("GA4 analytics routes", () => {
+  it("builds user totals, daily sessions and breakdowns across exact current/old paths", async () => {
+    const { reports, fetchMock } = stubGa4((body) => json(ga4Body(body)));
+    const GET = await getRoute("user");
+    const response = await GET(request("user"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=60");
+    expect(await response.json()).toEqual({
+      totalViews: 21,
+      uniqueVisitors: 8,
+      viewsByDay: DAILY.map(({ date, views, unique }) => ({ date, views, uniques: unique })),
+      topReferrers: [
+        { referrer: "news.example", count: 5 },
+        { referrer: "careers.example", count: 2 },
+      ],
+      directVisits: 14,
+      deviceBreakdown: [
+        { device: "desktop", count: 6 },
+        { device: "mobile", count: 2 },
+      ],
+      countryBreakdown: [
+        { country: "US", count: 6 },
+        { country: "GB", count: 2 },
+      ],
+      period: "7d",
+    });
+    expect(reports).toHaveLength(10);
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/token"))).toHaveLength(1);
+
+    for (const path of ["/@alice", "/@alice-old"]) {
+      const pathReports = reports.filter(
+        (body) => body.dimensionFilter?.filter.stringFilter.value === path,
+      );
+
+      expect(pathReports).toHaveLength(5);
+
+      for (const body of pathReports) {
+        expect(body.dimensionFilter).toEqual({
+          filter: {
+            fieldName: "pagePath",
+            stringFilter: { matchType: "EXACT", value: path, caseSensitive: true },
+          },
+        });
+        expect(body.dateRanges).toEqual(
+          body.dimensions.length ? [CURRENT_RANGE] : [CURRENT_RANGE, PREVIOUS_RANGE],
+        );
+      }
+
+      expect(
+        pathReports.map((body) => ({ dimensions: body.dimensions, metrics: body.metrics })),
+      ).toEqual(
+        expect.arrayContaining([
+          { dimensions: [], metrics: [{ name: "screenPageViews" }, { name: "totalUsers" }] },
+          {
+            dimensions: [{ name: "date" }],
+            metrics: [{ name: "screenPageViews" }, { name: "sessions" }],
+          },
+          { dimensions: [{ name: "pageReferrer" }], metrics: [{ name: "totalUsers" }] },
+          { dimensions: [{ name: "deviceCategory" }], metrics: [{ name: "totalUsers" }] },
+          { dimensions: [{ name: "countryId" }], metrics: [{ name: "totalUsers" }] },
+        ]),
+      );
+    }
+  });
+
+  it("builds the admin dashboard with comparison, profile paths and domain aggregation", async () => {
+    const { reports } = stubGa4((body) => json(ga4Body(body)));
+    const GET = await getRoute("admin");
+    const response = await GET(request("admin"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe(
+      "private, max-age=30, stale-while-revalidate=60",
+    );
+    expect(await response.json()).toEqual({
+      totals: { views: 21, unique: 8, avgPerDay: 3, profilesViewed: 2 },
+      changes: { views: 50, unique: 100, avgPerDay: 50 },
+      daily: DAILY,
+      topProfiles: [
+        { handle: "alice", views: 14 },
+        { handle: "bob", views: 7 },
+      ],
+      referrers: [
+        { domain: "news.example", count: 5, percent: 83 },
+        { domain: "careers.example", count: 1, percent: 17 },
+      ],
+      countries: [
+        { code: "US", name: "US", percent: 75 },
+        { code: "GB", name: "GB", percent: 25 },
+      ],
+      devices: [
+        { type: "desktop", percent: 75 },
+        { type: "mobile", percent: 25 },
+      ],
+    });
+    expect(reports).toHaveLength(6);
+
+    for (const body of reports) {
+      expect(body.dimensionFilter).toBeUndefined();
+      expect(body.dateRanges).toEqual(
+        body.dimensions.length ? [CURRENT_RANGE] : [CURRENT_RANGE, PREVIOUS_RANGE],
+      );
+    }
+
+    expect(reports.find((body) => body.dimensions[0]?.name === "pagePath")).toMatchObject({
+      metrics: [{ name: "screenPageViews" }],
+      limit: "50",
+      orderBys: [
+        { metric: { metricName: "screenPageViews" }, desc: true },
+        { dimension: { dimensionName: "pagePath" } },
+      ],
+    });
+    expect(reports.find((body) => body.dimensions[0]?.name === "countryId")).toMatchObject({
+      metrics: [{ name: "totalUsers" }],
+      limit: "10",
+    });
+  });
+
+  it.each(["user", "admin"] as const)(
+    "returns zero traffic without inventing GA4 rows for %s",
+    async (route) => {
+      stubGa4((body) =>
+        json({
+          dimensionHeaders: body.dimensions.length ? body.dimensions : [{ name: "dateRange" }],
+          metricHeaders: body.metrics,
+          rowCount: 0,
+        }),
+      );
+      const GET = await getRoute(route);
+      const response = await GET(request(route));
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject(
+        route === "user"
+          ? {
+              totalViews: 0,
+              uniqueVisitors: 0,
+              directVisits: 0,
+              viewsByDay: DAILY.map(({ date }) => ({ date, views: 0, uniques: 0 })),
+              topReferrers: [],
+              deviceBreakdown: [],
+              countryBreakdown: [],
+            }
+          : {
+              totals: { views: 0, unique: 0, avgPerDay: 0, profilesViewed: 0 },
+              changes: { views: 0, unique: 0, avgPerDay: 0 },
+              daily: DAILY.map(({ date }) => ({ date, views: 0, unique: 0 })),
+              topProfiles: [],
+              referrers: [],
+              countries: [],
+              devices: [],
+            },
+      );
+    },
+  );
+
+  it.each(["user", "admin"] as const)(
+    "maps malformed GA4 reports to the standard 502 for %s",
+    async (route) => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      stubGa4(() => json({ metricHeaders: [], rows: [] }));
+      const GET = await getRoute(route);
+      const response = await GET(request(route));
+
+      expect(response.status).toBe(502);
+      expect(await response.json()).toEqual({
+        error: "The service returned an unexpected response. Please try again.",
+        code: "EXTERNAL_SERVICE_ERROR",
+      });
+    },
+  );
+
+  it("maps a GA4 backend outage to the existing upstream-unavailable response", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    stubGa4(() => json({}, 503));
+    const GET = await getRoute("admin");
+    const response = await GET(request("admin"));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "The service is temporarily unavailable. Please try again.",
+      code: "EXTERNAL_SERVICE_ERROR",
+    });
+  });
+
+  it("fails an unknown analytics source without silently querying another backend", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.env.ANALYTICS_SOURCE = "unsupported";
+    const { fetchMock } = stubGa4((body) => json(ga4Body(body)));
+    const GET = await getRoute("admin");
+    const response = await GET(request("admin"));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "An unexpected error occurred. Please try again.",
+      code: "INTERNAL_ERROR",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

@@ -24,6 +24,8 @@ interface CloudflareEnv {
   EMAIL_FROM: string;
   CLERK_PUBLISHABLE_KEY: string;
   UMAMI_WEBSITE_ID: string;
+  ANALYTICS_SOURCE?: "umami" | "ga4";
+  GA4_PROPERTY_ID: string;
   AI_MODEL: string;
   AI_REASONING_EFFORT: string;
   OTEL_COLLECTOR_URL: string;
@@ -37,6 +39,7 @@ interface CloudflareEnv {
   UMAMI_API_URL: string;
   UMAMI_USERNAME: string;
   UMAMI_PASSWORD: string;
+  GA4_SERVICE_ACCOUNT_JSON: string;
   DISABLE_RATE_LIMITS: string;
 }
 
@@ -57,6 +60,8 @@ declare namespace NodeJS {
     EMAIL_FROM: string;
     CLERK_PUBLISHABLE_KEY: string;
     UMAMI_WEBSITE_ID: string;
+    ANALYTICS_SOURCE?: "umami" | "ga4";
+    GA4_PROPERTY_ID: string;
     AI_MODEL: string;
     AI_REASONING_EFFORT: string;
     OTEL_COLLECTOR_URL: string;
@@ -69,6 +74,7 @@ declare namespace NodeJS {
     UMAMI_API_URL: string;
     UMAMI_USERNAME: string;
     UMAMI_PASSWORD: string;
+    GA4_SERVICE_ACCOUNT_JSON: string;
     DISABLE_RATE_LIMITS: string;
   }
 }
