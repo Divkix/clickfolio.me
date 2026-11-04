@@ -267,6 +267,18 @@ pnpm run deploy
 
 If you followed the steps above, the site should be live at your domain.
 
+### Analytics page views
+
+GA4 (`G-X349X3FFH0`) sends page views from the router, skipping signed-in owners
+viewing their own portfolio. Umami still feeds the in-app stats dashboards.
+
+When deploying manual GA4 page views, disable **Page changes based on browser
+history events** in GA4 **Admin > Data streams > Website > Enhanced measurement >
+Page views > Show advanced settings** at merge/deploy time. Keep it disabled:
+`send_page_view: false` suppresses the initial automatic view, not Enhanced
+Measurement's history events, which would double-count SPA navigations and owners.
+See [Google's manual pageview guide](https://developers.google.com/analytics/devguides/collection/ga4/views).
+
 ### Step 1: Cloudflare Setup
 
 1. **Create a Cloudflare account** at [cloudflare.com](https://cloudflare.com)

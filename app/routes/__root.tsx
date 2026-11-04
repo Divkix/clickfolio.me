@@ -2,6 +2,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
 import { lazy, Suspense, type ReactNode } from "react";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { TelemetryIdentity } from "@/components/analytics/TelemetryIdentity";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SessionProvider } from "@/lib/auth/client";
@@ -93,6 +94,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
               <Toaster />
             </Suspense>
             <TelemetryIdentity />
+            <GoogleAnalytics />
           </SessionProvider>
         </ThemeProvider>
         <script
@@ -113,7 +115,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-X349X3FFH0');",
+              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-X349X3FFH0',{send_page_view:false});",
           }}
         />
         <Scripts />
