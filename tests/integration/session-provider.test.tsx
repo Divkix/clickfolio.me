@@ -1,6 +1,8 @@
 import type * as ReactModule from "react";
 import type * as TanStackRouter from "@tanstack/react-router";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import ClerkBridge, { type ClerkSnapshot } from "@/lib/auth/clerk-bridge";
 import { SessionProvider } from "@/lib/auth/client";
 
 const mocks = vi.hoisted(() => {
@@ -13,6 +15,7 @@ const mocks = vi.hoisted(() => {
     setSessionHint: vi.fn(),
     stateIndex: 0,
     whenIdle: vi.fn<() => Promise<void>>(),
+    externalId: vi.fn<() => string | null>(),
   };
 });
 
@@ -34,6 +37,22 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 }));
 
 vi.mock("@/lib/telemetry/browser", () => ({ whenIdle: mocks.whenIdle }));
+
+vi.mock("@clerk/react", () => ({
+  ClerkProvider: ({ children }: { children: ReactModule.ReactNode }) => children,
+  useClerk: () => ({ status: "ready" }),
+  useAuth: () => ({ isSignedIn: true, sessionId: "session_1" }),
+  useUser: () => ({
+    isLoaded: true,
+    user: {
+      id: "clerk_1",
+      externalId: mocks.externalId(),
+      fullName: "Avery",
+      primaryEmailAddress: { emailAddress: "avery@example.com" },
+      imageUrl: null,
+    },
+  }),
+}));
 
 function mount() {
   SessionProvider({ publishableKey: "pk_test", children: null });
@@ -113,5 +132,25 @@ describe("session provider idle loading", () => {
     await Promise.resolve();
 
     expect(mocks.setState).not.toHaveBeenCalled();
+  });
+});
+
+describe("client session identity", () => {
+  it.each(["legacy_1", null])("exposes only the app user id with externalId %s", (externalId) => {
+    mocks.externalId.mockReturnValue(externalId);
+    const onChange = vi.fn<(snapshot: ClerkSnapshot) => void>();
+
+    renderToStaticMarkup(<ClerkBridge publishableKey="pk_test" onChange={onChange} />);
+    mocks.effects[0]!();
+
+    expect(onChange.mock.calls[0]![0].data).toEqual({
+      user: {
+        id: externalId ?? "clerk_1",
+        name: "Avery",
+        email: "avery@example.com",
+        image: null,
+      },
+      session: { id: "session_1" },
+    });
   });
 });

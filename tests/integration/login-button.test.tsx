@@ -78,7 +78,7 @@ describe("LoginButton session loading", () => {
         isPending: false,
         data: {
           user: { id: "user_1", name: "Alex", email: "alex@example.com", image: null },
-          session: { id: "session_1", userId: "user_1" },
+          session: { id: "session_1" },
         },
       };
     }

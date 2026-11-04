@@ -85,7 +85,7 @@ function render(open: boolean): string {
 function signIn(): void {
   mocks.session.data = {
     user: { id: "user_1", name: "Avery", email: "avery@example.com", image: null },
-    session: { id: "session_1", userId: "clerk_1" },
+    session: { id: "session_1" },
   };
 }
 
