@@ -58,6 +58,18 @@ function notifyClerkUnavailable(): void {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+/** Cookie hint only, not authentication; public visitors without it need not load Clerk. */
+export function hasSessionCookie(): boolean {
+  return document.cookie.split(";").some((cookie) => {
+    const [name, value] = cookie.trim().split("=");
+
+    return (
+      (name === "__session" && Boolean(value)) ||
+      (name === "__client_uat" && Boolean(value) && value !== "0")
+    );
+  });
+}
+
 export function SessionProvider({
   publishableKey,
   children,
@@ -70,14 +82,7 @@ export function SessionProvider({
   const waiting = useRef<PromiseWithResolvers<BrowserClerk>[]>([]);
 
   useEffect(() => {
-    const hasSession = document.cookie.split(";").some((cookie) => {
-      const [name, value] = cookie.trim().split("=");
-
-      return (
-        (name === "__session" && Boolean(value)) ||
-        (name === "__client_uat" && Boolean(value) && value !== "0")
-      );
-    });
+    const hasSession = hasSessionCookie();
 
     setHasSessionHint(hasSession);
 
