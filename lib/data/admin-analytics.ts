@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { z } from "zod";
 import { Analytics } from "@/lib/effect/services/analytics";
-import { lastNUtcDays } from "@/lib/utils/date-axis";
+import { analyticsWindow, lastNDays } from "@/lib/utils/date-axis";
 
 export const analyticsPeriodSchema = z.enum(["7d", "30d", "90d"]);
 
@@ -14,26 +14,25 @@ function isProfilePath(path: string): boolean {
   return segments.length === 1 && segments[0].startsWith("@") && segments[0].length > 1;
 }
 
-export function loadAdminAnalytics(period: AnalyticsPeriod) {
+export function loadAdminAnalytics(period: AnalyticsPeriod, timezone = "UTC") {
   return Effect.gen(function* () {
     const days = Number.parseInt(period, 10);
-    const now = Date.now();
-    const startAt = now - days * 24 * 60 * 60 * 1000;
+    const { startAt, endAt } = analyticsWindow(days, timezone);
 
     const [stats, pageviews, urlMetrics, referrerMetrics, countryMetrics, deviceMetrics] =
       yield* Effect.all(
         [
-          Analytics.use((analytics) => analytics.getStats({ startAt, endAt: now })),
+          Analytics.use((analytics) => analytics.getStats({ startAt, endAt, timezone })),
           Analytics.use((analytics) =>
-            analytics.getPageviews({ startAt, endAt: now, unit: "day", timezone: "UTC" }),
+            analytics.getPageviews({ startAt, endAt, unit: "day", timezone }),
           ),
           Analytics.use((analytics) =>
             analytics.getMetrics({
               type: "path",
               startAt,
-              endAt: now,
+              endAt,
               unit: "day",
-              timezone: "UTC",
+              timezone,
               limit: 50,
             }),
           ),
@@ -41,9 +40,9 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
             analytics.getMetrics({
               type: "referrer",
               startAt,
-              endAt: now,
+              endAt,
               unit: "day",
-              timezone: "UTC",
+              timezone,
               limit: 10,
             }),
           ),
@@ -51,9 +50,9 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
             analytics.getMetrics({
               type: "country",
               startAt,
-              endAt: now,
+              endAt,
               unit: "day",
-              timezone: "UTC",
+              timezone,
               limit: 10,
             }),
           ),
@@ -61,9 +60,9 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
             analytics.getMetrics({
               type: "device",
               startAt,
-              endAt: now,
+              endAt,
               unit: "day",
-              timezone: "UTC",
+              timezone,
             }),
           ),
         ],
@@ -87,8 +86,7 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
     const avgChange =
       prevAvgPerDay > 0 ? Math.round(((avgPerDay - prevAvgPerDay) / prevAvgPerDay) * 100) : 0;
 
-    // Daily breakdown — map {x, y} to {date, views, unique}.
-    // Normalize timestamps to YYYY-MM-DD for consistent date matching across the date axis.
+    // Umami's x values are local calendar labels, so preserve their date instead of parsing as UTC.
     const sessionMap = new Map(pageviews.sessions.map((s) => [s.x.slice(0, 10), s.y]));
 
     const dailyData = pageviews.pageviews.map((p) => ({
@@ -99,7 +97,7 @@ export function loadAdminAnalytics(period: AnalyticsPeriod) {
 
     const dailyMap = new Map(dailyData.map((d) => [d.date, d]));
 
-    const daily = lastNUtcDays(days).map(
+    const daily = lastNDays(days, timezone, endAt).map(
       (date) => dailyMap.get(date) ?? { date, views: 0, unique: 0 },
     );
 

@@ -1,6 +1,6 @@
 import { BarChart3, Eye, TrendingUp, Users } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, type ReactNode } from "react";
 import { AdminTrafficChart } from "@/components/admin/AdminTrafficChart";
 import { HorizontalBarChart } from "@/components/admin/HorizontalBarChart";
 import { StatCard } from "@/components/admin/StatCard";
@@ -28,10 +28,22 @@ const COUNTRY_FLAGS = {
 export default function AnalyticsClient({
   data,
   period,
+  timezone,
 }: {
   data: AdminAnalyticsData;
   period: AnalyticsPeriod;
+  timezone: string;
 }) {
+  const navigate = useNavigate({ from: "/admin/analytics" });
+
+  useEffect(() => {
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    if (timezone !== browserTimezone) {
+      void navigate({ search: { period, tz: browserTimezone }, replace: true });
+    }
+  }, [navigate, period, timezone]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -44,7 +56,7 @@ export default function AnalyticsClient({
             <Link
               key={opt.value}
               to="/admin/analytics"
-              search={{ period: opt.value }}
+              search={{ period: opt.value, tz: timezone }}
               aria-current={period === opt.value ? "page" : undefined}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 period === opt.value

@@ -6,11 +6,9 @@ import { resumes, siteData, user } from "@/lib/db/schema";
 import { Db } from "@/lib/effect/db";
 import { runPage } from "@/lib/effect/edges";
 import { Analytics } from "@/lib/effect/services/analytics";
-import { lastNUtcDays } from "@/lib/utils/date-axis";
+import { analyticsWindow, lastNDays } from "@/lib/utils/date-axis";
 import { errorFields } from "@/lib/utils/error-fields";
 import { log } from "@/lib/utils/log";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The four counts behind the admin overview, read together under one database timeout. */
 function readCounts() {
@@ -40,17 +38,17 @@ function readCounts() {
  * Today's and the last week's pageviews. Analytics are a nicety on this page: an upstream outage
  * is logged and the views read zero, but a failed database read still fails the page.
  */
-function readViews(now: Date) {
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS);
+function readViews(now: number) {
+  const { startAt: todayStart } = analyticsWindow(1, "UTC", now);
+  const { startAt: sevenDaysAgo } = analyticsWindow(7, "UTC", now);
 
   return Analytics.use((analytics) =>
     Effect.all(
       [
-        analytics.getStats({ startAt: todayStart.getTime(), endAt: now.getTime() }),
+        analytics.getStats({ startAt: todayStart, endAt: now, timezone: "UTC" }),
         analytics.getPageviews({
-          startAt: sevenDaysAgo.getTime(),
-          endAt: now.getTime(),
+          startAt: sevenDaysAgo,
+          endAt: now,
           unit: "day",
           timezone: "UTC",
         }),
@@ -76,7 +74,8 @@ function readViews(now: Date) {
 export function loadAdminStats() {
   return Effect.gen(function* () {
     const [userCount, siteDataCount, resumeStats, recentSignups] = yield* readCounts();
-    const views = yield* Effect.sync(() => new Date()).pipe(Effect.flatMap(readViews));
+    const now = Date.now();
+    const views = yield* readViews(now);
 
     const statusMap = new Map<string, number>();
 
@@ -88,7 +87,7 @@ export function loadAdminStats() {
       views?.pageviews.pageviews.map((p) => [p.x.slice(0, 10), p.y]) ?? [],
     );
 
-    const dailyViews = lastNUtcDays(7).map((date) => ({
+    const dailyViews = lastNDays(7, "UTC", now).map((date) => ({
       date,
       views: analyticsMap.get(date) ?? 0,
     }));

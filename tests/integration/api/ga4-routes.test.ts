@@ -48,25 +48,40 @@ vi.mock("@/lib/db", () => ({ getDb: () => mocks.db() }));
 vi.mock("cloudflare:workers", () => ({ env: mocks.env }));
 
 const NOW = Date.UTC(2026, 0, 8, 12);
-const CURRENT_RANGE = { startDate: "2026-01-01", endDate: "2026-01-08" };
-const PREVIOUS_RANGE = { startDate: "2025-12-24", endDate: "2025-12-31" };
+const CURRENT_RANGE = { startDate: "2026-01-02", endDate: "2026-01-08" };
+const PREVIOUS_RANGE = { startDate: "2025-12-26", endDate: "2026-01-01" };
+
+const fieldFilterSchema = z.union([
+  z.object({
+    fieldName: z.string(),
+    stringFilter: z.object({
+      matchType: z.string(),
+      value: z.string(),
+      caseSensitive: z.boolean(),
+    }),
+  }),
+  z.object({
+    fieldName: z.string(),
+    inListFilter: z.object({ values: z.array(z.string()) }),
+  }),
+]);
+
+type FieldFilter = z.infer<typeof fieldFilterSchema>;
+
+type ReportFilter = { filter: FieldFilter } | { andGroup: { expressions: ReportFilter[] } };
+
+const reportFilterSchema: z.ZodType<ReportFilter> = z.lazy(() =>
+  z.union([
+    z.object({ filter: fieldFilterSchema }),
+    z.object({ andGroup: z.object({ expressions: z.array(reportFilterSchema) }) }),
+  ]),
+);
 
 const reportRequestSchema = z.object({
   dimensions: z.array(z.object({ name: z.string() })),
   metrics: z.array(z.object({ name: z.string() })),
   dateRanges: z.array(z.object({ startDate: z.string(), endDate: z.string() })),
-  dimensionFilter: z
-    .object({
-      filter: z.object({
-        fieldName: z.string(),
-        stringFilter: z.object({
-          matchType: z.string(),
-          value: z.string(),
-          caseSensitive: z.boolean(),
-        }),
-      }),
-    })
-    .optional(),
+  dimensionFilter: reportFilterSchema.optional(),
   limit: z.string().optional(),
   orderBys: z
     .array(
@@ -201,8 +216,34 @@ function stubGa4(upstream: (body: ReportRequest) => Response) {
   return { reports, fetchMock };
 }
 
+function reportFilters(expression: ReportFilter | undefined): FieldFilter[] {
+  if (!expression) return [];
+
+  return "filter" in expression
+    ? [expression.filter]
+    : expression.andGroup.expressions.flatMap(reportFilters);
+}
+
+function reportPath(body: ReportRequest): string | undefined {
+  const filter = reportFilters(body.dimensionFilter).find(
+    ({ fieldName }) => fieldName === "pagePath",
+  );
+
+  return filter && "stringFilter" in filter ? filter.stringFilter.value : undefined;
+}
+
+function reportHours(body: ReportRequest): string[] {
+  const filter = reportFilters(body.dimensionFilter).find(
+    ({ fieldName }) => fieldName === "dateHour",
+  );
+
+  if (!filter || !("inListFilter" in filter)) throw new Error("Missing GA4 hour filter");
+
+  return filter.inListFilter.values;
+}
+
 function ga4Body(body: ReportRequest): JsonValue {
-  const path = body.dimensionFilter?.filter.stringFilter.value;
+  const path = reportPath(body);
   const current = path === "/@alice";
   const views = path ? (current ? 14 : 7) : 21;
   const visitors = path ? (current ? 5 : 3) : 8;
@@ -269,6 +310,59 @@ function ga4Body(body: ReportRequest): JsonValue {
   }
 }
 
+function localGa4Body(body: ReportRequest): JsonValue {
+  const hours = reportHours(body);
+
+  const rows =
+    reportPath(body) === "/@alice-old"
+      ? []
+      : [
+          { hour: "2025122607", views: 100, sessions: 20, visitors: ["before-window"] },
+          { hour: "2025122608", views: 4, sessions: 2, visitors: ["prior-1", "prior-2"] },
+          { hour: "2026010207", views: 3, sessions: 1, visitors: ["prior-1"] },
+          { hour: "2026010208", views: 4, sessions: 2, visitors: ["a", "b"] },
+          { hour: "2026010807", views: 6, sessions: 2, visitors: ["b", "c"] },
+          { hour: "2026010808", views: 2, sessions: 1, visitors: ["a", "d"] },
+          { hour: "2026010812", views: 2, sessions: 1, visitors: ["d", "e"] },
+          { hour: "2026010813", views: 100, sessions: 20, visitors: ["after-window"] },
+        ].filter(({ hour }) => hours.includes(hour));
+
+  if (!body.dimensions.length) {
+    return report(
+      [],
+      ["totalUsers", "screenPageViews"],
+      rows.length
+        ? [
+            {
+              dimensions: [],
+              metrics: [
+                new Set(rows.flatMap(({ visitors }) => visitors)).size,
+                rows.reduce((total, { views }) => total + views, 0),
+              ],
+            },
+          ]
+        : [],
+    );
+  }
+
+  if (body.dimensions[0]?.name === "dateHour") {
+    return report(
+      ["dateHour"],
+      ["screenPageViews", "sessions"],
+      rows.map(({ hour, views, sessions }) => ({
+        dimensions: [hour],
+        metrics: [views, sessions],
+      })),
+    );
+  }
+
+  return report(
+    body.dimensions.map(({ name }) => name),
+    body.metrics.map(({ name }) => name),
+    [],
+  );
+}
+
 // Route imports wait until auth, database and upstream mocks are installed.
 async function getRoute(route: "user" | "admin") {
   return route === "user"
@@ -276,9 +370,13 @@ async function getRoute(route: "user" | "admin") {
     : serverHandler((await import("@/app/routes/api/admin/analytics")).Route, "GET");
 }
 
-function request(route: "user" | "admin"): Request {
+function request(route: "user" | "admin", timezone?: string): Request {
+  const search = new URLSearchParams({ period: "7d" });
+
+  if (timezone !== undefined) search.set("tz", timezone);
+
   return new Request(
-    `https://clickfolio.me/api/${route === "user" ? "analytics/stats" : "admin/analytics"}?period=7d`,
+    `https://clickfolio.me/api/${route === "user" ? "analytics/stats" : "admin/analytics"}?${search}`,
   );
 }
 
@@ -323,9 +421,7 @@ describe("GA4 analytics routes", () => {
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/token"))).toHaveLength(1);
 
     for (const path of ["/@alice", "/@alice-old"]) {
-      const pathReports = reports.filter(
-        (body) => body.dimensionFilter?.filter.stringFilter.value === path,
-      );
+      const pathReports = reports.filter((body) => reportPath(body) === path);
 
       expect(pathReports).toHaveLength(5);
 
@@ -410,6 +506,135 @@ describe("GA4 analytics routes", () => {
       limit: "10",
     });
   });
+
+  it.each(["user", "admin"] as const)(
+    "groups UTC hours at Los Angeles midnight and filters both local windows for %s",
+    async (route) => {
+      const { reports } = stubGa4((body) => json(localGa4Body(body)));
+      const GET = await getRoute(route);
+      const response = await GET(request(route, "America/Los_Angeles"));
+
+      const daily = [
+        { date: "2026-01-02", views: 4, unique: 2 },
+        { date: "2026-01-03", views: 0, unique: 0 },
+        { date: "2026-01-04", views: 0, unique: 0 },
+        { date: "2026-01-05", views: 0, unique: 0 },
+        { date: "2026-01-06", views: 0, unique: 0 },
+        { date: "2026-01-07", views: 6, unique: 2 },
+        { date: "2026-01-08", views: 4, unique: 2 },
+      ];
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual(
+        route === "user"
+          ? {
+              totalViews: 14,
+              uniqueVisitors: 5,
+              viewsByDay: daily.map(({ date, views, unique }) => ({
+                date,
+                views,
+                uniques: unique,
+              })),
+              topReferrers: [],
+              directVisits: 14,
+              deviceBreakdown: [],
+              countryBreakdown: [],
+              period: "7d",
+            }
+          : {
+              totals: { views: 14, unique: 5, avgPerDay: 2, profilesViewed: 0 },
+              changes: { views: 100, unique: 150, avgPerDay: 100 },
+              daily,
+              topProfiles: [],
+              referrers: [],
+              countries: [],
+              devices: [],
+            },
+      );
+
+      const hourKeys = (startAt: number, count: number) =>
+        Array.from({ length: count }, (_, index) =>
+          new Date(startAt + index * 60 * 60 * 1000).toISOString().replace(/\D/g, "").slice(0, 10),
+        );
+
+      const currentHours = hourKeys(Date.UTC(2026, 0, 2, 8), 149);
+      const previousHours = hourKeys(Date.UTC(2025, 11, 26, 8), 168);
+      const pathCount = route === "user" ? 2 : 1;
+      const aggregateReports = reports.filter((body) => !body.dimensions.length);
+
+      expect(reports).toHaveLength(route === "user" ? 12 : 7);
+      expect(aggregateReports).toHaveLength(pathCount * 2);
+      expect(
+        aggregateReports.filter((body) => reportHours(body)[0] === currentHours[0]),
+      ).toHaveLength(pathCount);
+      expect(
+        aggregateReports.filter((body) => reportHours(body)[0] === previousHours[0]),
+      ).toHaveLength(pathCount);
+      expect(reports.filter((body) => body.dimensions[0]?.name === "dateHour")).toHaveLength(
+        pathCount,
+      );
+
+      for (const body of reports) {
+        const previous = body.dateRanges[0]?.startDate === "2025-12-26";
+
+        const hourFilter = {
+          filter: {
+            fieldName: "dateHour",
+            inListFilter: { values: previous ? previousHours : currentHours },
+          },
+        };
+
+        expect(body.dateRanges).toEqual([
+          previous ? { startDate: "2025-12-26", endDate: "2026-01-02" } : CURRENT_RANGE,
+        ]);
+
+        if (previous) expect(body.dimensions).toEqual([]);
+
+        if (route === "user") {
+          const path = reportPath(body);
+
+          expect(["/@alice", "/@alice-old"]).toContain(path);
+          expect(body.dimensionFilter).toEqual({
+            andGroup: {
+              expressions: [
+                {
+                  filter: {
+                    fieldName: "pagePath",
+                    stringFilter: { matchType: "EXACT", value: path, caseSensitive: true },
+                  },
+                },
+                hourFilter,
+              ],
+            },
+          });
+        } else {
+          expect(body.dimensionFilter).toEqual(hourFilter);
+        }
+      }
+    },
+  );
+
+  it.each(["user", "admin"] as const)(
+    "returns identical UTC traffic and report windows for omitted or invalid tz for %s",
+    async (route) => {
+      const { reports } = stubGa4((body) => json(ga4Body(body)));
+      const GET = await getRoute(route);
+      const utcResponse = await GET(request(route, "UTC"));
+
+      expect(utcResponse.status).toBe(200);
+      const utcBody: JsonValue = await utcResponse.json();
+      const utcReports = reports.splice(0);
+
+      for (const timezone of [undefined, "Mars/Olympus"]) {
+        const response = await GET(request(route, timezone));
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual(utcBody);
+        expect(reports).toHaveLength(utcReports.length);
+        expect(reports.splice(0)).toEqual(expect.arrayContaining(utcReports));
+      }
+    },
+  );
 
   it.each(["user", "admin"] as const)(
     "returns zero traffic without inventing GA4 rows for %s",

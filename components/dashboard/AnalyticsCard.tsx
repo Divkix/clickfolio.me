@@ -270,7 +270,9 @@ export function AnalyticsCard() {
   const [period, setPeriod] = useState<Period>("7d");
 
   const fetchStats = useCallback(async (p: Period): Promise<AnalyticsStats> => {
-    const res = await fetch(`/api/analytics/stats?period=${p}`);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const query = new URLSearchParams({ period: p, tz: timezone });
+    const res = await fetch(`/api/analytics/stats?${query}`);
 
     if (!res.ok) throw new Error("Failed to fetch");
 
