@@ -71,11 +71,11 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 
 ### Prerequisites
 
-- [pnpm](https://pnpm.io) v11+ (package manager)
-- [Cloudflare Account](https://cloudflare.com) with R2 + Hyperdrive enabled
-- [PlanetScale](https://planetscale.com) Postgres database (free tier works)
-- [Clerk](https://clerk.com) account (free tier works)
-- [OpenRouter](https://openrouter.ai) account for AI parsing
+- [pnpm](https://pnpm.io) (use the version in `package.json`)
+- Docker running ([OrbStack](https://orbstack.dev) or Docker Desktop)
+- A saved [Alchemy](https://alchemy.run) Cloudflare login, or Cloudflare API credentials
+- [Clerk](https://clerk.com) development-instance keys in `.env`
+- AI Gateway credentials only if testing resume parsing
 
 ### Installation
 
@@ -87,18 +87,29 @@ cd clickfolio.me
 # Install dependencies
 pnpm install
 
-# Copy environment template and fill in your values
+# Copy environment template and fill in your Clerk development keys
 cp .env.example .env
 
-# Apply database migrations (needs DATABASE_URL from PlanetScale)
-DATABASE_URL="postgres://…" pnpm run db:migrate
-
-# Start development server (`alchemy dev`; needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
-# even though the Worker runs locally)
-pnpm run dev
+# Start local Postgres, migrate, seed demo portfolios, and start the Worker
+pnpm run local-dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+The command shares the persistent Docker container/volume `local-postgres` with other apps,
+but only creates, migrates and seeds the `clickfolio` database. It pins both migration and
+Hyperdrive connections to `localhost:5432`, ignoring database URLs in your shell or `.env`.
+Reruns keep local edits (`ON CONFLICT DO NOTHING`); Ctrl-C stops the app, not Postgres.
+The Worker stays on port 3000, so pickmyclass can run alongside it on port 3001.
+The launcher removes `CI` from the child environment so Alchemy can use the saved login.
+
+For [test sign-in](https://clerk.com/docs/guides/development/testing/test-emails-and-phones),
+use `local+clerk_test@example.com` and verification code `424242`; Clerk sends no email.
+If Clerk offers an email link first, choose **Use another method → Email code**.
+On a brand-new development instance, sign up once in a normal browser.
+The first authenticated request creates the local user row; the hosted Clerk webhook cannot
+reach localhost. Local seed accounts are fake and cannot sign in.
+The `/examples` galleries list hand-picked live portfolios, so they're empty locally.
 
 ---
 
@@ -346,11 +357,10 @@ CLERK_PUBLISHABLE_KEY=pk_test_…
 CLERK_SECRET_KEY=sk_test_…
 CLERK_WEBHOOK_SECRET=whsec_…
 
-# Direct PlanetScale URL — used ONLY by drizzle-kit locally (db:migrate/push/studio).
-DATABASE_URL=postgres://user:password@host/clickfolio
-
-# The dev Worker connects through the emulated Hyperdrive binding to this local Postgres.
-LOCAL_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/clickfolio
+# Local testing: pnpm run local-dev provisions Postgres and pins both database URLs.
+# No DATABASE_URL or LOCAL_DATABASE_URL is needed in .env for that command.
+# Production/standalone migration tooling only (never used by local-dev):
+# DATABASE_URL=postgres://user:password@host/clickfolio
 
 # Cloudflare AI Gateway (BYOK - OpenRouter key stored in CF Secrets Store)
 CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
@@ -419,7 +429,8 @@ the parallel run.
 
 ```bash
 # Development
-pnpm run dev              # alchemy dev: the Worker in workerd at localhost:3000, bindings emulated
+pnpm run local-dev        # Local testing: persistent Postgres → migrations → demo seed → alchemy dev
+pnpm run dev              # Worker only; requires an already prepared local database
 pnpm run lint             # Oxlint linting (via vp lint)
 pnpm run fix              # Oxlint + Oxfmt auto-fix (via vp check --fix)
 pnpm run type-check       # TypeScript check

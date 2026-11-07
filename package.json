@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "alchemy dev",
+    "local-dev": "tsx scripts/local-dev.ts",
     "build": "vp build",
     "start": "vp preview",
     "lint": "vp lint",
