@@ -1,0 +1,261 @@
+{
+  "M": {
+    "home": "ZegPIkRIC0",
+    "explore": "ntqVltpPGK",
+    "template": "P9rAFVJPau",
+    "forse": "Is73ZBJTJg",
+    "contact": "QmId0TTcf4",
+    "about": "ErlXkYo6ik",
+    "blog": "IhmxoNsPGy",
+    "terms": "soe_13uZX9",
+    "privacy": "BocUca3H3S",
+    "post": "QM_J4sms5T",
+    "examples": "_shCjucQ9e",
+    "templates": "eHOkzykzD_",
+    "faq": "apzzw4JZO7",
+    "noresults": "ox8kxb31bL",
+    "upload": "TMNJHllmjE",
+    "uploading": "dtqgEXLhcj",
+    "signup_publish": "Qfv8YvZci_",
+    "signin": "biIW9Fq_Eg",
+    "signup": "1xwtx0Bvss",
+    "verify": "Glt5Sdn4I5",
+    "connecting": "_ocRgc4yu-",
+    "waiting": "l76fIGLzr7",
+    "parsefail": "oATbAiztFo",
+    "w1": "60_mLVUt4o",
+    "parsing": "TroY-iZ_GZ",
+    "parsefailw": "hZYh4Rlj1j",
+    "w2": "4npy0S-MN_",
+    "taken": "cBJiu8BfMT",
+    "w3": "aCw6tSwuTS",
+    "w4": "i5X9b-0Oww",
+    "w5": "-h28FTQ1QX",
+    "publishing": "hJplqAFfBD",
+    "published": "ASYFA2KWHq",
+    "dash": "ynozbBRKjt",
+    "edit": "wgtQ_fuglE",
+    "saving": "o_fnZ6UO6i",
+    "themes": "7Ke-EnbwSf",
+    "settings": "vWPaoFWRKM",
+    "delete": "RGVibsxiET",
+    "empty": "iRZJnu2BOT",
+    "pfailed": "iytUy0n9Cj",
+    "processing": "Hhi8h8017a",
+    "uploadnew": "Ub477F-qdx",
+    "newproc": "YqrlEgSlDt",
+    "perror": "bcCrVS3reO",
+    "admin": "Q71cCQ3QKn",
+    "aresumes": "xR9Iap73z2",
+    "ausers": "pi8N94L_ME",
+    "aanalytics": "_Uq0S2br8g",
+    "aempty": "FyneyAhe2D",
+    "anores": "I7laENLGWm",
+    "portfolio": "9ytj7zeoAQ",
+    "preview": "bzd8WeN4uB",
+    "noprofile": "LMRMpAeCCM",
+    "notfound": "ib6ofs1RnH",
+    "error": "M4YiD3GJQ3",
+    "loaderr": "LxTDYLWp4j",
+    "menu_site": "wjENdkpREg"
+  },
+  "JOURNEYS": {
+    "anonymous upload -> sign up": [
+      "home",
+      [
+        ["Upload your résumé", "upload"],
+        [["sel", ".dropzone"], "uploading"],
+        ["GOTO", "signup_publish"],
+        ["Sign up to publish", "signup"],
+        ["Continue", "verify"],
+        ["Continue", "connecting"]
+      ]
+    ],
+    "wizard -> publish": [
+      "w1",
+      [
+        [["sel", ".dropzone"], "parsing"],
+        ["GOTO", "w2"],
+        ["Continue", "w3"],
+        ["Looks Good, Continue", "w4"],
+        ["Continue", "w5"],
+        ["Publish my page", "publishing"],
+        ["GOTO", "published"],
+        ["View My Resume", "portfolio"]
+      ]
+    ],
+    "wizard retries": [
+      "parsefailw",
+      [
+        ["Try Again", "w1"],
+        ["GOTO", "taken"],
+        ["maya-chen123", "w2"]
+      ]
+    ],
+    "waiting retry": [
+      "parsefail",
+      [
+        ["Try Again", "waiting"],
+        ["GOTO", "parsefail"],
+        ["Go to Dashboard", "dash"]
+      ]
+    ],
+    "returning user": [
+      "home",
+      [
+        ["Sign in", "signin"],
+        ["Sign up", "signup"],
+        ["GOTO", "signin"],
+        ["Continue", "dash"]
+      ]
+    ],
+    "dashboard tour": [
+      "dash",
+      [
+        ["Edit content", "edit"],
+        [["sel", "main [data-doop-action=\"navigate:o_fnZ6UO6i\"]"], "saving"],
+        ["Templates", "themes"],
+        ["Settings", "settings"],
+        [["sel", "main [data-doop-action=\"navigate:RGVibsxiET\"]"], "delete"],
+        ["Cancel", "settings"]
+      ]
+    ],
+    "dashboard states": [
+      "empty",
+      [
+        [["sel", "main [data-doop-action=\"navigate:60_mLVUt4o\"]"], "w1"],
+        ["GOTO", "pfailed"],
+        ["Try Again", "processing"],
+        ["GOTO", "perror"],
+        ["Back to Dashboard", "dash"],
+        ["GOTO", "perror"],
+        ["Contact Support", "contact"]
+      ]
+    ],
+    "upload new résumé": [
+      "dash",
+      [
+        [["sel", "main [data-doop-action=\"navigate:Ub477F-qdx\"]"], "uploadnew"],
+        ["Choose PDF", "newproc"]
+      ]
+    ],
+    "marketing nav": [
+      "home",
+      [
+        ["Explore", "explore"],
+        ["Templates", "templates"],
+        ["Blog", "blog"],
+        ["FAQ", "faq"],
+        ["About", "about"],
+        ["Contact", "contact"],
+        ["Terms", "terms"],
+        ["Privacy", "privacy"],
+        ["clickfolio", "home"]
+      ]
+    ],
+    "pick a template": [
+      "home",
+      [
+        [["sel", ".theme-card"], "template"],
+        ["Use this template", "upload"]
+      ]
+    ],
+    "templates gallery": [
+      "templates",
+      [
+        [["sel", "main [data-doop-action=\"navigate:P9rAFVJPau\"]"], "template"],
+        ["Open live demo", "preview"]
+      ]
+    ],
+    "explore -> portfolio": [
+      "explore",
+      [
+        [["sel", "main [data-doop-action=\"navigate:9ytj7zeoAQ\"]"], "portfolio"],
+        ["Create yours free", "upload"]
+      ]
+    ],
+    "explore filter": [
+      "explore",
+      [
+        [["sel", "#role-filter"], "noresults"],
+        ["Clear filters", "explore"]
+      ]
+    ],
+    "blog -> post": [
+      "blog",
+      [
+        [["sel", ".post-card"], "post"],
+        ["Upload your resume and", "upload"]
+      ]
+    ],
+    "role pages": [
+      "home",
+      [
+        ["Engineering", "examples"],
+        [["sel", ".paired-role"], "forse"],
+        ["Upload my résumé", "upload"]
+      ]
+    ],
+    "admin": [
+      "admin",
+      [
+        [["sel", "main [data-doop-action=\"navigate:pi8N94L_ME\"]"], "ausers"],
+        ["@maya-chen", "portfolio"],
+        ["GOTO", "admin"],
+        [["sel", ".overview-alert"], "aresumes"],
+        [["sel", "main select"], "aempty"],
+        ["GOTO", "ausers"],
+        [["sel", "main input"], "anores"],
+        ["GOTO", "admin"],
+        [["sel", "main [data-doop-action=\"navigate:_Uq0S2br8g\"]"], "aanalytics"]
+      ]
+    ],
+    "errors": [
+      "notfound",
+      [
+        ["Go to Homepage", "home"],
+        ["GOTO", "noprofile"],
+        ["Get started", "upload"],
+        ["GOTO", "loaderr"],
+        ["Try Again", "portfolio"],
+        ["GOTO", "error"],
+        ["Go to Dashboard", "dash"]
+      ]
+    ],
+    "portfolio credit": ["portfolio", [[["sel", ".credit"], "home"]]],
+    "theme toggle (light)": [
+      "home",
+      [
+        [["sel", "[data-cf-theme=\"dark\"]"], "OTHER:home"],
+        [["sel", "[data-cf-theme=\"light\"]"], "home"]
+      ]
+    ],
+    "theme toggle (dark)": [
+      "home",
+      [
+        [["sel", "[data-cf-theme=\"light\"]"], "OTHER:home"],
+        [["sel", "[data-cf-theme=\"dark\"]"], "home"]
+      ]
+    ],
+    "theme toggle (menu, light)": [
+      "menu_site",
+      [
+        [["sel", "[data-cf-theme=\"dark\"]"], "OTHER:menu_site"],
+        [["sel", "[data-cf-theme=\"light\"]"], "menu_site"]
+      ]
+    ],
+    "theme toggle (menu, dark)": [
+      "menu_site",
+      [
+        [["sel", "[data-cf-theme=\"light\"]"], "OTHER:menu_site"],
+        [["sel", "[data-cf-theme=\"dark\"]"], "menu_site"]
+      ]
+    ]
+  },
+  "ONLY": {
+    "theme toggle (light)": ["light"],
+    "theme toggle (dark)": ["dark"],
+    "theme toggle (menu, light)": ["phone"],
+    "theme toggle (menu, dark)": ["phone-dark"]
+  }
+}
