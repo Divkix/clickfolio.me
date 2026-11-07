@@ -1,0 +1,10 @@
+{
+  "canvas_id": "nSF94gMl5i",
+  "agent": "Claude Manager",
+  "pages": ["nSF94gMl5i:page1", "T0ivBNBiT9", "wsRCQu73p2", "l7NfLA_BKR", "ymebG00WPs"],
+  "toggles": {
+    "data-cf-theme=\"light\"": "light",
+    "data-cf-theme=\"dark\"": "dark"
+  },
+  "crawl_skip": "[data-cf-theme=\"system\"]"
+}
